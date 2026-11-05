@@ -1,0 +1,21 @@
+<div class="p-3 rounded-3" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);">
+    <div class="d-flex justify-content-between align-items-start mb-1">
+        <a href="{% url 'opportunities:detail' pk=item.opportunity.pk %}" class="fw-bold text-white small text-decoration-none hover-white">
+            {{ item.opportunity.title }}
+        </a>
+    </div>
+    <div class="text-secondary small" style="font-size: 0.75rem;">{{ item.opportunity.organization }}</div>
+    
+    {% if item.application_notes %}
+    <p class="text-muted small mt-2 mb-2 fst-italic" style="font-size: 0.75rem;">"{{ item.application_notes|truncatechars:45 }}"</p>
+    {% endif %}
+
+    <div class="mt-2 pt-2 border-top border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
+        <button type="button" class="btn btn-sm text-info p-0 small" onclick="openStatusModal('{{ item.id }}', '{{ item.opportunity.title|escapejs }}', '{{ item.application_status }}', '{{ item.application_notes|escapejs }}')">
+            <i data-lucide="edit-3" style="width: 12px; height: 12px;"></i> Move
+        </button>
+        <a href="{{ item.opportunity.application_url }}" target="_blank" class="text-muted hover-white" title="Official Link">
+            <i data-lucide="external-link" style="width: 12px; height: 12px;"></i>
+        </a>
+    </div>
+</div>

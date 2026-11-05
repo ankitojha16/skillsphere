@@ -1,0 +1,217 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}AI Study Assistant - SkillSphere{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+    <div class="d-flex" style="height: calc(100vh - var(--navbar-height)); overflow: hidden;">
+        <!-- Left Conversations Sidebar -->
+        <div class="d-none d-md-flex flex-column border-end p-3" style="width: 280px; background-color: var(--bg-secondary); border-color: var(--border-color) !important; flex-shrink: 0;">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <span class="text-secondary small fw-bold text-uppercase" style="letter-spacing: 0.05em;">Sessions</span>
+                <a href="{% url 'assistant:new_chat' %}" class="btn btn-primary-custom btn-sm py-1 px-2" title="New Session">
+                    <i data-lucide="plus" style="width: 14px; height: 14px;"></i>
+                    <span>New</span>
+                </a>
+            </div>
+
+            <!-- Conversations List -->
+            <div class="d-flex flex-column gap-1 flex-grow-1 overflow-y-auto pe-1">
+                {% for conv in user_conversations %}
+                    <a href="{% url 'assistant:chat_detail' conversation_id=conv.id %}" 
+                       class="d-flex align-items-center justify-content-between p-2 rounded-2 text-decoration-none {% if conv.id == current_conv.id %}text-white bg-primary bg-opacity-25 border border-primary border-opacity-50{% else %}text-secondary hover-white hover-bg{% endif %}"
+                       style="font-size: 0.85rem;">
+                        <div class="d-flex align-items-center gap-2 text-truncate me-2">
+                            <i data-lucide="message-square" style="width: 14px; height: 14px; flex-shrink: 0;"></i>
+                            <span class="text-truncate">{{ conv.title }}</span>
+                        </div>
+                        <form action="{% url 'assistant:delete_chat' conversation_id=conv.id %}" method="post" class="d-inline" onsubmit="event.stopPropagation();">
+                            {% csrf_token %}
+                            <button type="submit" class="btn p-0 text-muted hover-danger border-0 bg-transparent" title="Delete">
+                                <i data-lucide="trash-2" style="width: 13px; height: 13px;"></i>
+                            </button>
+                        </form>
+                    </a>
+                {% empty %}
+                    <div class="text-muted small py-3 text-center">No past study sessions</div>
+                {% endfor %}
+            </div>
+
+            {% if user_conversations %}
+            <div class="pt-3 border-top" style="border-color: var(--border-color) !important;">
+                <form action="{% url 'assistant:clear_all' %}" method="post" onsubmit="return confirm('Clear all study conversation history?');">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-outline-danger btn-sm w-100 py-1 text-danger border-danger-subtle small">
+                        <i data-lucide="trash" style="width: 14px; height: 14px;"></i> Clear All History
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Main Chat Area -->
+        <div class="d-flex flex-column flex-grow-1" style="background-color: var(--bg-primary);">
+            <!-- Chat Header -->
+            <div class="d-flex justify-content-between align-items-center p-3 border-bottom px-4" style="border-color: var(--border-color) !important; background-color: rgba(17, 24, 43, 0.5);">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="stat-icon purple p-1" style="width: 36px; height: 36px;">
+                        <i data-lucide="bot" style="width: 20px; height: 20px;"></i>
+                    </div>
+                    <div>
+                        <h6 class="fw-bold text-white mb-0">{{ current_conv.title }}</h6>
+                        <span class="badge-category" style="font-size: 0.65rem;">Mode: {{ current_conv.get_mode_display }}</span>
+                    </div>
+                </div>
+
+                <div class="d-flex align-items-center gap-2">
+                    <a href="{% url 'assistant:new_chat' %}" class="btn btn-secondary-custom btn-sm py-1 px-2 d-md-none">
+                        <i data-lucide="plus" style="width: 14px; height: 14px;"></i>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Messages Stream -->
+            <div class="flex-grow-1 overflow-y-auto p-4 d-flex flex-column gap-3" id="chatStream">
+                {% if not chat_messages %}
+                    <!-- Welcome Initial State -->
+                    <div class="my-auto text-center py-5" style="max-width: 620px; margin: 0 auto;">
+                        <div class="stat-icon purple mx-auto mb-3" style="width: 56px; height: 56px;">
+                            <i data-lucide="sparkles" style="width: 28px; height: 28px;"></i>
+                        </div>
+                        <h3 class="fw-bold text-white mb-2">SkillSphere AI Study Assistant</h3>
+                        <p class="text-secondary small mb-4">
+                            Ask any computer science concept, debug code errors, request real-world examples, or generate rapid revision cheat sheets.
+                        </p>
+
+                        <!-- Quick Prompts Grid -->
+                        <div class="row g-2 text-start">
+                            <div class="col-sm-6">
+                                <button type="button" class="btn btn-secondary-custom w-100 text-start p-2 text-truncate small quick-prompt" data-text="Explain Python OOP with real-world examples">
+                                    💡 Explain Python OOP with examples
+                                </button>
+                            </div>
+                            <div class="col-sm-6">
+                                <button type="button" class="btn btn-secondary-custom w-100 text-start p-2 text-truncate small quick-prompt" data-text="What is a Django model and how does ORM work?">
+                                    🌐 What is a Django model?
+                                </button>
+                            </div>
+                            <div class="col-sm-6">
+                                <button type="button" class="btn btn-secondary-custom w-100 text-start p-2 text-truncate small quick-prompt" data-text="Explain SQL joins with visual syntax">
+                                    📊 Explain SQL joins & syntax
+                                </button>
+                            </div>
+                            <div class="col-sm-6">
+                                <button type="button" class="btn btn-secondary-custom w-100 text-start p-2 text-truncate small quick-prompt" data-text="How does binary search work and what is its time complexity?">
+                                    ⚡ How does binary search work?
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                {% else %}
+                    {% for msg in chat_messages %}
+                        <div class="d-flex gap-3 {% if msg.role == 'user' %}justify-content-end{% endif %}">
+                            {% if msg.role == 'assistant' %}
+                            <div class="stat-icon purple flex-shrink-0" style="width: 36px; height: 36px;">
+                                <i data-lucide="bot" style="width: 18px; height: 18px;"></i>
+                            </div>
+                            {% endif %}
+
+                            <div class="p-3 rounded-3 {% if msg.role == 'user' %}bg-primary text-white{% else %}custom-card text-light{% endif %}" 
+                                 style="max-width: 80%; {% if msg.role == 'user' %}background: var(--primary-gradient) !important;{% endif %}">
+                                <div class="small text-muted mb-1" style="font-size: 0.7rem; color: {% if msg.role == 'user' %}rgba(255,255,255,0.7){% else %}var(--text-muted){% endif %} !important;">
+                                    {{ msg.role|title }} • {{ msg.created_at|date:"H:i" }}
+                                </div>
+                                <div class="message-content" style="line-height: 1.7;">
+                                    {{ msg.content|linebreaksbr }}
+                                </div>
+                            </div>
+
+                            {% if msg.role == 'user' %}
+                            <img src="{{ student_profile.avatar_url }}" alt="Avatar" class="user-avatar flex-shrink-0" style="width: 36px; height: 36px;">
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                <!-- Dynamic Loading Indicator -->
+                <div id="loadingIndicator" class="d-none d-flex gap-3 align-items-center">
+                    <div class="stat-icon purple flex-shrink-0" style="width: 36px; height: 36px;">
+                        <i data-lucide="bot" style="width: 18px; height: 18px;"></i>
+                    </div>
+                    <div class="custom-card p-3 d-flex align-items-center gap-2">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                        <span class="text-secondary small">SkillSphere AI is analyzing and preparing your response...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Question Bar -->
+            <div class="p-3 border-top px-4" style="border-color: var(--border-color) !important; background-color: var(--bg-secondary);">
+                <form id="chatForm" method="post" action="{% url 'assistant:chat_detail' conversation_id=current_conv.id %}">
+                    {% csrf_token %}
+                    
+                    <!-- Response Mode Radio Pills -->
+                    <div class="d-flex align-items-center gap-2 mb-2 overflow-x-auto pb-1">
+                        <span class="text-muted small me-1" style="font-size: 0.75rem;">Mode:</span>
+                        {% for mode_val, mode_label in mode_choices %}
+                            <input type="radio" class="btn-check" name="mode" id="mode_{{ mode_val }}" value="{{ mode_val }}" {% if current_conv.mode == mode_val %}checked{% endif %}>
+                            <label class="btn btn-outline-secondary btn-sm py-0 px-2 rounded-pill text-light border-secondary-subtle" for="mode_{{ mode_val }}" style="font-size: 0.75rem;">
+                                {{ mode_label }}
+                            </label>
+                        {% endfor %}
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <input type="text" name="question" id="questionInput" class="form-control" placeholder="Ask an academic question or paste code to explain..." required autocomplete="off">
+                        <button type="submit" id="submitBtn" class="btn btn-primary-custom flex-shrink-0">
+                            <i data-lucide="send" style="width: 16px; height: 16px;"></i>
+                            <span class="d-none d-sm-inline">Ask AI</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const chatStream = document.getElementById('chatStream');
+    const chatForm = document.getElementById('chatForm');
+    const questionInput = document.getElementById('questionInput');
+    const submitBtn = document.getElementById('submitBtn');
+    const loadingIndicator = document.getElementById('loadingIndicator');
+
+    // Auto-scroll to bottom of chat
+    if (chatStream) {
+        chatStream.scrollTop = chatStream.scrollHeight;
+    }
+
+    // Quick prompt buttons
+    document.querySelectorAll('.quick-prompt').forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (questionInput) {
+                questionInput.value = btn.getAttribute('data-text');
+                questionInput.focus();
+            }
+        });
+    });
+
+    if (chatForm) {
+        chatForm.addEventListener('submit', () => {
+            if (loadingIndicator) {
+                loadingIndicator.classList.remove('d-none');
+                chatStream.scrollTop = chatStream.scrollHeight;
+            }
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Thinking...';
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

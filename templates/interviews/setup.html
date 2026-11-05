@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}AI Mock Interview Preparation - SkillSphere{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h2 class="fw-bold mb-1">AI Technical Mock Interview</h2>
+            <p class="text-secondary small mb-0">Simulate real technical and behavioral interviews with supportive AI evaluation.</p>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Setup Configuration Card -->
+        <div class="col-lg-5">
+            <div class="custom-card card-glowing p-4">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                    <div class="stat-icon purple" style="width: 40px; height: 40px;">
+                        <i data-lucide="message-square-code" style="width: 20px; height: 20px;"></i>
+                    </div>
+                    <h4 class="fw-bold text-white mb-0">Configure Interview</h4>
+                </div>
+
+                <form method="post" action="{% url 'interviews:setup' %}">
+                    {% csrf_token %}
+
+                    <div class="mb-3">
+                        <label class="form-label" for="category">Target Technical Role</label>
+                        <select name="category" id="category" class="form-select">
+                            {% for cat_val, cat_label in categories %}
+                                <option value="{{ cat_val }}">{{ cat_label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label" for="difficulty">Target Seniority Level</label>
+                        <select name="difficulty" id="difficulty" class="form-select">
+                            {% for diff_val, diff_label in difficulties %}
+                                <option value="{{ diff_val }}">{{ diff_label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label" for="total_questions">Number of Interview Questions</label>
+                        <select name="total_questions" id="total_questions" class="form-select">
+                            <option value="3" selected>3 Questions (~10 Minutes)</option>
+                            <option value="5">5 Questions (~20 Minutes)</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary-custom w-100 justify-content-center py-2">
+                        <i data-lucide="play" style="width: 16px; height: 16px;"></i>
+                        <span>Start Mock Interview Session</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Past Interviews History -->
+        <div class="col-lg-7">
+            <div class="custom-card p-4 h-100">
+                <h4 class="fw-bold text-white mb-3 d-flex align-items-center gap-2">
+                    <i data-lucide="history" class="text-secondary-accent" style="width: 20px; height: 20px;"></i>
+                    <span>Your Past Interview Sessions</span>
+                </h4>
+
+                <div class="d-flex flex-column gap-3">
+                    {% for interview in past_interviews %}
+                        <div class="p-3 rounded-3 d-flex align-items-center justify-content-between" style="background-color: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color);">
+                            <div>
+                                <div class="text-white fw-bold">{{ interview.category }}</div>
+                                <div class="text-muted small">
+                                    {{ interview.difficulty }} • {{ interview.created_at|date:"M d, Y" }}
+                                </div>
+                            </div>
+
+                            <div class="d-flex align-items-center gap-3">
+                                {% if interview.is_completed %}
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 small">
+                                        Score: {{ interview.overall_score }}/100
+                                    </span>
+                                    <a href="{% url 'interviews:report' interview_id=interview.id %}" class="btn btn-secondary-custom btn-sm py-1 px-3">
+                                        View Report
+                                    </a>
+                                {% else %}
+                                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-2 py-1 small">
+                                        {{ interview.completed_count }}/{{ interview.total_questions }} Answered
+                                    </span>
+                                    <a href="{% url 'interviews:session' interview_id=interview.id %}" class="btn btn-primary-custom btn-sm py-1 px-3">
+                                        Resume
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% empty %}
+                        <div class="text-center py-5 text-muted small">
+                            <i data-lucide="message-square" class="mx-auto mb-2 text-muted" style="width: 36px; height: 36px;"></i>
+                            <div>No past interviews completed yet. Configure and start your first session!</div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

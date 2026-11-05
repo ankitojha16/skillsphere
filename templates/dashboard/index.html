@@ -1,0 +1,356 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Student Dashboard - SkillSphere{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <!-- Welcome Section with XP & Streak Badges -->
+    <div class="welcome-banner mb-4">
+        <div class="row align-items-center g-3">
+            <div class="col-md-7">
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                    <span class="badge-difficulty intermediate">{{ gamification.current_level }}</span>
+                    <span class="badge bg-warning bg-opacity-10 text-warning border border-warning-subtle small px-2 py-1">
+                        <i data-lucide="flame" style="width: 14px; height: 14px;"></i> {{ gamification.current_streak }}-Day Streak
+                    </span>
+                    <span class="text-secondary small">{{ today_date|date:"l, F d, Y" }}</span>
+                </div>
+                <h1 class="fw-bold text-white mb-2">
+                    Welcome back, {{ student_profile.full_name|default:user.username }}! 👋
+                </h1>
+                <p class="text-secondary mb-0" style="max-width: 600px;">
+                    Targeting <strong>{{ student_profile.career_goal|default:"Software Engineer" }}</strong> at {{ student_profile.institution|default:"SkillSphere" }}.
+                </p>
+            </div>
+
+            <!-- Gamification XP Badge & Avatar -->
+            <div class="col-md-5 text-md-end d-flex justify-content-md-end align-items-center gap-3">
+                <div class="text-end">
+                    <div class="text-white fw-bold fs-5">{{ gamification.total_xp }} XP</div>
+                    <a href="{% url 'gamification:achievements' %}" class="small text-secondary hover-white">View Achievements <i data-lucide="chevron-right" style="width: 12px; height: 12px;"></i></a>
+                </div>
+                <img src="{{ student_profile.avatar_url }}" alt="Profile" class="user-avatar" style="width: 64px; height: 64px;">
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Learning Summary Callout -->
+    {% if ai_summary_points %}
+    <div class="custom-card p-4 mb-4" style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(6, 182, 212, 0.05) 100%); border-color: rgba(139, 92, 246, 0.3);">
+        <div class="d-flex align-items-center gap-2 mb-2 text-primary-accent-light fw-bold small">
+            <i data-lucide="sparkles" style="width: 18px; height: 18px;"></i>
+            <span>AI Learning Summary & Next Steps</span>
+        </div>
+        <div class="row g-2">
+            {% for point in ai_summary_points %}
+                <div class="col-md-6">
+                    <div class="text-light small">{{ point|safe }}</div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 4 Statistics Cards (Phase 1 Baseline) -->
+    <div class="row g-4 mb-4">
+        <div class="col-sm-6 col-xl-3">
+            <div class="stat-card">
+                <div class="stat-icon purple">
+                    <i data-lucide="book-open" style="width: 26px; height: 26px;"></i>
+                </div>
+                <div>
+                    <div class="stat-value">{{ total_enrolled }}</div>
+                    <div class="stat-label">Enrolled Courses</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-3">
+            <div class="stat-card">
+                <div class="stat-icon green">
+                    <i data-lucide="award" style="width: 26px; height: 26px;"></i>
+                </div>
+                <div>
+                    <div class="stat-value">{{ completed_courses_count }}</div>
+                    <div class="stat-label">Completed Courses</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-3">
+            <div class="stat-card">
+                <div class="stat-icon cyan">
+                    <i data-lucide="check-circle-2" style="width: 26px; height: 26px;"></i>
+                </div>
+                <div>
+                    <div class="stat-value">{{ total_completed_lessons }}</div>
+                    <div class="stat-label">Completed Lessons</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-3">
+            <div class="stat-card">
+                <div class="stat-icon orange">
+                    <i data-lucide="trending-up" style="width: 26px; height: 26px;"></i>
+                </div>
+                <div>
+                    <div class="stat-value">{{ overall_progress }}%</div>
+                    <div class="stat-label">Overall Progress</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts & Continue Learning Row -->
+    <div class="row g-4 mb-4">
+        <!-- Weekly Learning Activity Chart -->
+        <div class="col-lg-7">
+            <div class="custom-card h-100 p-4">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h5 class="fw-bold text-white mb-1 d-flex align-items-center gap-2">
+                            <i data-lucide="bar-chart-3" class="text-primary-accent" style="width: 20px; height: 20px;"></i>
+                            <span>Weekly Study Activity</span>
+                        </h5>
+                        <p class="text-secondary small mb-0">Daily completed lessons over the past 7 days</p>
+                    </div>
+                    <span class="badge bg-dark text-muted border border-secondary-subtle px-2 py-1 small">Real DB Records</span>
+                </div>
+
+                <div style="height: 240px; position: relative;">
+                    <canvas id="weeklyActivityChart"></canvas>
+                </div>
+
+                <!-- Hidden JSON elements for Chart.js -->
+                <script id="chartLabelsData" type="application/json">{{ chart_labels_json|safe }}</script>
+                <script id="chartCountsData" type="application/json">{{ chart_counts_json|safe }}</script>
+            </div>
+        </div>
+
+        <!-- Continue Learning Quick Access -->
+        <div class="col-lg-5">
+            <div class="custom-card h-100 p-4 d-flex flex-column">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold text-white mb-0 d-flex align-items-center gap-2">
+                        <i data-lucide="play-circle" class="text-secondary-accent" style="width: 20px; height: 20px;"></i>
+                        <span>Continue Learning</span>
+                    </h5>
+                    <a href="{% url 'courses:my_learning' %}" class="small text-secondary hover-white">View All</a>
+                </div>
+
+                <div class="d-flex flex-column gap-3 flex-grow-1">
+                    {% for item in enrolled_courses_data %}
+                        <div class="p-3 rounded-3" style="background-color: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color);">
+                            <div class="d-flex align-items-center gap-3 mb-2">
+                                <img src="{{ item.course.get_thumbnail_url }}" alt="{{ item.course.title }}" class="rounded-2" style="width: 48px; height: 48px; object-fit: cover;">
+                                <div class="overflow-hidden me-auto">
+                                    <div class="text-white fw-bold text-truncate" style="font-size: 0.95rem;">
+                                        <a href="{% url 'courses:detail' slug=item.course.slug %}" class="text-white text-decoration-none">
+                                            {{ item.course.title }}
+                                        </a>
+                                    </div>
+                                    <div class="text-muted small text-truncate">{{ item.course.instructor_name }}</div>
+                                </div>
+                                <span class="fw-bold text-white small">{{ item.progress.percentage }}%</span>
+                            </div>
+
+                            <div class="custom-progress mb-2">
+                                <div class="custom-progress-bar" style="width: {{ item.progress.percentage }}%;"></div>
+                            </div>
+
+                            <div class="d-flex justify-content-between align-items-center pt-1">
+                                <span class="text-muted small">{{ item.progress.completed }}/{{ item.progress.total }} lessons</span>
+                                {% if item.next_lesson %}
+                                    <a href="{% url 'learning:lesson_detail' course_slug=item.course.slug lesson_id=item.next_lesson.id %}" class="btn btn-primary-custom btn-sm py-1 px-3">
+                                        <span>Resume</span>
+                                        <i data-lucide="arrow-right" style="width: 14px; height: 14px;"></i>
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% empty %}
+                        <div class="text-center py-4 my-auto">
+                            <i data-lucide="book-plus" class="text-muted mx-auto mb-2" style="width: 36px; height: 36px;"></i>
+                            <div class="text-white fw-medium mb-1">No enrolled courses yet</div>
+                            <p class="text-secondary small mb-3">Enroll in your first course to track progress.</p>
+                            <a href="{% url 'courses:list' %}" class="btn btn-primary-custom btn-sm">Explore Courses</a>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Phase 2: Active Roadmap & Upcoming Learning Tasks -->
+    <div class="row g-4 mb-4">
+        <!-- Current Active Roadmap Milestone -->
+        <div class="col-lg-6">
+            <div class="custom-card p-4 h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold text-white mb-0 d-flex align-items-center gap-2">
+                        <i data-lucide="map" class="text-primary-accent" style="width: 20px; height: 20px;"></i>
+                        <span>Active Roadmap Progress</span>
+                    </h5>
+                    {% if active_roadmap %}
+                    <a href="{% url 'roadmaps:detail' roadmap_id=active_roadmap.id %}" class="small text-secondary hover-white">View Full Map</a>
+                    {% endif %}
+                </div>
+
+                {% if active_roadmap %}
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between text-secondary small mb-1">
+                            <span class="text-white fw-bold">{{ active_roadmap.title }}</span>
+                            <span class="fw-bold text-white">{{ roadmap_progress.percentage }}%</span>
+                        </div>
+                        <div class="custom-progress mb-2">
+                            <div class="custom-progress-bar" style="width: {{ roadmap_progress.percentage }}%;"></div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex flex-column gap-2">
+                        <div class="text-muted small fw-semibold text-uppercase" style="font-size: 0.7rem;">Upcoming Milestones</div>
+                        {% for ms in pending_milestones %}
+                            <div class="p-2 px-3 rounded-2 d-flex justify-content-between align-items-center" style="background-color: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color);">
+                                <div class="text-white small fw-medium text-truncate me-2">{{ ms.title }}</div>
+                                <a href="{% url 'roadmaps:detail' roadmap_id=active_roadmap.id %}" class="btn btn-secondary-custom btn-sm py-0 px-2 small" style="font-size: 0.75rem;">
+                                    View
+                                </a>
+                            </div>
+                        {% empty %}
+                            <div class="text-success small"><i data-lucide="check" style="width: 14px; height: 14px;"></i> All current milestones completed!</div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <p class="text-secondary small mb-3">No active learning roadmap yet.</p>
+                        <a href="{% url 'roadmaps:generate' %}" class="btn btn-primary-custom btn-sm">
+                            <i data-lucide="sparkles" style="width: 14px; height: 14px;"></i>
+                            <span>Generate Roadmap</span>
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Smart Course & Assessment Recommendations -->
+        <div class="col-lg-6">
+            <div class="custom-card p-4 h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold text-white mb-0 d-flex align-items-center gap-2">
+                        <i data-lucide="compass" class="text-secondary-accent" style="width: 20px; height: 20px;"></i>
+                        <span>Recommended For You</span>
+                    </h5>
+                    <a href="{% url 'courses:list' %}" class="small text-secondary hover-white">Explore All</a>
+                </div>
+
+                <div class="d-flex flex-column gap-2">
+                    {% for course in recommended_courses %}
+                        <div class="p-2 px-3 rounded-2 d-flex justify-content-between align-items-center" style="background-color: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color);">
+                            <div class="overflow-hidden me-2">
+                                <div class="text-white small fw-bold text-truncate">{{ course.title }}</div>
+                                <div class="text-muted small" style="font-size: 0.75rem;">{{ course.category.name }} • {{ course.estimated_duration }}</div>
+                            </div>
+                            <a href="{% url 'courses:detail' slug=course.slug %}" class="btn btn-primary-custom btn-sm py-1 px-3 flex-shrink-0" style="font-size: 0.8rem;">
+                                Enroll
+                            </a>
+                        </div>
+                    {% empty %}
+                        <div class="text-center py-4 text-muted small">All current courses enrolled!</div>
+                    {% endfor %}
+
+                    {% if suggested_assessment %}
+                        <div class="p-2 px-3 rounded-2 mt-2 d-flex justify-content-between align-items-center" style="background-color: rgba(139, 92, 246, 0.08); border: 1px dashed rgba(139, 92, 246, 0.3);">
+                            <div>
+                                <div class="text-muted small fw-bold text-uppercase" style="font-size: 0.68rem; color: var(--primary-accent-light) !important;">Skill Assessment Challenge</div>
+                                <div class="text-white small fw-bold">{{ suggested_assessment.title }}</div>
+                            </div>
+                            <a href="{% url 'assessments:take' assessment_id=suggested_assessment.id %}" class="btn btn-secondary-custom btn-sm py-1 px-2 small">
+                                Take Quiz
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Goals & Recent Activity Row (Phase 1 Baseline) -->
+    <div class="row g-4">
+        <!-- Active Learning Goals -->
+        <div class="col-lg-6">
+            <div class="custom-card p-4 h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold text-white mb-0 d-flex align-items-center gap-2">
+                        <i data-lucide="target" class="text-primary-accent" style="width: 20px; height: 20px;"></i>
+                        <span>Active Learning Goals</span>
+                    </h5>
+                    <a href="{% url 'goals:index' %}" class="small text-secondary hover-white">Manage Goals</a>
+                </div>
+
+                <div class="d-flex flex-column gap-2">
+                    {% for goal in active_goals %}
+                        <div class="d-flex align-items-center justify-content-between p-3 rounded-3" style="background-color: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color);">
+                            <div class="d-flex align-items-center gap-3">
+                                <form action="{% url 'goals:toggle' goal_id=goal.id %}" method="post" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn p-0 text-muted" title="Mark Done">
+                                        <i data-lucide="circle" style="width: 18px; height: 18px;"></i>
+                                    </button>
+                                </form>
+                                <div>
+                                    <div class="text-white fw-medium">{{ goal.title }}</div>
+                                    <div class="text-muted small">Target: {{ goal.target_date|date:"M d, Y" }}</div>
+                                </div>
+                            </div>
+                            {% if goal.is_overdue %}
+                                <span class="badge text-bg-danger small">Overdue</span>
+                            {% else %}
+                                <span class="badge text-bg-dark border border-secondary-subtle text-muted small">In Progress</span>
+                            {% endif %}
+                        </div>
+                    {% empty %}
+                        <div class="text-center py-4">
+                            <p class="text-secondary small mb-3">No active learning goals right now.</p>
+                            <a href="{% url 'goals:index' %}" class="btn btn-secondary-custom btn-sm">Set a Goal</a>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity Feed -->
+        <div class="col-lg-6">
+            <div class="custom-card p-4 h-100">
+                <h5 class="fw-bold text-white mb-3 d-flex align-items-center gap-2">
+                    <i data-lucide="clock" class="text-secondary-accent" style="width: 20px; height: 20px;"></i>
+                    <span>Recent Activity Feed</span>
+                </h5>
+
+                <div class="d-flex flex-column gap-3">
+                    {% for act in recent_activities %}
+                        <div class="d-flex align-items-start gap-3">
+                            <div class="stat-icon purple flex-shrink-0" style="width: 32px; height: 32px;">
+                                <i data-lucide="{% if act.activity_type == 'COMPLETE_LESSON' %}check{% elif act.activity_type == 'ENROLL' %}book-open{% else %}sparkles{% endif %}" style="width: 16px; height: 16px;"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="text-white small fw-medium">{{ act.description }}</div>
+                                <div class="text-muted" style="font-size: 0.75rem;">{{ act.created_at|timesince }} ago</div>
+                            </div>
+                        </div>
+                    {% empty %}
+                        <div class="text-center py-4 text-muted small">
+                            No recorded study activities yet. Complete lessons to build your timeline!
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/dashboard.js' %}"></script>
+{% endblock %}

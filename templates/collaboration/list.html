@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Project Collaboration Hub - SkillSphere{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h1 class="h3 fw-bold text-white mb-1">Project Collaboration Hub</h1>
+            <p class="text-secondary mb-0">Find passionate teammates, form multidisciplinary crews, and build real-world software together.</p>
+        </div>
+        <a href="{% url 'collaboration:create' %}" class="btn btn-primary-custom">
+            <i data-lucide="plus-circle" style="width: 16px; height: 16px;"></i>
+            <span>Post Collaboration Project</span>
+        </a>
+    </div>
+
+    <!-- My Managed Projects Quick-Access Banner -->
+    {% if my_projects %}
+    <div class="custom-card p-3 mb-4" style="background: rgba(139, 92, 246, 0.08); border: 1px solid rgba(139, 92, 246, 0.25);">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <div class="d-flex align-items-center gap-2 text-purple fw-bold small">
+                <i data-lucide="shield-check" style="width: 16px; height: 16px;"></i>
+                <span>Your Active Recruitment Listings ({{ my_projects.count }})</span>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                {% for mp in my_projects %}
+                <a href="{% url 'collaboration:manage' pk=mp.pk %}" class="btn btn-sm btn-outline-purple">
+                    Manage {{ mp.title|truncatechars:20 }} →
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Search & Status Filter -->
+    <div class="custom-card p-3 mb-4">
+        <form method="get" class="row g-2 align-items-center">
+            <div class="col-md-7">
+                <div class="input-group">
+                    <span class="input-group-text bg-dark border-secondary text-secondary"><i data-lucide="search" style="width: 16px; height: 16px;"></i></span>
+                    <input type="text" name="q" class="form-control bg-dark text-white border-secondary" placeholder="Search by required tech (e.g. Django, React), role, or project..." value="{{ query }}">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select name="status" class="form-select bg-dark text-white border-secondary">
+                    <option value="recruiting" {% if status_filter == 'recruiting' %}selected{% endif %}>Looking for Members</option>
+                    <option value="in_progress" {% if status_filter == 'in_progress' %}selected{% endif %}>In Progress</option>
+                    <option value="planning" {% if status_filter == 'planning' %}selected{% endif %}>Planning</option>
+                    <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Project Statuses</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-secondary-custom w-100">Filter</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Collaboration Projects Grid -->
+    <div class="row g-4 mb-4">
+        {% for proj in projects %}
+        <div class="col-md-6 col-xl-4">
+            <div class="custom-card p-4 h-100 d-flex flex-column justify-content-between">
+                <div>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="badge-category">{{ proj.category }}</span>
+                        <span class="badge {% if proj.status == 'recruiting' %}bg-success{% elif proj.status == 'in_progress' %}bg-info text-dark{% else %}bg-secondary{% endif %}">
+                            {{ proj.get_status_display }}
+                        </span>
+                    </div>
+
+                    <h4 class="h5 fw-bold text-white mb-1">{{ proj.title }}</h4>
+                    <div class="text-secondary small mb-3">Owner: <span class="text-info fw-medium">{{ proj.owner.username }}</span> • {{ proj.difficulty|title }}</div>
+
+                    <p class="text-secondary small mb-3">{{ proj.description|truncatewords:25 }}</p>
+
+                    <div class="mb-2">
+                        <div class="text-muted small mb-1">Required Roles:</div>
+                        <div class="text-light small fw-medium">{{ proj.required_roles }}</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="text-muted small mb-1">Tech Stack:</div>
+                        <div class="d-flex flex-wrap gap-1">
+                            {% for tech in proj.technologies.split %}
+                            <span class="badge bg-dark border border-secondary text-info small">{{ tech }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pt-3 border-top border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
+                    <div class="text-secondary small">
+                        <i data-lucide="users" style="width: 14px; height: 14px;"></i> {{ proj.current_members_count }}/{{ proj.team_size }} Members
+                    </div>
+                    {% if proj.owner == request.user %}
+                    <a href="{% url 'collaboration:manage' pk=proj.pk %}" class="btn btn-sm btn-outline-purple">Manage Team →</a>
+                    {% else %}
+                    <a href="{% url 'collaboration:detail' pk=proj.pk %}" class="btn btn-sm btn-outline-light">View & Join →</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12 text-center py-5 text-muted">
+            <i data-lucide="users-2" style="width: 36px; height: 36px;" class="mb-2 d-block mx-auto opacity-50"></i>
+            No collaboration projects found. Click "Post Collaboration Project" to start recruiting!
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

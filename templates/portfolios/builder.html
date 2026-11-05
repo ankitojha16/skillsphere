@@ -1,0 +1,256 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Portfolio Builder - SkillSphere{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h1 class="h3 fw-bold text-white mb-1">Portfolio Builder</h1>
+            <p class="text-secondary mb-0">Build and publish a professional, responsive developer portfolio without writing HTML.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'portfolios:preview' %}" target="_blank" class="btn btn-secondary-custom">
+                <i data-lucide="eye" style="width: 16px; height: 16px;"></i>
+                <span>Live Preview</span>
+            </a>
+            {% if portfolio.is_public %}
+            <a href="{% url 'portfolios:public' username=portfolio.username %}" target="_blank" class="btn btn-primary-custom">
+                <i data-lucide="external-link" style="width: 16px; height: 16px;"></i>
+                <span>View Public URL</span>
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Status & Visibility Banner -->
+    <div class="custom-card p-4 mb-4" style="background: rgba(17, 24, 43, 0.95); border: 1px solid {% if portfolio.is_public %}rgba(34, 197, 94, 0.3){% else %}rgba(245, 158, 11, 0.3){% endif %};">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="p-2 rounded-circle" style="background: {% if portfolio.is_public %}rgba(34, 197, 94, 0.15){% else %}rgba(245, 158, 11, 0.15){% endif %}; color: {% if portfolio.is_public %}#22C55E{% else %}#F59E0B{% endif %};">
+                    <i data-lucide="{% if portfolio.is_public %}globe{% else %}lock{% endif %}" style="width: 24px; height: 24px;"></i>
+                </div>
+                <div>
+                    <h5 class="fw-bold text-white mb-1">
+                        {% if portfolio.is_public %}
+                        Portfolio is Public: <a href="{% url 'portfolios:public' username=portfolio.username %}" target="_blank" class="text-info text-decoration-none">/u/{{ portfolio.username }}/</a>
+                        {% else %}
+                        Portfolio is currently Private (Hidden from public recruiters)
+                        {% endif %}
+                    </h5>
+                    <p class="text-secondary small mb-0">
+                        {% if portfolio.is_public %}
+                        Accessible worldwide to hiring managers and recruiters. Private personal details (phone, email) remain protected.
+                        {% else %}
+                        Only you can see this portfolio. Toggle visibility to Public below whenever you are ready to showcase your work.
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+            <div>
+                <span class="badge {% if portfolio.is_public %}bg-success{% else %}bg-warning text-dark{% endif %} px-3 py-2 fs-6">
+                    {% if portfolio.is_public %}Live & Published{% else %}Draft Mode{% endif %}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Settings & Template Controls Form -->
+        <div class="col-lg-7">
+            <div class="custom-card p-4 mb-4">
+                <h5 class="fw-bold text-white mb-3"><i data-lucide="sliders" style="width: 18px; height: 18px;" class="me-2 text-purple"></i>Design & Profile Settings</h5>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="update_settings">
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label text-secondary small">Portfolio Headline / Title</label>
+                            <input type="text" name="title" class="form-control bg-dark text-white border-secondary" value="{{ portfolio.title }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-secondary small">Template Design</label>
+                            <select name="template" class="form-select bg-dark text-white border-secondary">
+                                <option value="minimal" {% if portfolio.template == 'minimal' %}selected{% endif %}>1. Minimal Professional</option>
+                                <option value="modern" {% if portfolio.template == 'modern' %}selected{% endif %}>2. Modern Developer (Dark & Glow)</option>
+                                <option value="creative" {% if portfolio.template == 'creative' %}selected{% endif %}>3. Creative Portfolio (Dynamic)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-secondary small">About Me Narrative</label>
+                        <textarea name="about" rows="4" class="form-control bg-dark text-white border-secondary" placeholder="Introduce yourself, your technical passion, and what systems you enjoy building...">{{ portfolio.about }}</textarea>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label text-secondary small">Color Theme</label>
+                            <select name="theme" class="form-select bg-dark text-white border-secondary">
+                                <option value="dark" {% if portfolio.theme == 'dark' %}selected{% endif %}>Dark Glow (Cyber Purple)</option>
+                                <option value="midnight" {% if portfolio.theme == 'midnight' %}selected{% endif %}>Midnight Slate (Deep Navy)</option>
+                                <option value="emerald" {% if portfolio.theme == 'emerald' %}selected{% endif %}>Emerald Cyber (Matrix Green)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-secondary small">Accent Color Code</label>
+                            <div class="input-group">
+                                <input type="color" class="form-control form-control-color bg-dark border-secondary" name="accent_color" value="{{ portfolio.accent_color }}" title="Choose accent color">
+                                <input type="text" class="form-control bg-dark text-white border-secondary" value="{{ portfolio.accent_color }}" readonly>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h6 class="text-white fw-bold mt-4 mb-2 small text-uppercase text-secondary">Social & Contact Handles (Public)</h6>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label text-secondary small">GitHub Profile URL</label>
+                            <input type="url" name="github_url" class="form-control bg-dark text-white border-secondary" value="{{ portfolio.github_url }}" placeholder="https://github.com/username">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-secondary small">LinkedIn Profile URL</label>
+                            <input type="url" name="linkedin_url" class="form-control bg-dark text-white border-secondary" value="{{ portfolio.linkedin_url }}" placeholder="https://linkedin.com/in/username">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-secondary small">Personal Website / Blog</label>
+                            <input type="url" name="website_url" class="form-control bg-dark text-white border-secondary" value="{{ portfolio.website_url }}" placeholder="https://yourdomain.com">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-secondary small">Twitter / X Handle</label>
+                            <input type="url" name="twitter_url" class="form-control bg-dark text-white border-secondary" value="{{ portfolio.twitter_url }}" placeholder="https://x.com/username">
+                        </div>
+                    </div>
+
+                    <h6 class="text-white fw-bold mt-4 mb-2 small text-uppercase text-secondary">Visibility & Content Controls</h6>
+                    <div class="d-flex flex-column gap-2 mb-4">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" name="is_public" id="is_public" {% if portfolio.is_public %}checked{% endif %}>
+                            <label class="form-check-label text-white small" for="is_public">Publish portfolio publicly at <code>/u/{{ portfolio.username }}/</code></label>
+                        </div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" name="show_skills" id="show_skills" {% if portfolio.show_skills %}checked{% endif %}>
+                            <label class="form-check-label text-white small" for="show_skills">Display verified SkillSphere skills</label>
+                        </div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" name="show_certifications" id="show_certifications" {% if portfolio.show_certifications %}checked{% endif %}>
+                            <label class="form-check-label text-white small" for="show_certifications">Display verified course certificates with authenticity badges</label>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary-custom w-100">
+                        <i data-lucide="save" style="width: 16px; height: 16px;"></i> Save Portfolio Settings
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Project Showcase Management -->
+        <div class="col-lg-5">
+            <!-- Add New Project Card -->
+            <div class="custom-card p-4 mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold text-white mb-0"><i data-lucide="plus-circle" style="width: 18px; height: 18px;" class="me-2 text-success"></i>Add Project</h5>
+                </div>
+
+                <!-- Fast Import from Phase 2 Generated Projects -->
+                {% if available_generated %}
+                <div class="p-3 rounded-3 mb-3" style="background: rgba(139, 92, 246, 0.08); border: 1px dashed rgba(139, 92, 246, 0.3);">
+                    <div class="text-purple small fw-bold mb-1"><i data-lucide="sparkles" style="width: 14px; height: 14px;"></i> Quick Import from Project Generator</div>
+                    <form method="post" class="d-flex gap-2">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="import_skillsphere_project">
+                        <select name="skillsphere_project_id" class="form-select form-select-sm bg-dark text-white border-secondary">
+                            {% for gen in available_generated %}
+                            <option value="{{ gen.id }}">{{ gen.title }} ({{ gen.language }})</option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit" class="btn btn-sm btn-outline-purple flex-shrink-0">Import</button>
+                    </form>
+                </div>
+                {% endif %}
+
+                <!-- Manual Project Add Form -->
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="add_project">
+
+                    <div class="mb-2">
+                        <label class="form-label text-secondary small">Project Name *</label>
+                        <input type="text" name="project_title" class="form-control form-control-sm bg-dark text-white border-secondary" required placeholder="e.g. Asynchronous Task Orchestrator">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label text-secondary small">Technologies Used *</label>
+                        <input type="text" name="project_tech" class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="e.g. Python, Django, PostgreSQL, Redis">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label text-secondary small">Description *</label>
+                        <textarea name="project_desc" rows="3" class="form-control form-control-sm bg-dark text-white border-secondary" required placeholder="What problem does this project solve?"></textarea>
+                    </div>
+                    <div class="row g-2 mb-2">
+                        <div class="col-6">
+                            <label class="form-label text-secondary small">GitHub Repository</label>
+                            <input type="url" name="project_github" class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="https://github.com/...">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label text-secondary small">Live Deployment</label>
+                            <input type="url" name="project_live" class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="https://...">
+                        </div>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" name="is_featured" id="is_featured" checked>
+                        <label class="form-check-label text-secondary small" for="is_featured">Mark as Featured Project</label>
+                    </div>
+
+                    <button type="submit" class="btn btn-sm btn-secondary-custom w-100">
+                        <i data-lucide="plus" style="width: 14px; height: 14px;"></i> Add Project to Portfolio
+                    </button>
+                </form>
+            </div>
+
+            <!-- Current Showcase Projects List -->
+            <div class="custom-card p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold text-white mb-0">Showcase Projects ({{ projects.count }})</h5>
+                </div>
+
+                {% if projects %}
+                <div class="d-flex flex-column gap-3">
+                    {% for proj in projects %}
+                    <div class="p-3 rounded-3" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08);">
+                        <div class="d-flex justify-content-between align-items-start mb-1">
+                            <div class="fw-bold text-white">{{ proj.title }}</div>
+                            <form method="post" action="{% url 'portfolios:delete_project' project_id=proj.id %}">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm text-danger p-0" title="Delete" onclick="return confirm('Remove project from portfolio?');">
+                                    <i data-lucide="trash-2" style="width: 16px; height: 16px;"></i>
+                                </button>
+                            </form>
+                        </div>
+                        <div class="text-info small mb-2">{{ proj.technologies }}</div>
+                        <p class="text-secondary small mb-2">{{ proj.description|truncatewords:20 }}</p>
+                        <div class="d-flex gap-2">
+                            {% if proj.github_url %}
+                            <a href="{{ proj.github_url }}" target="_blank" class="text-light small text-decoration-none"><i data-lucide="github" style="width: 12px; height: 12px;"></i> Code</a>
+                            {% endif %}
+                            {% if proj.live_url %}
+                            <a href="{{ proj.live_url }}" target="_blank" class="text-info small text-decoration-none"><i data-lucide="external-link" style="width: 12px; height: 12px;"></i> Demo</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-4 text-muted small">
+                    <i data-lucide="folder-x" style="width: 32px; height: 32px;" class="mb-2 d-block mx-auto opacity-50"></i>
+                    No projects added yet. Import from Project Generator or add a custom project above!
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

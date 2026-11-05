@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Generate Learning Roadmap - SkillSphere{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width: 720px;">
+    <div class="custom-card card-glowing p-4 p-md-5">
+        <div class="text-center mb-4">
+            <div class="stat-icon purple mx-auto mb-3" style="width: 52px; height: 52px;">
+                <i data-lucide="map-pin" style="width: 26px; height: 26px;"></i>
+            </div>
+            <h2 class="fw-bold mb-1">Generate AI Learning Roadmap</h2>
+            <p class="text-secondary small">Tell us what skill you want to master and your career goal. Our AI will architect a sequential, multi-phase curriculum.</p>
+        </div>
+
+        <form method="post" id="roadmapForm">
+            {% csrf_token %}
+
+            <div class="mb-3">
+                <label class="form-label" for="target_skill">Target Skill / Topic to Master</label>
+                <input type="text" name="target_skill" id="target_skill" class="form-control" placeholder="e.g., Python, Full-Stack Web Development, Data Structures, Machine Learning" required>
+            </div>
+
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <label class="form-label" for="current_level">Your Current Knowledge Level</label>
+                    <select name="current_level" id="current_level" class="form-select">
+                        <option value="Beginner" {% if initial_level == 'Beginner' %}selected{% endif %}>Beginner (Just starting)</option>
+                        <option value="Intermediate" {% if initial_level == 'Intermediate' %}selected{% endif %}>Intermediate (Know basics, need mastery)</option>
+                        <option value="Advanced" {% if initial_level == 'Advanced' %}selected{% endif %}>Advanced (Deep architectural dive)</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="career_goal">Target Career Objective</label>
+                    <input type="text" name="career_goal" id="career_goal" class="form-control" placeholder="e.g., Backend Developer, AI Engineer" value="{{ initial_goal }}">
+                </div>
+            </div>
+
+            <div class="row g-3 mb-4">
+                <div class="col-md-6">
+                    <label class="form-label" for="daily_time">Available Daily Study Time</label>
+                    <select name="daily_time" id="daily_time" class="form-select">
+                        <option value="30 minutes/day">30 minutes/day</option>
+                        <option value="1 hour/day" selected>1 hour/day</option>
+                        <option value="2 hours/day">2 hours/day</option>
+                        <option value="3+ hours/day (Intensive)">3+ hours/day (Intensive)</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="duration">Target Roadmap Duration</label>
+                    <select name="duration" id="duration" class="form-select">
+                        <option value="1 month (Crash Course)">1 month (Crash Course)</option>
+                        <option value="3 months (Standard)" selected>3 months (Standard)</option>
+                        <option value="6 months (Comprehensive)">6 months (Comprehensive)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="d-flex gap-3">
+                <button type="submit" id="generateBtn" class="btn btn-primary-custom flex-grow-1 justify-content-center py-2">
+                    <i data-lucide="sparkles" style="width: 18px; height: 18px;"></i>
+                    <span>Generate Personalized Roadmap</span>
+                </button>
+                <a href="{% url 'roadmaps:list' %}" class="btn btn-secondary-custom">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('roadmapForm').addEventListener('submit', () => {
+    const btn = document.getElementById('generateBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Architecting Curriculum...';
+});
+</script>
+{% endblock %}

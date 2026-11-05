@@ -1,0 +1,246 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Career Analytics & Readiness - SkillSphere{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <!-- Breadcrumb & Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h1 class="h3 fw-bold text-white mb-1">Career Preparation Analytics</h1>
+            <p class="text-secondary mb-0">Transparent weighted scoring of your real technical competencies, portfolio projects, and coursework.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'careers:hub' %}" class="btn btn-secondary-custom">
+                <i data-lucide="compass" style="width: 16px; height: 16px;"></i>
+                <span>Career Hub</span>
+            </a>
+            <a href="{% url 'opportunities:list' %}" class="btn btn-primary-custom">
+                <i data-lucide="briefcase" style="width: 16px; height: 16px;"></i>
+                <span>Explore Opportunities</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Overall Score & Radar Overview -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-5">
+            <div class="custom-card card-glowing p-4 h-100 d-flex flex-column justify-content-between">
+                <div>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="badge-category"><i data-lucide="award" style="width: 12px; height: 12px;"></i> Readiness Index</span>
+                        <span class="badge bg-purple text-white">{{ active_path.name }}</span>
+                    </div>
+                    
+                    <div class="text-center my-3">
+                        <div class="display-3 fw-bold text-white mb-1">{{ readiness.overall_score }}<span class="fs-4 text-muted">/100</span></div>
+                        <div class="text-info fw-medium">
+                            {% if readiness.overall_score >= 80 %}
+                                Job & Internship Ready
+                            {% elif readiness.overall_score >= 60 %}
+                                Actively Building Competitive Edge
+                            {% elif readiness.overall_score >= 40 %}
+                                Developing Foundation
+                            {% else %}
+                                Getting Started on Curriculum
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="p-3 rounded-3 mb-3" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06);">
+                        <div class="text-secondary small fw-medium mb-2">Transparent Scoring Formula:</div>
+                        <div class="d-flex flex-column gap-2 small">
+                            <div class="d-flex justify-content-between text-muted">
+                                <span>Technical Skills (25%)</span>
+                                <span class="text-white fw-medium">{{ readiness.skills_score }}%</span>
+                            </div>
+                            <div class="d-flex justify-content-between text-muted">
+                                <span>Projects Experience (25%)</span>
+                                <span class="text-white fw-medium">{{ readiness.projects_score }}%</span>
+                            </div>
+                            <div class="d-flex justify-content-between text-muted">
+                                <span>Learning Completion (15%)</span>
+                                <span class="text-white fw-medium">{{ readiness.course_score }}%</span>
+                            </div>
+                            <div class="d-flex justify-content-between text-muted">
+                                <span>ATS Resume Readiness (15%)</span>
+                                <span class="text-white fw-medium">{{ readiness.resume_score }}%</span>
+                            </div>
+                            <div class="d-flex justify-content-between text-muted">
+                                <span>Public Portfolio (10%)</span>
+                                <span class="text-white fw-medium">{{ readiness.portfolio_score }}%</span>
+                            </div>
+                            <div class="d-flex justify-content-between text-muted">
+                                <span>Mock Interview Practice (10%)</span>
+                                <span class="text-white fw-medium">{{ readiness.interview_score }}%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-muted small">
+                    <i data-lucide="shield-check" style="width: 14px; height: 14px;" class="text-success me-1"></i>
+                    Calculated solely from verified course completions, quizzes, code projects, and interviews.
+                </div>
+            </div>
+        </div>
+
+        <!-- Dimension Radar / Bar Chart -->
+        <div class="col-lg-7">
+            <div class="custom-card p-4 h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold text-white mb-0">Career Preparation Dimensions</h5>
+                    <span class="text-muted small">Real-time breakdown</span>
+                </div>
+                <div style="height: 320px; position: relative;">
+                    <canvas id="readinessChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Strengths vs Areas for Improvement -->
+    <div class="row g-4 mb-4">
+        <!-- Strengths -->
+        <div class="col-md-6">
+            <div class="custom-card p-4 h-100 border-success border-opacity-25">
+                <div class="d-flex align-items-center gap-2 mb-3 text-success">
+                    <i data-lucide="check-circle" style="width: 22px; height: 22px;"></i>
+                    <h5 class="fw-bold text-white mb-0">Verified Strengths</h5>
+                </div>
+                {% if readiness.strengths %}
+                <ul class="list-unstyled mb-0 d-flex flex-column gap-3">
+                    {% for strength in readiness.strengths %}
+                    <li class="d-flex align-items-start gap-2 text-light small">
+                        <i data-lucide="arrow-right" style="width: 16px; height: 16px;" class="text-success mt-1 flex-shrink-0"></i>
+                        <span>{{ strength }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-secondary small mb-0">Complete more lessons and build projects to unlock strength indicators.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Areas for Improvement -->
+        <div class="col-md-6">
+            <div class="custom-card p-4 h-100 border-warning border-opacity-25">
+                <div class="d-flex align-items-center gap-2 mb-3 text-warning">
+                    <i data-lucide="alert-circle" style="width: 22px; height: 22px;"></i>
+                    <h5 class="fw-bold text-white mb-0">Actionable Growth Areas</h5>
+                </div>
+                {% if readiness.improvements %}
+                <ul class="list-unstyled mb-0 d-flex flex-column gap-3">
+                    {% for improvement in readiness.improvements %}
+                    <li class="d-flex align-items-start gap-2 text-secondary small">
+                        <i data-lucide="chevron-right" style="width: 16px; height: 16px;" class="text-warning mt-1 flex-shrink-0"></i>
+                        <span>{{ improvement }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-success small mb-0"><i data-lucide="sparkles" style="width: 14px; height: 14px;"></i> Outstanding! All career readiness pillars have met or exceeded threshold benchmarks.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Suggested Action Next Steps -->
+    <div class="custom-card p-4">
+        <h5 class="fw-bold text-white mb-3">Recommended Next Steps for {{ active_path.name }}</h5>
+        <div class="row g-3">
+            <div class="col-md-4">
+                <div class="p-3 rounded-3 h-100" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08);">
+                    <div class="d-flex align-items-center gap-2 text-info mb-2">
+                        <i data-lucide="file-text" style="width: 18px; height: 18px;"></i>
+                        <span class="fw-bold">1. Refine ATS Resume</span>
+                    </div>
+                    <p class="text-secondary small mb-3">Use the AI resume builder to convert your completed courses and projects into ATS-optimized bullet points.</p>
+                    <a href="{% url 'resumes:builder' %}" class="btn btn-sm btn-outline-info">Open Resume Builder →</a>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="p-3 rounded-3 h-100" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08);">
+                    <div class="d-flex align-items-center gap-2 text-purple mb-2">
+                        <i data-lucide="folder-plus" style="width: 18px; height: 18px;"></i>
+                        <span class="fw-bold">2. Feature a Capstone Project</span>
+                    </div>
+                    <p class="text-secondary small mb-3">Generate a full practical architecture spec and pin it to your public portfolio for recruiters to review.</p>
+                    <a href="{% url 'portfolios:builder' %}" class="btn btn-sm btn-outline-purple">Configure Portfolio →</a>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="p-3 rounded-3 h-100" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08);">
+                    <div class="d-flex align-items-center gap-2 text-success mb-2">
+                        <i data-lucide="briefcase" style="width: 18px; height: 18px;"></i>
+                        <span class="fw-bold">3. Target Verified Openings</span>
+                    </div>
+                    <p class="text-secondary small mb-3">Browse curated internships, track your application pipeline, and set interview prep reminders.</p>
+                    <a href="{% url 'opportunities:list' %}" class="btn btn-sm btn-outline-success">Browse Portal →</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('readinessChart');
+    if (ctx) {
+        new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: ['Technical Skills', 'Projects Experience', 'Course Completion', 'Resume Readiness', 'Public Portfolio', 'Mock Interviews'],
+                datasets: [{
+                    label: 'Readiness (%)',
+                    data: [
+                        {{ readiness.skills_score }},
+                        {{ readiness.projects_score }},
+                        {{ readiness.course_score }},
+                        {{ readiness.resume_score }},
+                        {{ readiness.portfolio_score }},
+                        {{ readiness.interview_score }}
+                    ],
+                    backgroundColor: 'rgba(139, 92, 246, 0.25)',
+                    borderColor: '#8B5CF6',
+                    pointBackgroundColor: '#06B6D4',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: '#06B6D4',
+                    borderWidth: 2,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    r: {
+                        angleLines: { color: 'rgba(255, 255, 255, 0.1)' },
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                        pointLabels: {
+                            color: '#94A3B8',
+                            font: { size: 11, family: 'Inter, sans-serif' }
+                        },
+                        ticks: {
+                            backdropColor: 'transparent',
+                            color: '#64748B',
+                            stepSize: 20,
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    }
+                },
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

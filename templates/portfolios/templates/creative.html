@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ full_name }} — Creative Portfolio</title>
+    <meta name="description" content="{{ portfolio.about|truncatewords:25 }}">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --creative-accent: {{ portfolio.accent_color|default:"#EC4899" }};
+        }
+        body {
+            background: #090D16;
+            color: #F1F5F9;
+            font-family: 'Space Grotesk', sans-serif;
+            min-height: 100vh;
+        }
+        .creative-pill {
+            display: inline-block;
+            background: linear-gradient(90deg, var(--creative-accent), #8B5CF6);
+            color: white;
+            font-weight: 700;
+            padding: 6px 16px;
+            border-radius: 9999px;
+            font-size: 0.85rem;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+        .creative-card {
+            background: #121829;
+            border: 2px solid rgba(255, 255, 255, 0.06);
+            border-radius: 24px;
+            padding: 2.2rem;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        .creative-card:hover {
+            border-color: var(--creative-accent);
+            transform: scale(1.02);
+            box-shadow: 0 15px 35px -10px rgba(236, 72, 153, 0.25);
+        }
+    </style>
+</head>
+<body class="py-5">
+    <div class="container" style="max-width: 900px;">
+        <!-- Nav -->
+        <div class="d-flex justify-content-between align-items-center mb-5">
+            <span class="creative-pill">SkillSphere Creative</span>
+            {% if is_owner %}
+            <a href="{% url 'portfolios:builder' %}" class="btn btn-sm btn-outline-light rounded-pill">Customize</a>
+            {% endif %}
+        </div>
+
+        <!-- Hero -->
+        <header class="mb-5 pb-4 border-bottom border-secondary border-opacity-25">
+            <h1 class="display-4 fw-bold text-white mb-3">Hello, I'm <span style="color: var(--creative-accent);">{{ full_name }}</span>.</h1>
+            <p class="fs-4 text-light mb-4">{{ portfolio.title }}</p>
+            <p class="fs-5 text-secondary mb-4" style="line-height: 1.8;">{{ portfolio.about }}</p>
+
+            <div class="d-flex flex-wrap gap-3">
+                {% if portfolio.github_url %}
+                <a href="{{ portfolio.github_url }}" target="_blank" class="btn btn-outline-light rounded-pill px-4">GitHub</a>
+                {% endif %}
+                {% if portfolio.linkedin_url %}
+                <a href="{{ portfolio.linkedin_url }}" target="_blank" class="btn btn-outline-light rounded-pill px-4">LinkedIn</a>
+                {% endif %}
+                {% if portfolio.website_url %}
+                <a href="{{ portfolio.website_url }}" target="_blank" class="btn btn-outline-light rounded-pill px-4">Website</a>
+                {% endif %}
+            </div>
+        </header>
+
+        <!-- Projects -->
+        <section class="mb-5">
+            <h2 class="h3 fw-bold text-white mb-4">Featured Work & Creations</h2>
+            <div class="d-flex flex-column gap-4">
+                {% for proj in projects %}
+                <div class="creative-card">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h3 class="h4 fw-bold text-white mb-0">{{ proj.title }}</h3>
+                        <div class="d-flex gap-2">
+                            {% if proj.github_url %}
+                            <a href="{{ proj.github_url }}" target="_blank" class="text-secondary hover-white"><i data-lucide="github" style="width: 20px; height: 20px;"></i></a>
+                            {% endif %}
+                            {% if proj.live_url %}
+                            <a href="{{ proj.live_url }}" target="_blank" class="text-info"><i data-lucide="arrow-up-right" style="width: 20px; height: 20px;"></i></a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% if proj.technologies %}
+                    <div class="text-uppercase small fw-bold mb-3" style="color: var(--creative-accent); letter-spacing: 0.05em;">{{ proj.technologies }}</div>
+                    {% endif %}
+                    <p class="text-secondary mb-0">{{ proj.description }}</p>
+                </div>
+                {% empty %}
+                <p class="text-muted">No projects added to creative showcase yet.</p>
+                {% endfor %}
+            </div>
+        </section>
+
+        <!-- Certifications -->
+        {% if certificates %}
+        <section class="mb-5">
+            <h2 class="h3 fw-bold text-white mb-4">Credentials & Badges</h2>
+            <div class="row g-3">
+                {% for cert in certificates %}
+                <div class="col-md-6">
+                    <div class="creative-card p-3 d-flex align-items-center gap-3">
+                        <i data-lucide="check-circle" style="width: 24px; height: 24px; color: var(--creative-accent);"></i>
+                        <div>
+                            <div class="fw-bold text-white">{{ cert.title }}</div>
+                            <div class="text-muted small"><a href="{{ cert.get_verify_url }}" target="_blank" class="text-info text-decoration-none">Verify Credential →</a></div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+
+        <footer class="pt-4 text-center text-secondary small">
+            SkillSphere Portfolio • Learn • Build • Showcase
+        </footer>
+    </div>
+    <script>lucide.createIcons();</script>
+</body>
+</html>

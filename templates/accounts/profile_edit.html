@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Edit Profile - SkillSphere{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width: 760px;">
+    <div class="custom-card p-4 p-md-5">
+        <div class="d-flex align-items-center justify-content-between mb-4 border-bottom pb-3" style="border-color: var(--border-color) !important;">
+            <div>
+                <h3 class="fw-bold mb-1">Edit Student Profile</h3>
+                <p class="text-secondary small mb-0">Update your background, learning preferences, and avatar.</p>
+            </div>
+            <a href="{% url 'accounts:profile' %}" class="btn btn-secondary-custom btn-sm">Cancel</a>
+        </div>
+
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            <div class="row g-3 mb-4">
+                <div class="col-md-6">
+                    <label class="form-label" for="id_full_name">Full Name</label>
+                    {{ form.full_name }}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="id_avatar">Update Avatar</label>
+                    {{ form.avatar }}
+                </div>
+            </div>
+
+            <div class="row g-3 mb-4">
+                <div class="col-md-6">
+                    <label class="form-label" for="id_education_level">Education Level</label>
+                    {{ form.education_level }}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="id_institution">College / University / Organization</label>
+                    {{ form.institution }}
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label" for="id_learning_level">Current Skill Level</label>
+                {{ form.learning_level }}
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label d-block mb-2">Learning Interests</label>
+                <div class="d-flex flex-wrap gap-2">
+                    {% for interest_key, interest_label in interest_options %}
+                        <input type="checkbox" class="btn-check" name="selected_interests" value="{{ interest_key }}" id="interest_{{ interest_key }}"
+                               {% if interest_key in selected_interests %}checked{% endif %}>
+                        <label class="btn btn-outline-secondary text-light border-secondary-subtle px-3 py-2 rounded-pill small" for="interest_{{ interest_key }}">
+                            {{ interest_label }}
+                        </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label" for="id_career_goal">Career Target / Goal</label>
+                {{ form.career_goal }}
+            </div>
+
+            <div class="d-flex gap-3 pt-2">
+                <button type="submit" class="btn btn-primary-custom flex-grow-1 justify-content-center py-2">
+                    <i data-lucide="save" style="width: 18px; height: 18px;"></i>
+                    <span>Save Changes</span>
+                </button>
+                <a href="{% url 'accounts:profile' %}" class="btn btn-secondary-custom">Back</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

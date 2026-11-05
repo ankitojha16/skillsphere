@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Notification Center - SkillSphere{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4" style="max-width: 860px;">
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h1 class="h3 fw-bold text-white mb-1">Notification Center</h1>
+            <p class="text-secondary mb-0">Stay updated on team requests, event reminders, and learning achievements.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'notifications:mark_all_read' %}" class="btn btn-secondary-custom btn-sm">
+                <i data-lucide="check-check" style="width: 14px; height: 14px;"></i> Mark All as Read
+            </a>
+        </div>
+    </div>
+
+    <!-- Filter Types Pills -->
+    <div class="d-flex flex-wrap gap-2 mb-4">
+        <a href="{% url 'notifications:list' %}" class="btn btn-sm {% if not selected_type %}btn-primary-custom{% else %}btn-outline-secondary text-light{% endif %} rounded-pill">
+            All
+        </a>
+        {% for t_val, t_label in types %}
+        <a href="{% url 'notifications:list' %}?type={{ t_val }}" class="btn btn-sm {% if selected_type == t_val %}btn-primary-custom{% else %}btn-outline-secondary text-light{% endif %} rounded-pill">
+            {{ t_label }}
+        </a>
+        {% endfor %}
+    </div>
+
+    <!-- Notifications List -->
+    <div class="d-flex flex-column gap-3 mb-4">
+        {% for notif in notifications %}
+        <div class="custom-card p-4 {% if not notif.is_read %}border-purple-glow{% endif %}" style="background: {% if not notif.is_read %}rgba(139, 92, 246, 0.05){% else %}#11182B{% endif %};">
+            <div class="d-flex justify-content-between align-items-start gap-3">
+                <div class="d-flex align-items-start gap-3">
+                    <div class="p-2 rounded-circle flex-shrink-0" style="background: rgba(139, 92, 246, 0.15); color: #8B5CF6;">
+                        <i data-lucide="bell" style="width: 20px; height: 20px;"></i>
+                    </div>
+                    <div>
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <span class="badge-category">{{ notif.get_notification_type_display }}</span>
+                            <span class="text-muted small">• {{ notif.created_at|timesince }} ago</span>
+                            {% if not notif.is_read %}
+                            <span class="badge bg-purple text-white">Unread</span>
+                            {% endif %}
+                        </div>
+                        <h4 class="h6 fw-bold text-white mb-1">{{ notif.title }}</h4>
+                        <p class="text-secondary small mb-2" style="line-height: 1.6;">{{ notif.message }}</p>
+
+                        {% if notif.link %}
+                        <a href="{% url 'notifications:mark_read' pk=notif.pk %}" class="btn btn-sm btn-outline-info">
+                            View Details →
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2">
+                    {% if not notif.is_read %}
+                    <a href="{% url 'notifications:mark_read' pk=notif.pk %}" class="btn btn-sm text-secondary p-1" title="Mark as Read">
+                        <i data-lucide="check" style="width: 16px; height: 16px;"></i>
+                    </a>
+                    {% endif %}
+                    <form method="post" action="{% url 'notifications:delete' pk=notif.pk %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm text-danger p-1" title="Delete">
+                            <i data-lucide="trash-2" style="width: 16px; height: 16px;"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="custom-card p-5 text-center text-muted">
+            <i data-lucide="bell-off" style="width: 36px; height: 36px;" class="mb-2 d-block mx-auto opacity-50"></i>
+            You're all caught up! No notifications right now.
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

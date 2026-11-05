@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Assessment Results: {{ attempt.assessment.title }} - SkillSphere{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width: 860px;">
+    <!-- Breadcrumb -->
+    <nav class="mb-3" aria-label="breadcrumb">
+        <ol class="breadcrumb small">
+            <li class="breadcrumb-item"><a href="{% url 'assessments:list' %}" class="text-secondary text-decoration-none">Assessments</a></li>
+            <li class="breadcrumb-item active text-white" aria-current="page">Results</li>
+        </ol>
+    </nav>
+
+    <!-- Score Summary Card -->
+    <div class="custom-card card-glowing p-4 p-md-5 mb-4 text-center">
+        <span class="badge-category mb-2">{{ attempt.assessment.get_category_display }}</span>
+        <h2 class="fw-bold text-white mb-3">{{ attempt.assessment.title }} Results</h2>
+
+        <div class="stat-value mx-auto mb-2 {% if attempt.percentage >= 70 %}text-success{% else %}text-warning{% endif %}" style="font-size: 3.5rem;">
+            {{ attempt.percentage }}%
+        </div>
+
+        <p class="text-secondary mb-4">
+            You scored <strong class="text-white">{{ attempt.score }}</strong> out of <strong class="text-white">{{ attempt.total_questions }}</strong> questions correctly.
+        </p>
+
+        <!-- Stats Chips -->
+        <div class="d-flex justify-content-center gap-3 mb-4">
+            <div class="p-2 px-3 rounded-3" style="background-color: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.2);">
+                <div class="text-success fw-bold">{{ attempt.score }} Correct</div>
+            </div>
+            <div class="p-2 px-3 rounded-3" style="background-color: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2);">
+                <div class="text-danger fw-bold">{{ attempt.total_questions|add:"-"|add:attempt.score }} Incorrect</div>
+            </div>
+            <div class="p-2 px-3 rounded-3" style="background-color: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.2);">
+                <div class="text-primary-accent fw-bold">+{% if attempt.percentage >= 70 %}50{% else %}25{% endif %} XP Earned</div>
+            </div>
+        </div>
+
+        <!-- AI Feedback Callout -->
+        <div class="p-4 rounded-3 text-start mb-4" style="background-color: rgba(139, 92, 246, 0.08); border: 1px solid rgba(139, 92, 246, 0.3);">
+            <div class="d-flex align-items-center gap-2 mb-2 text-primary-accent-light fw-bold small">
+                <i data-lucide="bot" style="width: 18px; height: 18px;"></i>
+                <span>AI Technical Diagnosis & Feedback</span>
+            </div>
+            <p class="text-light small mb-0" style="line-height: 1.7;">{{ attempt.ai_feedback }}</p>
+        </div>
+
+        <!-- Strengths & Weaknesses Breakdown -->
+        <div class="row g-3 text-start mb-2">
+            <div class="col-md-6">
+                <div class="p-3 rounded-3 h-100" style="background-color: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color);">
+                    <div class="text-success small fw-bold mb-1"><i data-lucide="check-circle" class="me-1" style="width: 14px; height: 14px;"></i> Demonstrated Strengths</div>
+                    <div class="text-secondary small">{{ attempt.strengths|default:"Good initial technical attempt" }}</div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="p-3 rounded-3 h-100" style="background-color: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color);">
+                    <div class="text-warning small fw-bold mb-1"><i data-lucide="alert-triangle" class="me-1" style="width: 14px; height: 14px;"></i> Recommended Focus Areas</div>
+                    <div class="text-secondary small">{{ attempt.weaknesses|default:"Continue practicing advanced edge cases" }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recommended Courses -->
+    {% if recommended_courses %}
+    <div class="custom-card p-4 mb-4">
+        <h4 class="fw-bold text-white mb-2 d-flex align-items-center gap-2">
+            <i data-lucide="compass" class="text-secondary-accent" style="width: 20px; height: 20px;"></i>
+            <span>Recommended Courses to Master Missed Topics</span>
+        </h4>
+        <p class="text-secondary small mb-3">Targeted SkillSphere courses to strengthen your technical proficiency.</p>
+
+        <div class="row g-3">
+            {% for course in recommended_courses %}
+                <div class="col-md-4">
+                    <div class="custom-card p-3 h-100 d-flex flex-column" style="background-color: rgba(255, 255, 255, 0.02);">
+                        <div class="fw-bold text-white mb-1 small">{{ course.title }}</div>
+                        <div class="text-muted small mb-2"><i data-lucide="clock" style="width: 12px; height: 12px;"></i> {{ course.estimated_duration }}</div>
+                        <a href="{% url 'courses:detail' slug=course.slug %}" class="btn btn-secondary-custom btn-sm mt-auto py-1">
+                            <span>View Course</span>
+                            <i data-lucide="arrow-right" style="width: 12px; height: 12px;"></i>
+                        </a>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Detailed Question Review -->
+    <div class="custom-card p-4">
+        <h4 class="fw-bold text-white mb-3">Question-by-Question Review</h4>
+
+        <div class="d-flex flex-column gap-3">
+            {% for resp in responses %}
+                <div class="p-3 rounded-3 border" style="background-color: rgba(255, 255, 255, 0.02); border-color: {% if resp.is_correct %}rgba(34, 197, 94, 0.3){% else %}rgba(239, 68, 68, 0.3){% endif %} !important;">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-muted small">Q{{ forloop.counter }}: {{ resp.question.topic_tag }}</span>
+                        {% if resp.is_correct %}
+                            <span class="badge bg-success-subtle text-success small"><i data-lucide="check" style="width: 12px; height: 12px;"></i> Correct</span>
+                        {% else %}
+                            <span class="badge bg-danger-subtle text-danger small"><i data-lucide="x" style="width: 12px; height: 12px;"></i> Incorrect</span>
+                        {% endif %}
+                    </div>
+
+                    <div class="text-white fw-medium mb-2 small">{{ resp.question.question_text }}</div>
+
+                    <div class="small mb-2">
+                        <span class="text-muted">Your Answer:</span>
+                        <strong class="{% if resp.is_correct %}text-success{% else %}text-danger{% endif %} ms-1">Option {{ resp.selected_answer|default:"None" }}</strong>
+                        {% if not resp.is_correct %}
+                            <span class="text-muted ms-3">Correct Answer:</span>
+                            <strong class="text-success ms-1">Option {{ resp.question.correct_answer }}</strong>
+                        {% endif %}
+                    </div>
+
+                    <div class="p-2 rounded-2 small text-secondary" style="background-color: rgba(0, 0, 0, 0.2);">
+                        <strong class="text-light">Explanation:</strong> {{ resp.question.explanation }}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <div class="pt-4 text-center">
+            <a href="{% url 'assessments:list' %}" class="btn btn-primary-custom py-2 px-4">
+                <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i>
+                <span>Back to Assessments</span>
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

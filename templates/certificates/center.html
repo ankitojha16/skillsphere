@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Certificate Center - SkillSphere{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h1 class="h3 fw-bold text-white mb-1">Certificate Center</h1>
+            <p class="text-secondary mb-0">Official verified SkillSphere certificates of completion with cryptographic verification IDs.</p>
+        </div>
+        <a href="{% url 'courses:list' %}" class="btn btn-secondary-custom">
+            <i data-lucide="compass" style="width: 16px; height: 16px;"></i> Explore Courses
+        </a>
+    </div>
+
+    <!-- Eligible Courses to Claim Banner -->
+    {% if eligible_courses %}
+    <div class="custom-card p-4 mb-4 border-success border-opacity-50" style="background: rgba(34, 197, 94, 0.08);">
+        <div class="d-flex align-items-center gap-2 text-success fw-bold mb-2">
+            <i data-lucide="award" style="width: 20px; height: 20px;"></i>
+            <span>Course Completion Ready to Claim!</span>
+        </div>
+        <p class="text-light small mb-3">You have completed 100% of the lessons in the following courses. Claim your official verified credentials below:</p>
+        <div class="d-flex flex-wrap gap-2">
+            {% for course in eligible_courses %}
+            <form method="post" class="d-inline">
+                {% csrf_token %}
+                <input type="hidden" name="claim_course_id" value="{{ course.id }}">
+                <button type="submit" class="btn btn-sm btn-success">
+                    <i data-lucide="check" style="width: 14px; height: 14px;"></i> Claim Certificate: {{ course.title }}
+                </button>
+            </form>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Earned Certificates Grid -->
+    <div class="row g-4 mb-4">
+        {% for cert in certificates %}
+        <div class="col-md-6 col-xl-4">
+            <div class="custom-card p-4 h-100 d-flex flex-column justify-content-between border-purple-glow">
+                <div>
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <span class="badge-category"><i data-lucide="award" style="width: 12px; height: 12px;"></i> Verified Credential</span>
+                        <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25">Authentic</span>
+                    </div>
+
+                    <h4 class="h5 fw-bold text-white mb-2">{{ cert.title }}</h4>
+                    <div class="text-secondary small mb-3">Awarded to <span class="text-white fw-bold">{{ cert.recipient_name }}</span> on {{ cert.issued_at|date:"F d, Y" }}</div>
+
+                    <div class="p-3 rounded-3 mb-3" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08);">
+                        <div class="text-secondary small mb-1">Verification ID:</div>
+                        <div class="mono text-info fw-bold mb-2">{{ cert.certificate_id }}</div>
+                        <a href="{{ cert.get_verify_url }}" target="_blank" class="text-purple small text-decoration-none">
+                            Public Verification Page <i data-lucide="external-link" style="width: 12px; height: 12px;"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="pt-3 border-top border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
+                    <a href="{{ cert.get_verify_url }}" target="_blank" class="btn btn-sm btn-outline-light">
+                        <i data-lucide="shield-check" style="width: 14px; height: 14px;"></i> Verify
+                    </a>
+                    <a href="{% url 'certificates:download_pdf' pk=cert.pk %}" class="btn btn-sm btn-primary-custom">
+                        <i data-lucide="download" style="width: 14px; height: 14px;"></i> Download PDF
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12 text-center py-5 text-muted">
+            <i data-lucide="award" style="width: 48px; height: 48px;" class="mb-3 d-block mx-auto opacity-50"></i>
+            <h5 class="text-white mb-1">No Certificates Earned Yet</h5>
+            <p class="text-secondary small mb-3">Complete all lessons in a course to earn and claim your official verified certificate.</p>
+            <a href="{% url 'courses:list' %}" class="btn btn-primary-custom">Explore Courses</a>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Official Issuer Notice -->
+    <div class="p-3 rounded-3 text-secondary small" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06);">
+        <i data-lucide="info" style="width: 14px; height: 14px;" class="text-info me-1"></i>
+        <strong>Issuance Disclosure:</strong> SkillSphere certificates are verified internal credentials that certify the authentic completion of curriculum coursework, lessons, and project milestones on the SkillSphere platform. They do not constitute formal university degrees or accredited government licenses.
+    </div>
+</div>
+{% endblock %}

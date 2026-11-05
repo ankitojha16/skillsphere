@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Log In - SkillSphere{% endblock %}
+
+{% block sidebar %}{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-center min-vh-100 py-5 px-3">
+    <div class="custom-card card-glowing" style="max-width: 440px; width: 100%;">
+        <div class="text-center mb-4">
+            <div class="brand-icon mx-auto mb-3" style="width: 48px; height: 48px;">
+                <i data-lucide="layers" style="width: 28px; height: 28px;"></i>
+            </div>
+            <h2 class="fw-bold mb-1">Welcome Back</h2>
+            <p class="text-secondary small mb-0">Sign in to continue your courses and track your progress.</p>
+        </div>
+
+        <form method="post" novalidate>
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger py-2 px-3 small border-0 mb-3" style="background-color: rgba(239, 68, 68, 0.2); color: #FCA5A5;">
+                    {% for error in form.non_field_errors %}
+                        <div>{{ error }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <div class="mb-3">
+                <label class="form-label" for="id_email">Email Address</label>
+                {{ form.email }}
+                {% if form.email.errors %}
+                    <div class="text-danger small mt-1">{{ form.email.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div class="mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <label class="form-label mb-0" for="id_password">Password</label>
+                    <a href="{% url 'accounts:password_reset' %}" class="small text-secondary hover-white">Forgot password?</a>
+                </div>
+                {{ form.password }}
+                {% if form.password.errors %}
+                    <div class="text-danger small mt-1">{{ form.password.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-check mb-4">
+                {{ form.remember_me }}
+                <label class="form-check-label text-secondary small" for="id_remember_me">
+                    Remember me for 14 days
+                </label>
+            </div>
+
+            <button type="submit" class="btn btn-primary-custom w-100 justify-content-center py-2 mb-3">
+                <i data-lucide="log-in" style="width: 18px; height: 18px;"></i>
+                <span>Sign In to SkillSphere</span>
+            </button>
+
+            <div class="text-center text-secondary small">
+                Don't have an account yet? <a href="{% url 'accounts:signup' %}" class="fw-semibold text-white">Sign up free</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

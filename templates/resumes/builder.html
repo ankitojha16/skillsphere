@@ -1,0 +1,437 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}AI Resume Builder - SkillSphere{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h1 class="h3 fw-bold text-white mb-1">AI Resume Builder</h1>
+            <p class="text-secondary mb-0">Create, optimize, and export ATS-compliant developer resumes with AI refinement.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'resumes:export_pdf' pk=resume.pk %}" class="btn btn-primary-custom">
+                <i data-lucide="download" style="width: 16px; height: 16px;"></i>
+                <span>Download PDF</span>
+            </a>
+            <button type="button" class="btn btn-secondary-custom" id="atsAuditBtn">
+                <i data-lucide="shield-alert" style="width: 16px; height: 16px;"></i>
+                <span>Check ATS Score</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Resume Version Selector & Save Bar -->
+    <form method="post" id="resumeForm" class="mb-4">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="save_resume">
+        <input type="hidden" name="resume_data_json" id="resumeDataInput" value="{{ resume_data_json }}">
+
+        <div class="custom-card p-3 mb-4">
+            <div class="row align-items-center g-3">
+                <div class="col-md-4">
+                    <label class="form-label text-secondary small mb-1">Resume Title</label>
+                    <input type="text" name="title" class="form-control form-control-sm bg-dark text-white border-secondary" value="{{ resume.title }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-secondary small mb-1">Template Format</label>
+                    <select name="template" id="templateSelect" class="form-select form-select-sm bg-dark text-white border-secondary">
+                        <option value="ats" {% if resume.template == 'ats' %}selected{% endif %}>1. Professional ATS</option>
+                        <option value="modern" {% if resume.template == 'modern' %}selected{% endif %}>2. Modern Developer</option>
+                        <option value="fresher" {% if resume.template == 'fresher' %}selected{% endif %}>3. Fresher Resume</option>
+                        <option value="minimal" {% if resume.template == 'minimal' %}selected{% endif %}>4. Minimal Resume</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-secondary small mb-1">ATS Readability Rating</div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-purple px-2 py-1 fs-6" id="atsScoreBadge">{{ resume.ats_score }}/100</span>
+                        <span class="text-muted small">Standard compliant</span>
+                    </div>
+                </div>
+                <div class="col-md-2 text-md-end">
+                    <button type="submit" class="btn btn-success btn-sm w-100">
+                        <i data-lucide="save" style="width: 14px; height: 14px;"></i> Save Changes
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <div class="row g-4">
+        <!-- Interactive Section Editor -->
+        <div class="col-lg-6">
+            <div class="custom-card p-4">
+                <h5 class="fw-bold text-white mb-3"><i data-lucide="edit-3" style="width: 18px; height: 18px;" class="me-2 text-purple"></i>Resume Sections</h5>
+
+                <div class="accordion custom-accordion" id="resumeAccordion">
+                    <!-- 1. Contact -->
+                    <div class="accordion-item bg-dark border-secondary border-opacity-25 mb-2 rounded-3 overflow-hidden">
+                        <h2 class="accordion-header" id="headingContact">
+                            <button class="accordion-button bg-dark text-white shadow-none collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseContact">
+                                <i data-lucide="user" style="width: 16px; height: 16px;" class="me-2 text-info"></i> Contact Coordinates
+                            </button>
+                        </h2>
+                        <div id="collapseContact" class="accordion-collapse collapse show">
+                            <div class="accordion-body text-light">
+                                <div class="row g-2 mb-2">
+                                    <div class="col-6">
+                                        <label class="form-label text-secondary small">Full Name</label>
+                                        <input type="text" id="input_full_name" class="form-control form-control-sm bg-dark text-white border-secondary" value="{{ resume_data.contact.full_name }}">
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label text-secondary small">Professional Headline</label>
+                                        <input type="text" id="input_headline" class="form-control form-control-sm bg-dark text-white border-secondary" value="{{ resume_data.contact.headline }}">
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label text-secondary small">Email Address</label>
+                                        <input type="email" id="input_email" class="form-control form-control-sm bg-dark text-white border-secondary" value="{{ resume_data.contact.email }}">
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label text-secondary small">Phone Number</label>
+                                        <input type="text" id="input_phone" class="form-control form-control-sm bg-dark text-white border-secondary" value="{{ resume_data.contact.phone }}">
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label text-secondary small">Location</label>
+                                        <input type="text" id="input_location" class="form-control form-control-sm bg-dark text-white border-secondary" value="{{ resume_data.contact.location }}">
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label text-secondary small">Links (GitHub / LinkedIn)</label>
+                                        <input type="text" id="input_links" class="form-control form-control-sm bg-dark text-white border-secondary" value="{{ resume_data.contact.links }}">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 2. Summary -->
+                    <div class="accordion-item bg-dark border-secondary border-opacity-25 mb-2 rounded-3 overflow-hidden">
+                        <h2 class="accordion-header" id="headingSummary">
+                            <button class="accordion-button bg-dark text-white shadow-none collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSummary">
+                                <i data-lucide="file-text" style="width: 16px; height: 16px;" class="me-2 text-purple"></i> Professional Summary
+                            </button>
+                        </h2>
+                        <div id="collapseSummary" class="accordion-collapse collapse">
+                            <div class="accordion-body text-light">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <label class="form-label text-secondary small mb-0">Summary Text</label>
+                                    <button type="button" class="btn btn-sm btn-outline-purple py-0" id="aiSummaryBtn">
+                                        <i data-lucide="sparkles" style="width: 12px; height: 12px;"></i> AI Polish Summary
+                                    </button>
+                                </div>
+                                <textarea id="input_summary" rows="4" class="form-control form-control-sm bg-dark text-white border-secondary">{{ resume_data.summary }}</textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3. Technical Skills -->
+                    <div class="accordion-item bg-dark border-secondary border-opacity-25 mb-2 rounded-3 overflow-hidden">
+                        <h2 class="accordion-header" id="headingSkills">
+                            <button class="accordion-button bg-dark text-white shadow-none collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSkills">
+                                <i data-lucide="code" style="width: 16px; height: 16px;" class="me-2 text-success"></i> Technical Skills
+                            </button>
+                        </h2>
+                        <div id="collapseSkills" class="accordion-collapse collapse">
+                            <div class="accordion-body text-light">
+                                <label class="form-label text-secondary small">Comma-separated skills</label>
+                                <input type="text" id="input_skills" class="form-control form-control-sm bg-dark text-white border-secondary" value="{{ resume_data.skills|join:', ' }}">
+                                <small class="text-muted">e.g. Python, Django, PostgreSQL, JavaScript, React, Docker, Git</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 4. Projects -->
+                    <div class="accordion-item bg-dark border-secondary border-opacity-25 mb-2 rounded-3 overflow-hidden">
+                        <h2 class="accordion-header" id="headingProjects">
+                            <button class="accordion-button bg-dark text-white shadow-none collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseProjects">
+                                <i data-lucide="folder-git-2" style="width: 16px; height: 16px;" class="me-2 text-warning"></i> Featured Projects
+                            </button>
+                        </h2>
+                        <div id="collapseProjects" class="accordion-collapse collapse">
+                            <div class="accordion-body text-light">
+                                <div id="projectsContainer">
+                                    {% for proj in resume_data.projects %}
+                                    <div class="p-3 mb-2 rounded border border-secondary border-opacity-25 project-item">
+                                        <div class="mb-2">
+                                            <input type="text" class="form-control form-control-sm bg-dark text-white border-secondary proj-title" value="{{ proj.title }}" placeholder="Project Title">
+                                        </div>
+                                        <div class="mb-2">
+                                            <input type="text" class="form-control form-control-sm bg-dark text-white border-secondary proj-tech" value="{{ proj.technologies }}" placeholder="Technologies Used">
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <small class="text-secondary">Description</small>
+                                            <button type="button" class="btn btn-sm btn-outline-warning py-0 ai-improve-proj-btn">
+                                                <i data-lucide="sparkles" style="width: 12px; height: 12px;"></i> AI Enhance
+                                            </button>
+                                        </div>
+                                        <textarea rows="3" class="form-control form-control-sm bg-dark text-white border-secondary proj-desc">{{ proj.description }}</textarea>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 5. Experience -->
+                    <div class="accordion-item bg-dark border-secondary border-opacity-25 mb-2 rounded-3 overflow-hidden">
+                        <h2 class="accordion-header" id="headingExp">
+                            <button class="accordion-button bg-dark text-white shadow-none collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseExp">
+                                <i data-lucide="briefcase" style="width: 16px; height: 16px;" class="me-2 text-info"></i> Work & Internships
+                            </button>
+                        </h2>
+                        <div id="collapseExp" class="accordion-collapse collapse">
+                            <div class="accordion-body text-light">
+                                <div id="experienceContainer">
+                                    {% for exp in resume_data.experience %}
+                                    <div class="p-3 mb-2 rounded border border-secondary border-opacity-25 exp-item">
+                                        <div class="row g-2 mb-2">
+                                            <div class="col-6">
+                                                <input type="text" class="form-control form-control-sm bg-dark text-white border-secondary exp-role" value="{{ exp.role }}" placeholder="Role Title">
+                                            </div>
+                                            <div class="col-6">
+                                                <input type="text" class="form-control form-control-sm bg-dark text-white border-secondary exp-company" value="{{ exp.company }}" placeholder="Company / Org">
+                                            </div>
+                                            <div class="col-12">
+                                                <input type="text" class="form-control form-control-sm bg-dark text-white border-secondary exp-dates" value="{{ exp.dates }}" placeholder="Dates (e.g. Summer 2025)">
+                                            </div>
+                                        </div>
+                                        <textarea rows="2" class="form-control form-control-sm bg-dark text-white border-secondary exp-desc" placeholder="Responsibilities & Outcomes">{{ exp.description }}</textarea>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alert alert-dark border-secondary border-opacity-25 text-secondary small mt-3 mb-0">
+                    <i data-lucide="shield-alert" style="width: 14px; height: 14px;" class="me-1 text-warning"></i>
+                    <strong>Ethical AI Guardrail:</strong> AI assistance only refines your wording and format. It will never fabricate jobs, companies, or unverified accomplishments.
+                </div>
+            </div>
+        </div>
+
+        <!-- Live Document Preview -->
+        <div class="col-lg-6">
+            <div class="custom-card p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold text-white mb-0"><i data-lucide="eye" style="width: 18px; height: 18px;" class="me-2 text-info"></i>Live Document Preview</h5>
+                    <span class="badge bg-dark border border-secondary text-secondary small">Real-Time Sync</span>
+                </div>
+
+                <!-- Printable Document Sheet Simulation -->
+                <div class="p-4 rounded-3 text-dark" id="resumePreviewSheet" style="background: #ffffff; min-height: 520px; font-family: 'Helvetica Neue', Arial, sans-serif; box-shadow: 0 8px 24px rgba(0,0,0,0.4);">
+                    <div class="border-bottom pb-2 mb-3">
+                        <h2 class="h4 fw-bold mb-0 text-dark" id="preview_name">{{ resume_data.contact.full_name|default:"Alex Mercer" }}</h2>
+                        <div class="text-secondary small fw-medium" id="preview_headline">{{ resume_data.contact.headline }}</div>
+                        <div class="text-muted small" style="font-size: 0.8rem;" id="preview_contact_line">
+                            {{ resume_data.contact.email }} • {{ resume_data.contact.phone }} • {{ resume_data.contact.location }} • {{ resume_data.contact.links }}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="fw-bold text-dark text-uppercase small tracking-wide border-bottom pb-1 mb-1" style="letter-spacing: 0.05em;">Professional Summary</div>
+                        <p class="small text-secondary mb-0" id="preview_summary">{{ resume_data.summary }}</p>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="fw-bold text-dark text-uppercase small tracking-wide border-bottom pb-1 mb-1" style="letter-spacing: 0.05em;">Technical Skills</div>
+                        <div class="small text-secondary" id="preview_skills">{{ resume_data.skills|join:', ' }}</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="fw-bold text-dark text-uppercase small tracking-wide border-bottom pb-1 mb-1" style="letter-spacing: 0.05em;">Featured Projects</div>
+                        <div id="preview_projects">
+                            {% for proj in resume_data.projects %}
+                            <div class="mb-2">
+                                <div class="fw-bold small text-dark">{{ proj.title }} <span class="text-muted fw-normal">| {{ proj.technologies }}</span></div>
+                                <div class="small text-secondary">{{ proj.description }}</div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="fw-bold text-dark text-uppercase small tracking-wide border-bottom pb-1 mb-1" style="letter-spacing: 0.05em;">Experience</div>
+                        <div id="preview_experience">
+                            {% for exp in resume_data.experience %}
+                            <div class="mb-2">
+                                <div class="fw-bold small text-dark">{{ exp.role }} <span class="text-muted fw-normal">— {{ exp.company }} ({{ exp.dates }})</span></div>
+                                <div class="small text-secondary">{{ exp.description }}</div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ATS Audit Modal -->
+<div class="modal fade" id="atsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content text-white" style="background-color: #11182B; border: 1px solid rgba(255,255,255,0.12);">
+            <div class="modal-header border-secondary border-opacity-25">
+                <h5 class="modal-title fw-bold"><i data-lucide="shield-check" class="text-info me-2"></i>Educational ATS Readability Analysis</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="atsModalBody">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-info mb-2" role="status"></div>
+                    <p class="text-secondary small">Evaluating keyword coverage, structural sections, and typography readability...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    function getResumeJSON() {
+        const skillsRaw = document.getElementById('input_skills').value;
+        const skillsList = skillsRaw.split(',').map(s => s.trim()).filter(s => s);
+
+        const projects = [];
+        document.querySelectorAll('.project-item').forEach(item => {
+            projects.push({
+                title: item.querySelector('.proj-title').value,
+                technologies: item.querySelector('.proj-tech').value,
+                description: item.querySelector('.proj-desc').value,
+            });
+        });
+
+        const experience = [];
+        document.querySelectorAll('.exp-item').forEach(item => {
+            experience.push({
+                role: item.querySelector('.exp-role').value,
+                company: item.querySelector('.exp-company').value,
+                dates: item.querySelector('.exp-dates').value,
+                description: item.querySelector('.exp-desc').value,
+            });
+        });
+
+        return {
+            contact: {
+                full_name: document.getElementById('input_full_name').value,
+                headline: document.getElementById('input_headline').value,
+                email: document.getElementById('input_email').value,
+                phone: document.getElementById('input_phone').value,
+                location: document.getElementById('input_location').value,
+                links: document.getElementById('input_links').value,
+            },
+            summary: document.getElementById('input_summary').value,
+            skills: skillsList,
+            projects: projects,
+            experience: experience,
+            education: {{ resume_data.education|safe|default:"[]" }},
+            certifications: {{ resume_data.certifications|safe|default:"[]" }}
+        };
+    }
+
+    function updatePreview() {
+        const data = getResumeJSON();
+        document.getElementById('resumeDataInput').value = JSON.stringify(data);
+
+        document.getElementById('preview_name').innerText = data.contact.full_name || 'Alex Mercer';
+        document.getElementById('preview_headline').innerText = data.contact.headline || '';
+        document.getElementById('preview_contact_line').innerText = [data.contact.email, data.contact.phone, data.contact.location, data.contact.links].filter(Boolean).join(' • ');
+        document.getElementById('preview_summary').innerText = data.summary || '';
+        document.getElementById('preview_skills').innerText = data.skills.join(', ');
+    }
+
+    // Attach sync listeners
+    document.querySelectorAll('#resumeAccordion input, #resumeAccordion textarea').forEach(el => {
+        el.addEventListener('input', updatePreview);
+    });
+
+    // AI Polish Summary Button
+    const aiSummaryBtn = document.getElementById('aiSummaryBtn');
+    if (aiSummaryBtn) {
+        aiSummaryBtn.addEventListener('click', async function() {
+            aiSummaryBtn.disabled = true;
+            aiSummaryBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Polishing...';
+            try {
+                const data = getResumeJSON();
+                const resp = await fetch('{% url "resumes:ai_improve" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: JSON.stringify({
+                        type: 'summary',
+                        headline: data.contact.headline,
+                        skills: data.skills,
+                    })
+                });
+                const res = await resp.json();
+                if (res.success && res.content) {
+                    document.getElementById('input_summary').value = res.content;
+                    updatePreview();
+                }
+            } catch (err) {
+                console.error(err);
+            } finally {
+                aiSummaryBtn.disabled = false;
+                aiSummaryBtn.innerHTML = '<i data-lucide="sparkles" style="width: 12px; height: 12px;"></i> AI Polish Summary';
+                lucide.createIcons();
+            }
+        });
+    }
+
+    // ATS Audit Modal
+    const atsAuditBtn = document.getElementById('atsAuditBtn');
+    if (atsAuditBtn) {
+        atsAuditBtn.addEventListener('click', async function() {
+            const modal = new bootstrap.Modal(document.getElementById('atsModal'));
+            modal.show();
+            const data = getResumeJSON();
+            try {
+                const resp = await fetch('{% url "resumes:ai_improve" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: JSON.stringify({
+                        type: 'ats_check',
+                        resume_data: data
+                    })
+                });
+                const res = await resp.json();
+                if (res.success && res.analysis) {
+                    const an = res.analysis;
+                    document.getElementById('atsModalBody').innerHTML = `
+                        <div class="text-center mb-4">
+                            <div class="display-4 fw-bold text-white mb-1">${an.score}<span class="fs-5 text-muted">/100</span></div>
+                            <span class="badge ${an.score >= 80 ? 'bg-success' : 'bg-warning text-dark'} px-3 py-1 fs-6">${an.readability_status} Readability</span>
+                        </div>
+                        <div class="mb-3">
+                            <h6 class="fw-bold text-white small text-uppercase">Strengths</h6>
+                            <ul class="text-success small ps-3">
+                                ${an.strengths.map(s => `<li>${s}</li>`).join('')}
+                            </ul>
+                        </div>
+                        <div class="mb-3">
+                            <h6 class="fw-bold text-white small text-uppercase">Recommended Enhancements</h6>
+                            <ul class="text-warning small ps-3">
+                                ${an.improvements.map(i => `<li>${i}</li>`).join('')}
+                            </ul>
+                        </div>
+                        <p class="text-muted small mb-0">${an.disclaimer}</p>
+                    `;
+                    document.getElementById('atsScoreBadge').innerText = `${an.score}/100`;
+                }
+            } catch (err) {
+                document.getElementById('atsModalBody').innerHTML = `<p class="text-danger">Failed to run ATS analysis: ${err}</p>`;
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

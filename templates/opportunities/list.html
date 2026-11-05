@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Internships & Opportunities - SkillSphere{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <!-- Header & Tracker Link -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h1 class="h3 fw-bold text-white mb-1">Internships & Career Opportunities</h1>
+            <p class="text-secondary mb-0">Discover verified tech internships, graduate programs, and open-source fellowships.</p>
+        </div>
+        <a href="{% url 'opportunities:tracker' %}" class="btn btn-primary-custom">
+            <i data-lucide="columns" style="width: 16px; height: 16px;"></i>
+            <span>My Application Tracker</span>
+        </a>
+    </div>
+
+    <!-- Fraud Awareness & Protection Notice -->
+    <div class="p-3 rounded-3 mb-4" style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25);">
+        <div class="d-flex align-items-center gap-2 text-danger fw-bold small mb-1">
+            <i data-lucide="shield-alert" style="width: 16px; height: 16px;"></i>
+            <span>Student Career Safety Notice</span>
+        </div>
+        <p class="text-secondary small mb-0">
+            Never pay any fee, deposit, or training charge to apply for an internship or job. All SkillSphere opportunities are curated exclusively from trusted official corporate portals, open-source foundations, and legitimate student programs.
+        </p>
+    </div>
+
+    <!-- Filters & Search Form -->
+    <div class="custom-card p-3 mb-4">
+        <form method="get" class="row g-3 align-items-center">
+            <div class="col-md-5">
+                <div class="input-group">
+                    <span class="input-group-text bg-dark border-secondary text-secondary"><i data-lucide="search" style="width: 16px; height: 16px;"></i></span>
+                    <input type="text" name="q" class="form-control bg-dark text-white border-secondary" placeholder="Search by role, organization, or tech skill..." value="{{ query }}">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select name="category" class="form-select bg-dark text-white border-secondary">
+                    <option value="">All Technical Domains</option>
+                    {% for cat_val, cat_label in categories %}
+                    <option value="{{ cat_val }}" {% if selected_category == cat_val %}selected{% endif %}>{{ cat_label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="work_mode" class="form-select bg-dark text-white border-secondary">
+                    <option value="">All Work Modes</option>
+                    {% for wm_val, wm_label in work_modes %}
+                    <option value="{{ wm_val }}" {% if selected_work_mode == wm_val %}selected{% endif %}>{{ wm_label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2 d-flex gap-2">
+                <button type="submit" class="btn btn-secondary-custom w-100">Filter</button>
+                {% if query or selected_category or selected_work_mode %}
+                <a href="{% url 'opportunities:list' %}" class="btn btn-outline-secondary btn-sm d-flex align-items-center">Reset</a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    <!-- Opportunities Grid -->
+    <div class="row g-4 mb-4">
+        {% for opp in opportunities %}
+        <div class="col-md-6 col-xl-4">
+            <div class="custom-card p-4 h-100 d-flex flex-column justify-content-between">
+                <div>
+                    <!-- Top Badges -->
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <span class="badge-category">{{ opp.get_category_display }}</span>
+                        <div class="d-flex align-items-center gap-1">
+                            {% if opp.verification_status %}
+                            <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25 small" title="Verified Authentic Listing">
+                                <i data-lucide="check-circle" style="width: 12px; height: 12px;"></i> Verified
+                            </span>
+                            {% endif %}
+                            <span class="badge bg-dark border border-secondary text-info small">{{ opp.get_work_mode_display }}</span>
+                        </div>
+                    </div>
+
+                    <h4 class="h5 fw-bold text-white mb-1">{{ opp.title }}</h4>
+                    <div class="text-secondary small fw-medium mb-2">{{ opp.organization }} • <span class="text-muted">{{ opp.location }}</span></div>
+
+                    <p class="text-secondary small mb-3">{{ opp.description|truncatewords:24 }}</p>
+
+                    <div class="mb-3">
+                        <div class="text-muted small mb-1">Required Skills:</div>
+                        <div class="d-flex flex-wrap gap-1">
+                            {% for skill in opp.required_skills.split %}
+                            <span class="badge bg-dark border border-secondary text-light small">{{ skill }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    {% if opp.stipend_information %}
+                    <div class="text-success small fw-medium mb-2">
+                        <i data-lucide="dollar-sign" style="width: 13px; height: 13px;"></i> {{ opp.stipend_information }}
+                    </div>
+                    {% endif %}
+
+                    {% if opp.deadline %}
+                    <div class="text-muted small mb-3">
+                        <i data-lucide="calendar" style="width: 13px; height: 13px;"></i> Deadline: {{ opp.deadline|date:"M d, Y" }}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="pt-3 border-top border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
+                    <form method="post" action="{% url 'opportunities:toggle_save_opportunity' pk=opp.pk %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm {% if opp.pk in saved_opp_ids %}btn-success{% else %}btn-outline-light{% endif %}" title="{% if opp.pk in saved_opp_ids %}Saved to Tracker{% else %}Save Opportunity{% endif %}">
+                            <i data-lucide="bookmark" style="width: 14px; height: 14px;"></i> {% if opp.pk in saved_opp_ids %}Saved{% else %}Track{% endif %}
+                        </button>
+                    </form>
+
+                    <a href="{{ opp.application_url }}" target="_blank" class="btn btn-sm btn-primary-custom">
+                        Official Apply <i data-lucide="arrow-up-right" style="width: 14px; height: 14px;"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12 text-center py-5 text-muted">
+            <i data-lucide="inbox" style="width: 36px; height: 36px;" class="mb-2 d-block mx-auto opacity-50"></i>
+            No opportunities match your search criteria. Try removing filters.
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

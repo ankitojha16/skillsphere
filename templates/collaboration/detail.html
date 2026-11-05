@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ project.title }} - Collaboration Hub - SkillSphere{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <!-- Breadcrumb -->
+    <nav class="mb-3" aria-label="breadcrumb">
+        <ol class="breadcrumb small">
+            <li class="breadcrumb-item"><a href="{% url 'collaboration:list' %}" class="text-secondary text-decoration-none">Collaboration Hub</a></li>
+            <li class="breadcrumb-item active text-white" aria-current="page">{{ project.title }}</li>
+        </ol>
+    </nav>
+
+    <!-- Main Card -->
+    <div class="custom-card card-glowing p-4 p-md-5 mb-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+            <div>
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <span class="badge-category">{{ project.category }}</span>
+                    <span class="badge bg-purple">{{ project.difficulty|title }}</span>
+                    <span class="badge {% if project.status == 'recruiting' %}bg-success{% else %}bg-secondary{% endif %}">
+                        {{ project.get_status_display }}
+                    </span>
+                </div>
+                <h1 class="display-6 fw-bold text-white mb-1">{{ project.title }}</h1>
+                <div class="text-secondary small mb-3">Owner: <span class="text-white fw-bold">{{ project.owner.username }}</span> • Expected Duration: {{ project.expected_duration }}</div>
+            </div>
+
+            <div>
+                {% if is_owner %}
+                <a href="{% url 'collaboration:manage' pk=project.pk %}" class="btn btn-primary-custom">
+                    <i data-lucide="shield" style="width: 16px; height: 16px;"></i> Manage Team & Applicants
+                </a>
+                {% elif is_member %}
+                <span class="badge bg-success px-3 py-2 fs-6">
+                    <i data-lucide="check" style="width: 14px; height: 14px;"></i> You are on this team
+                </span>
+                {% elif user_request %}
+                <span class="badge {% if user_request.status == 'pending' %}bg-warning text-dark{% elif user_request.status == 'accepted' %}bg-success{% else %}bg-danger{% endif %} px-3 py-2 fs-6">
+                    Application Status: {{ user_request.get_status_display }}
+                </span>
+                {% else %}
+                <button type="button" class="btn btn-primary-custom" data-bs-toggle="modal" data-bs-target="#joinModal">
+                    <i data-lucide="user-plus" style="width: 16px; height: 16px;"></i> Request to Join Team
+                </button>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="row g-4 mt-2">
+            <div class="col-lg-8">
+                <h4 class="h5 fw-bold text-white mb-2">Project Vision & Architecture</h4>
+                <p class="text-secondary mb-4" style="line-height: 1.8; white-space: pre-line;">{{ project.description }}</p>
+
+                <h4 class="h5 fw-bold text-white mb-2">Required Team Roles</h4>
+                <div class="p-3 rounded-3 mb-4" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08);">
+                    <div class="text-info fw-bold mb-1">{{ project.required_roles }}</div>
+                    <small class="text-secondary">Positions available: {{ project.team_size|add:"-1" }} openings total</small>
+                </div>
+
+                <h4 class="h5 fw-bold text-white mb-2">Technology Stack</h4>
+                <div class="d-flex flex-wrap gap-2 mb-4">
+                    {% for tech in project.technologies.split %}
+                    <span class="badge bg-dark border border-secondary text-light px-3 py-2 fs-6">{{ tech }}</span>
+                    {% endfor %}
+                </div>
+
+                {% if project.github_repo %}
+                <div class="mb-4">
+                    <a href="{{ project.github_repo }}" target="_blank" class="btn btn-sm btn-outline-light">
+                        <i data-lucide="github" style="width: 14px; height: 14px;"></i> View Project Repository
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Current Team Members Roster -->
+            <div class="col-lg-4">
+                <div class="p-4 rounded-4" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08);">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="fw-bold text-white mb-0">Team Roster</h5>
+                        <span class="badge bg-secondary rounded-pill">{{ project.current_members_count }}/{{ project.team_size }}</span>
+                    </div>
+
+                    <!-- Owner -->
+                    <div class="p-2 rounded mb-2 d-flex align-items-center gap-2" style="background: rgba(139, 92, 246, 0.1);">
+                        <i data-lucide="crown" class="text-purple" style="width: 18px; height: 18px;"></i>
+                        <div>
+                            <div class="fw-bold text-white small">{{ project.owner.username }}</div>
+                            <div class="text-muted" style="font-size: 0.75rem;">Project Lead & Architect</div>
+                        </div>
+                    </div>
+
+                    <!-- Active Members -->
+                    {% for mem in active_members %}
+                    <div class="p-2 rounded mb-2 d-flex align-items-center gap-2" style="background: rgba(255,255,255,0.02);">
+                        <i data-lucide="user-check" class="text-success" style="width: 18px; height: 18px;"></i>
+                        <div>
+                            <div class="fw-bold text-white small">{{ mem.user.username }}</div>
+                            <div class="text-info" style="font-size: 0.75rem;">{{ mem.role }}</div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted small mb-0">Recruiting teammates for open roles...</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Request to Join Modal -->
+<div class="modal fade" id="joinModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content text-white" style="background-color: #11182B; border: 1px solid rgba(255,255,255,0.12);">
+            <form method="post">
+                {% csrf_token %}
+                <div class="modal-header border-secondary border-opacity-25">
+                    <h5 class="modal-title fw-bold">Request to Join Team</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label text-secondary small">Target Role You Want to Fill *</label>
+                        <input type="text" name="role_requested" class="form-control bg-dark text-white border-secondary" required placeholder="e.g. Backend Developer">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-secondary small">Introduction & Relevant Skills *</label>
+                        <textarea name="message" rows="4" class="form-control bg-dark text-white border-secondary" required placeholder="Describe your experience with the tech stack, weekly availability, and why you are excited to build this..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary border-opacity-25">
+                    <button type="button" class="btn btn-secondary-custom" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary-custom">Submit Application</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

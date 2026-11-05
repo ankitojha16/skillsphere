@@ -1,0 +1,134 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Manage Team - {{ project.title }} - SkillSphere{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <!-- Breadcrumb -->
+    <nav class="mb-3" aria-label="breadcrumb">
+        <ol class="breadcrumb small">
+            <li class="breadcrumb-item"><a href="{% url 'collaboration:list' %}" class="text-secondary text-decoration-none">Collaboration Hub</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'collaboration:detail' pk=project.pk %}" class="text-secondary text-decoration-none">{{ project.title }}</a></li>
+            <li class="breadcrumb-item active text-white" aria-current="page">Manage Team</li>
+        </ol>
+    </nav>
+
+    <!-- Header & Quick Controls -->
+    <div class="custom-card p-4 mb-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div>
+                <span class="badge-category">{{ project.category }}</span>
+                <h1 class="h3 fw-bold text-white mb-1">Manage {{ project.title }}</h1>
+                <p class="text-secondary small mb-0">Review join requests, manage active teammates, and update project status.</p>
+            </div>
+
+            <!-- Project Status Form -->
+            <form method="post" class="d-flex align-items-center gap-2">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="update_status">
+                <select name="status" class="form-select form-select-sm bg-dark text-white border-secondary">
+                    {% for s_val, s_label in statuses %}
+                    <option value="{{ s_val }}" {% if project.status == s_val %}selected{% endif %}>{{ s_label }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="btn btn-sm btn-secondary-custom flex-shrink-0">Update Status</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Pending Join Requests -->
+        <div class="col-lg-6">
+            <div class="custom-card p-4 h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold text-white mb-0"><i data-lucide="inbox" style="width: 18px; height: 18px;" class="me-2 text-warning"></i>Pending Join Requests</h5>
+                    <span class="badge bg-warning text-dark rounded-pill">{{ requests.count }}</span>
+                </div>
+
+                <div class="d-flex flex-column gap-3">
+                    {% for req in requests %}
+                    <div class="p-3 rounded-3" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08);">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <span class="fw-bold text-white">{{ req.user.username }}</span>
+                                <span class="badge bg-purple ms-2">{{ req.role_requested|default:"Contributor" }}</span>
+                            </div>
+                            <span class="text-muted small">{{ req.created_at|timesince }} ago</span>
+                        </div>
+                        <p class="text-secondary small mb-3" style="line-height: 1.6;">{{ req.message }}</p>
+
+                        <div class="d-flex gap-2 justify-content-end">
+                            <form method="post">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="handle_request">
+                                <input type="hidden" name="request_id" value="{{ req.id }}">
+                                <input type="hidden" name="decision" value="reject">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Decline</button>
+                            </form>
+                            <form method="post">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="handle_request">
+                                <input type="hidden" name="request_id" value="{{ req.id }}">
+                                <input type="hidden" name="decision" value="accept">
+                                <button type="submit" class="btn btn-sm btn-success">
+                                    <i data-lucide="user-check" style="width: 14px; height: 14px;"></i> Accept onto Team
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center py-4 text-muted small">No pending applications at this time.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Team Members -->
+        <div class="col-lg-6">
+            <div class="custom-card p-4 h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold text-white mb-0"><i data-lucide="users" style="width: 18px; height: 18px;" class="me-2 text-success"></i>Current Team Members</h5>
+                    <span class="badge bg-success rounded-pill">{{ project.current_members_count }}/{{ project.team_size }}</span>
+                </div>
+
+                <!-- Owner -->
+                <div class="p-3 rounded-3 mb-3 d-flex justify-content-between align-items-center" style="background: rgba(139, 92, 246, 0.08); border: 1px solid rgba(139, 92, 246, 0.2);">
+                    <div class="d-flex align-items-center gap-3">
+                        <i data-lucide="crown" class="text-purple" style="width: 22px; height: 22px;"></i>
+                        <div>
+                            <div class="fw-bold text-white">{{ project.owner.username }}</div>
+                            <div class="text-secondary small">Project Owner / Architect</div>
+                        </div>
+                    </div>
+                    <span class="badge bg-purple">Lead</span>
+                </div>
+
+                <div class="d-flex flex-column gap-2">
+                    {% for mem in members %}
+                    <div class="p-3 rounded-3 d-flex justify-content-between align-items-center" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06);">
+                        <div class="d-flex align-items-center gap-3">
+                            <i data-lucide="user" class="text-info" style="width: 20px; height: 20px;"></i>
+                            <div>
+                                <div class="fw-bold text-white">{{ mem.user.username }}</div>
+                                <div class="text-info small">{{ mem.role }}</div>
+                            </div>
+                        </div>
+                        <form method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="remove_member">
+                            <input type="hidden" name="member_id" value="{{ mem.id }}">
+                            <button type="submit" class="btn btn-sm text-danger p-0" title="Remove Member" onclick="return confirm('Remove member from team?');">
+                                <i data-lucide="user-x" style="width: 16px; height: 16px;"></i>
+                            </button>
+                        </form>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted small text-center py-3">No other teammates accepted yet.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

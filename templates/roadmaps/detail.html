@@ -1,0 +1,160 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ roadmap.title }} - SkillSphere{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <!-- Breadcrumb -->
+    <nav class="mb-3" aria-label="breadcrumb">
+        <ol class="breadcrumb small">
+            <li class="breadcrumb-item"><a href="{% url 'roadmaps:list' %}" class="text-secondary text-decoration-none">Roadmaps</a></li>
+            <li class="breadcrumb-item active text-white" aria-current="page">{{ roadmap.title }}</li>
+        </ol>
+    </nav>
+
+    <!-- Hero Card -->
+    <div class="custom-card card-glowing p-4 p-md-5 mb-4">
+        <div class="row align-items-center g-4">
+            <div class="col-lg-8">
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                    <span class="badge-category">{{ roadmap.target_skill }}</span>
+                    <span class="badge-difficulty {{ roadmap.current_level|lower }}">{{ roadmap.current_level }}</span>
+                    <span class="text-muted small"><i data-lucide="clock" style="width: 14px; height: 14px;"></i> {{ roadmap.daily_time }}</span>
+                    <span class="text-muted small"><i data-lucide="calendar" style="width: 14px; height: 14px;"></i> {{ roadmap.duration }}</span>
+                </div>
+
+                <h1 class="fw-bold text-white mb-2">{{ roadmap.title }}</h1>
+                <p class="text-secondary mb-0">Career Target: <span class="text-white fw-medium">{{ roadmap.career_goal }}</span></p>
+            </div>
+
+            <!-- Progress Meter -->
+            <div class="col-lg-4 text-center text-lg-end">
+                <div class="custom-card p-3 d-inline-block text-start w-100" style="max-width: 300px;">
+                    <div class="d-flex justify-content-between text-secondary small mb-1">
+                        <span>Roadmap Progress</span>
+                        <span class="fw-bold text-white" id="roadmapProgressPct">{{ progress.percentage }}%</span>
+                    </div>
+                    <div class="custom-progress mb-2">
+                        <div class="custom-progress-bar" id="roadmapProgressBar" style="width: {{ progress.percentage }}%;"></div>
+                    </div>
+                    <div class="text-muted small">
+                        <span id="roadmapCompletedCount">{{ progress.completed }}</span> of {{ progress.total }} milestones finished
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Milestones Timeline -->
+    <div class="d-flex flex-column gap-4">
+        {% for milestone in milestones %}
+            <div class="custom-card p-4 {% if milestone.is_completed %}border-success-subtle bg-opacity-50{% endif %}" id="milestoneCard_{{ milestone.id }}">
+                <div class="d-flex align-items-start gap-3">
+                    <!-- Checkbox Toggle -->
+                    <form class="milestone-toggle-form mt-1" action="{% url 'roadmaps:toggle_milestone' milestone_id=milestone.id %}" method="post">
+                        {% csrf_token %}
+                        <button type="button" class="btn p-0 border-0 bg-transparent milestone-toggle-btn" data-id="{{ milestone.id }}">
+                            {% if milestone.is_completed %}
+                                <i data-lucide="check-circle-2" class="text-success" style="width: 24px; height: 24px;"></i>
+                            {% else %}
+                                <i data-lucide="circle" class="text-muted hover-purple" style="width: 24px; height: 24px;"></i>
+                            {% endif %}
+                        </button>
+                    </form>
+
+                    <div class="flex-grow-1">
+                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                            <h4 class="fw-bold mb-0 {% if milestone.is_completed %}text-decoration-line-through text-muted{% else %}text-white{% endif %}">
+                                {{ milestone.title }}
+                            </h4>
+                            <span class="badge text-bg-dark border border-secondary-subtle text-muted small">
+                                ~{{ milestone.estimated_weeks }} Weeks
+                            </span>
+                        </div>
+
+                        <p class="text-secondary small mb-3">{{ milestone.description }}</p>
+
+                        <!-- Topics Chips -->
+                        {% if milestone.get_topics_list %}
+                        <div class="mb-3">
+                            <div class="text-muted small fw-semibold text-uppercase mb-2" style="font-size: 0.7rem; letter-spacing: 0.05em;">Key Technical Topics</div>
+                            <div class="d-flex flex-wrap gap-2">
+                                {% for topic in milestone.get_topics_list %}
+                                    <span class="badge px-3 py-1 rounded-pill small" style="background-color: rgba(255, 255, 255, 0.05); color: #E2E8F0; border: 1px solid var(--border-color);">
+                                        {{ topic }}
+                                    </span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Mini Project Challenge -->
+                        {% if milestone.mini_project %}
+                        <div class="p-3 rounded-3 d-flex align-items-center gap-3" style="background-color: rgba(139, 92, 246, 0.08); border: 1px dashed rgba(139, 92, 246, 0.3);">
+                            <div class="stat-icon purple" style="width: 36px; height: 36px; flex-shrink: 0;">
+                                <i data-lucide="code" style="width: 18px; height: 18px;"></i>
+                            </div>
+                            <div>
+                                <div class="text-muted small text-uppercase fw-bold" style="font-size: 0.68rem; color: var(--primary-accent-light) !important;">Practical Mini-Project Challenge</div>
+                                <div class="text-white fw-medium small">{{ milestone.mini_project }}</div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.milestone-toggle-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const form = btn.closest('form');
+            const formData = new FormData(form);
+
+            try {
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    headers: {'X-Requested-With': 'XMLHttpRequest'},
+                    body: formData
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        const icon = btn.querySelector('svg') || btn.querySelector('i');
+                        const card = btn.closest('.custom-card');
+                        const h4 = card.querySelector('h4');
+
+                        if (data.is_completed) {
+                            btn.innerHTML = '<i data-lucide="check-circle-2" class="text-success" style="width: 24px; height: 24px;"></i>';
+                            h4.classList.add('text-decoration-line-through', 'text-muted');
+                            h4.classList.remove('text-white');
+                        } else {
+                            btn.innerHTML = '<i data-lucide="circle" class="text-muted hover-purple" style="width: 24px; height: 24px;"></i>';
+                            h4.classList.remove('text-decoration-line-through', 'text-muted');
+                            h4.classList.add('text-white');
+                        }
+
+                        document.getElementById('roadmapProgressPct').textContent = data.percentage + '%';
+                        document.getElementById('roadmapProgressBar').style.width = data.percentage + '%';
+                        document.getElementById('roadmapCompletedCount').textContent = data.completed;
+
+                        lucide.createIcons();
+                    }
+                } else {
+                    form.submit();
+                }
+            } catch (err) {
+                form.submit();
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

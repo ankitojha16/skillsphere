@@ -1,0 +1,201 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ lesson.title }} - {{ course.title }} - SkillSphere{% endblock %}
+
+{% block sidebar %}{% endblock %}
+
+{% block navbar_search %}
+<div class="d-flex align-items-center gap-2">
+    <a href="{% url 'courses:detail' slug=course.slug %}" class="btn btn-secondary-custom btn-sm py-1 px-3">
+        <i data-lucide="chevron-left" style="width: 16px; height: 16px;"></i>
+        <span class="d-none d-sm-inline">Back to Course</span>
+    </a>
+    <span class="text-secondary small d-none d-md-inline">|</span>
+    <span class="text-white small fw-bold text-truncate d-none d-md-inline" style="max-width: 320px;">{{ course.title }}</span>
+</div>
+{% endblock navbar_search %}
+
+{% block content %}
+<div class="learning-layout">
+    <!-- Left Syllabus Sidebar -->
+    <aside class="learning-sidebar">
+        <!-- Course Progress Header -->
+        <div class="p-3 border-bottom" style="border-color: var(--border-color) !important; background-color: rgba(0,0,0,0.15);">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="text-secondary small fw-medium">Course Progress</span>
+                <span class="fw-bold text-white small" id="sidebarProgressPct">{{ progress_percentage }}%</span>
+            </div>
+            <div class="custom-progress mb-2">
+                <div class="custom-progress-bar" id="sidebarProgressBar" style="width: {{ progress_percentage }}%;"></div>
+            </div>
+            <div class="text-muted small" style="font-size: 0.75rem;">
+                <span id="sidebarCompletedCount">{{ completed_count }}</span> of {{ total_count }} lessons completed
+            </div>
+        </div>
+
+        <!-- Chapter & Lesson List -->
+        <div class="py-2">
+            {% for chapter_name, lessons_in_chapter in chapters.items %}
+                <div class="px-3 pt-3 pb-1">
+                    <span class="text-muted fw-bold text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.05em;">
+                        {{ chapter_name }}
+                    </span>
+                </div>
+
+                {% for item in lessons_in_chapter %}
+                    <a href="{% url 'learning:lesson_detail' course_slug=course.slug lesson_id=item.lesson.id %}" 
+                       class="lesson-item-link {% if item.is_current %}active{% endif %} {% if item.is_completed %}completed{% endif %}">
+                        <div class="flex-shrink-0">
+                            {% if item.is_completed %}
+                                <i data-lucide="check-circle-2" class="text-success" style="width: 18px; height: 18px;"></i>
+                            {% elif item.is_current %}
+                                <i data-lucide="play-circle" class="text-primary-accent" style="width: 18px; height: 18px;"></i>
+                            {% else %}
+                                <i data-lucide="circle" class="text-muted" style="width: 16px; height: 16px;"></i>
+                            {% endif %}
+                        </div>
+                        <div class="flex-grow-1 text-truncate">
+                            <span class="d-block text-truncate">{{ item.lesson.lesson_order }}. {{ item.lesson.title }}</span>
+                        </div>
+                        <span class="text-muted" style="font-size: 0.7rem;">{{ item.lesson.estimated_minutes }}m</span>
+                    </a>
+                {% endfor %}
+            {% endfor %}
+        </div>
+    </aside>
+
+    <!-- Main Lesson Reader -->
+    <main class="learning-main">
+        <div class="lesson-body">
+            <!-- Lesson Header -->
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 pb-3 mb-4 border-bottom" style="border-color: var(--border-color) !important;">
+                <div>
+                    <span class="badge-category mb-2">{{ lesson.chapter_name }}</span>
+                    <h2 class="fw-bold text-white mb-1">Lesson {{ lesson.lesson_order }}: {{ lesson.title }}</h2>
+                    <div class="text-muted small d-flex align-items-center gap-2">
+                        <span><i data-lucide="clock" class="me-1" style="width: 14px; height: 14px;"></i> {{ lesson.estimated_minutes }} min read</span>
+                        <span>•</span>
+                        <span>Instructor: {{ course.instructor_name }}</span>
+                    </div>
+                </div>
+
+                <!-- Complete Button -->
+                <form id="completeToggleForm" action="{% url 'learning:complete_toggle' course_slug=course.slug lesson_id=lesson.id %}" method="post">
+                    {% csrf_token %}
+                    <button type="button" id="completeBtn" class="btn {% if current_is_completed %}btn-success-custom{% else %}btn-secondary-custom{% endif %} py-2 px-3">
+                        <i data-lucide="{% if current_is_completed %}check-circle-2{% else %}circle{% endif %}" id="completeBtnIcon" style="width: 18px; height: 18px;"></i>
+                        <span id="completeBtnText">{% if current_is_completed %}Completed{% else %}Mark as Complete{% endif %}</span>
+                    </button>
+                </form>
+            </div>
+
+            <!-- Formatted Lesson Content -->
+            <div class="custom-card p-4 p-md-5 mb-4">
+                <article class="lesson-formatted-content text-light" style="line-height: 1.8; font-size: 1.05rem;">
+                    {{ lesson.content|safe }}
+                </article>
+            </div>
+
+            <!-- External Resources & Links -->
+            {% if lesson.external_resources %}
+            <div class="custom-card p-4 mb-4">
+                <h5 class="fw-bold text-white mb-3 d-flex align-items-center gap-2">
+                    <i data-lucide="external-link" class="text-secondary-accent" style="width: 18px; height: 18px;"></i>
+                    <span>External Learning Resources & References</span>
+                </h5>
+                <div class="small text-secondary">
+                    {{ lesson.external_resources|safe }}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Bottom Navigation Bar -->
+            <div class="d-flex justify-content-between align-items-center gap-3 pt-4 border-top" style="border-color: var(--border-color) !important;">
+                {% if prev_lesson %}
+                    <a href="{% url 'learning:lesson_detail' course_slug=course.slug lesson_id=prev_lesson.id %}" class="btn btn-secondary-custom">
+                        <i data-lucide="chevron-left" style="width: 18px; height: 18px;"></i>
+                        <span>Previous Lesson</span>
+                    </a>
+                {% else %}
+                    <div></div>
+                {% endif %}
+
+                {% if next_lesson %}
+                    <form action="{% url 'learning:complete_toggle' course_slug=course.slug lesson_id=lesson.id %}" method="post" class="d-inline">
+                        {% csrf_token %}
+                        <input type="hidden" name="next_action" value="advance">
+                        <button type="submit" class="btn btn-primary-custom py-2 px-4">
+                            <span>Complete & Next Lesson</span>
+                            <i data-lucide="chevron-right" style="width: 18px; height: 18px;"></i>
+                        </button>
+                    </form>
+                {% else %}
+                    <a href="{% url 'courses:detail' slug=course.slug %}" class="btn btn-success-custom py-2 px-4">
+                        <i data-lucide="award" style="width: 18px; height: 18px;"></i>
+                        <span>Finish Course</span>
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </main>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const completeBtn = document.getElementById('completeBtn');
+    const form = document.getElementById('completeToggleForm');
+
+    if (completeBtn && form) {
+        completeBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(form);
+            const actionUrl = form.action;
+
+            try {
+                const response = await fetch(actionUrl, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        const icon = document.getElementById('completeBtnIcon');
+                        const text = document.getElementById('completeBtnText');
+                        const progressPct = document.getElementById('sidebarProgressPct');
+                        const progressBar = document.getElementById('sidebarProgressBar');
+                        const completedCount = document.getElementById('sidebarCompletedCount');
+
+                        if (data.is_completed) {
+                            completeBtn.className = 'btn btn-success-custom py-2 px-3';
+                            text.textContent = 'Completed';
+                            icon.setAttribute('data-lucide', 'check-circle-2');
+                        } else {
+                            completeBtn.className = 'btn btn-secondary-custom py-2 px-3';
+                            text.textContent = 'Mark as Complete';
+                            icon.setAttribute('data-lucide', 'circle');
+                        }
+
+                        if (progressPct) progressPct.textContent = data.percentage + '%';
+                        if (progressBar) progressBar.style.width = data.percentage + '%';
+                        if (completedCount) completedCount.textContent = data.completed_count;
+
+                        lucide.createIcons();
+                    }
+                } else {
+                    form.submit();
+                }
+            } catch (err) {
+                form.submit();
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

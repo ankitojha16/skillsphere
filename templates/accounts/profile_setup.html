@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Setup Learning Profile - SkillSphere{% endblock %}
+
+{% block content %}
+<div class="container py-5" style="max-width: 760px;">
+    <div class="custom-card card-glowing p-4 p-md-5">
+        <div class="text-center mb-4">
+            <span class="badge-category mb-2">Step 2 of 2</span>
+            <h2 class="fw-bold mb-1">Personalize Your Learning Profile</h2>
+            <p class="text-secondary small">Tell us about your learning goals and preferences so we can tailor your experience.</p>
+        </div>
+
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            <div class="row g-3 mb-4">
+                <div class="col-md-6">
+                    <label class="form-label" for="id_full_name">Full Name</label>
+                    {{ form.full_name }}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="id_avatar">Profile Picture (Optional)</label>
+                    {{ form.avatar }}
+                </div>
+            </div>
+
+            <div class="row g-3 mb-4">
+                <div class="col-md-6">
+                    <label class="form-label" for="id_education_level">Education Level</label>
+                    {{ form.education_level }}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="id_institution">College / University / Institution</label>
+                    {{ form.institution }}
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label" for="id_learning_level">Current Technical Level</label>
+                {{ form.learning_level }}
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label d-block mb-2">Learning Interests</label>
+                <div class="d-flex flex-wrap gap-2">
+                    {% for interest_key, interest_label in interest_options %}
+                        <input type="checkbox" class="btn-check" name="selected_interests" value="{{ interest_key }}" id="interest_{{ interest_key }}"
+                               {% if interest_key in selected_interests %}checked{% endif %}>
+                        <label class="btn btn-outline-secondary text-light border-secondary-subtle px-3 py-2 rounded-pill small" for="interest_{{ interest_key }}">
+                            {{ interest_label }}
+                        </label>
+                    {% endfor %}
+                </div>
+                <small class="text-muted mt-2 d-block">Select the topics you want to prioritize in your recommendations.</small>
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label" for="id_career_goal">Primary Career Goal</label>
+                {{ form.career_goal }}
+                <small class="text-muted">e.g., "Full-Stack Web Developer", "AI Engineer", "Software Engineer at Top Tech"</small>
+            </div>
+
+            <div class="d-flex gap-3 pt-2">
+                <button type="submit" class="btn btn-primary-custom flex-grow-1 justify-content-center py-2">
+                    <i data-lucide="check-circle" style="width: 18px; height: 18px;"></i>
+                    <span>Complete Setup & Go to Dashboard</span>
+                </button>
+                <a href="{% url 'dashboard:index' %}" class="btn btn-secondary-custom">
+                    Skip for Now
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

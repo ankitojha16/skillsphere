@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Hackathons & Tech Events Hub - SkillSphere{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h1 class="h3 fw-bold text-white mb-1">Hackathons & Learning Events</h1>
+            <p class="text-secondary mb-0">Discover international hackathons, collegiate coding competitions, workshops, and student conferences.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'collaboration:list' %}" class="btn btn-primary-custom">
+                <i data-lucide="users" style="width: 16px; height: 16px;"></i>
+                <span>Find Teammates for Hackathons</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Category Filter Pills & Search -->
+    <div class="custom-card p-3 mb-4">
+        <form method="get" class="row g-2 align-items-center mb-3">
+            <div class="col-md-9">
+                <div class="input-group">
+                    <span class="input-group-text bg-dark border-secondary text-secondary"><i data-lucide="search" style="width: 16px; height: 16px;"></i></span>
+                    <input type="text" name="q" class="form-control bg-dark text-white border-secondary" placeholder="Search hackathons, organizers, or workshops..." value="{{ query }}">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-secondary-custom w-100">Search</button>
+            </div>
+        </form>
+
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{% url 'events:list' %}" class="btn btn-sm {% if not selected_category %}btn-primary-custom{% else %}btn-outline-secondary text-light{% endif %} rounded-pill">
+                All Events
+            </a>
+            {% for c_val, c_label in categories %}
+            <a href="{% url 'events:list' %}?category={{ c_val }}" class="btn btn-sm {% if selected_category == c_val %}btn-primary-custom{% else %}btn-outline-secondary text-light{% endif %} rounded-pill">
+                {{ c_label }}
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Events Grid -->
+    <div class="row g-4 mb-4">
+        {% for event in events %}
+        <div class="col-md-6 col-xl-4">
+            <div class="custom-card p-4 h-100 d-flex flex-column justify-content-between">
+                <div>
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <span class="badge-category">{{ event.get_category_display }}</span>
+                        <div class="d-flex align-items-center gap-1">
+                            {% if event.verification_status %}
+                            <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25 small" title="Verified Official Event">
+                                <i data-lucide="check-circle" style="width: 12px; height: 12px;"></i> Verified
+                            </span>
+                            {% endif %}
+                            <span class="badge bg-dark border border-secondary text-info small">
+                                {% if event.is_online %}Virtual{% else %}{{ event.location }}{% endif %}
+                            </span>
+                        </div>
+                    </div>
+
+                    <h4 class="h5 fw-bold text-white mb-1">{{ event.title }}</h4>
+                    <div class="text-secondary small fw-medium mb-3">By <span class="text-white">{{ event.organizer }}</span></div>
+
+                    <p class="text-secondary small mb-3">{{ event.description|truncatewords:25 }}</p>
+
+                    <div class="p-2 rounded mb-3" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06);">
+                        <div class="d-flex justify-content-between text-secondary small mb-1">
+                            <span><i data-lucide="calendar" style="width: 13px; height: 13px;"></i> Event Dates:</span>
+                            <span class="text-white fw-medium">{{ event.start_date|date:"M d" }} - {{ event.end_date|date:"M d, Y" }}</span>
+                        </div>
+                        {% if event.registration_deadline %}
+                        <div class="d-flex justify-content-between text-secondary small">
+                            <span><i data-lucide="clock" style="width: 13px; height: 13px;"></i> Register By:</span>
+                            <span class="text-warning fw-medium">{{ event.registration_deadline|date:"M d, Y" }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="pt-3 border-top border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
+                    <form method="post" action="{% url 'events:toggle_save_event' pk=event.pk %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm {% if event.pk in saved_event_ids %}btn-success{% else %}btn-outline-light{% endif %}" title="{% if event.pk in saved_event_ids %}Saved to Calendar{% else %}Save Event{% endif %}">
+                            <i data-lucide="calendar-plus" style="width: 14px; height: 14px;"></i> {% if event.pk in saved_event_ids %}Saved{% else %}Save{% endif %}
+                        </button>
+                    </form>
+
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'events:detail' pk=event.pk %}" class="btn btn-sm btn-outline-info">Details</a>
+                        <a href="{{ event.registration_url }}" target="_blank" class="btn btn-sm btn-primary-custom">
+                            Official Register <i data-lucide="arrow-up-right" style="width: 13px; height: 13px;"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12 text-center py-5 text-muted">
+            <i data-lucide="calendar-x" style="width: 36px; height: 36px;" class="mb-2 d-block mx-auto opacity-50"></i>
+            No upcoming events found matching your filter criteria.
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

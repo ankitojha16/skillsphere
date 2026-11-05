@@ -1,0 +1,176 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ course.title }} - SkillSphere{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <!-- Breadcrumb -->
+    <nav class="mb-3" aria-label="breadcrumb">
+        <ol class="breadcrumb small">
+            <li class="breadcrumb-item"><a href="{% url 'courses:list' %}" class="text-secondary text-decoration-none">Courses</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'courses:list' %}?category={{ course.category.slug }}" class="text-secondary text-decoration-none">{{ course.category.name }}</a></li>
+            <li class="breadcrumb-item active text-white" aria-current="page">{{ course.title }}</li>
+        </ol>
+    </nav>
+
+    <!-- Hero Card -->
+    <div class="custom-card card-glowing p-4 p-lg-5 mb-4">
+        <div class="row g-4 align-items-center">
+            <div class="col-lg-8">
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+                    <span class="badge-category">{{ course.category.name }}</span>
+                    <span class="badge-difficulty {{ course.difficulty|lower }}">{{ course.difficulty }}</span>
+                    <span class="text-muted small d-flex align-items-center gap-1">
+                        <i data-lucide="clock" style="width: 14px; height: 14px;"></i> {{ course.estimated_duration }}
+                    </span>
+                    <span class="text-muted small d-flex align-items-center gap-1">
+                        <i data-lucide="book-open" style="width: 14px; height: 14px;"></i> {{ lessons.count }} Lessons
+                    </span>
+                </div>
+
+                <h1 class="fw-bold text-white mb-3">{{ course.title }}</h1>
+                <p class="text-secondary fs-6 mb-4">{{ course.description }}</p>
+
+                <!-- Instructor Card -->
+                <div class="d-flex align-items-center gap-3 p-3 rounded-3 mb-4" style="background-color: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); max-width: 480px;">
+                    <div class="stat-icon purple" style="width: 42px; height: 42px;">
+                        <i data-lucide="user-check" style="width: 20px; height: 20px;"></i>
+                    </div>
+                    <div>
+                        <div class="text-white fw-bold">{{ course.instructor_name }}</div>
+                        <div class="text-muted small">{{ course.instructor_title }}</div>
+                    </div>
+                </div>
+
+                <!-- Action CTA -->
+                <div class="d-flex flex-wrap align-items-center gap-3">
+                    {% if is_enrolled %}
+                        {% if first_incomplete_lesson %}
+                            <a href="{% url 'learning:lesson_detail' course_slug=course.slug lesson_id=first_incomplete_lesson.id %}" class="btn btn-primary-custom py-2 px-4">
+                                <i data-lucide="play" style="width: 18px; height: 18px;"></i>
+                                <span>Continue Learning</span>
+                            </a>
+                        {% endif %}
+                        <form action="{% url 'courses:unenroll' slug=course.slug %}" method="post" onsubmit="return confirm('Are you sure you want to unenroll? Your saved lesson progress will be removed.');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-secondary-custom text-danger border-danger-subtle py-2">
+                                <i data-lucide="user-minus" style="width: 16px; height: 16px;"></i>
+                                <span>Unenroll</span>
+                            </button>
+                        </form>
+                    {% else %}
+                        {% if user.is_authenticated %}
+                            <form action="{% url 'courses:enroll' slug=course.slug %}" method="post">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-primary-custom py-2 px-4">
+                                    <i data-lucide="plus-circle" style="width: 18px; height: 18px;"></i>
+                                    <span>Enroll in Course</span>
+                                </button>
+                            </form>
+                        {% else %}
+                            <a href="{% url 'accounts:login' %}?next={{ request.path }}" class="btn btn-primary-custom py-2 px-4">
+                                <span>Log In to Enroll</span>
+                            </a>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Thumbnail & Progress Preview -->
+            <div class="col-lg-4 text-center">
+                <div class="rounded-4 overflow-hidden shadow-lg border" style="border-color: var(--border-color) !important; max-height: 280px;">
+                    <img src="{{ course.get_thumbnail_url }}" alt="{{ course.title }}" class="w-100 h-100 object-fit-cover">
+                </div>
+
+                {% if is_enrolled %}
+                <div class="custom-card mt-3 p-3 text-start">
+                    <div class="d-flex justify-content-between text-secondary small mb-1">
+                        <span>Your Completion</span>
+                        <span class="fw-bold text-white">{{ progress_info.percentage }}%</span>
+                    </div>
+                    <div class="custom-progress mb-2">
+                        <div class="custom-progress-bar" style="width: {{ progress_info.percentage }}%;"></div>
+                    </div>
+                    <div class="text-muted small">
+                        {{ progress_info.completed }} of {{ progress_info.total }} lessons completed
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Syllabus List -->
+        <div class="col-lg-8">
+            <div class="custom-card p-4">
+                <h4 class="fw-bold text-white mb-3 d-flex align-items-center gap-2">
+                    <i data-lucide="list-ordered" class="text-primary-accent" style="width: 22px; height: 22px;"></i>
+                    <span>Course Syllabus & Lessons</span>
+                </h4>
+                <p class="text-secondary small mb-4">Structured step-by-step technical modules designed for practical mastery.</p>
+
+                <div class="d-flex flex-column gap-2">
+                    {% for lesson in lessons %}
+                        <div class="d-flex align-items-center justify-content-between p-3 rounded-3" style="background-color: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color);">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="stat-icon purple" style="width: 36px; height: 36px; font-size: 0.85rem; font-weight: bold;">
+                                    {{ lesson.lesson_order }}
+                                </div>
+                                <div>
+                                    <div class="text-white fw-medium">{{ lesson.title }}</div>
+                                    <small class="text-muted">{{ lesson.chapter_name }}</small>
+                                </div>
+                            </div>
+
+                            <div class="d-flex align-items-center gap-3">
+                                <span class="text-muted small d-none d-sm-inline">
+                                    <i data-lucide="clock" style="width: 14px; height: 14px;"></i> {{ lesson.estimated_minutes }} mins
+                                </span>
+                                {% if is_enrolled %}
+                                    <a href="{% url 'learning:lesson_detail' course_slug=course.slug lesson_id=lesson.id %}" class="btn btn-secondary-custom btn-sm py-1 px-3">
+                                        <span>Start</span>
+                                        <i data-lucide="arrow-right" style="width: 14px; height: 14px;"></i>
+                                    </a>
+                                {% else %}
+                                    <span class="badge text-bg-secondary px-2 py-1 small"><i data-lucide="lock" style="width: 12px; height: 12px;"></i> Enrolled Only</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% empty %}
+                        <div class="text-muted small py-3">No lessons published yet for this course.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Learning Objectives Sidebar -->
+        <div class="col-lg-4">
+            <div class="custom-card p-4 mb-4">
+                <h5 class="fw-bold text-white mb-3 d-flex align-items-center gap-2">
+                    <i data-lucide="target" class="text-secondary-accent" style="width: 20px; height: 20px;"></i>
+                    <span>What You'll Learn</span>
+                </h5>
+                {% if objectives %}
+                    <ul class="list-unstyled d-flex flex-column gap-3 mb-0">
+                        {% for obj in objectives %}
+                            <li class="d-flex align-items-start gap-2 small text-secondary">
+                                <i data-lucide="check" class="text-success mt-1 flex-shrink-0" style="width: 16px; height: 16px;"></i>
+                                <span class="text-white">{{ obj }}</span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-secondary small mb-0">Practical hands-on exercises, industry coding standards, and project-based assignments.</p>
+                {% endif %}
+            </div>
+
+            <div class="custom-card p-4">
+                <h5 class="fw-bold text-white mb-2">Notice</h5>
+                <p class="text-muted small mb-0">All sample curriculum content is developed strictly for educational demonstration and student portfolio purposes.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

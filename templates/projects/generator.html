@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}AI Practical Project Generator - SkillSphere{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h2 class="fw-bold mb-1">AI Practical Project Generator</h2>
+            <p class="text-secondary small mb-0">Discover and architect portfolio-grade engineering projects tailored to your tech stack.</p>
+        </div>
+        <a href="{% url 'projects:saved' %}" class="btn btn-secondary-custom">
+            <i data-lucide="bookmark" style="width: 16px; height: 16px;"></i>
+            <span>My Saved Projects ({{ saved_count }})</span>
+        </a>
+    </div>
+
+    <div class="row g-4">
+        <!-- Input Form -->
+        <div class="col-lg-5">
+            <div class="custom-card card-glowing p-4">
+                <h4 class="fw-bold text-white mb-3 d-flex align-items-center gap-2">
+                    <i data-lucide="sliders" class="text-primary-accent" style="width: 20px; height: 20px;"></i>
+                    <span>Project Parameters</span>
+                </h4>
+
+                <form method="post" id="genForm" action="{% url 'projects:generator' %}">
+                    {% csrf_token %}
+
+                    <div class="mb-3">
+                        <label class="form-label" for="language">Primary Programming Language</label>
+                        <select name="language" id="language" class="form-select">
+                            <option value="Python" selected>Python</option>
+                            <option value="JavaScript">JavaScript / TypeScript</option>
+                            <option value="Java">Java</option>
+                            <option value="C++">C++</option>
+                            <option value="SQL / PostgreSQL">SQL / PostgreSQL</option>
+                            <option value="Go">Go (Golang)</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label" for="category">Project Category</label>
+                        <select name="category" id="category" class="form-select">
+                            {% for cat_val, cat_label in categories %}
+                                <option value="{{ cat_val }}">{{ cat_label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label" for="level">Skill Level</label>
+                            <select name="level" id="level" class="form-select">
+                                <option value="Beginner">Beginner</option>
+                                <option value="Intermediate" selected>Intermediate</option>
+                                <option value="Advanced">Advanced</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label" for="complexity">Complexity</label>
+                            <select name="complexity" id="complexity" class="form-select">
+                                <option value="Low">Low</option>
+                                <option value="Medium" selected>Medium</option>
+                                <option value="High">High</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label" for="project_type">Preferred Architecture Type</label>
+                        <select name="project_type" id="project_type" class="form-select">
+                            <option value="Full-Stack Web Application" selected>Full-Stack Web Application</option>
+                            <option value="RESTful API Microservice">RESTful API Microservice</option>
+                            <option value="Interactive Analytics Dashboard">Interactive Analytics Dashboard</option>
+                            <option value="Developer CLI Tool">Developer CLI Tool</option>
+                            <option value="Automated Background Pipeline">Automated Background Pipeline</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" id="genBtn" class="btn btn-primary-custom w-100 justify-content-center py-2">
+                        <i data-lucide="sparkles" style="width: 16px; height: 16px;"></i>
+                        <span>Generate Practical Project Idea</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Generated Result Display -->
+        <div class="col-lg-7">
+            {% if generated_project %}
+            <div class="custom-card p-4 p-md-5">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <span class="badge-category">{{ generated_project.category }}</span>
+                    <span class="badge-difficulty {{ generated_project.level|lower }}">{{ generated_project.level }}</span>
+                </div>
+
+                <h3 class="fw-bold text-white mb-2">{{ generated_project.title }}</h3>
+                <p class="text-secondary small mb-3">{{ generated_project.description }}</p>
+
+                <!-- Tech Stack Banner -->
+                <div class="p-3 rounded-3 mb-4" style="background-color: rgba(139, 92, 246, 0.08); border: 1px solid rgba(139, 92, 246, 0.3);">
+                    <div class="text-muted small fw-bold text-uppercase mb-1" style="font-size: 0.7rem; color: var(--primary-accent-light) !important;">Recommended Tech Stack</div>
+                    <div class="text-white fw-bold small">{{ generated_project.technology_stack }}</div>
+                </div>
+
+                <!-- Problem Statement -->
+                <div class="mb-3">
+                    <h6 class="fw-bold text-white mb-1">Problem Statement</h6>
+                    <p class="text-secondary small mb-0">{{ generated_project.problem_statement }}</p>
+                </div>
+
+                <!-- Core Features -->
+                <div class="mb-3">
+                    <h6 class="fw-bold text-white mb-1">Main Key Features</h6>
+                    <div class="text-light small" style="white-space: pre-line;">{{ generated_project.main_features }}</div>
+                </div>
+
+                <!-- Database Requirements -->
+                <div class="mb-3">
+                    <h6 class="fw-bold text-white mb-1">Database & Schema Requirements</h6>
+                    <p class="text-secondary small mb-0">{{ generated_project.database_requirements }}</p>
+                </div>
+
+                <!-- Development Phases -->
+                <div class="mb-4">
+                    <h6 class="fw-bold text-white mb-1">Development Roadmap Phases</h6>
+                    <div class="text-light small" style="white-space: pre-line;">{{ generated_project.development_phases }}</div>
+                </div>
+
+                <!-- Action CTA -->
+                <form action="{% url 'projects:save' %}" method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="title" value="{{ generated_project.title }}">
+                    <input type="hidden" name="category" value="{{ generated_project.category }}">
+                    <input type="hidden" name="difficulty" value="{{ generated_project.level }}">
+                    <input type="hidden" name="technology_stack" value="{{ generated_project.technology_stack }}">
+                    <input type="hidden" name="description" value="{{ generated_project.description }}">
+                    <input type="hidden" name="problem_statement" value="{{ generated_project.problem_statement }}">
+                    <input type="hidden" name="objectives" value="{{ generated_project.objectives }}">
+                    <input type="hidden" name="main_features" value="{{ generated_project.main_features }}">
+                    <input type="hidden" name="database_requirements" value="{{ generated_project.database_requirements }}">
+                    <input type="hidden" name="development_phases" value="{{ generated_project.development_phases }}">
+
+                    <div class="d-flex gap-3">
+                        <button type="submit" class="btn btn-success-custom py-2 px-4">
+                            <i data-lucide="bookmark-plus" style="width: 16px; height: 16px;"></i>
+                            <span>Save Project to Collection</span>
+                        </button>
+                        <button type="button" class="btn btn-secondary-custom" onclick="document.getElementById('genForm').submit();">
+                            <span>Regenerate Another Idea</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+            {% else %}
+            <div class="custom-card p-5 text-center h-100 d-flex flex-column justify-content-center">
+                <i data-lucide="sparkles" class="text-muted mx-auto mb-3" style="width: 48px; height: 48px;"></i>
+                <h4 class="fw-bold text-white mb-2">Build Practical Engineering Projects</h4>
+                <p class="text-secondary small mb-0" style="max-width: 480px; margin: 0 auto;">
+                    Select your preferred programming language and category on the left to generate architectural blueprints with features, database requirements, and phases.
+                </p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('genForm').addEventListener('submit', () => {
+    const btn = document.getElementById('genBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Architecting Project Spec...';
+});
+</script>
+{% endblock %}

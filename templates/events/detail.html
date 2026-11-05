@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ event.title }} - SkillSphere Events{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <!-- Breadcrumb -->
+    <nav class="mb-3" aria-label="breadcrumb">
+        <ol class="breadcrumb small">
+            <li class="breadcrumb-item"><a href="{% url 'events:list' %}" class="text-secondary text-decoration-none">Events Hub</a></li>
+            <li class="breadcrumb-item active text-white" aria-current="page">{{ event.title }}</li>
+        </ol>
+    </nav>
+
+    <!-- Main Card -->
+    <div class="custom-card card-glowing p-4 p-md-5 mb-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+            <div>
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <span class="badge-category">{{ event.get_category_display }}</span>
+                    <span class="badge bg-dark border border-secondary text-info">{% if event.is_online %}Virtual / Online{% else %}{{ event.location }}{% endif %}</span>
+                    {% if event.verification_status %}
+                    <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25">Verified Authenticity</span>
+                    {% endif %}
+                </div>
+                <h1 class="display-6 fw-bold text-white mb-1">{{ event.title }}</h1>
+                <div class="text-secondary small mb-3">Organized by <span class="text-white fw-bold">{{ event.organizer }}</span></div>
+            </div>
+
+            <div class="d-flex gap-2">
+                <form method="post" action="{% url 'events:toggle_save_event' pk=event.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn {% if saved_entry %}btn-success{% else %}btn-secondary-custom{% endif %}">
+                        <i data-lucide="bookmark" style="width: 16px; height: 16px;"></i> {% if saved_entry %}Saved to My Events{% else %}Save Event{% endif %}
+                    </button>
+                </form>
+                <a href="{{ event.registration_url }}" target="_blank" class="btn btn-primary-custom">
+                    Official Registration Page <i data-lucide="arrow-up-right" style="width: 16px; height: 16px;"></i>
+                </a>
+            </div>
+        </div>
+
+        <div class="row g-4 mt-2">
+            <div class="col-lg-8">
+                <h4 class="h5 fw-bold text-white mb-2">Event Description & Structure</h4>
+                <p class="text-secondary mb-4" style="line-height: 1.8; white-space: pre-line;">{{ event.description }}</p>
+
+                <div class="p-3 rounded-3 mb-4" style="background: rgba(139, 92, 246, 0.08); border: 1px dashed rgba(139, 92, 246, 0.3);">
+                    <div class="text-purple fw-bold mb-1"><i data-lucide="users" style="width: 16px; height: 16px;"></i> Teammate Formation</div>
+                    <p class="text-secondary small mb-2">Participating in this hackathon or competition? Form a squad in the SkillSphere Collaboration Hub.</p>
+                    <a href="{% url 'collaboration:create' %}" class="btn btn-sm btn-outline-purple">Create Hackathon Team Listing →</a>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="p-4 rounded-4" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08);">
+                    <h5 class="fw-bold text-white mb-3">Event Timeline</h5>
+                    <div class="mb-3">
+                        <div class="text-secondary small">Start Date</div>
+                        <div class="text-white fw-bold">{{ event.start_date|date:"F d, Y - H:i" }}</div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="text-secondary small">End Date</div>
+                        <div class="text-white fw-bold">{{ event.end_date|date:"F d, Y - H:i" }}</div>
+                    </div>
+                    {% if event.registration_deadline %}
+                    <div class="mb-3">
+                        <div class="text-secondary small">Registration Closes</div>
+                        <div class="text-warning fw-bold">{{ event.registration_deadline|date:"F d, Y - H:i" }}</div>
+                    </div>
+                    {% endif %}
+                    <div class="mb-3">
+                        <div class="text-secondary small">Location</div>
+                        <div class="text-info fw-bold">{{ event.location }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

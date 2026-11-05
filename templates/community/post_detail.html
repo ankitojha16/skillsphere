@@ -1,0 +1,161 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ post.title }} - Community Discussion - SkillSphere{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4" style="max-width: 900px;">
+    <!-- Breadcrumb -->
+    <nav class="mb-3" aria-label="breadcrumb">
+        <ol class="breadcrumb small">
+            <li class="breadcrumb-item"><a href="{% url 'community:feed' %}" class="text-secondary text-decoration-none">Community</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'community:feed' %}?category={{ post.category }}" class="text-secondary text-decoration-none">{{ post.get_category_display }}</a></li>
+            <li class="breadcrumb-item active text-white" aria-current="page">{{ post.title|truncatechars:35 }}</li>
+        </ol>
+    </nav>
+
+    <!-- Main Post Card -->
+    <div class="custom-card p-4 p-md-5 mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge-category">{{ post.get_category_display }}</span>
+                <span class="text-secondary small">Posted by <span class="text-white fw-bold">{{ post.user.username }}</span></span>
+                <span class="text-muted small">• {{ post.created_at|date:"F d, Y - H:i" }}</span>
+            </div>
+            <button type="button" class="btn btn-sm text-secondary p-0" title="Report Post" onclick="openReportModal('post', '{{ post.id }}', '{{ post.title|escapejs }}')">
+                <i data-lucide="flag" style="width: 14px; height: 14px;"></i>
+            </button>
+        </div>
+
+        <h1 class="h3 fw-bold text-white mb-3">{{ post.title }}</h1>
+        <div class="text-light mb-4" style="line-height: 1.8; white-space: pre-line;">{{ post.content }}</div>
+
+        <!-- Post Actions -->
+        <div class="d-flex justify-content-between align-items-center pt-3 border-top border-secondary border-opacity-25">
+            <form method="post" action="{% url 'community:toggle_like' pk=post.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm {% if is_liked %}btn-danger{% else %}btn-outline-danger{% endif %} rounded-pill px-3">
+                    <i data-lucide="heart" style="width: 14px; height: 14px;" class="me-1"></i> {{ post.likes_count }} Likes
+                </button>
+            </form>
+            <span class="text-secondary small"><i data-lucide="message-square" style="width: 14px; height: 14px;" class="me-1"></i> {{ post.comments_count }} Replies</span>
+        </div>
+    </div>
+
+    <!-- Reply Input Box -->
+    <div class="custom-card p-4 mb-4">
+        <h5 class="fw-bold text-white mb-3">Add a Reply</h5>
+        <form method="post">
+            {% csrf_token %}
+            <div class="mb-3">
+                <textarea name="comment" rows="3" class="form-control bg-dark text-white border-secondary" required placeholder="Share your perspective, code solution, or constructive feedback..."></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary-custom btn-sm">
+                <i data-lucide="send" style="width: 14px; height: 14px;"></i> Post Reply
+            </button>
+        </form>
+    </div>
+
+    <!-- Comments List -->
+    <h4 class="h5 fw-bold text-white mb-3">Discussion Thread ({{ comments.count }})</h4>
+    <div class="d-flex flex-column gap-3 mb-4">
+        {% for comment in comments %}
+        <div class="custom-card p-4">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="fw-bold text-info small">{{ comment.user.username }}</span>
+                    <span class="text-muted small">• {{ comment.created_at|timesince }} ago</span>
+                </div>
+                <button type="button" class="btn btn-sm text-secondary p-0" title="Report Comment" onclick="openReportModal('comment', '{{ comment.id }}', 'Comment by {{ comment.user.username }}')">
+                    <i data-lucide="flag" style="width: 12px; height: 12px;"></i>
+                </button>
+            </div>
+
+            <p class="text-light small mb-3" style="line-height: 1.7; white-space: pre-line;">{{ comment.content }}</p>
+
+            <!-- Nested Replies -->
+            {% if comment.replies.all %}
+            <div class="ps-3 border-start border-secondary border-opacity-50 mt-3 d-flex flex-column gap-2">
+                {% for reply in comment.replies.all %}
+                <div class="p-2 rounded" style="background: rgba(255,255,255,0.02);">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="fw-bold text-purple small">{{ reply.user.username }}</span>
+                        <span class="text-muted small" style="font-size: 0.75rem;">{{ reply.created_at|timesince }} ago</span>
+                    </div>
+                    <p class="text-secondary small mb-0">{{ reply.content }}</p>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Reply to this comment form toggle -->
+            <div class="mt-3 pt-2 border-top border-secondary border-opacity-25">
+                <button class="btn btn-sm text-secondary p-0 small" type="button" data-bs-toggle="collapse" data-bs-target="#replyBox_{{ comment.id }}">
+                    <i data-lucide="corner-down-right" style="width: 12px; height: 12px;"></i> Reply to {{ comment.user.username }}
+                </button>
+                <div class="collapse mt-2" id="replyBox_{{ comment.id }}">
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="parent_id" value="{{ comment.id }}">
+                        <div class="input-group">
+                            <input type="text" name="comment" class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="Write a response..." required>
+                            <button type="submit" class="btn btn-secondary-custom btn-sm">Send</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="text-muted small text-center py-4">No replies yet. Be the first to join the discussion!</div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Report Modal -->
+<div class="modal fade" id="reportModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content text-white" style="background-color: #11182B; border: 1px solid rgba(255,255,255,0.12);">
+            <form method="post" action="{% url 'community:report' %}">
+                {% csrf_token %}
+                <input type="hidden" name="content_type" id="reportContentType" value="post">
+                <input type="hidden" name="object_id" id="reportObjectId">
+                <div class="modal-header border-secondary border-opacity-25">
+                    <h5 class="modal-title fw-bold text-danger">Report Inappropriate Content</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label text-secondary small">Reason *</label>
+                        <select name="reason" class="form-select bg-dark text-white border-secondary" required>
+                            <option value="spam">Spam or Advertising</option>
+                            <option value="inappropriate">Inappropriate or Offensive</option>
+                            <option value="harassment">Harassment or Abuse</option>
+                            <option value="misinformation">Misinformation</option>
+                            <option value="other">Other Violation</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-secondary small">Details</label>
+                        <textarea name="description" rows="3" class="form-control bg-dark text-white border-secondary"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary border-opacity-25">
+                    <button type="button" class="btn btn-secondary-custom" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Submit Report</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function openReportModal(contentType, objectId, itemTitle) {
+    document.getElementById('reportContentType').value = contentType;
+    document.getElementById('reportObjectId').value = objectId;
+    const modal = new bootstrap.Modal(document.getElementById('reportModal'));
+    modal.show();
+}
+</script>
+{% endblock %}

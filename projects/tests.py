@@ -1,0 +1,44 @@
+from django.test import TestCase, Client
+from django.contrib.auth.models import User
+from django.urls import reverse
+from projects.models import ProjectIdea
+
+class ProjectsTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(username='projbuilder', email='proj@test.com', password='Password123!')
+        self.client.force_login(self.user)
+
+    def test_generator_view_loads(self):
+        resp = self.client.get(reverse('projects:generator'))
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'AI Practical Project Generator')
+
+    def test_save_project_idea(self):
+        save_url = reverse('projects:save')
+        resp = self.client.post(save_url, {
+            'title': 'Automated Code Reviewer',
+            'category': 'Python Development',
+            'difficulty': 'Intermediate',
+            'technology_stack': 'Python, AST, Django',
+            'description': 'Static code analysis tool',
+            'problem_statement': 'Detect anti-patterns',
+            'objectives': 'Clean code metrics',
+            'main_features': 'Syntax checks',
+            'database_requirements': 'Reports table',
+            'development_phases': 'Phase 1 and 2',
+        })
+        self.assertEqual(resp.status_code, 302)
+        self.assertTrue(ProjectIdea.objects.filter(user=self.user, title='Automated Code Reviewer').exists())
+
+    def test_delete_project_idea(self):
+        idea = ProjectIdea.objects.create(
+            user=self.user,
+            title='Delete Me',
+            category='Web Development',
+            difficulty='Beginner'
+        )
+        del_url = reverse('projects:delete', kwargs={'project_id': idea.id})
+        resp = self.client.post(del_url)
+        self.assertEqual(resp.status_code, 302)
+        self.assertFalse(ProjectIdea.objects.filter(id=idea.id).exists())

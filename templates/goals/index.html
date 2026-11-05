@@ -1,0 +1,171 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Learning Goals - SkillSphere{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h2 class="fw-bold mb-1">Personal Learning Goals</h2>
+            <p class="text-secondary small mb-0">Set milestones, keep yourself accountable, and track your engineering roadmap.</p>
+        </div>
+        <button type="button" class="btn btn-primary-custom" data-bs-toggle="modal" data-bs-target="#addGoalModal">
+            <i data-lucide="plus-circle" style="width: 16px; height: 16px;"></i>
+            <span>Add New Goal</span>
+        </button>
+    </div>
+
+    <!-- 3 Goal Statistics Cards -->
+    <div class="row g-4 mb-4">
+        <div class="col-sm-4">
+            <div class="stat-card">
+                <div class="stat-icon purple">
+                    <i data-lucide="target" style="width: 26px; height: 26px;"></i>
+                </div>
+                <div>
+                    <div class="stat-value">{{ active_goals }}</div>
+                    <div class="stat-label">Active Milestones</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-4">
+            <div class="stat-card">
+                <div class="stat-icon green">
+                    <i data-lucide="check-circle" style="width: 26px; height: 26px;"></i>
+                </div>
+                <div>
+                    <div class="stat-value">{{ completed_goals }}</div>
+                    <div class="stat-label">Goals Achieved</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-4">
+            <div class="stat-card">
+                <div class="stat-icon cyan">
+                    <i data-lucide="percent" style="width: 26px; height: 26px;"></i>
+                </div>
+                <div>
+                    <div class="stat-value">{{ completion_rate }}%</div>
+                    <div class="stat-label">Completion Rate</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Tabs -->
+    <div class="d-flex align-items-center gap-2 mb-4">
+        <a href="?status=all" class="filter-pill {% if status_filter == 'all' %}active{% endif %}">
+            All Goals ({{ total_goals }})
+        </a>
+        <a href="?status=active" class="filter-pill {% if status_filter == 'active' %}active{% endif %}">
+            Active ({{ active_goals }})
+        </a>
+        <a href="?status=completed" class="filter-pill {% if status_filter == 'completed' %}active{% endif %}">
+            Completed ({{ completed_goals }})
+        </a>
+    </div>
+
+    <!-- Goals List -->
+    {% if goals %}
+    <div class="d-flex flex-column gap-3">
+        {% for goal in goals %}
+            <div class="custom-card p-3 p-md-4 d-flex flex-wrap align-items-center justify-content-between gap-3">
+                <div class="d-flex align-items-start gap-3 flex-grow-1">
+                    <form action="{% url 'goals:toggle' goal_id=goal.id %}" method="post">
+                        {% csrf_token %}
+                        <button type="submit" class="btn p-0 border-0 bg-transparent mt-1" title="Toggle Goal Completion">
+                            {% if goal.is_completed %}
+                                <i data-lucide="check-circle-2" class="text-success" style="width: 22px; height: 22px;"></i>
+                            {% else %}
+                                <i data-lucide="circle" class="text-muted hover-purple" style="width: 22px; height: 22px;"></i>
+                            {% endif %}
+                        </button>
+                    </form>
+
+                    <div>
+                        <h5 class="fw-bold mb-1 {% if goal.is_completed %}text-decoration-line-through text-muted{% else %}text-white{% endif %}">
+                            {{ goal.title }}
+                        </h5>
+                        {% if goal.description %}
+                            <p class="text-secondary small mb-2" style="max-width: 600px;">{{ goal.description }}</p>
+                        {% endif %}
+                        <div class="d-flex flex-wrap align-items-center gap-3 text-muted small">
+                            <span><i data-lucide="calendar" class="me-1" style="width: 14px; height: 14px;"></i> Target: {{ goal.target_date|date:"F d, Y" }}</span>
+                            <span>•</span>
+                            <span>Created: {{ goal.created_at|date:"M d, Y" }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex align-items-center gap-2">
+                    {% if goal.is_completed %}
+                        <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1 rounded-pill small">Achieved</span>
+                    {% elif goal.is_overdue %}
+                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-1 rounded-pill small">Overdue</span>
+                    {% else %}
+                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-3 py-1 rounded-pill small">In Progress</span>
+                    {% endif %}
+
+                    <a href="{% url 'goals:update' goal_id=goal.id %}" class="btn btn-secondary-custom btn-sm p-2" title="Edit Goal">
+                        <i data-lucide="edit-2" style="width: 15px; height: 15px;"></i>
+                    </a>
+
+                    <form action="{% url 'goals:delete' goal_id=goal.id %}" method="post" onsubmit="return confirm('Delete this learning goal?');">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-secondary-custom btn-sm p-2 text-danger border-danger-subtle" title="Delete Goal">
+                            <i data-lucide="trash-2" style="width: 15px; height: 15px;"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="custom-card text-center py-5">
+        <i data-lucide="target" class="text-muted mx-auto mb-3" style="width: 48px; height: 48px;"></i>
+        <h4 class="fw-bold text-white">No Goals Found</h4>
+        <p class="text-secondary small mb-4">Set your first technical goal to track your milestones.</p>
+        <button type="button" class="btn btn-primary-custom" data-bs-toggle="modal" data-bs-target="#addGoalModal">
+            Create a Goal
+        </button>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Add Goal Modal -->
+<div class="modal fade" id="addGoalModal" tabindex="-1" aria-labelledby="addGoalModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content text-white" style="background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px;">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" id="addGoalModalLabel">Add Learning Goal</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{% url 'goals:create' %}" method="post">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label" for="{{ form.title.id_for_label }}">Goal Title</label>
+                        {{ form.title }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="{{ form.description.id_for_label }}">Description / Scope (Optional)</label>
+                        {{ form.description }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="{{ form.target_date.id_for_label }}">Target Completion Date</label>
+                        {{ form.target_date }}
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-secondary-custom" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary-custom">Save Goal</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

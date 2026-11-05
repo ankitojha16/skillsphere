@@ -1,0 +1,215 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Career Hub - SkillSphere{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <!-- Breadcrumb & Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h1 class="h3 fw-bold text-white mb-1">Career Hub</h1>
+            <p class="text-secondary mb-0">Bridge your learning milestones, projects, and skills to real-world tech career readiness.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'careers:analytics' %}" class="btn btn-secondary-custom">
+                <i data-lucide="activity" style="width: 16px; height: 16px;"></i>
+                <span>Career Analytics</span>
+            </a>
+            <a href="{% url 'resumes:builder' %}" class="btn btn-primary-custom">
+                <i data-lucide="file-text" style="width: 16px; height: 16px;"></i>
+                <span>AI Resume Builder</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Career Readiness Banner -->
+    <div class="custom-card card-glowing p-4 mb-4">
+        <div class="row align-items-center g-4">
+            <div class="col-lg-8">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <span class="badge-category"><i data-lucide="compass" style="width: 13px; height: 13px;"></i> Target Path</span>
+                    <span class="badge bg-purple text-white">{{ active_path.name }}</span>
+                    <span class="text-muted small">Updated actively from your coursework</span>
+                </div>
+                <h3 class="fw-bold text-white mb-2">{{ profile.professional_headline|default:"Aspiring Software Engineer & Problem Solver" }}</h3>
+                <p class="text-secondary mb-3">{{ profile.professional_summary|default:"Build verified technical skills, ship portfolio-grade projects, and track measurable readiness toward your professional goals." }}</p>
+                <div class="d-flex flex-wrap gap-2">
+                    <button class="btn btn-sm btn-outline-light rounded-pill" data-bs-toggle="modal" data-bs-target="#editProfileModal">
+                        <i data-lucide="edit-3" style="width: 14px; height: 14px;" class="me-1"></i> Edit Career Focus
+                    </button>
+                    <a href="{% url 'portfolios:builder' %}" class="btn btn-sm btn-outline-info rounded-pill">
+                        <i data-lucide="globe" style="width: 14px; height: 14px;" class="me-1"></i> Manage Public Portfolio
+                    </a>
+                </div>
+            </div>
+            <div class="col-lg-4 text-center">
+                <div class="p-3 rounded-4" style="background: rgba(139, 92, 246, 0.08); border: 1px solid rgba(139, 92, 246, 0.25);">
+                    <div class="text-secondary small mb-1">Career Readiness Score</div>
+                    <div class="display-5 fw-bold text-white mb-1">{{ readiness.overall_score }}<span class="fs-5 text-muted">/100</span></div>
+                    <div class="custom-progress mb-2" style="height: 8px;">
+                        <div class="custom-progress-bar" style="width: {{ readiness.overall_score }}%;"></div>
+                    </div>
+                    <div class="d-flex justify-content-between text-muted small">
+                        <span>Transparent Weighted Model</span>
+                        <a href="{% url 'careers:analytics' %}" class="text-info text-decoration-none">View Breakdown →</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Career Progress Statistics Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="stat-card">
+                <div class="stat-card-icon" style="background: rgba(6, 182, 212, 0.15); color: #06B6D4;">
+                    <i data-lucide="code" style="width: 20px; height: 20px;"></i>
+                </div>
+                <div class="stat-card-value">{{ stats.skills_count }}</div>
+                <div class="stat-card-label">Skills Acquired</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="stat-card">
+                <div class="stat-card-icon" style="background: rgba(139, 92, 246, 0.15); color: #8B5CF6;">
+                    <i data-lucide="folder-git-2" style="width: 20px; height: 20px;"></i>
+                </div>
+                <div class="stat-card-value">{{ stats.projects_completed }}</div>
+                <div class="stat-card-label">Projects Built</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="stat-card">
+                <div class="stat-card-icon" style="background: rgba(34, 197, 94, 0.15); color: #22C55E;">
+                    <i data-lucide="book-check" style="width: 20px; height: 20px;"></i>
+                </div>
+                <div class="stat-card-value">{{ stats.courses_completed }}</div>
+                <div class="stat-card-label">Courses Done</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="stat-card">
+                <div class="stat-card-icon" style="background: rgba(245, 158, 11, 0.15); color: #F59E0B;">
+                    <i data-lucide="award" style="width: 20px; height: 20px;"></i>
+                </div>
+                <div class="stat-card-value">{{ stats.certificates_earned }}</div>
+                <div class="stat-card-label">Certificates</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="stat-card">
+                <div class="stat-card-icon" style="background: rgba(236, 72, 153, 0.15); color: #EC4899;">
+                    <i data-lucide="file-check" style="width: 20px; height: 20px;"></i>
+                </div>
+                <div class="stat-card-value">{{ stats.resume_completion }}%</div>
+                <div class="stat-card-label">Resume Built</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="stat-card">
+                <div class="stat-card-icon" style="background: rgba(59, 130, 246, 0.15); color: #3B82F6;">
+                    <i data-lucide="globe-2" style="width: 20px; height: 20px;"></i>
+                </div>
+                <div class="stat-card-value">{{ stats.portfolio_completion }}%</div>
+                <div class="stat-card-label">Portfolio Ready</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Career Path Explorer Grid -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h2 class="h5 fw-bold text-white mb-0">Career Path Explorer</h2>
+            <p class="text-secondary small mb-0">Explore core technical domains, curriculum roadmaps, and interview requirements.</p>
+        </div>
+        <div class="text-muted small">10 Paths Available</div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        {% for slug, path in career_paths.items %}
+        <div class="col-md-6 col-xl-4">
+            <div class="custom-card p-4 h-100 d-flex flex-column justify-content-between {% if profile.target_career_path == slug %}border-purple-glow{% endif %}">
+                <div>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="badge-category">{{ path.badge }}</span>
+                        {% if profile.target_career_path == slug %}
+                        <span class="badge bg-purple text-white"><i data-lucide="check" style="width: 12px; height: 12px;"></i> Current Target</span>
+                        {% endif %}
+                    </div>
+                    <h3 class="h5 fw-bold text-white mb-2">{{ path.name }}</h3>
+                    <p class="text-secondary small mb-3">{{ path.summary }}</p>
+                    
+                    <div class="mb-3">
+                        <div class="text-muted small fw-medium mb-1">Required Skills:</div>
+                        <div class="d-flex flex-wrap gap-1">
+                            {% for skill in path.required_skills|slice:":4" %}
+                            <span class="badge bg-dark border border-secondary text-light small">{{ skill }}</span>
+                            {% endfor %}
+                            {% if path.required_skills|length > 4 %}
+                            <span class="badge bg-dark border border-secondary text-muted small">+{{ path.required_skills|length|add:"-4" }} more</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pt-3 border-top border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
+                    <a href="{% url 'careers:path_detail' slug=slug %}" class="btn btn-sm btn-outline-light">
+                        View Path Details →
+                    </a>
+                    {% if profile.target_career_path != slug %}
+                    <form method="post" action="{% url 'careers:path_detail' slug=slug %}">
+                        {% csrf_token %}
+                        <button type="submit" name="set_target" class="btn btn-sm btn-outline-purple">Set Target</button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Educational Disclaimer -->
+    <div class="p-3 rounded-3 text-secondary small" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);">
+        <i data-lucide="info" style="width: 14px; height: 14px;" class="me-1 text-info"></i>
+        <strong>Educational Guidance Notice:</strong> SkillSphere career paths and readiness scores are educational preparation benchmarks designed to guide structured learning and do not guarantee employment offers or specific hiring outcomes.
+    </div>
+</div>
+
+<!-- Edit Profile Modal -->
+<div class="modal fade" id="editProfileModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content text-white" style="background-color: #11182B; border: 1px solid rgba(255,255,255,0.12);">
+            <form method="post">
+                {% csrf_token %}
+                <div class="modal-header border-secondary border-opacity-25">
+                    <h5 class="modal-title fw-bold">Update Career Profile</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label text-secondary small">Professional Headline</label>
+                        <input type="text" name="headline" class="form-control bg-dark text-white border-secondary" value="{{ profile.professional_headline }}" placeholder="e.g. Aspiring Full Stack Python Developer">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-secondary small">Target Career Path</label>
+                        <select name="target_career_path" class="form-select bg-dark text-white border-secondary">
+                            {% for slug, path in career_paths.items %}
+                            <option value="{{ slug }}" {% if profile.target_career_path == slug %}selected{% endif %}>{{ path.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-secondary small">Professional Summary</label>
+                        <textarea name="summary" rows="4" class="form-control bg-dark text-white border-secondary" placeholder="Briefly describe your career ambition, tech interests, and what you are building...">{{ profile.professional_summary }}</textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary border-opacity-25">
+                    <button type="button" class="btn btn-secondary-custom" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary-custom">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

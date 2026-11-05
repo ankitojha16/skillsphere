@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Skill Assessments - SkillSphere{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h2 class="fw-bold mb-1">Technical Skill Assessments</h2>
+            <p class="text-secondary small mb-0">Evaluate your technical competence, identify weaknesses, and earn XP with diagnostic quizzes.</p>
+        </div>
+    </div>
+
+    <!-- Category Pills -->
+    <div class="d-flex align-items-center gap-2 overflow-x-auto pb-2 mb-4">
+        <a href="?category=all{% if selected_difficulty != 'all' %}&difficulty={{ selected_difficulty }}{% endif %}" 
+           class="filter-pill {% if selected_category == 'all' %}active{% endif %}">
+           All Topics
+        </a>
+        {% for cat_val, cat_label in category_choices %}
+        <a href="?category={{ cat_val }}{% if selected_difficulty != 'all' %}&difficulty={{ selected_difficulty }}{% endif %}" 
+           class="filter-pill {% if selected_category == cat_val %}active{% endif %}">
+           {{ cat_label }}
+        </a>
+        {% endfor %}
+    </div>
+
+    <!-- Assessments Grid -->
+    {% if assessments_data %}
+    <div class="row g-4">
+        {% for item in assessments_data %}
+            <div class="col-md-6 col-lg-4">
+                <div class="custom-card h-100 d-flex flex-column p-4">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <span class="badge-category">{{ item.assessment.get_category_display }}</span>
+                        <span class="badge-difficulty {{ item.assessment.difficulty|lower }}">{{ item.assessment.difficulty }}</span>
+                    </div>
+
+                    <h4 class="fw-bold text-white mb-2">{{ item.assessment.title }}</h4>
+
+                    <div class="d-flex gap-3 text-muted small mb-4">
+                        <span><i data-lucide="help-circle" class="me-1" style="width: 13px; height: 13px;"></i> {{ item.question_count }} Questions</span>
+                        <span><i data-lucide="clock" class="me-1" style="width: 13px; height: 13px;"></i> {{ item.assessment.time_limit_minutes }} Mins</span>
+                    </div>
+
+                    <div class="mt-auto pt-3 border-top" style="border-color: var(--border-color) !important;">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <span class="text-secondary small">Previous Best:</span>
+                            {% if item.best_score is not None %}
+                                <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 small">
+                                    {{ item.best_score }}%
+                                </span>
+                            {% else %}
+                                <span class="text-muted small">Not Attempted</span>
+                            {% endif %}
+                        </div>
+
+                        <a href="{% url 'assessments:take' assessment_id=item.assessment.id %}" class="btn btn-primary-custom w-100 justify-content-center py-2">
+                            <span>{% if item.best_score is not None %}Retake Assessment{% else %}Start Assessment{% endif %}</span>
+                            <i data-lucide="arrow-right" style="width: 16px; height: 16px;"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="custom-card text-center py-5">
+        <i data-lucide="clipboard-x" class="text-muted mx-auto mb-3" style="width: 48px; height: 48px;"></i>
+        <h4 class="fw-bold text-white">No Assessments Found</h4>
+        <p class="text-secondary small mb-4">Try clearing your category filter to see all technical assessments.</p>
+        <a href="{% url 'assessments:list' %}" class="btn btn-primary-custom">Reset Filters</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Interview: Question {{ current_q.question_order }} - SkillSphere{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width: 820px;">
+    <!-- Interview Session Header -->
+    <div class="custom-card p-3 mb-4 d-flex justify-content-between align-items-center">
+        <div>
+            <span class="badge-category">{{ interview.category }}</span>
+            <span class="badge-difficulty {{ interview.difficulty|lower }} ms-2">{{ interview.difficulty }}</span>
+        </div>
+        <div class="text-white small fw-bold">
+            Question {{ current_q.question_order }} of {{ interview.total_questions }}
+        </div>
+    </div>
+
+    <!-- Active Question Card -->
+    <div class="custom-card card-glowing p-4 p-md-5 mb-4">
+        <div class="d-flex align-items-center gap-2 mb-3 text-primary-accent-light small fw-bold text-uppercase">
+            <i data-lucide="help-circle" style="width: 16px; height: 16px;"></i>
+            <span>Interviewer Prompt</span>
+        </div>
+
+        <h3 class="fw-bold text-white mb-4" style="line-height: 1.5;">
+            "{{ current_q.question_text }}"
+        </h3>
+
+        <form id="answerForm" action="{% url 'interviews:submit_answer' interview_id=interview.id %}" method="post">
+            {% csrf_token %}
+
+            <div class="mb-3">
+                <label class="form-label" for="user_answer">Your Technical Response</label>
+                <textarea name="user_answer" id="user_answer" class="form-control" rows="6" placeholder="Structure your answer clearly: state the definition, provide an example, and discuss trade-offs or edge cases..." required></textarea>
+                <small class="text-muted d-block mt-1">Take your time. Answers are evaluated for technical correctness, clarity, and completeness.</small>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center pt-2">
+                <a href="{% url 'interviews:setup' %}" class="btn btn-secondary-custom" onclick="return confirm('Exit interview? You can resume later.');">Save & Exit</a>
+                <button type="submit" id="submitBtn" class="btn btn-primary-custom py-2 px-4">
+                    <span>Submit & Get Evaluation</span>
+                    <i data-lucide="arrow-right" style="width: 16px; height: 16px;"></i>
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Previously Answered Feedback in this session -->
+    {% if answered_responses %}
+    <div class="custom-card p-4">
+        <h5 class="fw-bold text-white mb-3">Previous Responses in this Interview</h5>
+        <div class="d-flex flex-column gap-3">
+            {% for resp in answered_responses %}
+                <div class="p-3 rounded-3" style="background-color: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color);">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <strong class="text-white small">Q{{ resp.question_order }}: {{ resp.question_text }}</strong>
+                        <span class="badge bg-primary-subtle text-primary-accent border border-primary-subtle small">Rating: {{ resp.technical_rating }}/10</span>
+                    </div>
+                    <div class="text-secondary small mb-2 fst-italic">"{{ resp.user_answer|truncatewords:25 }}"</div>
+                    <div class="p-2 rounded-2 small text-light" style="background-color: rgba(139, 92, 246, 0.08); border-left: 3px solid var(--primary-accent);">
+                        <strong>AI Feedback:</strong> {{ resp.ai_feedback }}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('answerForm').addEventListener('submit', () => {
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Evaluating Response...';
+});
+</script>
+{% endblock %}

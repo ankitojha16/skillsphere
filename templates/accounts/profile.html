@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Student Profile - SkillSphere{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h2 class="fw-bold mb-1">My Student Profile</h2>
+            <p class="text-secondary small mb-0">Manage your educational background and career target.</p>
+        </div>
+        <a href="{% url 'accounts:profile_edit' %}" class="btn btn-primary-custom">
+            <i data-lucide="edit-3" style="width: 16px; height: 16px;"></i>
+            <span>Edit Profile</span>
+        </a>
+    </div>
+
+    <div class="row g-4">
+        <!-- Profile Identity Card -->
+        <div class="col-lg-4">
+            <div class="custom-card text-center p-4">
+                <img src="{{ profile.avatar_url }}" alt="Profile Picture" class="rounded-circle mb-3 border border-3" style="width: 110px; height: 110px; object-fit: cover; border-color: var(--primary-accent) !important;">
+                <h4 class="fw-bold text-white mb-1">{{ profile.full_name|default:request.user.username }}</h4>
+                <div class="text-secondary small mb-2">{{ request.user.email }}</div>
+                <div class="d-flex justify-content-center gap-2 mb-3">
+                    <span class="badge-difficulty beginner">{{ profile.get_learning_level_display }}</span>
+                    <span class="badge-category">{{ profile.get_education_level_display }}</span>
+                </div>
+
+                {% if profile.career_goal %}
+                <div class="p-3 rounded-3 mb-3 text-start" style="background-color: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color);">
+                    <div class="text-muted small fw-semibold text-uppercase mb-1" style="font-size: 0.7rem;">Target Career Goal</div>
+                    <div class="text-white fw-medium"><i data-lucide="flag" class="me-1 text-primary-accent" style="width: 14px; height: 14px;"></i> {{ profile.career_goal }}</div>
+                </div>
+                {% endif %}
+
+                <div class="d-flex justify-content-around text-center pt-3 border-top" style="border-color: var(--border-color) !important;">
+                    <div>
+                        <div class="fw-bold text-white fs-5">{{ enrolled_count }}</div>
+                        <div class="text-secondary small">Courses</div>
+                    </div>
+                    <div class="border-end" style="border-color: var(--border-color) !important;"></div>
+                    <div>
+                        <div class="fw-bold text-white fs-5">{{ completed_goals_count }}/{{ total_goals_count }}</div>
+                        <div class="text-secondary small">Goals Done</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Academic & Technical Details -->
+        <div class="col-lg-8">
+            <div class="custom-card p-4 mb-4">
+                <h5 class="fw-bold text-white mb-3 d-flex align-items-center gap-2">
+                    <i data-lucide="graduation-cap" class="text-primary-accent" style="width: 20px; height: 20px;"></i>
+                    <span>Academic & Institution</span>
+                </h5>
+                <div class="row g-3">
+                    <div class="col-sm-6">
+                        <label class="text-muted small d-block">Institution / University</label>
+                        <div class="text-white fw-medium">{{ profile.institution|default:"Not specified" }}</div>
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="text-muted small d-block">Education Level</label>
+                        <div class="text-white fw-medium">{{ profile.get_education_level_display }}</div>
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="text-muted small d-block">SkillSphere Member Since</label>
+                        <div class="text-white fw-medium">{{ request.user.date_joined|date:"F d, Y" }}</div>
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="text-muted small d-block">Last Profile Update</label>
+                        <div class="text-white fw-medium">{{ profile.updated_at|date:"F d, Y" }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="custom-card p-4">
+                <h5 class="fw-bold text-white mb-3 d-flex align-items-center gap-2">
+                    <i data-lucide="sparkles" class="text-primary-accent" style="width: 20px; height: 20px;"></i>
+                    <span>Technical Learning Interests</span>
+                </h5>
+                {% if interests_display %}
+                    <div class="d-flex flex-wrap gap-2">
+                        {% for interest in interests_display %}
+                            <span class="badge px-3 py-2 rounded-pill fw-medium" style="background: rgba(139, 92, 246, 0.15); color: #C4B5FD; border: 1px solid rgba(139, 92, 246, 0.3);">
+                                {{ interest }}
+                            </span>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted mb-0">No specific interests selected yet. <a href="{% url 'accounts:profile_edit' %}">Add your topics of interest</a>.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}My Learning Roadmaps - SkillSphere{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h2 class="fw-bold mb-1">Personalized Learning Roadmaps</h2>
+            <p class="text-secondary small mb-0">AI-structured step-by-step technical roadmaps tailored to your career goals.</p>
+        </div>
+        <a href="{% url 'roadmaps:generate' %}" class="btn btn-primary-custom">
+            <i data-lucide="plus-circle" style="width: 16px; height: 16px;"></i>
+            <span>Generate New Roadmap</span>
+        </a>
+    </div>
+
+    {% if roadmaps_data %}
+    <div class="row g-4">
+        {% for item in roadmaps_data %}
+            <div class="col-md-6 col-lg-4">
+                <div class="custom-card h-100 d-flex flex-column p-4">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <span class="badge-category">{{ item.roadmap.target_skill }}</span>
+                        <span class="badge-difficulty {{ item.roadmap.current_level|lower }}">{{ item.roadmap.current_level }}</span>
+                    </div>
+
+                    <h4 class="fw-bold text-white mb-2">
+                        <a href="{% url 'roadmaps:detail' roadmap_id=item.roadmap.id %}" class="text-white text-decoration-none">
+                            {{ item.roadmap.title }}
+                        </a>
+                    </h4>
+
+                    <div class="text-muted small mb-3">
+                        <i data-lucide="target" class="me-1" style="width: 14px; height: 14px;"></i> Goal: {{ item.roadmap.career_goal }}
+                    </div>
+
+                    <div class="d-flex gap-3 text-muted small mb-3">
+                        <span><i data-lucide="clock" class="me-1" style="width: 13px; height: 13px;"></i> {{ item.roadmap.daily_time }}</span>
+                        <span><i data-lucide="calendar" class="me-1" style="width: 13px; height: 13px;"></i> {{ item.roadmap.duration }}</span>
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div class="mt-auto pt-3 border-top" style="border-color: var(--border-color) !important;">
+                        <div class="d-flex justify-content-between text-secondary small mb-1">
+                            <span>{{ item.progress.completed }} of {{ item.progress.total }} milestones</span>
+                            <span class="fw-bold text-white">{{ item.progress.percentage }}%</span>
+                        </div>
+                        <div class="custom-progress mb-3">
+                            <div class="custom-progress-bar" style="width: {{ item.progress.percentage }}%;"></div>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center">
+                            <a href="{% url 'roadmaps:detail' roadmap_id=item.roadmap.id %}" class="btn btn-primary-custom btn-sm py-1 px-3">
+                                <span>Continue Roadmap</span>
+                                <i data-lucide="arrow-right" style="width: 14px; height: 14px;"></i>
+                            </a>
+                            <form action="{% url 'roadmaps:delete' roadmap_id=item.roadmap.id %}" method="post" onsubmit="return confirm('Delete this roadmap?');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-secondary-custom btn-sm p-1 text-danger border-danger-subtle" title="Delete Roadmap">
+                                    <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="custom-card text-center py-5">
+        <i data-lucide="map" class="text-muted mx-auto mb-3" style="width: 48px; height: 48px;"></i>
+        <h4 class="fw-bold text-white">No Learning Roadmaps Generated Yet</h4>
+        <p class="text-secondary small mb-4">Let our AI Curriculum Architect generate a structured engineering roadmap tailored to your target career role.</p>
+        <a href="{% url 'roadmaps:generate' %}" class="btn btn-primary-custom">
+            Generate Your First Roadmap
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

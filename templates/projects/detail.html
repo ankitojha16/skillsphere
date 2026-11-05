@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ project.title }} Blueprint - SkillSphere{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width: 860px;">
+    <!-- Breadcrumb -->
+    <nav class="mb-3" aria-label="breadcrumb">
+        <ol class="breadcrumb small">
+            <li class="breadcrumb-item"><a href="{% url 'projects:saved' %}" class="text-secondary text-decoration-none">Saved Projects</a></li>
+            <li class="breadcrumb-item active text-white" aria-current="page">{{ project.title }}</li>
+        </ol>
+    </nav>
+
+    <!-- Main Detail Card -->
+    <div class="custom-card card-glowing p-4 p-md-5 mb-4">
+        <div class="d-flex justify-content-between align-items-start mb-3">
+            <span class="badge-category">{{ project.category }}</span>
+            <span class="badge-difficulty {{ project.difficulty|lower }}">{{ project.difficulty }}</span>
+        </div>
+
+        <h2 class="fw-bold text-white mb-2">{{ project.title }}</h2>
+        <p class="text-secondary mb-4">{{ project.description }}</p>
+
+        <!-- Tech Stack Banner -->
+        <div class="p-3 rounded-3 mb-4" style="background-color: rgba(139, 92, 246, 0.08); border: 1px solid rgba(139, 92, 246, 0.3);">
+            <div class="text-muted small fw-bold text-uppercase mb-1" style="font-size: 0.7rem; color: var(--primary-accent-light) !important;">Technology Stack</div>
+            <div class="text-white fw-bold small">{{ project.technology_stack }}</div>
+        </div>
+
+        <!-- Problem Statement -->
+        <div class="mb-4">
+            <h5 class="fw-bold text-white mb-2">Problem Statement</h5>
+            <p class="text-secondary small mb-0">{{ project.problem_statement }}</p>
+        </div>
+
+        <!-- Objectives -->
+        {% if project.objectives %}
+        <div class="mb-4">
+            <h5 class="fw-bold text-white mb-2">Project Objectives</h5>
+            <p class="text-secondary small mb-0">{{ project.objectives }}</p>
+        </div>
+        {% endif %}
+
+        <!-- Core Features -->
+        <div class="mb-4">
+            <h5 class="fw-bold text-white mb-2">Key Functional Features</h5>
+            <div class="text-light small p-3 rounded-3" style="background-color: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); white-space: pre-line;">
+                {{ project.main_features }}
+            </div>
+        </div>
+
+        <!-- Database Requirements -->
+        <div class="mb-4">
+            <h5 class="fw-bold text-white mb-2">Database & Relational Schema</h5>
+            <div class="text-secondary small p-3 rounded-3" style="background-color: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color);">
+                {{ project.database_requirements }}
+            </div>
+        </div>
+
+        <!-- Development Phases -->
+        <div class="mb-4">
+            <h5 class="fw-bold text-white mb-2">Development Phases & Implementation Steps</h5>
+            <div class="text-light small p-3 rounded-3" style="background-color: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); white-space: pre-line;">
+                {{ project.development_phases }}
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center pt-3 border-top" style="border-color: var(--border-color) !important;">
+            <a href="{% url 'projects:saved' %}" class="btn btn-secondary-custom">Back to Saved</a>
+            <form action="{% url 'projects:delete' project_id=project.id %}" method="post" onsubmit="return confirm('Remove project blueprint?');">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-outline-danger btn-sm text-danger border-danger-subtle">
+                    <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i> Delete Project
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

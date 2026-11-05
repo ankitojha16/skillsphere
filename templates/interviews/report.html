@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Interview Report: {{ interview.category }} - SkillSphere{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width: 860px;">
+    <!-- Breadcrumb -->
+    <nav class="mb-3" aria-label="breadcrumb">
+        <ol class="breadcrumb small">
+            <li class="breadcrumb-item"><a href="{% url 'interviews:setup' %}" class="text-secondary text-decoration-none">Mock Interview</a></li>
+            <li class="breadcrumb-item active text-white" aria-current="page">Final Report</li>
+        </ol>
+    </nav>
+
+    <!-- Score Header Card -->
+    <div class="custom-card card-glowing p-4 p-md-5 mb-4 text-center">
+        <span class="badge-category mb-2">{{ interview.category }}</span>
+        <h2 class="fw-bold text-white mb-3">Interview Evaluation Report</h2>
+
+        <div class="stat-value mx-auto mb-2 {% if interview.overall_score >= 70 %}text-success{% else %}text-warning{% endif %}" style="font-size: 3.5rem;">
+            {{ interview.overall_score }}/100
+        </div>
+
+        <p class="text-secondary mb-4">
+            Completed all <strong class="text-white">{{ interview.total_questions }} questions</strong> for the {{ interview.difficulty }} level benchmark.
+        </p>
+
+        <!-- Executive Summary -->
+        <div class="p-4 rounded-3 text-start mb-4" style="background-color: rgba(139, 92, 246, 0.08); border: 1px solid rgba(139, 92, 246, 0.3);">
+            <div class="d-flex align-items-center gap-2 mb-2 text-primary-accent-light fw-bold small">
+                <i data-lucide="award" style="width: 18px; height: 18px;"></i>
+                <span>Executive Summary & Guidance</span>
+            </div>
+            <p class="text-light small mb-0" style="line-height: 1.7;">{{ interview.overall_feedback }}</p>
+        </div>
+
+        <!-- Strong Areas vs Improvement Areas -->
+        <div class="row g-3 text-start">
+            <div class="col-md-6">
+                <div class="p-3 rounded-3 h-100" style="background-color: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color);">
+                    <div class="text-success small fw-bold mb-1"><i data-lucide="check-circle" class="me-1" style="width: 14px; height: 14px;"></i> Strong Areas</div>
+                    <div class="text-secondary small">{{ interview.strong_areas }}</div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="p-3 rounded-3 h-100" style="background-color: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color);">
+                    <div class="text-warning small fw-bold mb-1"><i data-lucide="alert-triangle" class="me-1" style="width: 14px; height: 14px;"></i> Key Improvement Areas</div>
+                    <div class="text-secondary small">{{ interview.improvement_areas }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Full Transcript Breakdown -->
+    <div class="custom-card p-4 mb-4">
+        <h4 class="fw-bold text-white mb-3">Interview Transcript & Question Ratings</h4>
+
+        <div class="d-flex flex-column gap-3">
+            {% for resp in responses %}
+                <div class="p-4 rounded-3" style="background-color: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color);">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <strong class="text-white">Q{{ resp.question_order }}: {{ resp.question_text }}</strong>
+                        <span class="badge bg-primary-subtle text-primary-accent border border-primary-subtle px-2 py-1 small">
+                            Rating: {{ resp.technical_rating }}/10
+                        </span>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="text-muted small fw-semibold text-uppercase mb-1" style="font-size: 0.7rem;">Your Answer:</div>
+                        <div class="text-light small p-3 rounded-2" style="background-color: rgba(0, 0, 0, 0.2); line-height: 1.6;">
+                            {{ resp.user_answer|linebreaksbr }}
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="text-muted small fw-semibold text-uppercase mb-1" style="font-size: 0.7rem; color: var(--primary-accent-light) !important;">AI Evaluation:</div>
+                        <div class="text-secondary small p-3 rounded-2" style="background-color: rgba(139, 92, 246, 0.08); border-left: 3px solid var(--primary-accent); line-height: 1.6;">
+                            {{ resp.ai_feedback }}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="text-center">
+        <a href="{% url 'interviews:setup' %}" class="btn btn-primary-custom py-2 px-4">
+            <span>Start Another Mock Interview</span>
+            <i data-lucide="arrow-right" style="width: 16px; height: 16px;"></i>
+        </a>
+    </div>
+</div>
+{% endblock %}

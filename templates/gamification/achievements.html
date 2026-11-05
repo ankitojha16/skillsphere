@@ -1,0 +1,137 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Achievements & Gamification - SkillSphere{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h2 class="fw-bold mb-1">Achievements & Consistency</h2>
+            <p class="text-secondary small mb-0">Track your engineering milestones, maintain your daily study streak, and level up.</p>
+        </div>
+    </div>
+
+    <!-- Gamification Banner -->
+    <div class="welcome-banner mb-4">
+        <div class="row align-items-center g-4">
+            <div class="col-md-7">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <span class="badge-difficulty intermediate">{{ gamification.current_level }}</span>
+                    <span class="text-secondary small">Ranked Technical Learner</span>
+                </div>
+                <h1 class="fw-bold text-white mb-2">{{ gamification.total_xp }} Total XP</h1>
+                <p class="text-secondary mb-3">
+                    Progress to <strong>{{ next_level }}</strong>: {{ xp_to_next }} XP needed
+                </p>
+
+                <!-- Next Level Meter -->
+                <div class="custom-progress mb-2" style="height: 10px; max-width: 480px;">
+                    <div class="custom-progress-bar" style="width: {{ level_progress_pct }}%;"></div>
+                </div>
+                <small class="text-muted">{{ level_progress_pct }}% towards {{ next_level }}</small>
+            </div>
+
+            <!-- Streak Counter -->
+            <div class="col-md-5 text-md-end">
+                <div class="d-inline-flex align-items-center gap-4 p-3 rounded-4" style="background-color: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color);">
+                    <div class="text-center">
+                        <div class="text-warning fw-bold fs-2 d-flex align-items-center justify-content-center gap-1">
+                            <i data-lucide="flame" style="width: 28px; height: 28px;"></i>
+                            <span>{{ gamification.current_streak }}</span>
+                        </div>
+                        <div class="text-secondary small">Current Streak (Days)</div>
+                    </div>
+
+                    <div class="border-end" style="height: 40px; border-color: var(--border-color) !important;"></div>
+
+                    <div class="text-center">
+                        <div class="text-white fw-bold fs-2">{{ gamification.longest_streak }}</div>
+                        <div class="text-secondary small">Longest Streak</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <!-- Badges Grid -->
+        <div class="col-lg-8">
+            <div class="custom-card p-4">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h4 class="fw-bold text-white mb-1 d-flex align-items-center gap-2">
+                            <i data-lucide="award" class="text-primary-accent" style="width: 22px; height: 22px;"></i>
+                            <span>Achievement Badges</span>
+                        </h4>
+                        <p class="text-secondary small mb-0">Unlocked {{ unlocked_count }} of {{ total_badges }} platform badges</p>
+                    </div>
+                </div>
+
+                <div class="row g-3">
+                    {% for item in badges_data %}
+                        <div class="col-sm-6">
+                            <div class="p-3 rounded-3 h-100 d-flex align-items-start gap-3 border"
+                                 style="background-color: {% if item.is_unlocked %}rgba(139, 92, 246, 0.08){% else %}rgba(255, 255, 255, 0.02){% endif %}; border-color: {% if item.is_unlocked %}rgba(139, 92, 246, 0.4){% else %}var(--border-color){% endif %} !important;">
+                                <div class="stat-icon {% if item.is_unlocked %}purple{% else %}bg-secondary bg-opacity-25 text-muted{% endif %}" style="width: 44px; height: 44px; flex-shrink: 0;">
+                                    <i data-lucide="{{ item.badge.icon }}" style="width: 22px; height: 22px;"></i>
+                                </div>
+                                <div>
+                                    <div class="fw-bold {% if item.is_unlocked %}text-white{% else %}text-secondary{% endif %} small mb-1">
+                                        {{ item.badge.name }}
+                                    </div>
+                                    <div class="text-muted small mb-2" style="font-size: 0.78rem;">
+                                        {{ item.badge.description }}
+                                    </div>
+                                    {% if item.is_unlocked %}
+                                        <span class="badge bg-success-subtle text-success small" style="font-size: 0.7rem;"><i data-lucide="check" style="width: 10px; height: 10px;"></i> Unlocked</span>
+                                    {% else %}
+                                        <span class="badge bg-dark border border-secondary-subtle text-muted small" style="font-size: 0.7rem;"><i data-lucide="lock" style="width: 10px; height: 10px;"></i> Locked</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- How XP is Awarded -->
+        <div class="col-lg-4">
+            <div class="custom-card p-4">
+                <h5 class="fw-bold text-white mb-3 d-flex align-items-center gap-2">
+                    <i data-lucide="zap" class="text-secondary-accent" style="width: 18px; height: 18px;"></i>
+                    <span>How to Earn XP</span>
+                </h5>
+                <ul class="list-unstyled d-flex flex-column gap-3 mb-0">
+                    <li class="d-flex justify-content-between align-items-center text-secondary small pb-2 border-bottom" style="border-color: var(--border-color) !important;">
+                        <span>Complete a Lesson</span>
+                        <strong class="text-success">+25 XP</strong>
+                    </li>
+                    <li class="d-flex justify-content-between align-items-center text-secondary small pb-2 border-bottom" style="border-color: var(--border-color) !important;">
+                        <span>Pass a Skill Assessment</span>
+                        <strong class="text-success">+50 XP</strong>
+                    </li>
+                    <li class="d-flex justify-content-between align-items-center text-secondary small pb-2 border-bottom" style="border-color: var(--border-color) !important;">
+                        <span>Complete Roadmap Milestone</span>
+                        <strong class="text-success">+40 XP</strong>
+                    </li>
+                    <li class="d-flex justify-content-between align-items-center text-secondary small pb-2 border-bottom" style="border-color: var(--border-color) !important;">
+                        <span>Finish Technical Mock Interview</span>
+                        <strong class="text-success">+75 XP</strong>
+                    </li>
+                    <li class="d-flex justify-content-between align-items-center text-secondary small pb-2 border-bottom" style="border-color: var(--border-color) !important;">
+                        <span>Complete Full Course</span>
+                        <strong class="text-success">+150 XP</strong>
+                    </li>
+                    <li class="d-flex justify-content-between align-items-center text-secondary small">
+                        <span>Save Practical Project Idea</span>
+                        <strong class="text-success">+20 XP</strong>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
