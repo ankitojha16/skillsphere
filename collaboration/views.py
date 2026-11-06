@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.db import transaction
 from django.db.models import Q
 from django.contrib import messages
 from django.http import Http404
@@ -133,23 +134,33 @@ def manage_team_view(request, pk):
             join_req = get_object_or_404(CollaborationRequest, id=req_id, project=project)
 
             if decision == 'accept':
-                join_req.status = 'accepted'
-                join_req.save()
-                # Create active membership
-                CollaborationMembership.objects.get_or_create(
-                    project=project,
-                    user=join_req.user,
-                    defaults={'role': join_req.role_requested or 'Developer', 'status': 'active'}
-                )
-                # Send notification to accepted student
-                Notification.objects.create(
-                    user=join_req.user,
-                    title="Collaboration Request Accepted! 🎉",
-                    message=f"You have been accepted into the team for '{project.title}'!",
-                    notification_type='collaboration_accepted',
-                    link=f"/collaboration/{project.pk}/"
-                )
-                messages.success(request, f"Accepted {join_req.user.username} onto the team!")
+                if project.current_members_count >= project.team_size:
+                    messages.error(request, f"Cannot accept member: team capacity ({project.team_size} members) has been reached.")
+                    return redirect('collaboration:manage', pk=project.pk)
+
+                with transaction.atomic():
+                    join_req.status = 'accepted'
+                    join_req.save()
+                    # Create active membership
+                    CollaborationMembership.objects.get_or_create(
+                        project=project,
+                        user=join_req.user,
+                        defaults={'role': join_req.role_requested or 'Developer', 'status': 'active'}
+                    )
+                    # If capacity now full, auto-update status to in_progress
+                    if project.current_members_count >= project.team_size:
+                        project.status = 'in_progress'
+                        project.save(update_fields=['status'])
+
+                    # Send notification to accepted student
+                    Notification.objects.create(
+                        user=join_req.user,
+                        title="Collaboration Request Accepted! 🎉",
+                        message=f"You have been accepted into the team for '{project.title}'!",
+                        notification_type='collaboration_accepted',
+                        link=f"/collaboration/{project.pk}/"
+                    )
+                    messages.success(request, f"Accepted {join_req.user.username} onto the team!")
 
             elif decision == 'reject':
                 join_req.status = 'rejected'

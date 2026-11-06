@@ -3,6 +3,7 @@ from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.core.cache import cache
 from .forms import UserRegistrationForm, UserLoginForm, ProfileSetupForm
 from .models import StudentProfile
 from goals.models import LearningActivity
@@ -67,9 +68,18 @@ def login_view(request):
     if request.method == 'POST':
         form = UserLoginForm(request.POST)
         if form.is_valid():
-            email = form.cleaned_data['email']
+            email = form.cleaned_data['email'].strip().lower()
             password = form.cleaned_data['password']
             remember_me = form.cleaned_data.get('remember_me', False)
+
+            # Brute force protection: 5 attempts per 15 minutes
+            ip = request.META.get('REMOTE_ADDR', 'unknown')
+            lockout_key = f"login_lockout_{email}_{ip}"
+            failed_attempts = cache.get(lockout_key, 0)
+
+            if failed_attempts >= 5:
+                messages.error(request, "Too many failed login attempts. Please wait 15 minutes before trying again.")
+                return render(request, 'accounts/login.html', {'form': form})
 
             # Look up username by email
             user_obj = User.objects.filter(email__iexact=email).first()
@@ -78,6 +88,9 @@ def login_view(request):
                 user = authenticate(request, username=user_obj.username, password=password)
 
             if user is not None:
+                # Clear lockout on success
+                cache.delete(lockout_key)
+
                 login(request, user)
                 if not remember_me:
                     request.session.set_expiry(0)  # Browser close session
@@ -90,7 +103,13 @@ def login_view(request):
                     return redirect(next_url)
                 return redirect('dashboard:index')
             else:
-                messages.error(request, "Invalid email address or password. Please try again.")
+                new_attempts = failed_attempts + 1
+                cache.set(lockout_key, new_attempts, timeout=900)
+                remaining = max(0, 5 - new_attempts)
+                if remaining > 0:
+                    messages.error(request, f"Invalid email address or password. ({remaining} attempt{'s' if remaining != 1 else ''} remaining)")
+                else:
+                    messages.error(request, "Too many failed login attempts. Your account has been temporarily locked for 15 minutes.")
     else:
         form = UserLoginForm()
 

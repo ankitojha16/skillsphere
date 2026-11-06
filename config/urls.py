@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from django.shortcuts import redirect
+from django.shortcuts import redirect, render
 
 def home_redirect(request):
     if request.user.is_authenticated:
@@ -37,6 +37,23 @@ urlpatterns = [
     path('', include('certificates.urls', namespace='certificates')),
     path('', include('notifications.urls', namespace='notifications')),
 ]
+
+def custom_bad_request_view(request, exception=None):
+    return render(request, 'errors/400.html', status=400)
+
+def custom_permission_denied_view(request, exception=None):
+    return render(request, 'errors/403.html', status=403)
+
+def custom_page_not_found_view(request, exception=None):
+    return render(request, 'errors/404.html', status=404)
+
+def custom_server_error_view(request):
+    return render(request, 'errors/500.html', status=500)
+
+handler400 = 'config.urls.custom_bad_request_view'
+handler403 = 'config.urls.custom_permission_denied_view'
+handler404 = 'config.urls.custom_page_not_found_view'
+handler500 = 'config.urls.custom_server_error_view'
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

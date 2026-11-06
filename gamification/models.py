@@ -70,3 +70,21 @@ class UserBadge(models.Model):
 
     def __str__(self):
         return f"{self.user.username} earned {self.badge.name}"
+
+
+class XPTransaction(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='xp_transactions')
+    activity_key = models.CharField(max_length=150, help_text="Unique key per learning milestone e.g. lesson_12, quiz_3")
+    amount = models.PositiveIntegerField()
+    reason = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'activity_key'], name='unique_user_activity_xp')
+        ]
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.user.username}: +{self.amount} XP for {self.activity_key}"
+

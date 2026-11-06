@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block title %}500 - Server Error | SkillSphere{% endblock %}
+
+{% block content %}
+<div class="container py-5 text-center my-auto">
+    <div class="row justify-content-center">
+        <div class="col-lg-6 col-md-8">
+            <div class="p-5 rounded-4 shadow-lg border border-secondary" style="background: rgba(17, 24, 39, 0.7); backdrop-filter: blur(12px);">
+                <div class="display-1 fw-bold text-transparent bg-clip-text bg-gradient mb-3" style="background: linear-gradient(135deg, #ef4444, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                    500
+                </div>
+                <h2 class="h3 fw-bold text-white mb-3">System Anomaly Encountered</h2>
+                <p class="text-secondary mb-4">
+                    Our platform servers experienced an unexpected condition while processing your request. Our telemetry has logged the event.
+                </p>
+                <div class="d-flex justify-content-center gap-3 flex-wrap">
+                    <a href="{% url 'dashboard:index' %}" class="btn btn-primary px-4 py-2 rounded-pill fw-semibold shadow-sm">
+                        <i class="bi bi-speedometer2 me-1"></i> Return to Dashboard
+                    </a>
+                    <a href="javascript:location.reload()" class="btn btn-outline-light px-4 py-2 rounded-pill fw-semibold">
+                        <i class="bi bi-arrow-clockwise me-1"></i> Try Again
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

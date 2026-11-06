@@ -116,3 +116,36 @@ class AccountsTests(TestCase):
         self.assertEqual(profile.institution, 'IIT Delhi')
         self.assertTrue(profile.avatar_data_uri.startswith('data:image/jpeg;base64,'))
         self.assertEqual(profile.avatar_url, profile.avatar_data_uri)
+
+    def test_weak_password_rejected(self):
+        # Numeric or common passwords should fail validate_password
+        response = self.client.post(self.signup_url, {
+            'full_name': 'Weak Pass User',
+            'email': 'weakpass@test.com',
+            'password': 'password123',
+            'confirm_password': 'password123',
+            'terms_accepted': True
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context['form'].has_error('password'))
+
+    def test_login_rate_limiting_lockout(self):
+        from django.core.cache import cache
+        cache.clear()
+
+        # Attempt 5 failed logins
+        for i in range(5):
+            res = self.client.post(self.login_url, {
+                'email': 'victim@test.com',
+                'password': 'WrongPassword123!'
+            })
+            self.assertEqual(res.status_code, 200)
+
+        # 6th attempt should be locked out
+        response = self.client.post(self.login_url, {
+            'email': 'victim@test.com',
+            'password': 'WrongPassword123!'
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Too many failed login attempts")
+

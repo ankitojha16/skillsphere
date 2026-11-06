@@ -27,8 +27,12 @@ def opportunity_list_view(request):
     if category:
         opportunities = opportunities.filter(category=category)
 
-    if work_mode:
-        opportunities = opportunities.filter(work_mode=work_mode)
+    show_expired = request.GET.get('show_expired') == 'true'
+    today = timezone.now().date()
+    if not show_expired:
+        opportunities = opportunities.filter(Q(deadline__isnull=True) | Q(deadline__gte=today))
+
+    opportunities = opportunities.order_by('deadline')
 
     saved_opp_ids = SavedOpportunity.objects.filter(user=request.user).values_list('opportunity_id', flat=True)
 
@@ -40,6 +44,8 @@ def opportunity_list_view(request):
         'selected_work_mode': work_mode,
         'query': query,
         'saved_opp_ids': set(saved_opp_ids),
+        'today': today,
+        'show_expired': show_expired,
     }
     return render(request, 'opportunities/list.html', context)
 

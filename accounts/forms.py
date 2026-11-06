@@ -1,5 +1,6 @@
 from django import forms
 from django.contrib.auth.models import User
+from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from .models import StudentProfile
 import json
@@ -58,6 +59,13 @@ class UserRegistrationForm(forms.Form):
 
         if password and confirm_password and password != confirm_password:
             self.add_error('confirm_password', "Passwords do not match.")
+
+        if password:
+            try:
+                validate_password(password)
+            except ValidationError as error:
+                self.add_error('password', error)
+
         return cleaned_data
 
 

@@ -36,3 +36,18 @@ class GamificationTests(TestCase):
         resp = self.client.get(reverse('gamification:achievements'))
         self.assertEqual(resp.status_code, 200)
         self.assertContains(resp, 'Achievements & Consistency')
+
+    def test_award_xp_idempotency_with_activity_key(self):
+        from gamification.models import XPTransaction
+
+        # First call awards 50 XP
+        gamification = award_user_xp(self.user, 50, "Completed Lesson 1", activity_key="lesson_101")
+        self.assertEqual(gamification.total_xp, 50)
+        self.assertEqual(XPTransaction.objects.filter(user=self.user, activity_key="lesson_101").count(), 1)
+
+        # Repeated request with same activity_key should NOT duplicate XP
+        gamification = award_user_xp(self.user, 50, "Completed Lesson 1 Again", activity_key="lesson_101")
+        gamification.refresh_from_db()
+        self.assertEqual(gamification.total_xp, 50)
+        self.assertEqual(XPTransaction.objects.filter(user=self.user, activity_key="lesson_101").count(), 1)
+

@@ -26,6 +26,9 @@ def mark_as_read_view(request, pk):
     notification.is_read = True
     notification.save()
 
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.content_type == 'application/json':
+        return JsonResponse({'success': True, 'id': pk})
+
     if notification.link:
         return redirect(notification.link)
 
@@ -36,6 +39,9 @@ def mark_as_read_view(request, pk):
 @login_required
 def mark_all_read_view(request):
     Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.content_type == 'application/json':
+        return JsonResponse({'success': True, 'message': 'All notifications marked as read'})
+
     messages.success(request, "All notifications marked as read.")
     next_url = request.META.get('HTTP_REFERER') or 'notifications:list'
     return redirect(next_url)
@@ -45,6 +51,10 @@ def mark_all_read_view(request):
 def delete_notification_view(request, pk):
     notification = get_object_or_404(Notification, pk=pk, user=request.user)
     notification.delete()
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.content_type == 'application/json':
+        return JsonResponse({'success': True, 'id': pk})
+
     messages.info(request, "Notification deleted.")
     next_url = request.META.get('HTTP_REFERER') or 'notifications:list'
     return redirect(next_url)
+

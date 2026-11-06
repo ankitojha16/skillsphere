@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import UserGamification, Badge, UserBadge
+from .models import UserGamification, Badge, UserBadge, XPTransaction
 
 @admin.register(UserGamification)
 class UserGamificationAdmin(admin.ModelAdmin):
@@ -18,3 +18,11 @@ class UserBadgeAdmin(admin.ModelAdmin):
     list_display = ('user', 'badge', 'awarded_at')
     list_filter = ('badge', 'awarded_at')
     search_fields = ('user__username', 'badge__name')
+
+@admin.register(XPTransaction)
+class XPTransactionAdmin(admin.ModelAdmin):
+    list_display = ('user', 'activity_key', 'amount', 'reason', 'created_at')
+    list_filter = ('created_at',)
+    search_fields = ('user__username', 'activity_key', 'reason')
+    readonly_fields = ('created_at',)
+

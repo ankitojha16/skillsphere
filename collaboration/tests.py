@@ -54,3 +54,36 @@ class CollaborationTests(TestCase):
         req.refresh_from_db()
         self.assertEqual(req.status, 'accepted')
         self.assertTrue(CollaborationMembership.objects.filter(project=self.project, user=self.applicant, status='active').exists())
+
+    def test_owner_cannot_exceed_team_size_limit(self):
+        # Set team capacity to 2 (owner + 1 member)
+        self.project.team_size = 2
+        self.project.save()
+
+        # Add 1 active member -> team is now full
+        member1 = User.objects.create_user(username='member1', email='m1@test.com', password='Password123!')
+        CollaborationMembership.objects.create(project=self.project, user=member1, role='Dev', status='active')
+
+        # Second applicant tries to get accepted
+        req2 = CollaborationRequest.objects.create(
+            project=self.project,
+            user=self.applicant,
+            role_requested='Backend Engineer',
+            status='pending'
+        )
+
+        owner_client = Client()
+        owner_client.login(username='collabowner', password='Password123!')
+
+        response = owner_client.post(reverse('collaboration:manage', kwargs={'pk': self.project.pk}), {
+            'action': 'handle_request',
+            'request_id': req2.id,
+            'decision': 'accept',
+        }, follow=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Cannot accept member: team capacity")
+        req2.refresh_from_db()
+        self.assertEqual(req2.status, 'pending')
+        self.assertFalse(CollaborationMembership.objects.filter(project=self.project, user=self.applicant).exists())
+
