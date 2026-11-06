@@ -1,0 +1,243 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Taking: {{ assessment.title }} - {{ course.title }} - SkillSphere{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 px-lg-5">
+    <!-- Sticky Header -->
+    <div class="custom-card p-3 mb-4 sticky-top d-flex flex-wrap justify-content-between align-items-center shadow gap-3" style="top: 75px; z-index: 990; background-color: var(--bg-secondary); border-color: rgba(139, 92, 246, 0.3);">
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge-category">{{ course.title }}</span>
+            <span class="text-white fw-bold d-none d-md-inline">•</span>
+            <span class="text-white fw-bold">{{ assessment.title }}</span>
+            <span class="badge bg-secondary-subtle text-secondary small rounded-pill">Attempt #{{ attempt_number }}</span>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            <div class="d-flex align-items-center gap-2">
+                <span class="text-secondary small d-none d-sm-inline">Time Remaining:</span>
+                <div class="badge bg-dark border border-warning text-warning px-3 py-2 fw-bold d-inline-flex align-items-center gap-1" id="timerBadge" style="font-size: 1rem; letter-spacing: 0.05em;">
+                    <i data-lucide="clock" style="width: 16px; height: 16px;"></i>
+                    <span id="timerText">--:--</span>
+                </div>
+            </div>
+            <button type="button" class="btn btn-success-custom py-2 px-3 fw-bold small" onclick="confirmSubmission();">
+                <i data-lucide="check-circle" style="width: 16px; height: 16px;"></i>
+                <span>Finish & Submit</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Main Questions Form -->
+        <div class="col-lg-8 col-xl-9">
+            <form id="courseAssessmentForm" action="{% url 'courses:submit_assessment' slug=course.slug assessment_type=assessment.assessment_type %}" method="post">
+                {% csrf_token %}
+
+                <div class="d-flex flex-column gap-4 mb-4">
+                    {% for q in questions %}
+                        <div class="custom-card p-4 position-relative" id="question_card_{{ q.id }}">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="badge bg-purple-subtle text-primary-accent fw-bold px-3 py-1 rounded-pill small">
+                                        Question {{ forloop.counter }} of {{ total_questions }}
+                                    </span>
+                                    {% if q.topic %}
+                                        <span class="badge bg-dark border border-secondary text-secondary small rounded-pill">
+                                            {{ q.topic }}
+                                        </span>
+                                    {% endif %}
+                                </div>
+                                <span class="text-muted small" id="status_pill_{{ q.id }}">Unanswered</span>
+                            </div>
+
+                            <h5 class="fw-semibold text-white mb-4" style="line-height: 1.6;">{{ q.question_text }}</h5>
+
+                            <div class="d-flex flex-column gap-2">
+                                <!-- Option A -->
+                                <label class="option-label p-3 rounded-3 d-flex align-items-start gap-3 cursor-pointer border" style="background-color: rgba(255, 255, 255, 0.02); border-color: var(--border-color); transition: all 0.2s;">
+                                    <input type="radio" name="question_{{ q.id }}" value="A" class="form-check-input mt-1" onchange="onAnswerSelected({{ q.id }});">
+                                    <div class="text-light small">
+                                        <strong class="text-primary-accent me-2">A.</strong> {{ q.option_a }}
+                                    </div>
+                                </label>
+
+                                <!-- Option B -->
+                                <label class="option-label p-3 rounded-3 d-flex align-items-start gap-3 cursor-pointer border" style="background-color: rgba(255, 255, 255, 0.02); border-color: var(--border-color); transition: all 0.2s;">
+                                    <input type="radio" name="question_{{ q.id }}" value="B" class="form-check-input mt-1" onchange="onAnswerSelected({{ q.id }});">
+                                    <div class="text-light small">
+                                        <strong class="text-primary-accent me-2">B.</strong> {{ q.option_b }}
+                                    </div>
+                                </label>
+
+                                <!-- Option C -->
+                                <label class="option-label p-3 rounded-3 d-flex align-items-start gap-3 cursor-pointer border" style="background-color: rgba(255, 255, 255, 0.02); border-color: var(--border-color); transition: all 0.2s;">
+                                    <input type="radio" name="question_{{ q.id }}" value="C" class="form-check-input mt-1" onchange="onAnswerSelected({{ q.id }});">
+                                    <div class="text-light small">
+                                        <strong class="text-primary-accent me-2">C.</strong> {{ q.option_c }}
+                                    </div>
+                                </label>
+
+                                <!-- Option D -->
+                                <label class="option-label p-3 rounded-3 d-flex align-items-start gap-3 cursor-pointer border" style="background-color: rgba(255, 255, 255, 0.02); border-color: var(--border-color); transition: all 0.2s;">
+                                    <input type="radio" name="question_{{ q.id }}" value="D" class="form-check-input mt-1" onchange="onAnswerSelected({{ q.id }});">
+                                    <div class="text-light small">
+                                        <strong class="text-primary-accent me-2">D.</strong> {{ q.option_d }}
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Bottom Bar -->
+                <div class="custom-card p-4 d-flex flex-wrap justify-content-between align-items-center gap-3">
+                    <a href="{% url 'courses:assessment_intro' slug=course.slug assessment_type=assessment.assessment_type %}" class="btn btn-secondary-custom" onclick="return confirm('Leave this exam? Unsubmitted answers will be discarded.');">
+                        <i data-lucide="x" style="width: 16px; height: 16px;"></i>
+                        <span>Cancel & Exit</span>
+                    </a>
+                    <button type="button" class="btn btn-success-custom py-2 px-5 fw-bold" onclick="confirmSubmission();">
+                        <i data-lucide="check-circle" style="width: 18px; height: 18px;"></i>
+                        <span>Submit All Answers</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Sidebar Question Palette -->
+        <div class="col-lg-4 col-xl-3">
+            <div class="custom-card p-4 sticky-top" style="top: 140px;">
+                <h6 class="text-white fw-bold mb-3 d-flex align-items-center gap-2">
+                    <i data-lucide="layout-grid" style="width: 18px; height: 18px;" class="text-primary-accent"></i>
+                    Question Palette
+                </h6>
+                <div class="d-flex flex-wrap gap-2 mb-4">
+                    {% for q in questions %}
+                        <button type="button" class="palette-btn btn btn-sm btn-outline-secondary" id="palette_btn_{{ q.id }}" onclick="scrollToQuestion({{ q.id }});" style="width: 40px; height: 40px; border-radius: 8px; font-weight: 600;">
+                            {{ forloop.counter }}
+                        </button>
+                    {% endfor %}
+                </div>
+
+                <div class="border-top pt-3" style="border-color: var(--border-color) !important;">
+                    <div class="d-flex align-items-center justify-content-between text-secondary small mb-2">
+                        <span>Answered:</span>
+                        <span class="text-white fw-bold" id="answeredCount">0 / {{ total_questions }}</span>
+                    </div>
+                    <div class="progress mb-3" style="height: 6px; background-color: rgba(255,255,255,0.06);">
+                        <div class="progress-bar bg-success" id="paletteProgressBar" role="progressbar" style="width: 0%;"></div>
+                    </div>
+                    <div class="d-flex align-items-center gap-3 small text-muted">
+                        <div class="d-flex align-items-center gap-1">
+                            <span class="d-inline-block rounded bg-success" style="width: 10px; height: 10px;"></span>
+                            <span>Answered</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-1">
+                            <span class="d-inline-block rounded border border-secondary" style="width: 10px; height: 10px;"></span>
+                            <span>Unanswered</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let totalQuestions = {{ total_questions }};
+let durationSeconds = {{ duration_seconds }};
+const form = document.getElementById('courseAssessmentForm');
+const timerText = document.getElementById('timerText');
+const answeredSet = new Set();
+
+function formatTime(secs) {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
+}
+
+timerText.textContent = formatTime(durationSeconds);
+
+const timerInterval = setInterval(() => {
+    durationSeconds--;
+    if (durationSeconds <= 0) {
+        clearInterval(timerInterval);
+        alert('Time is up! Your answers are being submitted now.');
+        form.submit();
+        return;
+    }
+    timerText.textContent = formatTime(durationSeconds);
+    if (durationSeconds < 180) {
+        const badge = document.getElementById('timerBadge');
+        badge.classList.remove('border-warning', 'text-warning');
+        badge.classList.add('border-danger', 'text-danger');
+    }
+}, 1000);
+
+function onAnswerSelected(qId) {
+    answeredSet.add(qId);
+    const btn = document.getElementById(`palette_btn_${qId}`);
+    if (btn) {
+        btn.classList.remove('btn-outline-secondary');
+        btn.classList.add('btn-success', 'text-white');
+    }
+    const statusPill = document.getElementById(`status_pill_${qId}`);
+    if (statusPill) {
+        statusPill.textContent = 'Answered';
+        statusPill.className = 'text-success small fw-bold';
+    }
+    updatePaletteStats();
+}
+
+function updatePaletteStats() {
+    const count = answeredSet.size;
+    document.getElementById('answeredCount').textContent = `${count} / ${totalQuestions}`;
+    const pct = Math.round((count / totalQuestions) * 100);
+    document.getElementById('paletteProgressBar').style.width = `${pct}%`;
+}
+
+function scrollToQuestion(qId) {
+    const card = document.getElementById(`question_card_${qId}`);
+    if (card) {
+        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        card.style.borderColor = 'var(--primary-accent)';
+        setTimeout(() => {
+            card.style.borderColor = 'var(--border-color)';
+        }, 1200);
+    }
+}
+
+function confirmSubmission() {
+    const count = answeredSet.size;
+    const unanswered = totalQuestions - count;
+    let msg = `Ready to submit your assessment? You have answered ${count} of ${totalQuestions} questions.`;
+    if (unanswered > 0) {
+        msg += `\n\nWarning: ${unanswered} question(s) are still unanswered!`;
+    }
+    if (confirm(msg)) {
+        clearInterval(timerInterval);
+        form.submit();
+    }
+}
+
+// Styling selected radio parent labels
+document.addEventListener('change', (e) => {
+    if (e.target.matches('input[type="radio"]')) {
+        const parentCard = e.target.closest('.custom-card');
+        if (parentCard) {
+            parentCard.querySelectorAll('.option-label').forEach(label => {
+                label.style.backgroundColor = 'rgba(255, 255, 255, 0.02)';
+                label.style.borderColor = 'var(--border-color)';
+            });
+            const activeLabel = e.target.closest('.option-label');
+            if (activeLabel) {
+                activeLabel.style.backgroundColor = 'rgba(139, 92, 246, 0.1)';
+                activeLabel.style.borderColor = 'var(--primary-accent)';
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

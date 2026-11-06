@@ -12,16 +12,18 @@ class Certificate(models.Model):
     verification_status = models.BooleanField(default=True, help_text="Certificate authenticity status")
     criteria_met = models.TextField(blank=True, default="Successfully completed all course lessons, exercises, and assessments.")
     recipient_name = models.CharField(max_length=255, blank=True)
+    recipient_title = models.CharField(max_length=150, blank=True, default="Certified Specialist")
 
     class Meta:
+        unique_together = ('user', 'course')
         ordering = ['-issued_at']
 
     def save(self, *args, **kwargs):
         if not self.certificate_id:
-            # Generate deterministic/readable verification ID e.g. SKILL-2026-A1B2C3D4
-            self.certificate_id = f"SKILL-{timezone.now().year}-{uuid.uuid4().hex[:8].upper()}"
+            # Deterministic/readable verification ID e.g. SS-CERT-2026-8F3A92D1
+            self.certificate_id = f"SS-CERT-{timezone.now().year}-{uuid.uuid4().hex[:8].upper()}"
         if not self.recipient_name and self.user:
-            profile = getattr(self.user, 'student_profile', None)
+            profile = getattr(self.user, 'profile', None)
             self.recipient_name = profile.full_name if (profile and profile.full_name) else self.user.get_full_name() or self.user.username
         super().save(*args, **kwargs)
 
@@ -29,4 +31,4 @@ class Certificate(models.Model):
         return f"{self.title} - {self.certificate_id} ({self.recipient_name})"
 
     def get_verify_url(self):
-        return f"/verify/{self.certificate_id}/"
+        return f"/certificates/verify/{self.certificate_id}/"

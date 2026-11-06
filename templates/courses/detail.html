@@ -27,6 +27,11 @@
                     <span class="text-muted small d-flex align-items-center gap-1">
                         <i data-lucide="book-open" style="width: 14px; height: 14px;"></i> {{ lessons.count }} Lessons
                     </span>
+                    {% if modules.exists %}
+                        <span class="text-muted small d-flex align-items-center gap-1">
+                            <i data-lucide="layers" style="width: 14px; height: 14px;"></i> {{ modules.count }} Modules
+                        </span>
+                    {% endif %}
                 </div>
 
                 <h1 class="fw-bold text-white mb-3">{{ course.title }}</h1>
@@ -50,6 +55,11 @@
                             <a href="{% url 'learning:lesson_detail' course_slug=course.slug lesson_id=first_incomplete_lesson.id %}" class="btn btn-primary-custom py-2 px-4">
                                 <i data-lucide="play" style="width: 18px; height: 18px;"></i>
                                 <span>Continue Learning</span>
+                            </a>
+                        {% elif lessons.first %}
+                            <a href="{% url 'learning:lesson_detail' course_slug=course.slug lesson_id=lessons.first.id %}" class="btn btn-primary-custom py-2 px-4">
+                                <i data-lucide="rotate-ccw" style="width: 18px; height: 18px;"></i>
+                                <span>Review Course</span>
                             </a>
                         {% endif %}
                         <form action="{% url 'courses:unenroll' slug=course.slug %}" method="post" onsubmit="return confirm('Are you sure you want to unenroll? Your saved lesson progress will be removed.');">
@@ -86,14 +96,19 @@
                 {% if is_enrolled %}
                 <div class="custom-card mt-3 p-3 text-start">
                     <div class="d-flex justify-content-between text-secondary small mb-1">
-                        <span>Your Completion</span>
+                        <span>Your Progress</span>
                         <span class="fw-bold text-white">{{ progress_info.percentage }}%</span>
                     </div>
                     <div class="custom-progress mb-2">
                         <div class="custom-progress-bar" style="width: {{ progress_info.percentage }}%;"></div>
                     </div>
-                    <div class="text-muted small">
-                        {{ progress_info.completed }} of {{ progress_info.total }} lessons completed
+                    <div class="d-flex justify-content-between text-muted small">
+                        <span>{{ progress_info.completed }} of {{ progress_info.total }} Lessons</span>
+                        {% if progress_info.is_unlocked %}
+                            <span class="text-success fw-bold"><i data-lucide="unlock" style="width: 12px; height: 12px;"></i> Exams Unlocked</span>
+                        {% else %}
+                            <span class="text-muted"><i data-lucide="lock" style="width: 12px; height: 12px;"></i> 80% to Unlock Exams</span>
+                        {% endif %}
                     </div>
                 </div>
                 {% endif %}
@@ -102,45 +117,193 @@
     </div>
 
     <div class="row g-4">
-        <!-- Syllabus List -->
+        <!-- Syllabus List / Modules Hierarchy -->
         <div class="col-lg-8">
-            <div class="custom-card p-4">
-                <h4 class="fw-bold text-white mb-3 d-flex align-items-center gap-2">
+            <div class="custom-card p-4 mb-4">
+                <h4 class="fw-bold text-white mb-2 d-flex align-items-center gap-2">
                     <i data-lucide="list-ordered" class="text-primary-accent" style="width: 22px; height: 22px;"></i>
-                    <span>Course Syllabus & Lessons</span>
+                    <span>Course Curriculum & Modules</span>
                 </h4>
-                <p class="text-secondary small mb-4">Structured step-by-step technical modules designed for practical mastery.</p>
+                <p class="text-secondary small mb-4">Modular learning progression with videos, comprehensive study notes, and hands-on coding challenges.</p>
 
-                <div class="d-flex flex-column gap-2">
-                    {% for lesson in lessons %}
-                        <div class="d-flex align-items-center justify-content-between p-3 rounded-3" style="background-color: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color);">
-                            <div class="d-flex align-items-center gap-3">
-                                <div class="stat-icon purple" style="width: 36px; height: 36px; font-size: 0.85rem; font-weight: bold;">
-                                    {{ lesson.lesson_order }}
+                {% if modules.exists %}
+                    <!-- Render by Modules -->
+                    <div class="d-flex flex-column gap-4">
+                        {% for module in modules %}
+                            <div class="p-3 rounded-3" style="background-color: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color);">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="badge bg-purple-subtle text-primary-accent fw-bold small rounded-pill px-2 py-1">Module {{ module.order }}</span>
+                                        <h5 class="text-white fw-bold mb-0">{{ module.title }}</h5>
+                                    </div>
+                                    <span class="text-muted small">{{ module.lessons.count }} Lessons</span>
                                 </div>
-                                <div>
-                                    <div class="text-white fw-medium">{{ lesson.title }}</div>
-                                    <small class="text-muted">{{ lesson.chapter_name }}</small>
+                                {% if module.description %}
+                                    <p class="text-secondary small mb-3">{{ module.description }}</p>
+                                {% endif %}
+
+                                <div class="d-flex flex-column gap-2">
+                                    {% for lesson in module.lessons.all %}
+                                        <div class="d-flex align-items-center justify-content-between p-2 px-3 rounded-2" style="background-color: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255,255,255,0.05);">
+                                            <div class="d-flex align-items-center gap-3">
+                                                <div class="d-flex align-items-center justify-content-center" style="width: 28px; height: 28px;">
+                                                    {% if lesson.id in completed_lesson_ids %}
+                                                        <i data-lucide="check-circle-2" class="text-success" style="width: 20px; height: 20px;"></i>
+                                                    {% else %}
+                                                        <span class="text-secondary small fw-bold">{{ lesson.lesson_order }}</span>
+                                                    {% endif %}
+                                                </div>
+                                                <div>
+                                                    <div class="text-white small fw-medium">{{ lesson.title }}</div>
+                                                    <div class="d-flex align-items-center gap-2 small text-muted">
+                                                        <span><i data-lucide="clock" style="width: 12px; height: 12px;"></i> {{ lesson.estimated_minutes }}m</span>
+                                                        {% if lesson.video_url %}
+                                                            <span class="badge bg-secondary-subtle text-secondary py-0 px-1" style="font-size: 0.7rem;"><i data-lucide="video" style="width: 10px; height: 10px;"></i> Video</span>
+                                                        {% endif %}
+                                                        {% if lesson.exercises.exists %}
+                                                            <span class="badge bg-success-subtle text-success py-0 px-1" style="font-size: 0.7rem;"><i data-lucide="code" style="width: 10px; height: 10px;"></i> Exercise</span>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                {% if is_enrolled %}
+                                                    <a href="{% url 'learning:lesson_detail' course_slug=course.slug lesson_id=lesson.id %}" class="btn btn-secondary-custom btn-sm py-1 px-3">
+                                                        <span>{% if lesson.id in completed_lesson_ids %}Review{% else %}Start{% endif %}</span>
+                                                        <i data-lucide="arrow-right" style="width: 12px; height: 12px;"></i>
+                                                    </a>
+                                                {% else %}
+                                                    <span class="badge text-bg-secondary px-2 py-1 small"><i data-lucide="lock" style="width: 12px; height: 12px;"></i> Enrolled</span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    {% empty %}
+                                        <div class="text-muted small py-2">Lessons in preparation.</div>
+                                    {% endfor %}
                                 </div>
                             </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <!-- Flat Lessons List Fallback -->
+                    <div class="d-flex flex-column gap-2">
+                        {% for lesson in lessons %}
+                            <div class="d-flex align-items-center justify-content-between p-3 rounded-3" style="background-color: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color);">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="stat-icon purple" style="width: 36px; height: 36px; font-size: 0.85rem; font-weight: bold;">
+                                        {% if lesson.id in completed_lesson_ids %}
+                                            <i data-lucide="check" class="text-success" style="width: 18px; height: 18px;"></i>
+                                        {% else %}
+                                            {{ lesson.lesson_order }}
+                                        {% endif %}
+                                    </div>
+                                    <div>
+                                        <div class="text-white fw-medium">{{ lesson.title }}</div>
+                                        <small class="text-muted">{{ lesson.chapter_name }}</small>
+                                    </div>
+                                </div>
 
-                            <div class="d-flex align-items-center gap-3">
-                                <span class="text-muted small d-none d-sm-inline">
-                                    <i data-lucide="clock" style="width: 14px; height: 14px;"></i> {{ lesson.estimated_minutes }} mins
-                                </span>
+                                <div class="d-flex align-items-center gap-3">
+                                    <span class="text-muted small d-none d-sm-inline">
+                                        <i data-lucide="clock" style="width: 14px; height: 14px;"></i> {{ lesson.estimated_minutes }} mins
+                                    </span>
+                                    {% if is_enrolled %}
+                                        <a href="{% url 'learning:lesson_detail' course_slug=course.slug lesson_id=lesson.id %}" class="btn btn-secondary-custom btn-sm py-1 px-3">
+                                            <span>{% if lesson.id in completed_lesson_ids %}Review{% else %}Start{% endif %}</span>
+                                            <i data-lucide="arrow-right" style="width: 14px; height: 14px;"></i>
+                                        </a>
+                                    {% else %}
+                                        <span class="badge text-bg-secondary px-2 py-1 small"><i data-lucide="lock" style="width: 12px; height: 12px;"></i> Enrolled Only</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% empty %}
+                            <div class="text-muted small py-3">No lessons published yet for this course.</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Course Final Assessments Section -->
+            <div class="custom-card p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h4 class="fw-bold text-white mb-0 d-flex align-items-center gap-2">
+                        <i data-lucide="award" class="text-warning" style="width: 22px; height: 22px;"></i>
+                        <span>Course Certification Assessments</span>
+                    </h4>
+                    {% if progress_info.is_unlocked %}
+                        <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1 rounded-pill small">
+                            <i data-lucide="unlock" style="width: 12px; height: 12px;"></i> Unlocked ($\ge 80\%$)
+                        </span>
+                    {% else %}
+                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-1 rounded-pill small">
+                            <i data-lucide="lock" style="width: 12px; height: 12px;"></i> Unlocks at 80% Progress
+                        </span>
+                    {% endif %}
+                </div>
+                <p class="text-secondary small mb-4">Passing both assessments with $\ge 70\%$ unlocks your official verified certificate.</p>
+
+                <div class="row g-3">
+                    <!-- Final Quiz Card -->
+                    <div class="col-md-6">
+                        <div class="p-3 rounded-3 h-100 d-flex flex-column justify-content-between" style="background-color: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color);">
+                            <div>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="badge bg-purple-subtle text-primary-accent small rounded-pill">Final Course Quiz</span>
+                                    <span class="text-muted small">Pass: 70%</span>
+                                </div>
+                                <h6 class="text-white fw-bold mb-1">Comprehensive Course Quiz</h6>
+                                <p class="text-secondary small mb-3">Evaluate conceptual mastery of core architectural topics and terminology.</p>
+                            </div>
+
+                            <div>
                                 {% if is_enrolled %}
-                                    <a href="{% url 'learning:lesson_detail' course_slug=course.slug lesson_id=lesson.id %}" class="btn btn-secondary-custom btn-sm py-1 px-3">
-                                        <span>Start</span>
-                                        <i data-lucide="arrow-right" style="width: 14px; height: 14px;"></i>
+                                    <a href="{% url 'courses:assessment_intro' slug=course.slug assessment_type='final_quiz' %}" class="btn btn-sm {% if progress_info.quiz_passed %}btn-success-custom{% elif progress_info.is_unlocked %}btn-primary-custom{% else %}btn-secondary-custom disabled{% endif %} w-100 py-2">
+                                        {% if progress_info.quiz_passed %}
+                                            <i data-lucide="check" style="width: 14px; height: 14px;"></i> Passed • Retake
+                                        {% elif progress_info.is_unlocked %}
+                                            <i data-lucide="play" style="width: 14px; height: 14px;"></i> Take Final Quiz
+                                        {% else %}
+                                            <i data-lucide="lock" style="width: 14px; height: 14px;"></i> Locked (< 80%)
+                                        {% endif %}
                                     </a>
                                 {% else %}
-                                    <span class="badge text-bg-secondary px-2 py-1 small"><i data-lucide="lock" style="width: 12px; height: 12px;"></i> Enrolled Only</span>
+                                    <button class="btn btn-sm btn-secondary-custom disabled w-100 py-2">Enroll to Access</button>
                                 {% endif %}
                             </div>
                         </div>
-                    {% empty %}
-                        <div class="text-muted small py-3">No lessons published yet for this course.</div>
-                    {% endfor %}
+                    </div>
+
+                    <!-- Final Mock Test Card -->
+                    <div class="col-md-6">
+                        <div class="p-3 rounded-3 h-100 d-flex flex-column justify-content-between" style="background-color: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color);">
+                            <div>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="badge bg-warning-subtle text-warning small rounded-pill">Final Mock Test</span>
+                                    <span class="text-muted small">Pass: 70%</span>
+                                </div>
+                                <h6 class="text-white fw-bold mb-1">Timed Industry Mock Exam</h6>
+                                <p class="text-secondary small mb-3">Realistic industry interview and coding exam simulation under timed constraints.</p>
+                            </div>
+
+                            <div>
+                                {% if is_enrolled %}
+                                    <a href="{% url 'courses:assessment_intro' slug=course.slug assessment_type='final_mock' %}" class="btn btn-sm {% if progress_info.mock_passed %}btn-success-custom{% elif progress_info.is_unlocked %}btn-primary-custom{% else %}btn-secondary-custom disabled{% endif %} w-100 py-2">
+                                        {% if progress_info.mock_passed %}
+                                            <i data-lucide="check" style="width: 14px; height: 14px;"></i> Passed • Retake
+                                        {% elif progress_info.is_unlocked %}
+                                            <i data-lucide="play" style="width: 14px; height: 14px;"></i> Take Mock Exam
+                                        {% else %}
+                                            <i data-lucide="lock" style="width: 14px; height: 14px;"></i> Locked (< 80%)
+                                        {% endif %}
+                                    </a>
+                                {% else %}
+                                    <button class="btn btn-sm btn-secondary-custom disabled w-100 py-2">Enroll to Access</button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -164,6 +327,23 @@
                 {% else %}
                     <p class="text-secondary small mb-0">Practical hands-on exercises, industry coding standards, and project-based assignments.</p>
                 {% endif %}
+            </div>
+
+            <!-- Certification Criteria Card -->
+            <div class="custom-card p-4 mb-4">
+                <h5 class="fw-bold text-white mb-3 d-flex align-items-center gap-2">
+                    <i data-lucide="shield-check" class="text-warning" style="width: 20px; height: 20px;"></i>
+                    <span>Certification Criteria</span>
+                </h5>
+                <ul class="text-secondary small d-flex flex-column gap-2 mb-3" style="padding-left: 1.25rem;">
+                    <li>100% completion of course lessons & practical challenges</li>
+                    <li>Achieving $\ge 70\%$ in Final Course Quiz</li>
+                    <li>Achieving $\ge 70\%$ in Final Mock Examination</li>
+                </ul>
+                <a href="{% url 'certificates:center' %}" class="btn btn-secondary-custom w-100 py-2 small">
+                    <i data-lucide="award" style="width: 16px; height: 16px;"></i>
+                    <span>View Certificate Center</span>
+                </a>
             </div>
 
             <div class="custom-card p-4">

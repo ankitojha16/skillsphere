@@ -1,0 +1,169 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ assessment.title }} - {{ course.title }} - SkillSphere{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width: 900px;">
+    <!-- Breadcrumb -->
+    <nav class="mb-3" aria-label="breadcrumb">
+        <ol class="breadcrumb small">
+            <li class="breadcrumb-item"><a href="{% url 'courses:list' %}" class="text-secondary text-decoration-none">Courses</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'courses:detail' slug=course.slug %}" class="text-secondary text-decoration-none">{{ course.title }}</a></li>
+            <li class="breadcrumb-item active text-white" aria-current="page">{{ assessment.title }}</li>
+        </ol>
+    </nav>
+
+    <!-- Header Card -->
+    <div class="custom-card card-glowing p-4 p-md-5 mb-4">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge-category">{{ course.category.name }}</span>
+                {% if assessment.assessment_type == 'final_quiz' %}
+                    <span class="badge bg-purple-subtle text-primary-accent border border-purple px-2 py-1 small rounded-pill">Final Course Quiz</span>
+                {% else %}
+                    <span class="badge bg-warning-subtle text-warning border border-warning px-2 py-1 small rounded-pill">Final Mock Test</span>
+                {% endif %}
+            </div>
+            <div>
+                {% if is_unlocked %}
+                    <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1 rounded-pill small d-inline-flex align-items-center gap-1">
+                        <i data-lucide="unlock" style="width: 14px; height: 14px;"></i> Assessment Unlocked ({{ progress.percentage }}%)
+                    </span>
+                {% else %}
+                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-1 rounded-pill small d-inline-flex align-items-center gap-1">
+                        <i data-lucide="lock" style="width: 14px; height: 14px;"></i> Locked ({{ progress.percentage }}% / 80% Required)
+                    </span>
+                {% endif %}
+            </div>
+        </div>
+
+        <h1 class="fw-bold text-white mb-2">{{ assessment.title }}</h1>
+        <p class="text-secondary fs-6 mb-4">{{ assessment.description }}</p>
+
+        <!-- Metric Badges Row -->
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-md-3">
+                <div class="p-3 rounded-3 text-center" style="background-color: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color);">
+                    <div class="text-muted small mb-1"><i data-lucide="help-circle" class="me-1" style="width: 14px; height: 14px;"></i> Questions</div>
+                    <div class="text-white fw-bold fs-5">{{ question_count }} Questions</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="p-3 rounded-3 text-center" style="background-color: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color);">
+                    <div class="text-muted small mb-1"><i data-lucide="clock" class="me-1" style="width: 14px; height: 14px;"></i> Time Limit</div>
+                    <div class="text-white fw-bold fs-5">{{ assessment.duration_minutes }} Mins</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="p-3 rounded-3 text-center" style="background-color: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color);">
+                    <div class="text-muted small mb-1"><i data-lucide="target" class="me-1" style="width: 14px; height: 14px;"></i> Pass Mark</div>
+                    <div class="text-warning fw-bold fs-5">{{ assessment.passing_percentage }}%</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="p-3 rounded-3 text-center" style="background-color: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color);">
+                    <div class="text-muted small mb-1"><i data-lucide="award" class="me-1" style="width: 14px; height: 14px;"></i> XP Reward</div>
+                    <div class="text-success fw-bold fs-5">{% if assessment.assessment_type == 'final_quiz' %}+100 XP{% else %}+150 XP{% endif %}</div>
+                </div>
+            </div>
+        </div>
+
+        {% if not is_unlocked %}
+            <!-- Locked Alert -->
+            <div class="p-4 rounded-3 mb-4" style="background-color: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.3);">
+                <div class="d-flex align-items-start gap-3">
+                    <div class="stat-icon red flex-shrink-0" style="width: 44px; height: 44px;">
+                        <i data-lucide="lock" style="width: 22px; height: 22px;"></i>
+                    </div>
+                    <div>
+                        <h5 class="text-white fw-bold mb-1">Assessment Locked</h5>
+                        <p class="text-secondary small mb-3">
+                            To ensure high educational quality and mastery of core topics, this assessment unlocks automatically when you achieve at least <strong>80% course completion</strong>.
+                        </p>
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="progress flex-grow-1" style="height: 10px; background-color: rgba(255,255,255,0.06); max-width: 320px;">
+                                <div class="progress-bar bg-primary-custom" role="progressbar" style="width: {{ progress.percentage }}%;" aria-valuenow="{{ progress.percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                            <span class="text-white fw-bold small">{{ progress.percentage }}% Completed</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex align-items-center gap-3">
+                <a href="{% url 'courses:detail' slug=course.slug %}" class="btn btn-primary-custom py-2 px-4">
+                    <i data-lucide="arrow-left" style="width: 18px; height: 18px;"></i>
+                    <span>Continue Course Curriculum</span>
+                </a>
+            </div>
+        {% else %}
+            <!-- Unlocked Rules & Start Button -->
+            <div class="p-4 rounded-3 mb-4" style="background-color: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color);">
+                <h6 class="text-white fw-bold mb-3 d-flex align-items-center gap-2">
+                    <i data-lucide="file-text" style="width: 18px; height: 18px;" class="text-primary-accent"></i>
+                    Examination Rules & Instructions
+                </h6>
+                <ul class="text-secondary small mb-0 d-flex flex-column gap-2" style="padding-left: 1.25rem;">
+                    <li>This examination contains <strong>{{ question_count }} multiple-choice questions</strong> designed to test your conceptual and practical mastery.</li>
+                    <li>You have <strong>{{ assessment.duration_minutes }} minutes</strong>. Once started, the countdown timer cannot be paused.</li>
+                    <li>You must score at least <strong>{{ assessment.passing_percentage }}%</strong> to pass and qualify for your course certification.</li>
+                    <li>If you do not pass on your first attempt, you may retake the test after reviewing the study notes and lesson materials.</li>
+                    <li>Each attempt records your topic-wise mastery in your academic record.</li>
+                </ul>
+            </div>
+
+            <div class="d-flex flex-wrap align-items-center gap-3">
+                <a href="{% url 'courses:take_assessment' slug=course.slug assessment_type=assessment.assessment_type %}" class="btn btn-success-custom py-3 px-5 fw-bold fs-6 shadow-sm">
+                    <i data-lucide="play-circle" style="width: 20px; height: 20px;"></i>
+                    <span>{% if attempts %}Retake Assessment{% else %}Start Assessment Now{% endif %}</span>
+                </a>
+                <a href="{% url 'courses:detail' slug=course.slug %}" class="btn btn-secondary-custom py-3 px-4">
+                    <i data-lucide="arrow-left" style="width: 18px; height: 18px;"></i>
+                    <span>Back to Course</span>
+                </a>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Attempt History -->
+    {% if attempts %}
+        <div class="custom-card p-4">
+            <h5 class="fw-bold text-white mb-3 d-flex align-items-center gap-2">
+                <i data-lucide="history" style="width: 18px; height: 18px;" class="text-secondary"></i>
+                Attempt History
+            </h5>
+            <div class="table-responsive">
+                <table class="table table-dark table-hover mb-0 align-middle" style="background: transparent;">
+                    <thead>
+                        <tr class="text-secondary small border-bottom" style="border-color: var(--border-color) !important;">
+                            <th>Attempt</th>
+                            <th>Date</th>
+                            <th>Score</th>
+                            <th>Percentage</th>
+                            <th>Result</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for att in attempts %}
+                            <tr style="border-color: rgba(255,255,255,0.05) !important;">
+                                <td class="fw-bold text-white">#{{ att.attempt_number }}</td>
+                                <td class="text-secondary small">{{ att.completed_at|date:"M d, Y - H:i"|default:att.started_at|date:"M d, Y - H:i" }}</td>
+                                <td class="text-white">{{ att.score }} / {{ att.total_questions }}</td>
+                                <td class="fw-bold {% if att.is_passed %}text-success{% else %}text-danger{% endif %}">{{ att.percentage }}%</td>
+                                <td>
+                                    {% if att.is_passed %}
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 rounded-pill small">Passed</span>
+                                    {% else %}
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1 rounded-pill small">Needs Review</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -618,3 +618,66 @@ class AIService:
             "keywords_missing": keywords_missing,
             "disclaimer": "This score is an educational guideline based on industry standard formatting best practices, not a vendor ATS guarantee."
         }
+
+    @classmethod
+    def assist_study_notes(cls, action: str, lesson_title: str, context_text: str) -> Dict[str, Any]:
+        """
+        Assists student with lesson study notes:
+        Actions: 'simplify', 'explain_code', 'summarize', 'quiz_prep'
+        Returns generated guidance with explicit AI provider attribution.
+        """
+        system_prompt = (
+            "You are SkillSphere's academic AI Study Assistant. "
+            "Help the student understand this specific lesson topic with clarity, "
+            "actionable examples, and high pedagogical rigor. Keep answers focused, clear, and formatted in Markdown."
+        )
+
+        if action == 'simplify':
+            user_prompt = f"Explain the core concept of '{lesson_title}' in simple, intuitive terms suitable for a beginner with a clear real-world analogy.\n\nLesson Context:\n{context_text[:1200]}"
+        elif action == 'explain_code':
+            user_prompt = f"Break down and explain the syntax, execution flow, and best practices of any code examples in '{lesson_title}'.\n\nCode/Notes Context:\n{context_text[:1200]}"
+        elif action == 'quiz_prep':
+            user_prompt = f"Generate 3 rapid-fire self-check questions with answers and brief explanations for revision on '{lesson_title}'.\n\nLesson Context:\n{context_text[:1200]}"
+        else: # summarize
+            user_prompt = f"Provide a concise, high-yield bulleted revision summary of the most important points for '{lesson_title}'.\n\nLesson Context:\n{context_text[:1200]}"
+
+        meta = cls.generate_text_with_meta(user_prompt, system_instruction=system_prompt)
+        if not meta.get('text'):
+            if action == 'simplify':
+                fallback = (
+                    f"### Simplified Concept: {lesson_title}\n\n"
+                    f"**The Big Idea:** Think of this concept like an everyday system where inputs reliably produce structured outcomes. "
+                    f"In software engineering, breaking difficult topics down into smaller steps is key.\n\n"
+                    f"- **Step 1:** Understand the foundational data/operation.\n"
+                    f"- **Step 2:** Observe how control flow or functions manipulate that state.\n"
+                    f"- **Step 3:** Apply the pattern to your own code challenges."
+                )
+            elif action == 'explain_code':
+                fallback = (
+                    f"### Code Breakdown: {lesson_title}\n\n"
+                    f"1. **Syntax Definition:** Functions and constructs declare clear parameters and return predictable values.\n"
+                    f"2. **Execution Flow:** Code runs sequentially from top to bottom, evaluating conditions and expressions.\n"
+                    f"3. **Best Practice:** Keep functions modular, write descriptive variable names, and handle boundary conditions gracefully."
+                )
+            elif action == 'quiz_prep':
+                fallback = (
+                    f"### Rapid Revision Self-Check: {lesson_title}\n\n"
+                    f"1. **Q: What is the primary purpose of this topic?**\n   *A:* To organize logic, optimize operations, and build maintainable software.\n\n"
+                    f"2. **Q: What is a common pitfall to avoid?**\n   *A:* Neglecting edge cases or mutating shared state unexpectedly.\n\n"
+                    f"3. **Q: Where is this used in production?**\n   *A:* Across scalable backend services, API handlers, and data processing pipelines."
+                )
+            else:
+                fallback = (
+                    f"### Quick Revision Summary: {lesson_title}\n\n"
+                    f"- **Core Takeaway:** Master the primary syntax and structural principles introduced in this lesson.\n"
+                    f"- **Key Skill:** Write clean, readable implementations and verify them with practical test cases.\n"
+                    f"- **Next Step:** Complete the practice exercises in the Practice tab to lock in your understanding."
+                )
+            return {
+                'text': fallback,
+                'provider': 'offline-knowledge-engine',
+                'provider_label': 'SkillSphere Knowledge Engine',
+                'is_fallback': True
+            }
+
+        return meta

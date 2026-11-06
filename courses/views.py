@@ -1,10 +1,16 @@
+import json
+from django.utils import timezone
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Q
 from django.contrib import messages
 from django.http import HttpResponseRedirect
 from django.urls import reverse
-from .models import Course, Category, Enrollment
+from .models import (
+    Course, Category, Enrollment, CourseModule,
+    CourseAssessment, CourseAssessmentQuestion,
+    CourseAssessmentAttempt, CourseCompletion
+)
 from learning.models import Lesson, LessonProgress
 from goals.models import LearningActivity
 
@@ -77,8 +83,11 @@ def course_detail_view(request, slug):
     course = get_object_or_404(Course, slug=slug, is_published=True)
     lessons = course.lessons.all().order_by('lesson_order', 'id')
     is_enrolled = False
-    progress_info = {'percentage': 0, 'completed': 0, 'total': lessons.count()}
+    progress_info = {'percentage': 0, 'completed': 0, 'total': lessons.count(), 'is_unlocked': False, 'is_completed': False, 'quiz_passed': False, 'mock_passed': False}
     first_incomplete_lesson = None
+    modules = course.modules.prefetch_related('lessons').order_by('order')
+    assessments = course.course_assessments.filter(is_active=True).order_by('assessment_type')
+    completed_lesson_ids = set()
 
     if request.user.is_authenticated:
         is_enrolled = Enrollment.objects.filter(user=request.user, course=course).exists()
@@ -101,7 +110,10 @@ def course_detail_view(request, slug):
 
     return render(request, 'courses/detail.html', {
         'course': course,
+        'modules': modules,
         'lessons': lessons,
+        'assessments': assessments,
+        'completed_lesson_ids': completed_lesson_ids,
         'is_enrolled': is_enrolled,
         'progress_info': progress_info,
         'first_incomplete_lesson': first_incomplete_lesson,
@@ -191,4 +203,130 @@ def my_learning_view(request):
         'enrolled_items': enrolled_items,
         'active_tab': filter_tab,
         'total_enrolled': enrollments.count(),
+    })
+
+
+@login_required
+def assessment_intro_view(request, slug, assessment_type):
+    course = get_object_or_404(Course, slug=slug, is_published=True)
+    assessment = get_object_or_404(course.course_assessments, assessment_type=assessment_type, is_active=True)
+
+    progress = course.get_user_progress(request.user)
+    is_unlocked = progress['is_unlocked']
+
+    attempts = list(assessment.attempts.filter(user=request.user).order_by('-started_at'))
+    best_attempt = max(attempts, key=lambda a: a.percentage) if attempts else None
+    has_passed = any(a.is_passed for a in attempts)
+
+    return render(request, 'courses/assessment_intro.html', {
+        'course': course,
+        'assessment': assessment,
+        'progress': progress,
+        'is_unlocked': is_unlocked,
+        'attempts': attempts,
+        'best_attempt': best_attempt,
+        'has_passed': has_passed,
+        'question_count': assessment.questions.count(),
+    })
+
+
+@login_required
+def take_assessment_view(request, slug, assessment_type):
+    course = get_object_or_404(Course, slug=slug, is_published=True)
+    assessment = get_object_or_404(course.course_assessments, assessment_type=assessment_type, is_active=True)
+
+    # Server-side 80% unlock verification
+    progress = course.get_user_progress(request.user)
+    if not progress['is_unlocked']:
+        messages.error(request, f"Assessments are locked until you reach at least 80% course progress (Current: {progress['percentage']}%).")
+        return redirect('courses:assessment_intro', slug=course.slug, assessment_type=assessment_type)
+
+    questions = list(assessment.questions.all().order_by('order', 'id'))
+    if not questions:
+        messages.warning(request, "Assessment question bank is currently being prepared.")
+        return redirect('courses:detail', slug=course.slug)
+
+    attempt_number = assessment.attempts.filter(user=request.user).count() + 1
+
+    return render(request, 'courses/assessment_take.html', {
+        'course': course,
+        'assessment': assessment,
+        'questions': questions,
+        'total_questions': len(questions),
+        'duration_seconds': assessment.duration_minutes * 60,
+        'attempt_number': attempt_number,
+    })
+
+
+@login_required
+def submit_assessment_view(request, slug, assessment_type):
+    if request.method != 'POST':
+        return redirect('courses:assessment_intro', slug=slug, assessment_type=assessment_type)
+
+    course = get_object_or_404(Course, slug=slug, is_published=True)
+    assessment = get_object_or_404(course.course_assessments, assessment_type=assessment_type, is_active=True)
+
+    questions = list(assessment.questions.all().order_by('order', 'id'))
+    total_q = len(questions)
+
+    score = 0
+    topic_breakdown = {}
+    answers_record = {}
+
+    for q in questions:
+        field_name = f"question_{q.id}"
+        selected = request.POST.get(field_name, '').strip().upper()
+        is_correct = (selected == q.correct_answer)
+        if is_correct:
+            score += 1
+
+        topic = q.topic or "Core"
+        if topic not in topic_breakdown:
+            topic_breakdown[topic] = {'total': 0, 'correct': 0}
+        topic_breakdown[topic]['total'] += 1
+        if is_correct:
+            topic_breakdown[topic]['correct'] += 1
+
+        answers_record[str(q.id)] = {
+            'selected': selected,
+            'correct': q.correct_answer,
+            'is_correct': is_correct,
+            'explanation': q.explanation
+        }
+
+    percentage = int(round((score / total_q) * 100)) if total_q > 0 else 0
+    is_passed = percentage >= assessment.passing_percentage
+
+    attempt_count = assessment.attempts.filter(user=request.user).count() + 1
+    attempt = CourseAssessmentAttempt.objects.create(
+        user=request.user,
+        assessment=assessment,
+        score=score,
+        total_questions=total_q,
+        percentage=percentage,
+        is_passed=is_passed,
+        attempt_number=attempt_count,
+        answers_json=json.dumps(answers_record),
+        completed_at=timezone.now()
+    )
+
+    if is_passed:
+        from gamification.services import award_user_xp
+        xp_amount = 100 if assessment_type == 'final_quiz' else 150
+        award_user_xp(request.user, xp_amount, f"Passed {assessment.title} ({percentage}%)")
+
+    # Refresh course completion state
+    prog = course.get_user_progress(request.user)
+
+    return render(request, 'courses/assessment_result.html', {
+        'course': course,
+        'assessment': assessment,
+        'attempt': attempt,
+        'is_passed': is_passed,
+        'percentage': percentage,
+        'score': score,
+        'total_questions': total_q,
+        'topic_breakdown': topic_breakdown,
+        'answers_record': answers_record,
+        'course_progress': prog,
     })

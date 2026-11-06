@@ -153,7 +153,14 @@
                                     </div>
                                     <div class="text-muted small text-truncate">{{ item.course.instructor_name }}</div>
                                 </div>
-                                <span class="fw-bold text-white small">{{ item.progress.percentage }}%</span>
+                                <div>
+                                    <span class="fw-bold text-white small">{{ item.progress.percentage }}%</span>
+                                    {% if item.progress.is_completed %}
+                                        <span class="badge bg-warning text-dark ms-1" style="font-size: 0.65rem;">🎓 Certified</span>
+                                    {% elif item.progress.is_unlocked %}
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle ms-1" style="font-size: 0.65rem;">Unlocked</span>
+                                    {% endif %}
+                                </div>
                             </div>
 
                             <div class="custom-progress mb-2">
@@ -161,8 +168,18 @@
                             </div>
 
                             <div class="d-flex justify-content-between align-items-center pt-1">
-                                <span class="text-muted small">{{ item.progress.completed }}/{{ item.progress.total }} lessons</span>
-                                {% if item.next_lesson %}
+                                <span class="text-muted small">
+                                    {{ item.progress.completed }}/{{ item.progress.total }} lessons
+                                    {% if item.progress.exercise_total > 0 %}
+                                        • {{ item.progress.exercise_completed }}/{{ item.progress.exercise_total }} challenges
+                                    {% endif %}
+                                </span>
+                                {% if item.progress.is_completed %}
+                                    <a href="{% url 'certificates:center' %}" class="btn btn-warning-custom btn-sm py-1 px-3" style="font-size: 0.8rem;">
+                                        <span>Certificate</span>
+                                        <i data-lucide="award" style="width: 13px; height: 13px;"></i>
+                                    </a>
+                                {% elif item.next_lesson %}
                                     <a href="{% url 'learning:lesson_detail' course_slug=item.course.slug lesson_id=item.next_lesson.id %}" class="btn btn-primary-custom btn-sm py-1 px-3">
                                         <span>Resume</span>
                                         <i data-lucide="arrow-right" style="width: 14px; height: 14px;"></i>

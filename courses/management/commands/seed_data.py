@@ -5,9 +5,10 @@ from django.utils import timezone
 from datetime import timedelta
 
 from accounts.models import StudentProfile
-from courses.models import Category, Course, Enrollment
-from learning.models import Lesson, LessonProgress
+from courses.models import Category, Course, Enrollment, CourseModule, CourseAssessment, CourseAssessmentQuestion
+from learning.models import Lesson, LessonProgress, Exercise
 from goals.models import LearningGoal, LearningActivity
+from courses.curriculum_data import COURSES_CURRICULUM
 
 from opportunities.models import Opportunity, SavedOpportunity
 from events.models import Event, SavedEvent
@@ -435,6 +436,7 @@ courses = Course.objects.filter(
                 }
             )
 
+            # Seed legacy lessons
             for l_data in c_data['lessons']:
                 Lesson.objects.update_or_create(
                     course=course,
@@ -448,7 +450,85 @@ courses = Course.objects.filter(
                     }
                 )
 
-        self.stdout.write(self.style.SUCCESS('Created 8 comprehensive courses with structured lessons.'))
+            # Seed 2.0 Modular Curriculum, Exercises, and Certification Assessments
+            if c_data['slug'] in COURSES_CURRICULUM:
+                curr_info = COURSES_CURRICULUM[c_data['slug']]
+
+                # Modules & Lessons
+                for m_info in curr_info.get('modules', []):
+                    c_module, _ = CourseModule.objects.update_or_create(
+                        course=course,
+                        order=m_info['order'],
+                        defaults={
+                            'title': m_info['title'],
+                            'description': m_info.get('description', '')
+                        }
+                    )
+
+                    for l_info in m_info.get('lessons', []):
+                        lesson, _ = Lesson.objects.update_or_create(
+                            course=course,
+                            lesson_order=l_info['order'],
+                            defaults={
+                                'module': c_module,
+                                'chapter_name': l_info.get('chapter', m_info['title']),
+                                'title': l_info['title'],
+                                'estimated_minutes': l_info.get('minutes', 20),
+                                'video_url': l_info.get('video_url', ''),
+                                'video_duration_seconds': l_info.get('video_duration', 600),
+                                'video_type': 'youtube',
+                                'content': l_info['content'].strip(),
+                                'key_takeaways': json.dumps(l_info.get('key_takeaways', [])),
+                                'common_mistakes': json.dumps(l_info.get('common_mistakes', [])),
+                                'external_resources': l_info.get('resources', '').strip()
+                            }
+                        )
+
+                        # Exercise
+                        if 'exercise' in l_info:
+                            ex_info = l_info['exercise']
+                            Exercise.objects.update_or_create(
+                                lesson=lesson,
+                                title=ex_info['title'],
+                                defaults={
+                                    'instructions': ex_info['instructions'],
+                                    'starter_code': ex_info['starter_code'],
+                                    'expected_output': ex_info['expected_output'],
+                                    'hint': ex_info.get('hints', '')
+                                }
+                            )
+
+                # Assessments (Final Quiz & Mock Test)
+                for a_info in curr_info.get('assessments', []):
+                    assessment, _ = CourseAssessment.objects.update_or_create(
+                        course=course,
+                        assessment_type=a_info['type'],
+                        defaults={
+                            'title': a_info['title'],
+                            'description': a_info['description'],
+                            'duration_minutes': a_info['duration'],
+                            'passing_percentage': a_info['pass_pct'],
+                            'is_active': True
+                        }
+                    )
+
+                    for q_idx, q_info in enumerate(a_info.get('questions', []), start=1):
+                        CourseAssessmentQuestion.objects.update_or_create(
+                            assessment=assessment,
+                            order=q_idx,
+                            defaults={
+                                'question_text': q_info['text'],
+                                'option_a': q_info['a'],
+                                'option_b': q_info['b'],
+                                'option_c': q_info['c'],
+                                'option_d': q_info['d'],
+                                'correct_answer': q_info['correct'],
+                                'topic': q_info.get('topic', 'Core'),
+                                'explanation': q_info.get('explanation', '')
+                            }
+                        )
+
+        self.stdout.write(self.style.SUCCESS('Created 8 comprehensive courses with structured modules, lessons, exercises, and assessments.'))
 
         # 3. Create Demo Student Account
         demo_user, created = User.objects.get_or_create(

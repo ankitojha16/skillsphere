@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Results: {{ assessment.title }} - SkillSphere{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width: 900px;">
+    <!-- Breadcrumb -->
+    <nav class="mb-3" aria-label="breadcrumb">
+        <ol class="breadcrumb small">
+            <li class="breadcrumb-item"><a href="{% url 'courses:list' %}" class="text-secondary text-decoration-none">Courses</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'courses:detail' slug=course.slug %}" class="text-secondary text-decoration-none">{{ course.title }}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'courses:assessment_intro' slug=course.slug assessment_type=assessment.assessment_type %}" class="text-secondary text-decoration-none">{{ assessment.title }}</a></li>
+            <li class="breadcrumb-item active text-white" aria-current="page">Results</li>
+        </ol>
+    </nav>
+
+    <!-- Score Card -->
+    <div class="custom-card card-glowing p-4 p-md-5 mb-4 text-center position-relative">
+        <div class="d-flex justify-content-center mb-2">
+            <span class="badge-category">{{ course.title }}</span>
+        </div>
+        <h2 class="fw-bold text-white mb-2">{{ assessment.title }} Results</h2>
+        <p class="text-secondary small mb-4">Attempt #{{ attempt.attempt_number }} • Completed {{ attempt.completed_at|date:"M d, Y - H:i" }}</p>
+
+        <!-- Big Score Metric -->
+        <div class="stat-value mx-auto mb-2 {% if is_passed %}text-success{% else %}text-danger{% endif %}" style="font-size: 4rem; line-height: 1;">
+            {{ percentage }}%
+        </div>
+
+        <div class="mb-4">
+            {% if is_passed %}
+                <span class="badge bg-success-subtle text-success border border-success-subtle px-4 py-2 rounded-pill fs-6 fw-bold">
+                    <i data-lucide="check-circle" class="me-1" style="width: 18px; height: 18px;"></i>
+                    Assessment Passed
+                </span>
+            {% else %}
+                <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-4 py-2 rounded-pill fs-6 fw-bold">
+                    <i data-lucide="alert-circle" class="me-1" style="width: 18px; height: 18px;"></i>
+                    Passing Threshold Not Met ({{ assessment.passing_percentage }}% Required)
+                </span>
+            {% endif %}
+        </div>
+
+        <p class="text-secondary mb-4">
+            You scored <strong class="text-white">{{ score }}</strong> correct out of <strong class="text-white">{{ total_questions }}</strong> questions.
+        </p>
+
+        <!-- Stat Badges -->
+        <div class="d-flex flex-wrap justify-content-center gap-3 mb-4">
+            <div class="p-2 px-3 rounded-3" style="background-color: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.2);">
+                <span class="text-success fw-bold">{{ score }} Correct</span>
+            </div>
+            <div class="p-2 px-3 rounded-3" style="background-color: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2);">
+                <span class="text-danger fw-bold">{{ total_questions|add:"-"|add:score }} Incorrect</span>
+            </div>
+            {% if is_passed %}
+                <div class="p-2 px-3 rounded-3" style="background-color: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.2);">
+                    <span class="text-primary-accent fw-bold">+{% if assessment.assessment_type == 'final_quiz' %}100{% else %}150{% endif %} XP Awarded</span>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Next Actions & Certification Status -->
+        {% if is_passed %}
+            {% if course_progress.is_completed %}
+                <div class="p-4 rounded-3 text-start mb-4" style="background-color: rgba(217, 119, 6, 0.1); border: 1px solid rgba(217, 119, 6, 0.4);">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="stat-icon yellow" style="width: 48px; height: 48px;">
+                            <i data-lucide="award" style="width: 24px; height: 24px;"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <h5 class="text-white fw-bold mb-1">Course 100% Completed!</h5>
+                            <p class="text-secondary small mb-2">You have fulfilled all curricular requirements and passed your exams. Your official SkillSphere certificate is ready to claim.</p>
+                            <a href="{% url 'certificates:center' %}" class="btn btn-warning-custom py-2 px-4 fw-bold">
+                                <i data-lucide="shield-check" style="width: 16px; height: 16px;"></i>
+                                <span>Go to Certificate Center</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <div class="p-3 rounded-3 text-start mb-4" style="background-color: rgba(34, 197, 94, 0.08); border: 1px solid rgba(34, 197, 94, 0.3);">
+                    <div class="d-flex align-items-center gap-2 text-success small fw-bold mb-1">
+                        <i data-lucide="check" style="width: 16px; height: 16px;"></i>
+                        Milestone Achieved
+                    </div>
+                    <div class="text-light small">
+                        Great job passing this assessment! Complete remaining lessons and exercises to hit 100% course progress and unlock your official certificate.
+                    </div>
+                </div>
+            {% endif %}
+        {% else %}
+            <div class="p-3 rounded-3 text-start mb-4" style="background-color: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.3);">
+                <div class="d-flex align-items-center gap-2 text-danger small fw-bold mb-1">
+                    <i data-lucide="info" style="width: 16px; height: 16px;"></i>
+                    Study Recommendation
+                </div>
+                <div class="text-secondary small">
+                    Don't worry! Review the module study notes and lesson explanations below to master the areas where questions were missed, then retake the assessment.
+                </div>
+            </div>
+        {% endif %}
+
+        <!-- CTAs -->
+        <div class="d-flex flex-wrap justify-content-center gap-3">
+            <a href="{% url 'courses:take_assessment' slug=course.slug assessment_type=assessment.assessment_type %}" class="btn btn-secondary-custom py-2 px-4">
+                <i data-lucide="rotate-ccw" style="width: 16px; height: 16px;"></i>
+                <span>Retake Assessment</span>
+            </a>
+            <a href="{% url 'courses:detail' slug=course.slug %}" class="btn btn-primary-custom py-2 px-4">
+                <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i>
+                <span>Return to Course</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Topic Breakdown -->
+    {% if topic_breakdown %}
+        <div class="custom-card p-4 mb-4">
+            <h5 class="fw-bold text-white mb-3 d-flex align-items-center gap-2">
+                <i data-lucide="pie-chart" style="width: 18px; height: 18px;" class="text-primary-accent"></i>
+                Topic Mastery Breakdown
+            </h5>
+            <div class="row g-3">
+                {% for topic, stats in topic_breakdown.items %}
+                    <div class="col-md-6">
+                        <div class="p-3 rounded-3" style="background-color: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color);">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="text-white fw-semibold small">{{ topic }}</span>
+                                <span class="badge bg-secondary-subtle text-light small">{{ stats.correct }} / {{ stats.total }} Correct</span>
+                            </div>
+                            <div class="progress" style="height: 6px; background-color: rgba(255,255,255,0.06);">
+                                {% widthratio stats.correct stats.total 100 as topic_pct %}
+                                <div class="progress-bar {% if topic_pct >= 70 %}bg-success{% else %}bg-warning{% endif %}" role="progressbar" style="width: {{ topic_pct }}%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Detailed Question Review -->
+    {% if assessment.questions.all %}
+        <div class="custom-card p-4">
+            <h5 class="fw-bold text-white mb-4 d-flex align-items-center gap-2">
+                <i data-lucide="list-checks" style="width: 18px; height: 18px;" class="text-primary-accent"></i>
+                Question-by-Question Review
+            </h5>
+
+            <div class="d-flex flex-column gap-4">
+                {% for q in assessment.questions.all %}
+                    <div class="p-3 rounded-3 border" style="background-color: rgba(255, 255, 255, 0.02); border-color: var(--border-color) !important;">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-secondary small fw-bold">Question {{ forloop.counter }} • {{ q.topic|default:"Core" }}</span>
+                            <span class="badge bg-success-subtle text-success border border-success-subtle small px-2 py-1">Correct Answer: Option {{ q.correct_answer }}</span>
+                        </div>
+                        <h6 class="text-white fw-semibold mb-3">{{ q.question_text }}</h6>
+
+                        <div class="row g-2 mb-3 small text-secondary">
+                            <div class="col-md-6"><strong class="text-white">A:</strong> {{ q.option_a }}</div>
+                            <div class="col-md-6"><strong class="text-white">B:</strong> {{ q.option_b }}</div>
+                            <div class="col-md-6"><strong class="text-white">C:</strong> {{ q.option_c }}</div>
+                            <div class="col-md-6"><strong class="text-white">D:</strong> {{ q.option_d }}</div>
+                        </div>
+
+                        {% if q.explanation %}
+                            <div class="p-3 rounded-2 small" style="background-color: rgba(139, 92, 246, 0.06); border-left: 3px solid var(--primary-accent);">
+                                <span class="text-primary-accent fw-bold">Explanation:</span>
+                                <span class="text-light ms-1">{{ q.explanation }}</span>
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

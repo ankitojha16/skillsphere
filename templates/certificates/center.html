@@ -4,87 +4,331 @@
 {% block title %}Certificate Center - SkillSphere{% endblock %}
 
 {% block content %}
-<div class="container-fluid p-4">
+<div class="container-fluid p-4 px-lg-5">
     <!-- Header -->
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <div>
-            <h1 class="h3 fw-bold text-white mb-1">Certificate Center</h1>
-            <p class="text-secondary mb-0">Official verified SkillSphere certificates of completion with cryptographic verification IDs.</p>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="badge bg-warning-subtle text-warning border border-warning px-3 py-1 rounded-pill small fw-bold">
+                    <i data-lucide="shield-check" style="width: 14px; height: 14px;"></i> Credential Center 2.0
+                </span>
+            </div>
+            <h1 class="h3 fw-bold text-white mb-1">SkillSphere Official Certificates</h1>
+            <p class="text-secondary mb-0">Cryptographically verifiable certificates of completion and technical mastery.</p>
         </div>
         <a href="{% url 'courses:list' %}" class="btn btn-secondary-custom">
             <i data-lucide="compass" style="width: 16px; height: 16px;"></i> Explore Courses
         </a>
     </div>
 
-    <!-- Eligible Courses to Claim Banner -->
+    <!-- Ready to Claim Banner / Cards -->
     {% if eligible_courses %}
-    <div class="custom-card p-4 mb-4 border-success border-opacity-50" style="background: rgba(34, 197, 94, 0.08);">
-        <div class="d-flex align-items-center gap-2 text-success fw-bold mb-2">
-            <i data-lucide="award" style="width: 20px; height: 20px;"></i>
-            <span>Course Completion Ready to Claim!</span>
+        <div class="custom-card p-4 mb-5 border-success border-opacity-50" style="background: rgba(34, 197, 94, 0.06);">
+            <div class="d-flex align-items-center gap-2 text-success fw-bold mb-2">
+                <i data-lucide="award" style="width: 22px; height: 22px;"></i>
+                <h5 class="mb-0 text-success fw-bold">Congratulations! You Have Eligible Certificates to Claim</h5>
+            </div>
+            <p class="text-light small mb-4">
+                You have fulfilled all curricular requirements (100% coursework, passed the Final Course Quiz, and passed the Final Mock Examination) for the following course(s):
+            </p>
+
+            <div class="row g-3">
+                {% for item in eligible_courses %}
+                    <div class="col-md-6 col-lg-4">
+                        <div class="p-3 rounded-3 h-100 d-flex flex-column justify-content-between" style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(34, 197, 94, 0.3);">
+                            <div>
+                                <span class="badge-category mb-2">{{ item.course.category.name }}</span>
+                                <h6 class="text-white fw-bold mb-2">{{ item.course.title }}</h6>
+                                <div class="text-success small d-flex align-items-center gap-1 mb-3">
+                                    <i data-lucide="check-circle" style="width: 14px; height: 14px;"></i>
+                                    <span>All requirements verified</span>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-success-custom w-100 py-2 fw-bold small" onclick="openClaimModal({{ item.course.id }}, '{{ item.course.title|escapejs }}');">
+                                <i data-lucide="award" style="width: 16px; height: 16px;"></i>
+                                <span>Claim Certificate</span>
+                            </button>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
         </div>
-        <p class="text-light small mb-3">You have completed 100% of the lessons in the following courses. Claim your official verified credentials below:</p>
-        <div class="d-flex flex-wrap gap-2">
-            {% for course in eligible_courses %}
-            <form method="post" class="d-inline">
-                {% csrf_token %}
-                <input type="hidden" name="claim_course_id" value="{{ course.id }}">
-                <button type="submit" class="btn btn-sm btn-success">
-                    <i data-lucide="check" style="width: 14px; height: 14px;"></i> Claim Certificate: {{ course.title }}
-                </button>
-            </form>
-            {% endfor %}
-        </div>
-    </div>
     {% endif %}
 
     <!-- Earned Certificates Grid -->
-    <div class="row g-4 mb-4">
-        {% for cert in certificates %}
-        <div class="col-md-6 col-xl-4">
-            <div class="custom-card p-4 h-100 d-flex flex-column justify-content-between border-purple-glow">
-                <div>
-                    <div class="d-flex justify-content-between align-items-start mb-3">
-                        <span class="badge-category"><i data-lucide="award" style="width: 12px; height: 12px;"></i> Verified Credential</span>
-                        <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25">Authentic</span>
-                    </div>
+    <div class="mb-5">
+        <h4 class="text-white fw-bold mb-3 d-flex align-items-center gap-2">
+            <i data-lucide="check-circle-2" style="width: 22px; height: 22px;" class="text-primary-accent"></i>
+            Earned Certificates ({{ certificates.count }})
+        </h4>
 
-                    <h4 class="h5 fw-bold text-white mb-2">{{ cert.title }}</h4>
-                    <div class="text-secondary small mb-3">Awarded to <span class="text-white fw-bold">{{ cert.recipient_name }}</span> on {{ cert.issued_at|date:"F d, Y" }}</div>
+        <div class="row g-4">
+            {% for cert in certificates %}
+                <div class="col-md-6 col-xl-4">
+                    <div class="custom-card p-4 h-100 d-flex flex-column justify-content-between border-purple-glow position-relative" style="background: linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(139,92,246,0.04) 100%);">
+                        <div>
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <span class="badge-category"><i data-lucide="award" style="width: 12px; height: 12px;"></i> Official Credential</span>
+                                <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25 rounded-pill px-2 py-1 small">
+                                    <i data-lucide="check" style="width: 12px; height: 12px;"></i> Verified
+                                </span>
+                            </div>
 
-                    <div class="p-3 rounded-3 mb-3" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08);">
-                        <div class="text-secondary small mb-1">Verification ID:</div>
-                        <div class="mono text-info fw-bold mb-2">{{ cert.certificate_id }}</div>
-                        <a href="{{ cert.get_verify_url }}" target="_blank" class="text-purple small text-decoration-none">
-                            Public Verification Page <i data-lucide="external-link" style="width: 12px; height: 12px;"></i>
-                        </a>
+                            <h5 class="fw-bold text-white mb-1">{{ cert.title }}</h5>
+                            <div class="text-secondary small mb-3">
+                                Awarded to <strong class="text-white">{{ cert.recipient_name }}</strong> on {{ cert.issued_at|date:"F d, Y" }}
+                            </div>
+
+                            <div class="p-3 rounded-3 mb-3" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.08);">
+                                <div class="text-muted small mb-1">Verification ID:</div>
+                                <div class="font-monospace text-primary-accent fw-bold small mb-2" style="letter-spacing: 0.05em;">{{ cert.certificate_id }}</div>
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <a href="{{ cert.get_verify_url }}" target="_blank" class="text-secondary small text-decoration-none d-flex align-items-center gap-1">
+                                        <span>Verify Portal</span>
+                                        <i data-lucide="external-link" style="width: 12px; height: 12px;"></i>
+                                    </a>
+                                    <span class="text-muted small">ReportLab PDF</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="pt-3 border-top border-secondary border-opacity-25 d-flex flex-wrap gap-2 justify-content-between align-items-center">
+                            <div class="d-flex gap-2">
+                                <a href="{% url 'certificates:preview_pdf' pk=cert.pk %}" target="_blank" class="btn btn-sm btn-secondary-custom" title="Preview PDF in Browser">
+                                    <i data-lucide="eye" style="width: 14px; height: 14px;"></i> Preview
+                                </a>
+                                <a href="{{ cert.get_verify_url }}" target="_blank" class="btn btn-sm btn-outline-light" title="Public Verification Page">
+                                    <i data-lucide="shield-check" style="width: 14px; height: 14px;"></i> Verify
+                                </a>
+                            </div>
+                            <a href="{% url 'certificates:download_pdf' pk=cert.pk %}" class="btn btn-sm btn-primary-custom">
+                                <i data-lucide="download" style="width: 14px; height: 14px;"></i> Download PDF
+                            </a>
+                        </div>
                     </div>
                 </div>
-
-                <div class="pt-3 border-top border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
-                    <a href="{{ cert.get_verify_url }}" target="_blank" class="btn btn-sm btn-outline-light">
-                        <i data-lucide="shield-check" style="width: 14px; height: 14px;"></i> Verify
-                    </a>
-                    <a href="{% url 'certificates:download_pdf' pk=cert.pk %}" class="btn btn-sm btn-primary-custom">
-                        <i data-lucide="download" style="width: 14px; height: 14px;"></i> Download PDF
+            {% empty %}
+                <div class="col-12 text-center py-5">
+                    <div class="stat-icon purple mx-auto mb-3" style="width: 60px; height: 60px;">
+                        <i data-lucide="award" style="width: 30px; height: 30px;"></i>
+                    </div>
+                    <h5 class="text-white mb-2">No Certificates Earned Yet</h5>
+                    <p class="text-secondary small mb-4" style="max-width: 480px; margin: 0 auto;">
+                        Enroll in a course, achieve 100% course progress, and pass both the Final Course Quiz and Final Mock Test to earn your verifiable certificate.
+                    </p>
+                    <a href="{% url 'courses:list' %}" class="btn btn-primary-custom py-2 px-4">
+                        <i data-lucide="compass" style="width: 16px; height: 16px;"></i>
+                        <span>Explore All Courses</span>
                     </a>
                 </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- In-Progress & Locked Courses Checklist -->
+    {% if locked_courses %}
+        <div class="custom-card p-4 mb-4">
+            <h4 class="text-white fw-bold mb-3 d-flex align-items-center gap-2">
+                <i data-lucide="clock" style="width: 22px; height: 22px;" class="text-warning"></i>
+                Courses in Progress ({{ locked_courses|length }})
+            </h4>
+            <p class="text-secondary small mb-4">
+                To unlock your certificate, each enrolled course requires: 100% weighted coursework completion, passing the Final Course Quiz ($\ge 70\%$), and passing the Final Mock Test ($\ge 70\%$).
+            </p>
+
+            <div class="row g-4">
+                {% for item in locked_courses %}
+                    <div class="col-lg-6">
+                        <div class="p-4 rounded-3 h-100" style="background-color: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color);">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <div>
+                                    <span class="badge-category mb-1">{{ item.course.category.name }}</span>
+                                    <h5 class="text-white fw-bold mb-0">{{ item.course.title }}</h5>
+                                </div>
+                                <span class="badge bg-dark border border-secondary text-secondary small rounded-pill">
+                                    {{ item.progress.percentage }}% Done
+                                </span>
+                            </div>
+
+                            <!-- Progress Bar -->
+                            <div class="progress mb-3" style="height: 8px; background-color: rgba(255,255,255,0.06);">
+                                <div class="progress-bar bg-primary-custom" role="progressbar" style="width: {{ item.progress.percentage }}%;"></div>
+                            </div>
+
+                            <!-- Requirements Checklist -->
+                            <div class="d-flex flex-column gap-2 mb-4">
+                                <!-- Lessons -->
+                                <div class="d-flex align-items-center justify-content-between small">
+                                    <span class="text-light d-flex align-items-center gap-2">
+                                        {% if item.progress.completed >= item.progress.total and item.progress.total > 0 %}
+                                            <i data-lucide="check-circle" class="text-success" style="width: 16px; height: 16px;"></i>
+                                        {% else %}
+                                            <i data-lucide="circle" class="text-muted" style="width: 16px; height: 16px;"></i>
+                                        {% endif %}
+                                        <span>Mandatory Curriculum Lessons</span>
+                                    </span>
+                                    <span class="text-secondary">{{ item.progress.completed }}/{{ item.progress.total }} Lessons</span>
+                                </div>
+
+                                <!-- Exercises if present -->
+                                {% if item.progress.exercise_total > 0 %}
+                                    <div class="d-flex align-items-center justify-content-between small">
+                                        <span class="text-light d-flex align-items-center gap-2">
+                                            {% if item.progress.exercise_completed >= item.progress.exercise_total %}
+                                                <i data-lucide="check-circle" class="text-success" style="width: 16px; height: 16px;"></i>
+                                            {% else %}
+                                                <i data-lucide="circle" class="text-muted" style="width: 16px; height: 16px;"></i>
+                                            {% endif %}
+                                            <span>Practical Coding Exercises</span>
+                                        </span>
+                                        <span class="text-secondary">{{ item.progress.exercise_completed }}/{{ item.progress.exercise_total }} Solved</span>
+                                    </div>
+                                {% endif %}
+
+                                <!-- 80% Unlock Status -->
+                                <div class="d-flex align-items-center justify-content-between small">
+                                    <span class="text-light d-flex align-items-center gap-2">
+                                        {% if item.progress.is_unlocked %}
+                                            <i data-lucide="unlock" class="text-success" style="width: 16px; height: 16px;"></i>
+                                        {% else %}
+                                            <i data-lucide="lock" class="text-danger" style="width: 16px; height: 16px;"></i>
+                                        {% endif %}
+                                        <span>80% Assessment Unlock Milestone</span>
+                                    </span>
+                                    <span class="{% if item.progress.is_unlocked %}text-success{% else %}text-muted{% endif %}">
+                                        {% if item.progress.is_unlocked %}Unlocked{% else %}Locked (< 80%){% endif %}
+                                    </span>
+                                </div>
+
+                                <!-- Final Quiz -->
+                                <div class="d-flex align-items-center justify-content-between small">
+                                    <span class="text-light d-flex align-items-center gap-2">
+                                        {% if item.progress.quiz_passed %}
+                                            <i data-lucide="check-circle" class="text-success" style="width: 16px; height: 16px;"></i>
+                                        {% else %}
+                                            <i data-lucide="circle" class="text-muted" style="width: 16px; height: 16px;"></i>
+                                        {% endif %}
+                                        <span>Final Course Quiz ($\ge 70\%$)</span>
+                                    </span>
+                                    <span>
+                                        {% if item.progress.quiz_passed %}
+                                            <span class="badge bg-success-subtle text-success small">Passed</span>
+                                        {% elif item.progress.is_unlocked %}
+                                            <a href="{% url 'courses:assessment_intro' slug=item.course.slug assessment_type='final_quiz' %}" class="btn btn-sm btn-outline-warning py-0 px-2" style="font-size: 0.75rem;">Take Quiz</a>
+                                        {% else %}
+                                            <span class="text-muted small">Locked</span>
+                                        {% endif %}
+                                    </span>
+                                </div>
+
+                                <!-- Final Mock Test -->
+                                <div class="d-flex align-items-center justify-content-between small">
+                                    <span class="text-light d-flex align-items-center gap-2">
+                                        {% if item.progress.mock_passed %}
+                                            <i data-lucide="check-circle" class="text-success" style="width: 16px; height: 16px;"></i>
+                                        {% else %}
+                                            <i data-lucide="circle" class="text-muted" style="width: 16px; height: 16px;"></i>
+                                        {% endif %}
+                                        <span>Final Mock Examination ($\ge 70\%$)</span>
+                                    </span>
+                                    <span>
+                                        {% if item.progress.mock_passed %}
+                                            <span class="badge bg-success-subtle text-success small">Passed</span>
+                                        {% elif item.progress.is_unlocked %}
+                                            <a href="{% url 'courses:assessment_intro' slug=item.course.slug assessment_type='final_mock' %}" class="btn btn-sm btn-outline-warning py-0 px-2" style="font-size: 0.75rem;">Take Exam</a>
+                                        {% else %}
+                                            <span class="text-muted small">Locked</span>
+                                        {% endif %}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <a href="{% url 'courses:detail' slug=item.course.slug %}" class="btn btn-secondary-custom w-100 py-2 small">
+                                <i data-lucide="play" style="width: 14px; height: 14px;"></i>
+                                <span>Continue Course</span>
+                            </a>
+                        </div>
+                    </div>
+                {% endfor %}
             </div>
         </div>
-        {% empty %}
-        <div class="col-12 text-center py-5 text-muted">
-            <i data-lucide="award" style="width: 48px; height: 48px;" class="mb-3 d-block mx-auto opacity-50"></i>
-            <h5 class="text-white mb-1">No Certificates Earned Yet</h5>
-            <p class="text-secondary small mb-3">Complete all lessons in a course to earn and claim your official verified certificate.</p>
-            <a href="{% url 'courses:list' %}" class="btn btn-primary-custom">Explore Courses</a>
-        </div>
-        {% endfor %}
-    </div>
+    {% endif %}
 
     <!-- Official Issuer Notice -->
     <div class="p-3 rounded-3 text-secondary small" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06);">
-        <i data-lucide="info" style="width: 14px; height: 14px;" class="text-info me-1"></i>
-        <strong>Issuance Disclosure:</strong> SkillSphere certificates are verified internal credentials that certify the authentic completion of curriculum coursework, lessons, and project milestones on the SkillSphere platform. They do not constitute formal university degrees or accredited government licenses.
+        <i data-lucide="info" style="width: 14px; height: 14px;" class="text-primary-accent me-1"></i>
+        <strong>Issuance Disclosure:</strong> SkillSphere certificates are verified internal credentials that certify the authentic completion of curriculum coursework, lessons, exercises, and proctored examinations on the SkillSphere platform. Each credential features a tamper-proof verification ID registered in our global verification portal.
     </div>
 </div>
+
+<!-- Claim Certificate Modal -->
+<div class="modal fade" id="claimModal" tabindex="-1" aria-labelledby="claimModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content text-white" style="background-color: var(--bg-secondary); border: 1px solid rgba(139, 92, 246, 0.4);">
+            <div class="modal-header border-secondary border-opacity-25">
+                <h5 class="modal-title fw-bold d-flex align-items-center gap-2" id="claimModalLabel">
+                    <i data-lucide="award" class="text-warning" style="width: 20px; height: 20px;"></i>
+                    Claim Official Certificate
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="{% url 'certificates:center' %}">
+                {% csrf_token %}
+                <input type="hidden" name="claim_course_id" id="modalCourseId" value="">
+                <div class="modal-body">
+                    <p class="text-secondary small mb-3">
+                        Confirm the exact display name to print on your official ivory/gold PDF certificate and public verification registry.
+                    </p>
+
+                    <div class="mb-3">
+                        <label for="recipientNameInput" class="form-label text-light small fw-bold">Full Student Name (On Certificate)</label>
+                        <input type="text" class="form-control text-white" id="recipientNameInput" name="recipient_name" required maxlength="100"
+                               value="{{ request.user.profile.full_name|default:request.user.get_full_name|default:request.user.username }}"
+                               style="background-color: rgba(255, 255, 255, 0.05); border-color: var(--border-color);">
+                    </div>
+
+                    <!-- Live Certificate Card Preview -->
+                    <div class="p-3 rounded-3 text-center my-3" style="background: #FAF9F5; color: #1E293B; border: 2px solid #D97706; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+                        <div style="font-size: 0.65rem; letter-spacing: 0.15em; color: #B45309; font-weight: bold; text-transform: uppercase;">SkillSphere Academic Credential</div>
+                        <h6 class="fw-bold my-1" style="font-family: serif; color: #0F172A;" id="previewCourseTitle">Course Title</h6>
+                        <div style="font-size: 0.75rem; color: #64748B;">Awarded to</div>
+                        <h5 class="fw-bold text-primary my-1" style="font-family: serif; color: #0F172A;" id="previewStudentName">Student Name</h5>
+                        <div style="font-size: 0.65rem; color: #94A3B8;">Verified ID: SS-CERT-2026-XXXXXXXX</div>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary border-opacity-25">
+                    <button type="button" class="btn btn-secondary-custom" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success-custom fw-bold px-4">
+                        <i data-lucide="check" style="width: 16px; height: 16px;"></i>
+                        Generate & Claim
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let claimModal;
+document.addEventListener('DOMContentLoaded', () => {
+    claimModal = new bootstrap.Modal(document.getElementById('claimModal'));
+    const nameInput = document.getElementById('recipientNameInput');
+    const previewName = document.getElementById('previewStudentName');
+
+    if (nameInput && previewName) {
+        previewName.textContent = nameInput.value || 'Student Name';
+        nameInput.addEventListener('input', () => {
+            previewName.textContent = nameInput.value.trim() || 'Student Name';
+        });
+    }
+});
+
+function openClaimModal(courseId, courseTitle) {
+    document.getElementById('modalCourseId').value = courseId;
+    document.getElementById('previewCourseTitle').textContent = courseTitle;
+    claimModal.show();
+}
+</script>
 {% endblock %}

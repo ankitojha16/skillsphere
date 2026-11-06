@@ -71,22 +71,223 @@ class Course(models.Model):
         return self.lessons.count()
 
     def get_user_progress(self, user):
-        """Returns percentage progress (0 to 100) and completed lessons count for given user."""
+        """
+        Returns accurate weighted progress (0 to 100), activity breakdown,
+        assessment unlock status (>= 80%), and certificate eligibility.
+        """
         if not user or not user.is_authenticated:
-            return {'percentage': 0, 'completed': 0, 'total': self.get_total_lessons()}
-        
-        total = self.lessons.count()
-        if total == 0:
-            return {'percentage': 0, 'completed': 0, 'total': 0}
-        
-        from learning.models import LessonProgress
-        completed = LessonProgress.objects.filter(
+            return {
+                'percentage': 0,
+                'completed': 0,
+                'total': self.get_total_lessons(),
+                'is_unlocked': False,
+                'quiz_passed': False,
+                'mock_passed': False,
+                'is_completed': False,
+                'exercises_completed': 0,
+                'exercises_total': 0,
+            }
+
+        total_lessons = self.lessons.count()
+        if total_lessons == 0:
+            return {
+                'percentage': 0,
+                'completed': 0,
+                'total': 0,
+                'is_unlocked': False,
+                'quiz_passed': False,
+                'mock_passed': False,
+                'is_completed': False,
+                'exercises_completed': 0,
+                'exercises_total': 0,
+            }
+
+        from learning.models import LessonProgress, Exercise, ExerciseSubmission, Assignment, AssignmentSubmission
+        completed_lessons = LessonProgress.objects.filter(
             user=user,
             lesson__course=self,
             is_completed=True
         ).count()
-        percentage = int(round((completed / total) * 100))
-        return {'percentage': percentage, 'completed': completed, 'total': total}
+
+        total_exercises = Exercise.objects.filter(lesson__course=self).count()
+        completed_exercises = 0
+        if total_exercises > 0:
+            completed_exercises = ExerciseSubmission.objects.filter(
+                user=user,
+                exercise__lesson__course=self,
+                is_passed=True
+            ).values('exercise_id').distinct().count()
+
+        total_assignments = Assignment.objects.filter(course=self).count()
+        completed_assignments = 0
+        if total_assignments > 0:
+            completed_assignments = AssignmentSubmission.objects.filter(
+                user=user,
+                assignment__course=self,
+                status__in=['submitted', 'reviewed', 'graded']
+            ).values('assignment_id').distinct().count()
+
+        # Weighted calculation
+        if total_exercises == 0 and total_assignments == 0:
+            percentage = int(round((completed_lessons / total_lessons) * 100))
+        elif total_assignments == 0:
+            pct_lessons = (completed_lessons / total_lessons) * 80.0
+            pct_exercises = (completed_exercises / total_exercises) * 20.0
+            percentage = min(100, int(round(pct_lessons + pct_exercises)))
+        elif total_exercises == 0:
+            pct_lessons = (completed_lessons / total_lessons) * 80.0
+            pct_assignments = (completed_assignments / total_assignments) * 20.0
+            percentage = min(100, int(round(pct_lessons + pct_assignments)))
+        else:
+            w_lessons = (completed_lessons / total_lessons) * 60.0
+            w_exercises = (completed_exercises / total_exercises) * 20.0
+            w_assignments = (completed_assignments / total_assignments) * 20.0
+            percentage = min(100, int(round(w_lessons + w_exercises + w_assignments)))
+
+        is_unlocked = percentage >= 80
+
+        # Check CourseAssessment pass states
+        quiz_passed = CourseAssessmentAttempt.objects.filter(
+            user=user,
+            assessment__course=self,
+            assessment__assessment_type='final_quiz',
+            is_passed=True
+        ).exists()
+
+        mock_passed = CourseAssessmentAttempt.objects.filter(
+            user=user,
+            assessment__course=self,
+            assessment__assessment_type='final_mock',
+            is_passed=True
+        ).exists()
+
+        is_completed = (percentage >= 100) and quiz_passed and mock_passed
+
+        # Auto-sync CourseCompletion record
+        completion, _ = CourseCompletion.objects.get_or_create(user=user, course=self)
+        if completion.learning_progress != percentage or completion.is_assessment_unlocked != is_unlocked or completion.quiz_passed != quiz_passed or completion.mock_passed != mock_passed or completion.is_completed != is_completed:
+            completion.learning_progress = percentage
+            completion.is_assessment_unlocked = is_unlocked
+            completion.quiz_passed = quiz_passed
+            completion.mock_passed = mock_passed
+            if is_completed and not completion.is_completed:
+                from django.utils import timezone
+                completion.is_completed = True
+                completion.completed_at = timezone.now()
+            completion.save()
+
+        return {
+            'percentage': percentage,
+            'completed': completed_lessons,
+            'total': total_lessons,
+            'exercises_completed': completed_exercises,
+            'exercises_total': total_exercises,
+            'assignments_completed': completed_assignments,
+            'assignments_total': total_assignments,
+            'is_unlocked': is_unlocked,
+            'quiz_passed': quiz_passed,
+            'mock_passed': mock_passed,
+            'is_completed': is_completed,
+        }
+
+
+class CourseModule(models.Model):
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='modules')
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    order = models.PositiveIntegerField(default=1)
+    is_published = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['order', 'id']
+
+    def __str__(self):
+        return f"{self.course.title} - Module {self.order}: {self.title}"
+
+    def total_lessons(self):
+        return self.lessons.count()
+
+
+class CourseAssessment(models.Model):
+    ASSESSMENT_TYPES = [
+        ('final_quiz', 'Final Course Quiz'),
+        ('final_mock', 'Final Mock Examination'),
+    ]
+
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='course_assessments')
+    assessment_type = models.CharField(max_length=20, choices=ASSESSMENT_TYPES)
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    duration_minutes = models.PositiveIntegerField(default=30)
+    passing_percentage = models.PositiveIntegerField(default=70)
+    max_attempts = models.PositiveIntegerField(default=5)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('course', 'assessment_type')
+        ordering = ['assessment_type']
+
+    def __str__(self):
+        return f"{self.course.title} - {self.get_assessment_type_display()}"
+
+
+class CourseAssessmentQuestion(models.Model):
+    assessment = models.ForeignKey(CourseAssessment, on_delete=models.CASCADE, related_name='questions')
+    question_text = models.TextField()
+    topic = models.CharField(max_length=150, default='Core Concepts')
+    option_a = models.CharField(max_length=350)
+    option_b = models.CharField(max_length=350)
+    option_c = models.CharField(max_length=350)
+    option_d = models.CharField(max_length=350)
+    correct_answer = models.CharField(max_length=1, choices=[('A', 'A'), ('B', 'B'), ('C', 'C'), ('D', 'D')])
+    explanation = models.TextField(blank=True)
+    order = models.PositiveIntegerField(default=1)
+
+    class Meta:
+        ordering = ['order', 'id']
+
+    def __str__(self):
+        return f"Q#{self.id} for {self.assessment.title}: {self.question_text[:50]}"
+
+
+class CourseAssessmentAttempt(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='course_assessment_attempts')
+    assessment = models.ForeignKey(CourseAssessment, on_delete=models.CASCADE, related_name='attempts')
+    score = models.PositiveIntegerField(default=0)
+    total_questions = models.PositiveIntegerField(default=0)
+    percentage = models.PositiveIntegerField(default=0)
+    is_passed = models.BooleanField(default=False)
+    attempt_number = models.PositiveIntegerField(default=1)
+    answers_json = models.TextField(default='{}')
+    started_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-started_at']
+
+    def __str__(self):
+        status = "PASSED" if self.is_passed else "FAILED"
+        return f"{self.user.username} - {self.assessment.title} Attempt #{self.attempt_number}: {self.percentage}% ({status})"
+
+
+class CourseCompletion(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='course_completions')
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='completions')
+    learning_progress = models.PositiveIntegerField(default=0)
+    is_assessment_unlocked = models.BooleanField(default=False)
+    quiz_passed = models.BooleanField(default=False)
+    mock_passed = models.BooleanField(default=False)
+    is_completed = models.BooleanField(default=False)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('user', 'course')
+
+    def __str__(self):
+        return f"{self.user.username} - {self.course.title} (Progress: {self.learning_progress}%, Completed: {self.is_completed})"
 
 
 class Enrollment(models.Model):
