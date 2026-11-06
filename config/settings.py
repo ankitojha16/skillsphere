@@ -87,6 +87,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'config.middleware.SecurityCacheHeadersMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -181,7 +182,7 @@ REDIS_URL = os.environ.get('REDIS_URL') or os.environ.get('CACHE_URL')
 if REDIS_URL:
     CACHES = {
         'default': {
-            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'BACKEND': 'config.cache.FaultTolerantRedisCache',
             'LOCATION': REDIS_URL,
             'TIMEOUT': 300,  # 5 minutes TTL
             'KEY_PREFIX': 'skillsphere',

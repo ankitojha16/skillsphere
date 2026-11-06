@@ -125,6 +125,8 @@ def certificate_center_view(request):
 @login_required
 def download_certificate_pdf_view(request, pk):
     cert = get_object_or_404(Certificate, pk=pk, user=request.user)
+    if not cert.verification_status:
+        raise Http404("Certificate has been revoked or is invalid.")
     pdf_bytes = PDFService.generate_certificate_pdf(cert)
 
     response = HttpResponse(pdf_bytes, content_type='application/pdf')
@@ -137,6 +139,8 @@ def download_certificate_pdf_view(request, pk):
 def preview_certificate_pdf_view(request, pk):
     """Inline browser preview of the certificate."""
     cert = get_object_or_404(Certificate, pk=pk, user=request.user)
+    if not cert.verification_status:
+        raise Http404("Certificate has been revoked or is invalid.")
     pdf_bytes = PDFService.generate_certificate_pdf(cert)
     response = HttpResponse(pdf_bytes, content_type='application/pdf')
     filename = f"SkillSphere_Certificate_{cert.certificate_id}.pdf"

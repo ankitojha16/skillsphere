@@ -54,3 +54,52 @@ class PerformanceMonitoringMiddleware:
             )
 
         return response
+
+
+class SecurityCacheHeadersMiddleware:
+    """
+    Guarantees strict cache isolation between public and authenticated visitors.
+    - Authenticated users, dashboard, progress, notes, profile, and certificates
+      MUST emit `Cache-Control: private, no-cache, no-store, must-revalidate`.
+      This prevents CDNs, shared proxies, and browser history from leaking PII across sessions.
+    - Public anonymous pages (catalogue, verify certificate, login) emit
+      `Cache-Control: public, max-age=0, must-revalidate` to allow fast edge delivery while ensuring fresh revalidation.
+    """
+    SENSITIVE_PREFIXES = (
+        '/dashboard/',
+        '/accounts/',
+        '/learn/',
+        '/certificates/',
+        '/goals/',
+        '/notes/',
+        '/admin/',
+    )
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        response = self.get_response(request)
+
+        # Do not alter static assets (handled by WhiteNoise/Vercel)
+        if request.path.startswith('/static/'):
+            return response
+
+        is_auth = hasattr(request, 'user') and request.user.is_authenticated
+        is_sensitive = any(request.path.startswith(prefix) for prefix in self.SENSITIVE_PREFIXES)
+
+        # Exceptions for public verification or anonymous login/register
+        if request.path.startswith('/certificates/verify/'):
+            is_sensitive = False
+        if request.path in ('/accounts/login/', '/accounts/register/') and not is_auth:
+            is_sensitive = False
+
+        if is_auth or is_sensitive:
+            response['Cache-Control'] = 'private, no-cache, no-store, must-revalidate, max-age=0'
+            response['Pragma'] = 'no-cache'
+            response['Expires'] = '0'
+        else:
+            if 'Cache-Control' not in response:
+                response['Cache-Control'] = 'public, max-age=0, must-revalidate'
+
+        return response

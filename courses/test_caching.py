@@ -1,10 +1,10 @@
-from django.test import TestCase, Client
+from django.test import TransactionTestCase, Client
 from django.contrib.auth.models import User
 from django.core.cache import cache
 from courses.models import Course, Category, CourseModule, CourseAssessment, Enrollment, CourseCompletion
 from learning.models import Lesson, LessonProgress, Exercise
 
-class CacheConsistencyAndIsolationTests(TestCase):
+class CacheConsistencyAndIsolationTests(TransactionTestCase):
     def setUp(self):
         cache.clear()
         self.category = Category.objects.create(name='Computer Science', slug='cs')
