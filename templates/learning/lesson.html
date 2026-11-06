@@ -23,11 +23,36 @@
         <div class="col-lg-3 col-xl-2 d-none d-lg-block">
             <div class="custom-card p-3 h-100" style="position: sticky; top: 80px; max-height: calc(100vh - 100px); overflow-y: auto;">
                 <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom" style="border-color: var(--border-color) !important;">
-                    <span class="text-secondary small fw-bold text-uppercase">Curriculum</span>
+                    <span class="text-secondary small fw-bold text-uppercase" style="letter-spacing: 0.05em;">Curriculum</span>
                     <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-monospace small" id="sidebarProgressPct">{{ progress_info.percentage }}%</span>
                 </div>
-                <div class="custom-progress mb-3" style="height: 6px;">
+                
+                <!-- Visual Progress Bar -->
+                <div class="custom-progress mb-2" style="height: 6px;">
                     <div class="custom-progress-bar" id="sidebarProgressBar" style="width: {{ progress_info.percentage }}%;"></div>
+                </div>
+
+                <!-- Granular Progress Counters -->
+                <div class="p-2 rounded-2 mb-3" style="background-color: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color);">
+                    <div class="d-flex justify-content-between align-items-center small text-secondary mb-1">
+                        <span class="d-flex align-items-center gap-1"><i data-lucide="book-open" style="width: 12px; height: 12px;"></i> Lessons</span>
+                        <span class="text-white fw-bold font-monospace" id="sidebarLessonsCount">{{ progress_info.completed }}/{{ progress_info.total }}</span>
+                    </div>
+                    {% if progress_info.exercises_total > 0 %}
+                    <div class="d-flex justify-content-between align-items-center small text-secondary mb-1">
+                        <span class="d-flex align-items-center gap-1"><i data-lucide="code" style="width: 12px; height: 12px;"></i> Challenges</span>
+                        <span class="text-white fw-bold font-monospace" id="sidebarExercisesCount">{{ progress_info.exercises_completed }}/{{ progress_info.exercises_total }}</span>
+                    </div>
+                    {% endif %}
+                    <div class="pt-1 mt-1 border-top" style="border-color: rgba(255,255,255,0.05) !important;">
+                        <div id="sidebarExamBadge">
+                            {% if progress_info.is_unlocked %}
+                                <span class="badge bg-success-subtle text-success border border-success-subtle w-100 py-1" style="font-size: 0.7rem;"><i data-lucide="unlock" style="width: 11px; height: 11px;"></i> Exams Unlocked</span>
+                            {% else %}
+                                <span class="badge bg-warning-subtle text-warning border border-warning-subtle w-100 py-1" style="font-size: 0.7rem;"><i data-lucide="lock" style="width: 11px; height: 11px;"></i> 80% to Unlock Exams</span>
+                            {% endif %}
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Module & Lessons Accordion -->
@@ -40,14 +65,15 @@
                             <div class="d-flex flex-column gap-1">
                                 {% for item in m_data.lessons %}
                                     <a href="{% url 'learning:lesson_detail' course_slug=course.slug lesson_id=item.lesson.id %}"
+                                       id="sidebar-lesson-link-{{ item.lesson.id }}"
                                        class="d-flex align-items-center gap-2 px-2 py-1.5 rounded text-decoration-none small transition-all {% if item.is_current %}bg-primary text-white fw-semibold{% elif item.is_completed %}text-light bg-dark-subtle{% else %}text-secondary hover-white{% endif %}"
                                        style="font-size: 0.82rem;">
                                         {% if item.is_completed %}
-                                            <i data-lucide="check-circle-2" class="text-success flex-shrink-0" style="width: 14px; height: 14px;"></i>
+                                            <i data-lucide="check-circle-2" id="sidebar-icon-{{ item.lesson.id }}" class="text-success flex-shrink-0" style="width: 14px; height: 14px;"></i>
                                         {% elif item.is_current %}
-                                            <i data-lucide="play-circle" class="text-white flex-shrink-0" style="width: 14px; height: 14px;"></i>
+                                            <i data-lucide="play-circle" id="sidebar-icon-{{ item.lesson.id }}" class="text-white flex-shrink-0" style="width: 14px; height: 14px;"></i>
                                         {% else %}
-                                            <i data-lucide="circle" class="text-secondary flex-shrink-0" style="width: 14px; height: 14px;"></i>
+                                            <i data-lucide="circle" id="sidebar-icon-{{ item.lesson.id }}" class="text-secondary flex-shrink-0" style="width: 14px; height: 14px;"></i>
                                         {% endif %}
                                         <span class="text-truncate flex-grow-1">{{ item.lesson.lesson_order }}. {{ item.lesson.title }}</span>
                                         {% if item.lesson.video_url %}
@@ -66,35 +92,43 @@
         <div class="col-lg-6 col-xl-7">
             <!-- Lesson Header Bar -->
             <div class="custom-card p-3 p-md-4 mb-3">
-                <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
-                    <div>
-                        <div class="d-flex align-items-center gap-2 mb-1">
+                <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+                    <div style="flex: 1 1 300px; min-width: 0;">
+                        <!-- Breadcrumbs & Meta -->
+                        <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
                             <span class="badge bg-dark border text-secondary small">{{ lesson.chapter_name }}</span>
                             <span class="text-muted small"><i data-lucide="clock" style="width: 13px; height: 13px; margin-right: 2px;"></i>{{ lesson.estimated_minutes }} mins</span>
+                            <span class="text-muted small">|</span>
+                            <span class="text-muted small"><i data-lucide="layers" style="width: 13px; height: 13px; margin-right: 2px;"></i>Lesson {{ lesson.lesson_order }} of {{ progress_info.total }}</span>
                         </div>
-                        <h2 class="fw-bold text-white mb-0 fs-4">Lesson {{ lesson.lesson_order }}: {{ lesson.title }}</h2>
+                        <h2 class="fw-bold text-white mb-0 fs-4" style="line-height: 1.35; word-break: break-word;">{{ lesson.title }}</h2>
                     </div>
 
-                    <div class="d-flex align-items-center gap-2">
-                        <!-- Bookmark Toggle -->
-                        <button type="button" id="bookmarkBtn" class="btn btn-secondary-custom btn-sm py-1.5 px-2" title="Bookmark for revision">
-                            <i data-lucide="bookmark" id="bookmarkIcon" class="{% if is_bookmarked %}text-warning fill-warning{% else %}text-secondary{% endif %}" style="width: 16px; height: 16px;"></i>
-                        </button>
-
-                        <!-- Download PDF Notes -->
-                        <a href="{% url 'learning:download_notes_pdf' course_slug=course.slug lesson_id=lesson.id %}" class="btn btn-secondary-custom btn-sm py-1.5 px-3" title="Download formatted PDF notes">
-                            <i data-lucide="download" style="width: 15px; height: 15px;"></i>
-                            <span class="d-none d-sm-inline">PDF Notes</span>
-                        </a>
-
-                        <!-- Mark Completed Button -->
-                        <form id="completeToggleForm" action="{% url 'learning:complete_toggle' course_slug=course.slug lesson_id=lesson.id %}" method="post" class="d-inline">
-                            {% csrf_token %}
-                            <button type="button" id="completeBtn" class="btn {% if current_is_completed %}btn-success-custom{% else %}btn-primary-custom{% endif %} btn-sm py-1.5 px-3">
-                                <i data-lucide="{% if current_is_completed %}check-circle-2{% else %}check{% endif %}" id="completeBtnIcon" style="width: 16px; height: 16px;"></i>
-                                <span id="completeBtnText">{% if current_is_completed %}Completed{% else %}Mark Complete{% endif %}</span>
+                    <div class="d-flex flex-column align-items-end gap-1 flex-shrink-0">
+                        <div class="d-flex align-items-center gap-2">
+                            <!-- Bookmark Toggle -->
+                            <button type="button" id="bookmarkBtn" class="btn btn-secondary-custom btn-sm py-1.5 px-2.5" title="Bookmark for revision">
+                                <i data-lucide="bookmark" id="bookmarkIcon" class="{% if is_bookmarked %}text-warning fill-warning{% else %}text-secondary{% endif %}" style="width: 16px; height: 16px;"></i>
                             </button>
-                        </form>
+
+                            <!-- Download PDF Notes -->
+                            <a href="{% url 'learning:download_notes_pdf' course_slug=course.slug lesson_id=lesson.id %}" class="btn btn-secondary-custom btn-sm py-1.5 px-3 d-inline-flex align-items-center gap-1.5" title="Download formatted PDF notes">
+                                <i data-lucide="download" style="width: 15px; height: 15px;"></i>
+                                <span class="d-none d-sm-inline">PDF Notes</span>
+                            </a>
+
+                            <!-- Mark Completed Button -->
+                            <form id="completeToggleForm" action="{% url 'learning:complete_toggle' course_slug=course.slug lesson_id=lesson.id %}" method="post" class="d-inline">
+                                {% csrf_token %}
+                                <button type="button" id="completeBtn" class="btn {% if current_is_completed %}btn-success-custom{% else %}btn-primary-custom{% endif %} btn-sm py-1.5 px-3 d-inline-flex align-items-center gap-1.5">
+                                    <i data-lucide="{% if current_is_completed %}check-circle-2{% else %}circle{% endif %}" id="completeBtnIcon" style="width: 16px; height: 16px;"></i>
+                                    <span id="completeBtnText">{% if current_is_completed %}Lesson Completed ✓{% else %}Mark Lesson Complete{% endif %}</span>
+                                </button>
+                            </form>
+                        </div>
+                        <span class="text-muted small" id="undoHint" style="font-size: 0.72rem;">
+                            {% if current_is_completed %}Click to unmark as complete{% endif %}
+                        </span>
                     </div>
                 </div>
             </div>
@@ -135,9 +169,33 @@
                 <div class="tab-pane fade {% if lesson.video_url %}show active{% endif %}" id="tab-video" role="tabpanel">
                     <div class="custom-card p-3 p-md-4 mb-3">
                         {% if lesson.video_url %}
-                            <div class="ratio ratio-16x9 rounded-3 overflow-hidden border mb-3" style="border-color: var(--border-color) !important; background: #000;">
+                            <!-- Video Header Bar with YouTube Direct Link -->
+                            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2 pb-2 border-bottom" style="border-color: rgba(255,255,255,0.06) !important;">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle d-inline-flex align-items-center gap-1">
+                                        <i data-lucide="play" style="width: 11px; height: 11px;"></i> Video Lecture
+                                    </span>
+                                    <span class="text-white small fw-bold">Lesson {{ lesson.lesson_order }}: {{ lesson.title }}</span>
+                                </div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <!-- Direct YouTube link (Guaranteed fallback) -->
+                                    <a href="{{ lesson.video_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-danger btn-sm py-1 px-2.5 d-inline-flex align-items-center gap-1.5" title="Watch directly on YouTube in new tab">
+                                        <i data-lucide="external-link" style="width: 13px; height: 13px;"></i>
+                                        <span>Open on YouTube</span>
+                                    </a>
+                                </div>
+                            </div>
+
+                            <!-- Responsive Video Player Frame -->
+                            <div class="ratio ratio-16x9 rounded-3 overflow-hidden border mb-3 shadow-lg" style="border-color: var(--border-color) !important; background: #000;">
                                 {% if "youtube.com" in lesson.video_url or "youtu.be" in lesson.video_url %}
-                                    <iframe id="videoIframe" src="{{ lesson.video_url }}" title="{{ lesson.title }}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                                    <iframe id="videoIframe"
+                                            src="{{ lesson.embed_video_url }}"
+                                            title="{{ lesson.title }}"
+                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                            allowfullscreen
+                                            loading="lazy">
+                                    </iframe>
                                 {% else %}
                                     <video id="html5VideoPlayer" controls class="w-100 h-100">
                                         <source src="{{ lesson.video_url }}" type="video/mp4">
@@ -145,13 +203,33 @@
                                     </video>
                                 {% endif %}
                             </div>
-                            <div class="d-flex justify-content-between align-items-center small text-secondary">
-                                <span><i data-lucide="play-circle" style="width: 14px; height: 14px; margin-right: 4px;"></i>Progress tracked server-side</span>
-                                {% if video_prog and video_prog.is_completed %}
-                                    <span class="badge bg-success-subtle text-success border border-success-subtle"><i data-lucide="check" style="width: 12px; height: 12px;"></i> Video Watched</span>
-                                {% else %}
-                                    <span class="text-muted" id="videoWatchStatus">Watch at least 85% to verify attendance</span>
-                                {% endif %}
+
+                            <!-- Video Attendance & Progress Controls -->
+                            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 p-3 rounded-2" style="background-color: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color);">
+                                <div class="d-flex align-items-center gap-2" id="videoStatusContainer">
+                                    {% if video_prog and video_prog.is_completed %}
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle d-inline-flex align-items-center gap-1 px-2.5 py-1.5" id="videoAttendanceBadge">
+                                            <i data-lucide="check-circle-2" style="width: 14px; height: 14px;"></i>
+                                            <span>Video Attendance Verified</span>
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle d-inline-flex align-items-center gap-1 px-2.5 py-1.5" id="videoAttendanceBadge">
+                                            <i data-lucide="clock" style="width: 14px; height: 14px;"></i>
+                                            <span>Video In Progress (Tracked Server-Side)</span>
+                                        </span>
+                                    {% endif %}
+                                </div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <button type="button" id="markVideoWatchedBtn" class="btn btn-outline-success btn-sm py-1.5 px-3 d-inline-flex align-items-center gap-1.5" {% if video_prog and video_prog.is_completed %}disabled{% endif %}>
+                                        <i data-lucide="check" style="width: 14px; height: 14px;"></i>
+                                        <span id="markVideoWatchedText">{% if video_prog and video_prog.is_completed %}Watched{% else %}Mark Video as Watched{% endif %}</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="small text-muted mt-2 pt-2 border-top d-flex align-items-center gap-1.5" style="border-color: rgba(255,255,255,0.05) !important; font-size: 0.76rem;">
+                                <i data-lucide="shield-alert" class="text-warning flex-shrink-0" style="width: 13px; height: 13px;"></i>
+                                <span>If your browser extensions or ad-blockers prevent playback, click <strong>Open on YouTube</strong> above, then mark as watched.</span>
                             </div>
                         {% else %}
                             <div class="text-center py-5">
@@ -383,32 +461,32 @@
             <div class="custom-card p-4 mb-3" style="position: sticky; top: 80px;">
                 <h5 class="fw-bold text-white mb-3 d-flex align-items-center justify-content-between">
                     <span>Course Progress</span>
-                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle">{{ progress_info.percentage }}%</span>
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-monospace" id="rightProgressPct">{{ progress_info.percentage }}%</span>
                 </h5>
                 <div class="custom-progress mb-3" style="height: 8px;">
-                    <div class="custom-progress-bar" style="width: {{ progress_info.percentage }}%;"></div>
+                    <div class="custom-progress-bar" id="rightProgressBar" style="width: {{ progress_info.percentage }}%;"></div>
                 </div>
 
                 <div class="d-flex flex-column gap-2 small text-secondary mb-4">
                     <div class="d-flex justify-content-between">
                         <span>Mandatory Lessons:</span>
-                        <span class="text-white">{{ progress_info.completed }} / {{ progress_info.total }}</span>
+                        <span class="text-white fw-bold font-monospace" id="rightLessonsCount">{{ progress_info.completed }} / {{ progress_info.total }}</span>
                     </div>
                     {% if progress_info.exercises_total > 0 %}
                     <div class="d-flex justify-content-between">
                         <span>Practical Exercises:</span>
-                        <span class="text-white">{{ progress_info.exercises_completed }} / {{ progress_info.exercises_total }}</span>
+                        <span class="text-white fw-bold font-monospace" id="rightExercisesCount">{{ progress_info.exercises_completed }} / {{ progress_info.exercises_total }}</span>
                     </div>
                     {% endif %}
                 </div>
 
                 <!-- 80% Assessment Unlock Meter -->
-                <div class="p-3 rounded-3 mb-3 border {% if progress_info.is_unlocked %}border-success-subtle bg-success-subtle text-success{% else %}border-secondary-subtle bg-dark text-secondary{% endif %}">
+                <div class="p-3 rounded-3 mb-3 border {% if progress_info.is_unlocked %}border-success-subtle bg-success-subtle text-success{% else %}border-secondary-subtle bg-dark text-secondary{% endif %}" id="rightExamMilestoneCard">
                     <div class="d-flex align-items-center gap-2 mb-1">
-                        <i data-lucide="{% if progress_info.is_unlocked %}unlock{% else %}lock{% endif %}" style="width: 16px; height: 16px;"></i>
-                        <span class="fw-bold small">80% Assessment Milestone</span>
+                        <i data-lucide="{% if progress_info.is_unlocked %}unlock{% else %}lock{% endif %}" id="rightExamMilestoneIcon" style="width: 16px; height: 16px;"></i>
+                        <span class="fw-bold small" id="rightExamMilestoneTitle">{% if progress_info.is_unlocked %}Assessment Milestone Unlocked{% else %}80% Assessment Milestone{% endif %}</span>
                     </div>
-                    <p class="mb-0" style="font-size: 0.78rem;">
+                    <p class="mb-0" id="rightExamMilestoneDesc" style="font-size: 0.78rem;">
                         {% if progress_info.is_unlocked %}
                             🎉 Unlocked! Final Quiz and Final Mock Test are active.
                         {% else %}
@@ -465,7 +543,7 @@
                     {% else %}
                         <i data-lucide="shield-alert" class="text-secondary mx-auto mb-2" style="width: 24px; height: 24px;"></i>
                         <div class="fw-bold text-secondary small mb-1">Certificate Locked</div>
-                        <p class="text-muted small mb-0" style="font-size: 0.72rem;">Requires 100% lessons and passing both exams.</p>
+                        <p class="text-muted small mb-0" style="font-size: 0.72rem;">Requires 100% course items and passing both final examinations.</p>
                     {% endif %}
                 </div>
             </div>
@@ -499,21 +577,55 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (data.success) {
                         const icon = document.getElementById('completeBtnIcon');
                         const text = document.getElementById('completeBtnText');
+                        const undoHint = document.getElementById('undoHint');
                         const progressPct = document.getElementById('sidebarProgressPct');
                         const progressBar = document.getElementById('sidebarProgressBar');
+                        const rightProgressPct = document.getElementById('rightProgressPct');
+                        const rightProgressBar = document.getElementById('rightProgressBar');
+                        const lessonsCount = document.getElementById('sidebarLessonsCount');
+                        const rightLessonsCount = document.getElementById('rightLessonsCount');
 
                         if (data.is_completed) {
-                            completeBtn.className = 'btn btn-success-custom btn-sm py-1.5 px-3';
-                            text.textContent = 'Completed';
+                            completeBtn.className = 'btn btn-success-custom btn-sm py-1.5 px-3 d-inline-flex align-items-center gap-1.5';
+                            text.textContent = 'Lesson Completed ✓';
                             icon.setAttribute('data-lucide', 'check-circle-2');
+                            if (undoHint) undoHint.textContent = 'Click to unmark as complete';
                         } else {
-                            completeBtn.className = 'btn btn-primary-custom btn-sm py-1.5 px-3';
-                            text.textContent = 'Mark Complete';
-                            icon.setAttribute('data-lucide', 'check');
+                            completeBtn.className = 'btn btn-primary-custom btn-sm py-1.5 px-3 d-inline-flex align-items-center gap-1.5';
+                            text.textContent = 'Mark Lesson Complete';
+                            icon.setAttribute('data-lucide', 'circle');
+                            if (undoHint) undoHint.textContent = '';
                         }
 
                         if (progressPct) progressPct.textContent = data.percentage + '%';
                         if (progressBar) progressBar.style.width = data.percentage + '%';
+                        if (rightProgressPct) rightProgressPct.textContent = data.percentage + '%';
+                        if (rightProgressBar) rightProgressBar.style.width = data.percentage + '%';
+                        if (lessonsCount) lessonsCount.textContent = data.completed_count + '/' + data.total_count;
+                        if (rightLessonsCount) rightLessonsCount.textContent = data.completed_count + ' / ' + data.total_count;
+
+                        // Update current lesson icon in the left sidebar
+                        const currentSidebarIcon = document.getElementById('sidebar-icon-{{ lesson.id }}');
+                        if (currentSidebarIcon) {
+                            if (data.is_completed) {
+                                currentSidebarIcon.setAttribute('data-lucide', 'check-circle-2');
+                                currentSidebarIcon.className = 'text-success flex-shrink-0';
+                            } else {
+                                currentSidebarIcon.setAttribute('data-lucide', 'play-circle');
+                                currentSidebarIcon.className = 'text-white flex-shrink-0';
+                            }
+                        }
+
+                        // Update exam unlocked indicator in sidebar
+                        const examBadge = document.getElementById('sidebarExamBadge');
+                        if (examBadge) {
+                            if (data.is_unlocked) {
+                                examBadge.innerHTML = '<span class="badge bg-success-subtle text-success border border-success-subtle w-100 py-1" style="font-size: 0.7rem;"><i data-lucide="unlock" style="width: 11px; height: 11px;"></i> Exams Unlocked</span>';
+                            } else {
+                                examBadge.innerHTML = '<span class="badge bg-warning-subtle text-warning border border-warning-subtle w-100 py-1" style="font-size: 0.7rem;"><i data-lucide="lock" style="width: 11px; height: 11px;"></i> 80% to Unlock Exams</span>';
+                            }
+                        }
+
                         lucide.createIcons();
                     }
                 } else {
@@ -521,6 +633,39 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             } catch (err) {
                 form.submit();
+            }
+        });
+    }
+
+    // 2. Mark Video as Watched button
+    const markVideoBtn = document.getElementById('markVideoWatchedBtn');
+    if (markVideoBtn) {
+        markVideoBtn.addEventListener('click', async () => {
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            const url = "{% url 'learning:video_progress' course_slug=course.slug lesson_id=lesson.id %}";
+            try {
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ mark_completed: true })
+                });
+                const data = await res.json();
+                if (data.success && data.is_completed) {
+                    const badge = document.getElementById('videoAttendanceBadge');
+                    const text = document.getElementById('markVideoWatchedText');
+                    if (badge) {
+                        badge.className = 'badge bg-success-subtle text-success border border-success-subtle d-inline-flex align-items-center gap-1 px-2.5 py-1.5';
+                        badge.innerHTML = '<i data-lucide="check-circle-2" style="width: 14px; height: 14px;"></i><span>Video Attendance Verified</span>';
+                    }
+                    if (text) text.textContent = 'Watched';
+                    markVideoBtn.disabled = true;
+                    lucide.createIcons();
+                }
+            } catch (err) {
+                console.error('Error recording video progress:', err);
             }
         });
     }

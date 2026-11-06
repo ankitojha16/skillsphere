@@ -40,6 +40,32 @@ class Lesson(models.Model):
             return False
         return self.user_progress.filter(user=user, is_completed=True).exists()
 
+    @property
+    def embed_video_url(self):
+        """Converts standard YouTube watch links, shortened youtu.be, or embed links into a safe iframe embed URL."""
+        if not self.video_url:
+            return ""
+        url = self.video_url.strip()
+        if "youtube.com/embed/" in url:
+            if "enablejsapi=1" not in url:
+                delim = "&" if "?" in url else "?"
+                return f"{url}{delim}enablejsapi=1&rel=0"
+            return url
+        if "youtube.com/watch" in url:
+            import urllib.parse
+            parsed = urllib.parse.urlparse(url)
+            params = urllib.parse.parse_qs(parsed.query)
+            vid = params.get('v', [None])[0]
+            if vid:
+                return f"https://www.youtube.com/embed/{vid}?enablejsapi=1&rel=0"
+        if "youtu.be/" in url:
+            import urllib.parse
+            parsed = urllib.parse.urlparse(url)
+            vid = parsed.path.strip('/')
+            if vid:
+                return f"https://www.youtube.com/embed/{vid}?enablejsapi=1&rel=0"
+        return url
+
 
 class LessonProgress(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='lesson_progress')

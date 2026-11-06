@@ -1273,3 +1273,423 @@ df.groupby('category')['revenue'].agg(['mean', 'sum', 'count'])
         ]
     }
 }
+
+# ==============================================================================
+# CURRICULUM 2.0 EXPANSION: Multi-lesson modules for comprehensive learning
+# ==============================================================================
+
+# 1. Tech Career Accelerator Expansion
+COURSES_CURRICULUM['tech-career-accelerator']['modules'][0]['lessons'].extend([
+    {
+        'order': 2,
+        'chapter': 'Portfolio & Resume',
+        'title': 'Demonstrating Full-Stack Architecture & Clean GitHub Readmes',
+        'minutes': 25,
+        'video_url': 'https://www.youtube.com/embed/F5mRW0jo-U4?enablejsapi=1&rel=0',
+        'video_duration': 720,
+        'content': """<h3>Engineering Depth: Architecture Showcases</h3>
+<p>Technical interviewers skip generic to-do apps and look for architecture diagrams, database schema designs, authentication flows, and automated test coverage.</p>
+<h4>High-Impact GitHub README Anatomy</h4>
+<ul>
+    <li><strong>System Architecture:</strong> Clear flow diagram showing client, web server, cache layer, and database.</li>
+    <li><strong>Key Engineering Decisions:</strong> Why PostgreSQL over MongoDB? Why Django REST Framework with JWT authentication?</li>
+    <li><strong>Quickstart:</strong> Single Docker Compose command or simple local virtualenv instructions.</li>
+    <li><strong>Performance & Benchmarks:</strong> Latency metrics, query optimization examples, and test suite summary.</li>
+</ul>""",
+        'key_takeaways': [
+            "Every featured project should have a live URL demo and clean architecture documentation.",
+            "Highlight non-functional requirements: scalability, security, testing, and caching."
+        ],
+        'common_mistakes': [
+            "Committing sensitive API keys or .env files to public repositories.",
+            "Empty README files or broken deployment links."
+        ],
+        'resources': '<a href="https://github.com/matiassingers/awesome-readme" target="_blank" class="text-primary-accent-light">Awesome README Examples</a>',
+        'exercise': {
+            'title': 'Generate Project Markdown Header',
+            'instructions': 'Write a function `generate_project_badge(title: str, tech: str) -> str` that returns `# {title} - Built with {tech}`.',
+            'starter_code': "def generate_project_badge(title: str, tech: str) -> str:\n    return f'# {title} - Built with {tech}'\n",
+            'expected_output': "generate_project_badge('SkillSphere', 'Django & Bootstrap') == '# SkillSphere - Built with Django & Bootstrap'",
+            'hints': "Use f'# {title} - Built with {tech}'."
+        }
+    },
+    {
+        'order': 3,
+        'chapter': 'Interview Mastery',
+        'title': 'Behavioral & Technical Interview Mastery (STAR Method)',
+        'minutes': 30,
+        'video_url': 'https://www.youtube.com/embed/rHux0gMZ3Eg?enablejsapi=1&rel=0',
+        'video_duration': 800,
+        'content': """<h3>Acing Technical & Behavioral Rounds</h3>
+<p>Top tech companies evaluate engineering judgment and communication using behavioral and scenario-based interviews.</p>
+<h4>The STAR Framework</h4>
+<ul>
+    <li><strong>Situation:</strong> The business context and technical constraints you faced.</li>
+    <li><strong>Task:</strong> The specific engineering responsibility or challenge assigned to you.</li>
+    <li><strong>Action:</strong> The architectural choices, code patterns, and debugging steps you executed.</li>
+    <li><strong>Result:</strong> Quantifiable outcome: query time cut by 40%, zero downtime migration, or 100% test coverage.</li>
+</ul>""",
+        'key_takeaways': [
+            "Always quantify results in your STAR stories (latency, users, cost, speed).",
+            "Own your decisions: explain the trade-offs considered and why alternatives were rejected."
+        ],
+        'common_mistakes': [
+            "Speaking only in vague generalities without technical specificity.",
+            "Blaming teammates or managers when discussing past engineering challenges."
+        ],
+        'resources': '<a href="https://interviewing.io" target="_blank" class="text-primary-accent-light">Mock Tech Interview Guides</a>',
+        'exercise': {
+            'title': 'Format STAR Response',
+            'instructions': 'Write a function `format_star(situation: str, result: str) -> str` that returns `[Situation: {situation}] -> [Result: {result}]`.',
+            'starter_code': "def format_star(situation: str, result: str) -> str:\n    return f'[Situation: {situation}] -> [Result: {result}]'\n",
+            'expected_output': "format_star('High DB latency', '45% speedup') == '[Situation: High DB latency] -> [Result: 45% speedup]'",
+            'hints': "Format using f-strings with brackets."
+        }
+    }
+])
+
+# 2. DSA Expansion
+COURSES_CURRICULUM['mastering-dsa-with-python']['modules'][0]['lessons'].extend([
+    {
+        'order': 2,
+        'chapter': 'Data Structures',
+        'title': 'Linear Data Structures: Arrays, Linked Lists & Stacks',
+        'minutes': 25,
+        'video_url': 'https://www.youtube.com/embed/RBSGKlAvoiM?enablejsapi=1&rel=0',
+        'video_duration': 750,
+        'content': """<h3>Arrays, Linked Lists, and Stack Operations</h3>
+<p>Memory layouts determine access time. Contiguous arrays offer O(1) random access, while linked lists offer O(1) insertions at head.</p>
+<h4>Stack LIFO Pattern</h4>
+<pre><code class="language-python">class MinStack:
+    def __init__(self):
+        self.stack = []
+        self.min_stack = []
+    
+    def push(self, val: int) -> None:
+        self.stack.append(val)
+        if not self.min_stack or val <= self.min_stack[-1]:
+            self.min_stack.append(val)
+</code></pre>""",
+        'key_takeaways': [
+            "Arrays store elements contiguously; linked nodes store pointers across the heap.",
+            "Use monotonic stacks to solve 'next greater element' problems in O(N) time."
+        ],
+        'common_mistakes': [
+            "Losing the head reference when reversing a linked list.",
+            "Overlooking stack overflow in deep recursive traversals."
+        ],
+        'resources': '<a href="https://leetcode.com" target="_blank" class="text-primary-accent-light">LeetCode Problem Archive</a>',
+        'exercise': {
+            'title': 'Valid Parentheses Check',
+            'instructions': 'Write a function `is_valid_brackets(s: str) -> bool` that returns True if bracket characters (), [], {} match correctly.',
+            'starter_code': "def is_valid_brackets(s: str) -> bool:\n    stack = []\n    mapping = {')': '(', ']': '[', '}': '{'}\n    for char in s:\n        if char in mapping.values():\n            stack.append(char)\n        elif char in mapping:\n            if not stack or stack.pop() != mapping[char]:\n                return False\n    return len(stack) == 0\n",
+            'expected_output': "is_valid_brackets('()[]{}') is True and is_valid_brackets('(]') is False",
+            'hints': 'Use a stack and push openers, pop and check matches on closers.'
+        }
+    },
+    {
+        'order': 3,
+        'chapter': 'Algorithms & Trees',
+        'title': 'Binary Trees, Heaps & Graph Traversals',
+        'minutes': 30,
+        'video_url': 'https://www.youtube.com/embed/oSWTXtMglKE?enablejsapi=1&rel=0',
+        'video_duration': 850,
+        'content': """<h3>Hierarchical Structures & Graph Algorithms</h3>
+<p>Trees and graphs model connected networks, dependency chains, and hierarchical data.</p>
+<h4>Depth-First Search (DFS) vs Breadth-First Search (BFS)</h4>
+<ul>
+    <li><strong>DFS (Recursion / Stack):</strong> Explores paths deeply first; ideal for cycle detection and topological sorting.</li>
+    <li><strong>BFS (Queue):</strong> Explores layer-by-layer; computes shortest path on unweighted graphs.</li>
+</ul>""",
+        'key_takeaways': [
+            "Binary Search Tree property: left.val < root.val < right.val.",
+            "BFS with collections.deque guarantees shortest path in unweighted graphs."
+        ],
+        'common_mistakes': [
+            "Failing to track visited nodes in cyclic graphs, causing infinite loops.",
+            "Modifying tree nodes during recursive traversals without updating heights."
+        ],
+        'resources': '<a href="https://visualgo.net" target="_blank" class="text-primary-accent-light">VisuAlgo Algorithm Visualizations</a>',
+        'exercise': {
+            'title': 'Tree Max Depth',
+            'instructions': 'Write a function `max_depth_simple(node_heights: list) -> int` returning max integer or 0 if list is empty.',
+            'starter_code': "def max_depth_simple(node_heights: list) -> int:\n    return max(node_heights) if node_heights else 0\n",
+            'expected_output': "max_depth_simple([1, 2, 3, 4]) == 4",
+            'hints': 'Use max() with an empty check.'
+        }
+    }
+])
+
+# 3. Database Expansion
+COURSES_CURRICULUM['relational-databases-sql-postgresql']['modules'][0]['lessons'].extend([
+    {
+        'order': 2,
+        'chapter': 'SQL & Queries',
+        'title': 'Advanced SQL: Multi-Table Joins, CTEs & Aggregations',
+        'minutes': 25,
+        'video_url': 'https://www.youtube.com/embed/7S_tz1z_5bA?enablejsapi=1&rel=0',
+        'video_duration': 750,
+        'content': """<h3>Complex SQL Queries & Common Table Expressions</h3>
+<p>Modern backend systems require expressive SQL for analytics and reporting without loading entire tables into application memory.</p>
+<h4>CTEs and Window Functions</h4>
+<pre><code class="language-sql">WITH RankedSales AS (
+    SELECT student_id, course_id, enrolled_at,
+           ROW_NUMBER() OVER(PARTITION BY student_id ORDER BY enrolled_at DESC) as rank
+    FROM courses_enrollment
+)
+SELECT * FROM RankedSales WHERE rank = 1;
+</code></pre>""",
+        'key_takeaways': [
+            "Common Table Expressions (WITH clause) clarify complex multi-step queries.",
+            "Window functions perform calculations across related row sets without collapsing rows."
+        ],
+        'common_mistakes': [
+            "Using WHERE instead of HAVING for aggregated conditions.",
+            "Accidental Cartesian products by omitting JOIN condition ON clauses."
+        ],
+        'resources': '<a href="https://www.postgresql.org/docs/current/queries-with.html" target="_blank" class="text-primary-accent-light">PostgreSQL CTE Documentation</a>',
+        'exercise': {
+            'title': 'Build SQL Count Query',
+            'instructions': 'Write a function `build_count_query(table: str) -> str` that returns `SELECT COUNT(*) FROM {table};`.',
+            'starter_code': "def build_count_query(table: str) -> str:\n    return f'SELECT COUNT(*) FROM {table};'\n",
+            'expected_output': "build_count_query('users') == 'SELECT COUNT(*) FROM users;'",
+            'hints': "Use f-string with uppercase keywords."
+        }
+    },
+    {
+        'order': 3,
+        'chapter': 'Performance',
+        'title': 'B-Tree Indexing Strategies & Query Optimization',
+        'minutes': 30,
+        'video_url': 'https://www.youtube.com/embed/fsG1XaZEa78?enablejsapi=1&rel=0',
+        'video_duration': 820,
+        'content': """<h3>Database Indexing & Query Tuning</h3>
+<p>Without indexes, database engines perform full table scans (Sequential Scans). B-Tree indexes turn O(N) disk scans into O(log N) lookups.</p>
+<h4>Composite Indexes and The Leftmost Prefix Rule</h4>
+<p>An index on `(user_id, created_at)` accelerates queries filtering by `user_id` or both, but not queries filtering only by `created_at`.</p>""",
+        'key_takeaways': [
+            "Use EXPLAIN ANALYZE to inspect query execution plans and index usage.",
+            "Too many indexes slow down INSERT and UPDATE write throughput."
+        ],
+        'common_mistakes': [
+            "Indexing low-cardinality boolean columns where sequential scans are faster.",
+            "Wrapping indexed columns in functions (e.g. `WHERE LOWER(email) = ...`) which disables standard indexes."
+        ],
+        'resources': '<a href="https://use-the-index-luke.com" target="_blank" class="text-primary-accent-light">Use The Index, Luke!</a>',
+        'exercise': {
+            'title': 'Generate Create Index Statement',
+            'instructions': 'Write a function `create_index_sql(table: str, col: str) -> str` that returns `CREATE INDEX idx_{table}_{col} ON {table}({col});`.',
+            'starter_code': "def create_index_sql(table: str, col: str) -> str:\n    return f'CREATE INDEX idx_{table}_{col} ON {table}({col});'\n",
+            'expected_output': "create_index_sql('users', 'email') == 'CREATE INDEX idx_users_email ON users(email);'",
+            'hints': "Use f-strings."
+        }
+    }
+])
+
+# 4. Applied AI Expansion
+COURSES_CURRICULUM['applied-ai-machine-learning']['modules'][0]['lessons'].extend([
+    {
+        'order': 2,
+        'chapter': 'Deep Learning',
+        'title': 'Neural Networks & Backpropagation',
+        'minutes': 25,
+        'video_url': 'https://www.youtube.com/embed/IHZwWFHWa-w?enablejsapi=1&rel=0',
+        'video_duration': 800,
+        'content': """<h3>Multi-Layer Perceptrons & Backpropagation</h3>
+<p>Neural networks stack affine transformations with non-linear activation functions (ReLU, GELU, Sigmoid) to approximate complex functions.</p>
+<h4>Chain Rule of Calculus</h4>
+<p>Backpropagation computes the gradient of the loss function with respect to every weight using the chain rule, enabling stochastic gradient descent.</p>""",
+        'key_takeaways': [
+            "Non-linear activation functions allow deep networks to model non-linear decision boundaries.",
+            "Batch normalization and residual connections stabilize deep network training."
+        ],
+        'common_mistakes': [
+            "Vanishing gradients caused by saturating sigmoid activations in deep layers.",
+            "Forgetting to zero gradients (`optimizer.zero_grad()`) before backward pass in PyTorch."
+        ],
+        'resources': '<a href="https://www.deeplearningbook.org" target="_blank" class="text-primary-accent-light">Deep Learning Book (Goodfellow et al.)</a>',
+        'exercise': {
+            'title': 'ReLU Activation Function',
+            'instructions': 'Write a function `relu(x: float) -> float` returning max(0.0, x).',
+            'starter_code': "def relu(x: float) -> float:\n    return max(0.0, x)\n",
+            'expected_output': "relu(-5.0) == 0.0 and relu(3.5) == 3.5",
+            'hints': "Return max(0.0, x)."
+        }
+    },
+    {
+        'order': 3,
+        'chapter': 'Model Evaluation',
+        'title': 'Model Evaluation, Overfitting & Regularization',
+        'minutes': 25,
+        'video_url': 'https://www.youtube.com/embed/fSytzGwwBVw?enablejsapi=1&rel=0',
+        'video_duration': 750,
+        'content': """<h3>Generalization, Bias-Variance Tradeoff & Metrics</h3>
+<p>A machine learning model must perform well on unseen test data, avoiding both underfitting (high bias) and overfitting (high variance).</p>
+<h4>Evaluation Metrics</h4>
+<ul>
+    <li><strong>Precision:</strong> True Positives / (True Positives + False Positives)</li>
+    <li><strong>Recall:</strong> True Positives / (True Positives + False Negatives)</li>
+    <li><strong>F1-Score:</strong> Harmonic mean of Precision and Recall.</li>
+</ul>""",
+        'key_takeaways': [
+            "Never evaluate models on the training dataset; always hold out a validation/test split.",
+            "L2 Regularization (Weight Decay) penalizes large weights and prevents overfitting."
+        ],
+        'common_mistakes': [
+            "Data leakage: normalizing features before splitting training and test sets.",
+            "Using raw accuracy on severely imbalanced datasets."
+        ],
+        'resources': '<a href="https://scikit-learn.org/stable/modules/model_evaluation.html" target="_blank" class="text-primary-accent-light">Scikit-Learn Metrics Guide</a>',
+        'exercise': {
+            'title': 'Calculate Precision Score',
+            'instructions': 'Write a function `calc_precision(tp: int, fp: int) -> float` returning tp / (tp + fp) or 0.0 if both are 0.',
+            'starter_code': "def calc_precision(tp: int, fp: int) -> float:\n    if tp + fp == 0:\n        return 0.0\n    return tp / (tp + fp)\n",
+            'expected_output': "calc_precision(80, 20) == 0.8 and calc_precision(0, 0) == 0.0",
+            'hints': "Check if tp + fp == 0, then divide."
+        }
+    }
+])
+
+# 5. Data Science Expansion
+COURSES_CURRICULUM['data-science-with-python-pandas']['modules'][0]['lessons'].extend([
+    {
+        'order': 2,
+        'chapter': 'Data Cleaning',
+        'title': 'Data Cleaning, Missing Values & Imputation',
+        'minutes': 20,
+        'video_url': 'https://www.youtube.com/embed/ZyhVh-qRZPA?enablejsapi=1&rel=0',
+        'video_duration': 700,
+        'content': """<h3>Handling Dirty Real-World Datasets</h3>
+<p>Real-world datasets contain nulls, duplicates, inconsistent datatypes, and outliers.</p>
+<h4>Missing Data Strategies</h4>
+<ul>
+    <li><strong>Deletion (`dropna()`):</strong> Suitable only when missing completely at random (MCAR) and data loss is minimal.</li>
+    <li><strong>Imputation (`fillna()`):</strong> Fill numerical values with median/mean and categoricals with mode.</li>
+</ul>""",
+        'key_takeaways': [
+            "Check `df.isna().sum()` and `df.info()` immediately after loading any dataset.",
+            "Use median imputation for skewed distributions to avoid outlier distortion."
+        ],
+        'common_mistakes': [
+            "In-place modifications causing `SettingWithCopyWarning` in Pandas.",
+            "Imputing test set values with test set statistics instead of training set statistics."
+        ],
+        'resources': '<a href="https://pandas.pydata.org/docs/user_guide/missing_data.html" target="_blank" class="text-primary-accent-light">Pandas Missing Data Guide</a>',
+        'exercise': {
+            'title': 'Impute Missing Numbers',
+            'instructions': 'Write a function `impute_zeros(values: list) -> list` replacing None with 0.',
+            'starter_code': "def impute_zeros(values: list) -> list:\n    return [0 if v is None else v for v in values]\n",
+            'expected_output': "impute_zeros([1, None, 3]) == [1, 0, 3]",
+            'hints': "Use list comprehension."
+        }
+    },
+    {
+        'order': 3,
+        'chapter': 'EDA & Visualization',
+        'title': 'Exploratory Data Analysis & Statistical Visualization',
+        'minutes': 25,
+        'video_url': 'https://www.youtube.com/embed/GPVsHOlRBBI?enablejsapi=1&rel=0',
+        'video_duration': 750,
+        'content': """<h3>EDA: Uncovering Distributions & Correlations</h3>
+<p>Exploratory Data Analysis gives intuition about feature relationships, skewness, and anomalies.</p>
+<h4>Pearson Correlation Matrix</h4>
+<pre><code class="language-python">import pandas as pd
+corr = df[['age', 'income', 'gpa']].corr()
+print(corr)
+</code></pre>""",
+        'key_takeaways': [
+            "Correlation does not imply causation; verify confounding factors.",
+            "Log transformations help normalize heavily right-skewed financial and user counts."
+        ],
+        'common_mistakes': [
+            "Overplotting scatter plots on huge datasets without alpha transparency or hexbins.",
+            "Drawing truncated axes that exaggerate minor statistical differences."
+        ],
+        'resources': '<a href="https://seaborn.pydata.org/tutorial.html" target="_blank" class="text-primary-accent-light">Seaborn Data Visualization</a>',
+        'exercise': {
+            'title': 'Calculate Mean Value',
+            'instructions': 'Write a function `calc_mean(nums: list) -> float` returning the average rounded to 2 decimal places.',
+            'starter_code': "def calc_mean(nums: list) -> float:\n    if not nums:\n        return 0.0\n    return round(sum(nums) / len(nums), 2)\n",
+            'expected_output': "calc_mean([10, 20, 30]) == 20.0",
+            'hints': "Use sum(nums) / len(nums)."
+        }
+    }
+])
+
+# 6. CS Fundamentals Expansion
+COURSES_CURRICULUM['cs-fundamentals-os-networks']['modules'][0]['lessons'].extend([
+    {
+        'order': 2,
+        'chapter': 'Memory Management',
+        'title': 'Virtual Memory Management & Page Tables',
+        'minutes': 25,
+        'video_url': 'https://www.youtube.com/embed/p3q5BIzor5g?enablejsapi=1&rel=0',
+        'video_duration': 800,
+        'content': """<h3>Virtual Memory & The Hardware MMU</h3>
+<p>Operating systems isolate process memory through virtual memory abstraction, mapping virtual addresses to physical RAM pages via the Memory Management Unit (MMU) and Page Tables.</p>
+<h4>Translation Lookaside Buffer (TLB)</h4>
+<p>The TLB is a high-speed hardware cache on the CPU that stores recent virtual-to-physical address translations.</p>""",
+        'key_takeaways': [
+            "Virtual memory provides process isolation, memory protection, and overcommit capacity.",
+            "A Page Fault occurs when a referenced virtual page is not loaded in physical RAM."
+        ],
+        'common_mistakes': [
+            "Confusing memory fragmentation (external/internal) with page thrashing.",
+            "Assuming virtual address space is constrained by physical RAM size."
+        ],
+        'resources': '<a href="https://pages.cs.wisc.edu/~remzi/OSTEP/" target="_blank" class="text-primary-accent-light">Virtual Memory in OSTEP</a>',
+        'exercise': {
+            'title': 'Calculate Page Offset',
+            'instructions': 'Write a function `calc_page_offset(address: int, page_size: int = 4096) -> int` returning address % page_size.',
+            'starter_code': "def calc_page_offset(address: int, page_size: int = 4096) -> int:\n    return address % page_size\n",
+            'expected_output': "calc_page_offset(4100, 4096) == 4",
+            'hints': "Return address % page_size."
+        }
+    },
+    {
+        'order': 3,
+        'chapter': 'Networking',
+        'title': 'TCP/IP Stack, TLS Handshakes & Socket Programming',
+        'minutes': 30,
+        'video_url': 'https://www.youtube.com/embed/3QhU9jd03a0?enablejsapi=1&rel=0',
+        'video_duration': 850,
+        'content': """<h3>The Internet Protocol Suite</h3>
+<p>Web applications rely on layered networking: Application (HTTP/3, WebSockets), Transport (TCP, UDP), Internet (IP), and Link layer.</p>
+<h4>TCP Three-Way Handshake</h4>
+<ol>
+    <li><strong>SYN:</strong> Client sends Synchronize sequence packet to server.</li>
+    <li><strong>SYN-ACK:</strong> Server acknowledges and sends its own sequence packet.</li>
+    <li><strong>ACK:</strong> Client acknowledges; reliable duplex byte stream established.</li>
+</ol>""",
+        'key_takeaways': [
+            "TCP provides ordered, reliable, flow-controlled delivery via congestion windows.",
+            "UDP is connectionless and low-latency, preferred for real-time gaming and audio streaming."
+        ],
+        'common_mistakes': [
+            "Forgetting that TCP is a byte-stream protocol without inherent message boundaries.",
+            "Neglecting socket timeout configurations leading to thread pool exhaustion."
+        ],
+        'resources': '<a href="https://beej.us/guide/bgnet/" target="_blank" class="text-primary-accent-light">Beej\'s Guide to Network Programming</a>',
+        'exercise': {
+            'title': 'Format IP Address and Port',
+            'instructions': 'Write a function `format_socket_address(ip: str, port: int) -> str` that returns `{ip}:{port}`.',
+            'starter_code': "def format_socket_address(ip: str, port: int) -> str:\n    return f'{ip}:{port}'\n",
+            'expected_output': "format_socket_address('127.0.0.1', 8000) == '127.0.0.1:8000'",
+            'hints': "Use f'{ip}:{port}'."
+        }
+    }
+])
+
+# ==============================================================================
+# VIDEO URL NORMALIZATION: Convert watch?v= and youtu.be to embed/ with jsapi
+# ==============================================================================
+for _course_slug, _cdata in COURSES_CURRICULUM.items():
+    for _mod in _cdata.get('modules', []):
+        for _les in _mod.get('lessons', []):
+            _vurl = _les.get('video_url', '')
+            if 'watch?v=' in _vurl:
+                _vid = _vurl.split('watch?v=')[-1].split('&')[0]
+                _les['video_url'] = f'https://www.youtube.com/embed/{_vid}?enablejsapi=1&rel=0'
+            elif 'youtu.be/' in _vurl:
+                _vid = _vurl.split('youtu.be/')[-1].split('?')[0]
+                _les['video_url'] = f'https://www.youtube.com/embed/{_vid}?enablejsapi=1&rel=0'

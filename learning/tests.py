@@ -154,3 +154,50 @@ class LearningTests(TestCase):
         self.assertTrue(data['success'])
         self.assertTrue(data['is_passed'])
         self.assertTrue(ExerciseSubmission.objects.filter(user=self.enrolled_user, exercise=self.exercise1, is_passed=True).exists())
+
+    def test_lesson_embed_video_url_property(self):
+        # 1. Standard watch?v= URL
+        self.lesson1.video_url = 'https://www.youtube.com/watch?v=ttWkL4nU2qY'
+        self.assertEqual(self.lesson1.embed_video_url, 'https://www.youtube.com/embed/ttWkL4nU2qY?enablejsapi=1&rel=0')
+
+        # 2. Short youtu.be URL
+        self.lesson1.video_url = 'https://youtu.be/kqtD5dpn9C8'
+        self.assertEqual(self.lesson1.embed_video_url, 'https://www.youtube.com/embed/kqtD5dpn9C8?enablejsapi=1&rel=0')
+
+        # 3. Already embed URL with params
+        self.lesson1.video_url = 'https://www.youtube.com/embed/kqtD5dpn9C8?enablejsapi=1&rel=0'
+        self.assertEqual(self.lesson1.embed_video_url, 'https://www.youtube.com/embed/kqtD5dpn9C8?enablejsapi=1&rel=0')
+
+        # 4. Empty video URL
+        self.lesson1.video_url = ''
+        self.assertEqual(self.lesson1.embed_video_url, '')
+
+    def test_mark_video_watched_manually(self):
+        self.client.force_login(self.enrolled_user)
+        url = reverse('learning:video_progress', kwargs={'course_slug': self.course.slug, 'lesson_id': self.lesson1.id})
+
+        resp = self.client.post(url, json.dumps({'mark_completed': True}), content_type='application/json')
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertTrue(data['success'])
+        self.assertTrue(data['is_completed'])
+
+        prog = VideoProgress.objects.filter(user=self.enrolled_user, lesson=self.lesson1).first()
+        self.assertIsNotNone(prog)
+        self.assertTrue(prog.is_completed)
+
+    def test_complete_lesson_toggle_ajax_granular_counts(self):
+        self.client.force_login(self.enrolled_user)
+        url = reverse('learning:complete_toggle', kwargs={'course_slug': self.course.slug, 'lesson_id': self.lesson1.id})
+
+        resp = self.client.post(url, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertTrue(data['success'])
+        self.assertTrue(data['is_completed'])
+        self.assertIn('completed_count', data)
+        self.assertIn('total_count', data)
+        self.assertIn('percentage', data)
+        self.assertEqual(data['completed_count'], 1)
+        self.assertEqual(data['total_count'], 2)
+

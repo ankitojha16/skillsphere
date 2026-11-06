@@ -194,6 +194,8 @@ def complete_lesson_toggle(request, course_slug, lesson_id):
             'percentage': course_progress['percentage'],
             'completed_count': course_progress['completed'],
             'total_count': course_progress['total'],
+            'exercises_completed': course_progress.get('exercises_completed', 0),
+            'exercises_total': course_progress.get('exercises_total', 0),
             'is_unlocked': course_progress['is_unlocked'],
         })
 
@@ -208,7 +210,7 @@ def complete_lesson_toggle(request, course_slug, lesson_id):
 
 @login_required
 def video_progress_api(request, course_slug, lesson_id):
-    """Saves server-validated video watch progress."""
+    """Saves server-validated video watch progress or marks as watched."""
     if request.method != 'POST':
         return JsonResponse({'error': 'POST required'}, status=405)
 
@@ -220,10 +222,12 @@ def video_progress_api(request, course_slug, lesson_id):
         position = float(data.get('position') or data.get('position_seconds') or 0)
         duration = float(data.get('duration') or data.get('duration_seconds') or 0)
         watched = float(data.get('watched') or data.get('watched_seconds') or 0)
+        mark_completed = bool(data.get('mark_completed', False))
     except Exception:
         position = 0.0
         duration = 0.0
         watched = 0.0
+        mark_completed = False
 
     video_prog, _ = VideoProgress.objects.get_or_create(
         user=request.user,
@@ -235,14 +239,21 @@ def video_progress_api(request, course_slug, lesson_id):
         }
     )
 
-    video_prog.last_position_seconds = position
+    if position > 0:
+        video_prog.last_position_seconds = position
     if duration > 0:
         video_prog.total_duration_seconds = duration
     if watched > video_prog.watched_seconds:
         video_prog.watched_seconds = watched
 
-    # Mark video completed if watched >= 85% of total duration
-    if duration > 0 and (video_prog.watched_seconds / duration) >= 0.85:
+    # Mark video completed if requested or watched >= 85% of total duration
+    if mark_completed:
+        video_prog.is_completed = True
+        if duration > 0:
+            video_prog.watched_seconds = duration
+        elif lesson.video_duration_seconds > 0:
+            video_prog.watched_seconds = lesson.video_duration_seconds
+    elif duration > 0 and (video_prog.watched_seconds / duration) >= 0.85:
         video_prog.is_completed = True
 
     video_prog.save()
