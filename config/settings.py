@@ -176,17 +176,29 @@ else:
             }
         }
 
-# Cache configuration (In-Memory Tier-1 caching for serverless environments)
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'skillsphere-cache-layer',
-        'TIMEOUT': 600,  # 10 minutes default TTL
-        'OPTIONS': {
-            'MAX_ENTRIES': 2000,
+# Cache configuration: Shared Redis (for multi-instance serverless consistency) with LocMemCache fallback
+REDIS_URL = os.environ.get('REDIS_URL') or os.environ.get('CACHE_URL')
+if REDIS_URL:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': REDIS_URL,
+            'TIMEOUT': 300,  # 5 minutes TTL
+            'KEY_PREFIX': 'skillsphere',
         }
     }
-}
+else:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'skillsphere-cache-layer',
+            'TIMEOUT': 300,  # 5 minutes TTL ensures fast multi-instance convergence
+            'KEY_PREFIX': 'skillsphere',
+            'OPTIONS': {
+                'MAX_ENTRIES': 2000,
+            }
+        }
+    }
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
