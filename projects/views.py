@@ -53,6 +53,9 @@ def save_project_view(request):
     db_requirements = request.POST.get('database_requirements', '')
     development_phases = request.POST.get('development_phases', '')
 
+    github_url = request.POST.get('github_url', '').strip()
+    demo_url = request.POST.get('demo_url', '').strip()
+
     project = ProjectIdea.objects.create(
         user=request.user,
         title=title,
@@ -65,10 +68,12 @@ def save_project_view(request):
         main_features=main_features,
         database_requirements=db_requirements,
         development_phases=development_phases,
+        github_url=github_url,
+        demo_url=demo_url,
     )
 
     award_user_xp(request.user, 20, f"Saved portfolio project idea: {title}")
-    messages.success(request, f"Project '{title}' saved to your collection!")
+    messages.success(request, f"Project '{title}' (ID: {project.project_ref}) saved to your collection!")
     return redirect('projects:saved')
 
 
@@ -88,8 +93,26 @@ def saved_projects_view(request):
 
 
 @login_required
-def project_detail_view(request, project_id):
-    project = get_object_or_404(ProjectIdea, id=project_id, user=request.user)
+def project_detail_view(request, project_id=None, project_ref=None):
+    if project_ref:
+        project = get_object_or_404(ProjectIdea, project_ref=project_ref, user=request.user)
+    else:
+        project = get_object_or_404(ProjectIdea, id=project_id, user=request.user)
+
+    # Handle status or link updates
+    if request.method == 'POST':
+        new_status = request.POST.get('status')
+        new_github = request.POST.get('github_url', '').strip()
+        new_demo = request.POST.get('demo_url', '').strip()
+
+        if new_status in dict(ProjectIdea.STATUS_CHOICES):
+            project.status = new_status
+        project.github_url = new_github
+        project.demo_url = new_demo
+        project.save()
+        messages.success(request, f"Project '{project.title}' updated successfully!")
+        return redirect('projects:detail', project_id=project.id)
+
     return render(request, 'projects/detail.html', {'project': project})
 
 

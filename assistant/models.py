@@ -32,6 +32,8 @@ class AIMessage(models.Model):
     conversation = models.ForeignKey(AIConversation, on_delete=models.CASCADE, related_name='messages')
     role = models.CharField(max_length=20, choices=ROLE_CHOICES)
     content = models.TextField()
+    provider = models.CharField(max_length=60, default='offline-knowledge-engine', help_text="Active provider e.g. gemini-1.5-flash, gpt-4o-mini, offline-knowledge-engine")
+    is_fallback = models.BooleanField(default=True, help_text="True if response was served by local educational fallback engine")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

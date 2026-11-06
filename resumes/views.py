@@ -29,20 +29,46 @@ def resume_builder_view(request, pk=None):
             resume = Resume.objects.filter(user=request.user).first()
         
         if not resume:
-            # Prefill from existing user data
-            student_profile = getattr(request.user, 'student_profile', None)
-            full_name = student_profile.full_name if student_profile and student_profile.full_name else request.user.get_full_name() or request.user.username
-            
-            # Prefill completed courses and projects
+            # Prefill from existing user data (Strict Zero-Fabrication Policy)
+            profile = getattr(request.user, 'profile', None)
+            full_name = profile.full_name if profile and profile.full_name else request.user.get_full_name() or request.user.username
+            headline = profile.career_goal if profile and profile.career_goal else 'Software Developer'
+
+            # Real education from profile if provided by the student
+            user_education = []
+            if profile and profile.institution:
+                degree_display = profile.get_education_level_display() if hasattr(profile, 'get_education_level_display') else 'Degree Program'
+                user_education.append({
+                    'school': profile.institution,
+                    'degree': degree_display,
+                    'year': '',
+                    'gpa': ''  # NEVER invent a fake GPA
+                })
+
+            # Real skills mapped from student profile interests
+            interest_map = {
+                'python': 'Python', 'cpp': 'C/C++', 'java': 'Java', 'web_dev': 'Web Development',
+                'dsa': 'Data Structures & Algorithms', 'ai': 'Artificial Intelligence',
+                'data_science': 'Data Science', 'dbms': 'PostgreSQL / SQL'
+            }
+            user_skills = []
+            if profile:
+                for slug in profile.get_interests_list():
+                    user_skills.append(interest_map.get(slug, slug.title()))
+            if not user_skills:
+                user_skills = ['Python', 'Git', 'Problem Solving']
+
+            # Real user-saved projects ONLY (no fabricated accomplishments)
             user_projects = []
             for gp in ProjectIdea.objects.filter(user=request.user)[:3]:
                 user_projects.append({
                     'title': gp.title,
                     'technologies': gp.technology_stack,
                     'description': gp.description,
-                    'github_url': '',
+                    'github_url': getattr(gp, 'github_url', ''),
                 })
 
+            # Real user certifications ONLY (no fabricated certificates)
             user_certifications = []
             for cert in Certificate.objects.filter(user=request.user)[:3]:
                 user_certifications.append(f"{cert.title} - SkillSphere Verified")
@@ -50,39 +76,18 @@ def resume_builder_view(request, pk=None):
             prefilled_data = {
                 'contact': {
                     'full_name': full_name,
-                    'headline': student_profile.bio if student_profile else 'Software Developer',
+                    'headline': headline,
                     'email': request.user.email,
                     'phone': '',
-                    'location': student_profile.country if student_profile else 'Remote',
+                    'location': '',
                     'links': f"github.com/{request.user.username}"
                 },
-                'summary': f"Motivated software developer passionate about building high-quality, scalable applications. Proficient in modern programming practices, problem solving, and collaborative engineering.",
-                'education': [
-                    {
-                        'school': 'University / College of Engineering',
-                        'degree': 'Bachelor of Science in Computer Science',
-                        'year': '2023 - 2026',
-                        'gpa': '3.8 / 4.0'
-                    }
-                ],
-                'skills': ['Python', 'Django', 'PostgreSQL', 'JavaScript', 'HTML5/CSS3', 'Git', 'REST APIs'],
-                'projects': user_projects if user_projects else [
-                    {
-                        'title': 'SkillSphere Full-Stack Learning Platform',
-                        'technologies': 'Python, Django, PostgreSQL, Bootstrap 5',
-                        'description': 'Engineered a modular learning and career development web platform featuring automated progress tracking, AI roadmaps, and career readiness analytics.',
-                        'github_url': 'https://github.com/example/skillsphere'
-                    }
-                ],
-                'experience': [
-                    {
-                        'role': 'Software Engineering Intern',
-                        'company': 'Tech Solutions Lab',
-                        'dates': 'Summer 2025',
-                        'description': 'Collaborated with engineering teammates to develop RESTful API endpoints and optimize database query latency by 25%.'
-                    }
-                ],
-                'certifications': user_certifications if user_certifications else ['Python Core & Advanced - SkillSphere Verified'],
+                'summary': f"Dedicated {headline.lower()} with hands-on practice in modern software engineering principles, eager to contribute and build impactful applications.",
+                'education': user_education,
+                'skills': user_skills,
+                'projects': user_projects,
+                'experience': [],  # ZERO fabricated experience
+                'certifications': user_certifications,  # ZERO fabricated certificates
             }
 
             resume = Resume.objects.create(
@@ -91,7 +96,7 @@ def resume_builder_view(request, pk=None):
                 template='ats',
                 is_primary=True,
                 resume_data=prefilled_data,
-                ats_score=78
+                ats_score=75
             )
 
     if request.method == 'POST':

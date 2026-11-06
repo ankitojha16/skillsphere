@@ -30,6 +30,9 @@ class AssistantTests(TestCase):
         ai_msg = conv.messages.filter(role='assistant').first()
         self.assertEqual(user_msg.content, 'Explain Python OOP with examples')
         self.assertIn('Object-Oriented Programming', ai_msg.content)
+        # Verify provider and fallback tracking
+        self.assertTrue(ai_msg.provider)
+        self.assertIsInstance(ai_msg.is_fallback, bool)
 
     def test_delete_conversation(self):
         conv = AIConversation.objects.create(user=self.user, title='To Delete', mode='code')
@@ -37,3 +40,11 @@ class AssistantTests(TestCase):
         response = self.client.post(del_url)
         self.assertEqual(response.status_code, 302)
         self.assertFalse(AIConversation.objects.filter(id=conv.id).exists())
+
+    def test_ai_status_endpoint(self):
+        status_url = reverse('assistant:status')
+        resp = self.client.get(status_url)
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertTrue(data.get('online'))
+        self.assertIn('provider', data)

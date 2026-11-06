@@ -42,3 +42,33 @@ class ProjectsTests(TestCase):
         resp = self.client.post(del_url)
         self.assertEqual(resp.status_code, 302)
         self.assertFalse(ProjectIdea.objects.filter(id=idea.id).exists())
+
+    def test_project_ref_generation_and_status_update(self):
+        idea = ProjectIdea.objects.create(
+            user=self.user,
+            title='AI Research Assistant',
+            category='Machine Learning',
+            difficulty='Advanced',
+            technology_stack='Python, PyTorch',
+            description='Automated literature reviewer',
+            problem_statement='Dense paper reading',
+            objectives='Summarize papers',
+            main_features='PDF parsing',
+            database_requirements='Paper index',
+            development_phases='Weeks 1-4'
+        )
+        # Verify automatic SP-XXXXXXXX reference format
+        self.assertTrue(idea.project_ref.startswith('SP-'))
+        self.assertEqual(len(idea.project_ref), 11)
+
+        # Update status and links via detail_ref view
+        url = reverse('projects:detail_ref', kwargs={'project_ref': idea.project_ref})
+        resp = self.client.post(url, {
+            'status': 'in_progress',
+            'github_url': 'https://github.com/ankitojha16/ai-research-assistant',
+            'demo_url': 'https://ai-research-assistant.vercel.app'
+        })
+        self.assertEqual(resp.status_code, 302)
+        idea.refresh_from_db()
+        self.assertEqual(idea.status, 'in_progress')
+        self.assertEqual(idea.github_url, 'https://github.com/ankitojha16/ai-research-assistant')

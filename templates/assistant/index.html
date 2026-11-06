@@ -65,6 +65,15 @@
                 </div>
 
                 <div class="d-flex align-items-center gap-2">
+                    {% if ai_status.is_live %}
+                    <span class="badge bg-success-subtle text-success border border-success px-2 py-1 small">
+                        <i data-lucide="check-circle-2" style="width: 12px; height: 12px;" class="me-1"></i>{{ ai_status.active_provider }} Connected
+                    </span>
+                    {% else %}
+                    <span class="badge bg-warning-subtle text-warning border border-warning px-2 py-1 small" title="Configure GEMINI_API_KEY or OPENAI_API_KEY in environment for generative cloud models">
+                        <i data-lucide="info" style="width: 12px; height: 12px;" class="me-1"></i>Offline Knowledge Engine
+                    </span>
+                    {% endif %}
                     <a href="{% url 'assistant:new_chat' %}" class="btn btn-secondary-custom btn-sm py-1 px-2 d-md-none">
                         <i data-lucide="plus" style="width: 14px; height: 14px;"></i>
                     </a>
@@ -80,9 +89,16 @@
                             <i data-lucide="sparkles" style="width: 28px; height: 28px;"></i>
                         </div>
                         <h3 class="fw-bold text-white mb-2">SkillSphere AI Study Assistant</h3>
-                        <p class="text-secondary small mb-4">
+                        <p class="text-secondary small mb-3">
                             Ask any computer science concept, debug code errors, request real-world examples, or generate rapid revision cheat sheets.
                         </p>
+                        <div class="mb-4">
+                            {% if ai_status.is_live %}
+                            <span class="badge bg-success px-3 py-1.5"><i data-lucide="zap" style="width: 14px; height: 14px;" class="me-1"></i>Live Cloud AI Active ({{ ai_status.active_provider }})</span>
+                            {% else %}
+                            <span class="badge bg-secondary px-3 py-1.5"><i data-lucide="database" style="width: 14px; height: 14px;" class="me-1"></i>Offline Curated Knowledge Mode Active</span>
+                            {% endif %}
+                        </div>
 
                         <!-- Quick Prompts Grid -->
                         <div class="row g-2 text-start">
@@ -119,8 +135,22 @@
 
                             <div class="p-3 rounded-3 {% if msg.role == 'user' %}bg-primary text-white{% else %}custom-card text-light{% endif %}" 
                                  style="max-width: 80%; {% if msg.role == 'user' %}background: var(--primary-gradient) !important;{% endif %}">
-                                <div class="small text-muted mb-1" style="font-size: 0.7rem; color: {% if msg.role == 'user' %}rgba(255,255,255,0.7){% else %}var(--text-muted){% endif %} !important;">
-                                    {{ msg.role|title }} • {{ msg.created_at|date:"H:i" }}
+                                <div class="d-flex justify-content-between align-items-center mb-1 gap-2">
+                                    <div class="small text-muted" style="font-size: 0.7rem; color: {% if msg.role == 'user' %}rgba(255,255,255,0.7){% else %}var(--text-muted){% endif %} !important;">
+                                        {{ msg.role|title }} • {{ msg.created_at|date:"H:i" }}
+                                    </div>
+                                    {% if msg.role == 'assistant' %}
+                                    <div class="d-flex align-items-center gap-1">
+                                        {% if not msg.is_fallback %}
+                                        <span class="badge bg-purple px-1.5 py-0.5" style="font-size: 0.65rem;"><i data-lucide="sparkles" style="width: 10px; height: 10px;" class="me-1"></i>{{ msg.provider|upper }}</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary px-1.5 py-0.5" style="font-size: 0.65rem;"><i data-lucide="info" style="width: 10px; height: 10px;" class="me-1"></i>Offline Engine</span>
+                                        {% endif %}
+                                        <button type="button" class="btn btn-link text-secondary p-0 ms-1 copy-msg-btn" title="Copy response" onclick="navigator.clipboard.writeText(this.closest('.p-3').querySelector('.message-content').innerText); this.innerHTML='<i data-lucide=\'check\' style=\'width:12px;height:12px;color:#22C55E;\'></i>'; setTimeout(() => { this.innerHTML='<i data-lucide=\'copy\' style=\'width:12px;height:12px;\'></i>'; lucide.createIcons(); }, 1500);">
+                                            <i data-lucide="copy" style="width: 12px; height: 12px;"></i>
+                                        </button>
+                                    </div>
+                                    {% endif %}
                                 </div>
                                 <div class="message-content" style="line-height: 1.7;">
                                     {{ msg.content|linebreaksbr }}

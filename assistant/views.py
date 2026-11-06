@@ -56,18 +56,20 @@ def assistant_view(request, conversation_id=None):
             for m in current_conv.messages.all()[:6]
         ]
 
-        # Call AI Engine
-        ai_response_text = AIService.ask_study_assistant(
+        # Call AI Engine with explicit metadata
+        ai_meta = AIService.ask_study_assistant_with_meta(
             question=question,
             mode=current_conv.mode,
             conversation_history=history
         )
 
-        # Save AI message
+        # Save AI message with provider attribution
         ai_msg = AIMessage.objects.create(
             conversation=current_conv,
             role='assistant',
-            content=ai_response_text
+            content=ai_meta['text'],
+            provider=ai_meta.get('provider', 'offline-knowledge-engine'),
+            is_fallback=ai_meta.get('is_fallback', True)
         )
 
         # Award small curiosity XP
@@ -80,6 +82,9 @@ def assistant_view(request, conversation_id=None):
                 'conversation_title': current_conv.title,
                 'user_message': student_msg.content,
                 'ai_message': ai_msg.content,
+                'provider': ai_msg.provider,
+                'provider_label': ai_meta.get('provider_label', 'SkillSphere Knowledge Engine'),
+                'is_fallback': ai_msg.is_fallback,
                 'mode': current_conv.mode,
                 'created_at': ai_msg.created_at.strftime('%H:%M'),
             })
@@ -87,12 +92,14 @@ def assistant_view(request, conversation_id=None):
         return redirect('assistant:chat_detail', conversation_id=current_conv.id)
 
     chat_messages = current_conv.messages.all()
+    ai_status = AIService.get_ai_status()
 
     return render(request, 'assistant/index.html', {
         'current_conv': current_conv,
         'chat_messages': chat_messages,
         'user_conversations': user_conversations,
         'mode_choices': AIConversation.MODE_CHOICES,
+        'ai_status': ai_status,
     })
 
 
@@ -125,3 +132,9 @@ def clear_all_conversations_view(request):
         count, _ = AIConversation.objects.filter(user=request.user).delete()
         messages.info(request, f"Cleared {count} study session conversations.")
     return redirect('assistant:index')
+
+
+def ai_status_view(request):
+    """Returns real-time status of configured AI providers and knowledge engine."""
+    status_info = AIService.get_ai_status()
+    return JsonResponse(status_info)

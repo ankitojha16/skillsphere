@@ -23,9 +23,15 @@
                     {{ form.full_name }}
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label" for="id_avatar">Update Avatar</label>
+                    <label class="form-label" for="id_avatar">Upload Avatar (Local / Dev)</label>
                     {{ form.avatar }}
                 </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label" for="id_avatar_url_external">External Photo URL <span class="text-secondary small fw-normal">(Recommended for cloud deployment: GitHub, Gravatar, Unsplash, etc.)</span></label>
+                {{ form.avatar_url_external }}
+                <div class="form-text text-secondary small">If provided, this image URL will be used across your public portfolio, dashboard, and comments.</div>
             </div>
 
             <div class="row g-3 mb-4">

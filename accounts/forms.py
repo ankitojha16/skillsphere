@@ -95,10 +95,11 @@ class ProfileSetupForm(forms.ModelForm):
 
     class Meta:
         model = StudentProfile
-        fields = ['full_name', 'avatar', 'education_level', 'institution', 'learning_level', 'career_goal']
+        fields = ['full_name', 'avatar', 'avatar_url_external', 'education_level', 'institution', 'learning_level', 'career_goal']
         widgets = {
             'full_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Full Name'}),
             'avatar': forms.FileInput(attrs={'class': 'form-control'}),
+            'avatar_url_external': forms.URLInput(attrs={'class': 'form-control', 'placeholder': 'https://avatars.githubusercontent.com/u/... or any photo URL'}),
             'education_level': forms.Select(attrs={'class': 'form-select'}),
             'institution': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'College, University, or Self-study'}),
             'learning_level': forms.Select(attrs={'class': 'form-select'}),

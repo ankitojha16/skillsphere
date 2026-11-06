@@ -31,6 +31,7 @@ class StudentProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     full_name = models.CharField(max_length=150, blank=True)
     avatar = models.ImageField(upload_to='avatars/', null=True, blank=True)
+    avatar_url_external = models.URLField(max_length=500, blank=True, help_text='Direct URL to profile photo (e.g. GitHub, Gravatar, Unsplash)')
     education_level = models.CharField(max_length=50, choices=EDUCATION_CHOICES, default='undergraduate')
     institution = models.CharField(max_length=200, blank=True)
     learning_level = models.CharField(max_length=20, choices=LEARNING_LEVEL_CHOICES, default='beginner')
@@ -58,8 +59,13 @@ class StudentProfile(models.Model):
 
     @property
     def avatar_url(self):
+        if self.avatar_url_external:
+            return self.avatar_url_external
         if self.avatar and hasattr(self.avatar, 'url'):
-            return self.avatar.url
+            try:
+                return self.avatar.url
+            except Exception:
+                pass
         # Premium fallback avatar with user initials
         display_name = self.full_name or self.user.username or "Student"
         return f"https://ui-avatars.com/api/?name={display_name.replace(' ', '+')}&background=8B5CF6&color=F8FAFC&bold=true"

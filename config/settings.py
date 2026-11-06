@@ -12,14 +12,21 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Load environment variables from .env if present
 load_dotenv(BASE_DIR / '.env')
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv(
-    'SECRET_KEY',
-    'django-insecure-skillsphere-development-key-phase1-production-ready-2026'
-)
+# Environment Detection
+IS_VERCEL = bool(os.getenv('VERCEL'))
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DEBUG', 'True') == 'True'
+# On Vercel, DEBUG defaults to False unless explicitly overridden
+DEBUG = os.getenv('DEBUG', 'False' if IS_VERCEL else 'True') == 'True'
+
+# SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY = os.getenv('SECRET_KEY')
+if not SECRET_KEY:
+    if not DEBUG or IS_VERCEL:
+        import secrets
+        SECRET_KEY = os.getenv('SECRET_KEY_FALLBACK') or secrets.token_urlsafe(50)
+    else:
+        SECRET_KEY = 'django-insecure-skillsphere-development-key-phase1-production-ready-2026'
 
 ALLOWED_HOSTS = [h.strip() for h in os.getenv('ALLOWED_HOSTS', '127.0.0.1,localhost').split(',') if h.strip()]
 if '.vercel.app' not in ALLOWED_HOSTS:
@@ -232,8 +239,17 @@ LOGIN_URL = 'accounts:login'
 LOGIN_REDIRECT_URL = 'dashboard:index'
 LOGOUT_REDIRECT_URL = 'accounts:login'
 
-# Email settings for development (Password reset prints to console)
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+# Email settings: SMTP when configured via environment, else safe console output
+if os.getenv('EMAIL_HOST'):
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = os.getenv('EMAIL_HOST')
+    EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))
+    EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True') == 'True'
+    EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
+    EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
+    DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'SkillSphere <noreply@skillsphere.app>')
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 # REST Framework settings
 REST_FRAMEWORK = {

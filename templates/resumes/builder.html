@@ -224,7 +224,7 @@
                 <!-- Printable Document Sheet Simulation -->
                 <div class="p-4 rounded-3 text-dark" id="resumePreviewSheet" style="background: #ffffff; min-height: 520px; font-family: 'Helvetica Neue', Arial, sans-serif; box-shadow: 0 8px 24px rgba(0,0,0,0.4);">
                     <div class="border-bottom pb-2 mb-3">
-                        <h2 class="h4 fw-bold mb-0 text-dark" id="preview_name">{{ resume_data.contact.full_name|default:"Alex Mercer" }}</h2>
+                        <h2 class="h4 fw-bold mb-0 text-dark" id="preview_name">{{ resume_data.contact.full_name|default:request.user.get_full_name|default:request.user.username }}</h2>
                         <div class="text-secondary small fw-medium" id="preview_headline">{{ resume_data.contact.headline }}</div>
                         <div class="text-muted small" style="font-size: 0.8rem;" id="preview_contact_line">
                             {{ resume_data.contact.email }} • {{ resume_data.contact.phone }} • {{ resume_data.contact.location }} • {{ resume_data.contact.links }}
@@ -337,7 +337,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const data = getResumeJSON();
         document.getElementById('resumeDataInput').value = JSON.stringify(data);
 
-        document.getElementById('preview_name').innerText = data.contact.full_name || 'Alex Mercer';
+        document.getElementById('preview_name').innerText = data.contact.full_name || 'Student Developer';
         document.getElementById('preview_headline').innerText = data.contact.headline || '';
         document.getElementById('preview_contact_line').innerText = [data.contact.email, data.contact.phone, data.contact.location, data.contact.links].filter(Boolean).join(' • ');
         document.getElementById('preview_summary').innerText = data.summary || '';

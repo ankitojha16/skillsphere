@@ -132,20 +132,47 @@ class PDFService:
         )
 
         styles = getSampleStyleSheet()
-        
+        template_name = getattr(resume, 'template', 'ats')
+
+        # Differentiated color palettes per template
+        if template_name == 'modern':
+            primary_color = colors.HexColor('#4338CA')    # Deep Indigo
+            section_color = colors.HexColor('#6366F1')    # Indigo
+            hr_color = colors.HexColor('#A5B4FC')
+            font_main = 'Helvetica'
+            font_bold = 'Helvetica-Bold'
+        elif template_name == 'fresher':
+            primary_color = colors.HexColor('#065F46')    # Deep Emerald
+            section_color = colors.HexColor('#059669')    # Emerald
+            hr_color = colors.HexColor('#6EE7B7')
+            font_main = 'Helvetica'
+            font_bold = 'Helvetica-Bold'
+        elif template_name == 'minimal':
+            primary_color = colors.HexColor('#18181B')    # Dark Zinc
+            section_color = colors.HexColor('#27272A')
+            hr_color = colors.HexColor('#E4E4E7')
+            font_main = 'Helvetica'
+            font_bold = 'Helvetica-Bold'
+        else: # 'ats'
+            primary_color = colors.HexColor('#0F172A')    # Slate ATS
+            section_color = colors.HexColor('#1E293B')
+            hr_color = colors.HexColor('#CBD5E1')
+            font_main = 'Helvetica'
+            font_bold = 'Helvetica-Bold'
+
         # Custom Clean Styles
         title_style = ParagraphStyle(
             'ResumeName',
             parent=styles['Normal'],
-            fontName='Helvetica-Bold',
-            fontSize=20,
-            leading=24,
-            textColor=colors.HexColor('#0F172A')
+            fontName=font_bold,
+            fontSize=21 if template_name != 'minimal' else 18,
+            leading=25 if template_name != 'minimal' else 22,
+            textColor=primary_color
         )
         headline_style = ParagraphStyle(
             'ResumeHeadline',
             parent=styles['Normal'],
-            fontName='Helvetica',
+            fontName=font_main,
             fontSize=11,
             leading=14,
             textColor=colors.HexColor('#475569')
@@ -153,7 +180,7 @@ class PDFService:
         contact_style = ParagraphStyle(
             'ResumeContact',
             parent=styles['Normal'],
-            fontName='Helvetica',
+            fontName=font_main,
             fontSize=9,
             leading=12,
             textColor=colors.HexColor('#64748B')
@@ -161,17 +188,17 @@ class PDFService:
         section_style = ParagraphStyle(
             'ResumeSection',
             parent=styles['Normal'],
-            fontName='Helvetica-Bold',
-            fontSize=12,
-            leading=16,
-            textColor=colors.HexColor('#1E293B'),
-            spaceBefore=10,
+            fontName=font_bold,
+            fontSize=11.5,
+            leading=15,
+            textColor=section_color,
+            spaceBefore=8,
             spaceAfter=4
         )
         body_style = ParagraphStyle(
             'ResumeBody',
             parent=styles['Normal'],
-            fontName='Helvetica',
+            fontName=font_main,
             fontSize=9.5,
             leading=13,
             textColor=colors.HexColor('#334155')
@@ -179,7 +206,7 @@ class PDFService:
         item_title_style = ParagraphStyle(
             'ResumeItemTitle',
             parent=styles['Normal'],
-            fontName='Helvetica-Bold',
+            fontName=font_bold,
             fontSize=10,
             leading=13,
             textColor=colors.HexColor('#0F172A')
@@ -204,8 +231,8 @@ class PDFService:
         if contact_line_parts:
             elements.append(Paragraph(" • ".join(contact_line_parts), contact_style))
         
-        elements.append(Spacer(1, 6))
-        elements.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#CBD5E1'), spaceAfter=8))
+        elements.append(Spacer(1, 4))
+        elements.append(HRFlowable(width="100%", thickness=1.5 if template_name == 'modern' else 1, color=hr_color, spaceAfter=6))
 
         # 2. Summary
         summary = data.get('summary', '')

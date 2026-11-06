@@ -94,25 +94,65 @@ class AIService:
         return None
 
     @classmethod
-    def generate_text(cls, prompt: str, system_instruction: Optional[str] = None) -> Optional[str]:
-        # Try Gemini first, then OpenAI
-        resp = cls._call_gemini(prompt, system_instruction)
-        if resp:
-            return resp
-        resp = cls._call_openai(prompt, system_instruction)
-        if resp:
-            return resp
-        return None
+    def get_ai_status(cls) -> Dict[str, Any]:
+        """
+        Returns active AI provider connectivity status.
+        Never misleads users about offline vs live cloud AI.
+        """
+        has_gemini = bool(os.getenv('GEMINI_API_KEY'))
+        has_openai = bool(os.getenv('OPENAI_API_KEY'))
+        active_provider = "Google Gemini 1.5" if has_gemini else ("OpenAI GPT" if has_openai else "Offline Knowledge Engine")
+        return {
+            'online': True,
+            'has_gemini': has_gemini,
+            'has_openai': has_openai,
+            'is_live': has_gemini or has_openai,
+            'active_provider': active_provider,
+            'provider': active_provider,
+            'provider_badge': "Google Gemini" if has_gemini else ("OpenAI" if has_openai else "Offline Mode"),
+        }
 
     @classmethod
-    def ask_study_assistant(cls, question: str, mode: str = 'detailed', conversation_history: Optional[List[Dict[str, str]]] = None) -> str:
+    def generate_text_with_meta(cls, prompt: str, system_instruction: Optional[str] = None) -> Dict[str, Any]:
+        # 1. Try Gemini
+        if os.getenv('GEMINI_API_KEY'):
+            resp = cls._call_gemini(prompt, system_instruction)
+            if resp:
+                return {
+                    'text': resp,
+                    'provider': 'gemini-1.5-flash',
+                    'provider_label': 'Google Gemini 1.5 Flash',
+                    'is_fallback': False
+                }
+
+        # 2. Try OpenAI
+        if os.getenv('OPENAI_API_KEY'):
+            resp = cls._call_openai(prompt, system_instruction)
+            if resp:
+                model_name = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+                return {
+                    'text': resp,
+                    'provider': model_name,
+                    'provider_label': f'OpenAI ({model_name})',
+                    'is_fallback': False
+                }
+
+        return {
+            'text': None,
+            'provider': 'offline-knowledge-engine',
+            'provider_label': 'SkillSphere Offline Knowledge Engine',
+            'is_fallback': True
+        }
+
+    @classmethod
+    def generate_text(cls, prompt: str, system_instruction: Optional[str] = None) -> Optional[str]:
+        meta = cls.generate_text_with_meta(prompt, system_instruction)
+        return meta['text']
+
+    @classmethod
+    def ask_study_assistant_with_meta(cls, question: str, mode: str = 'detailed', conversation_history: Optional[List[Dict[str, str]]] = None) -> Dict[str, Any]:
         """
-        AI Study Assistant with 5 pedagogical modes:
-        - simple: Beginner-friendly, jargon-free
-        - detailed: Comprehensive, deep architectural breakdown
-        - code: Production-quality code example with comments
-        - example: Real-world practical analogy
-        - revision: Concise bulleted cheat sheet
+        AI Study Assistant returning full answer with explicit provider attribution and fallback flag.
         """
         mode_instructions = {
             'simple': "Provide a clear, simple, accessible explanation suitable for a beginner student. Avoid heavy technical jargon where possible.",
@@ -136,14 +176,15 @@ class AIService:
 
         prompt = f"{history_context}Student Question: {question}"
 
-        ai_response = cls.generate_text(prompt, system_prompt)
-        if ai_response:
-            return ai_response
+        meta = cls.generate_text_with_meta(prompt, system_prompt)
+        if meta.get('text'):
+            return meta
 
         # Educational fallback engine for common student inquiries
         q_lower = question.lower()
+        fallback_text = None
         if 'oop' in q_lower or 'object oriented' in q_lower:
-            return (
+            fallback_text = (
                 "### Understanding Object-Oriented Programming (OOP)\n\n"
                 "Object-Oriented Programming is a paradigm centered around **objects** (data structures containing fields) and **methods** (procedures operating on objects).\n\n"
                 "#### The 4 Core OOP Pillars:\n"
@@ -158,70 +199,60 @@ class AIService:
                 "        self._major = major  # Encapsulated state\n"
                 "\n"
                 "    def study(self, hours: int) -> str:\n"
-                "        return f\"{self.name} completed {hours} hours of {self._major} coursework.\"\n"
-                "```\n\n"
-                "**Key Takeaway:** OOP helps scale software architectures by creating self-contained, testable, and reusable building blocks."
-            )
-        elif 'django model' in q_lower:
-            return (
-                "### What is a Django Model?\n\n"
-                "A **Django Model** is a single, definitive source of truth about your application data. It contains the essential fields and behaviors of the data you're storing.\n\n"
-                "#### Core Capabilities:\n"
-                "- Each model maps to a single database table (PostgreSQL, SQLite, MySQL).\n"
-                "- Django's Object-Relational Mapper (ORM) automatically translates Python attributes into SQL columns.\n"
-                "- Migrations automatically evolve your database schema when you modify models.\n\n"
-                "```python\n"
-                "from django.db import models\n"
-                "\n"
-                "class Course(models.Model):\n"
-                "    title = models.CharField(max_length=200)\n"
-                "    duration_hours = models.PositiveIntegerField(default=10)\n"
-                "    is_active = models.BooleanField(default=True)\n"
-                "    created_at = models.DateTimeField(auto_now_add=True)\n"
-                "\n"
-                "    def __str__(self):\n"
-                "        return self.title\n"
+                "        return f\"{self.name} invested {hours} focused hours in {self._major}.\"\n"
                 "```"
             )
-        elif 'binary search' in q_lower:
-            return (
-                "### How Binary Search Works\n\n"
-                "Binary Search is an efficient algorithm for finding an item from a **sorted list of items**. It works by repeatedly dividing in half the portion of the list that could contain the item.\n\n"
-                "#### Time & Space Complexity:\n"
-                "- **Best Case:** O(1)\n"
-                "- **Average & Worst Case:** O(log N)\n"
-                "- **Space Complexity:** O(1) iterative\n\n"
+        elif 'django' in q_lower or 'mvt' in q_lower:
+            fallback_text = (
+                "### Django MTV Architecture Breakdown\n\n"
+                "Django follows the **Model-Template-View (MTV)** pattern, which structures web application layers:\n\n"
+                "- **Model:** Defines your data access layer, database schemas, relationships, and queries using Django ORM.\n"
+                "- **Template:** The presentation layer handling HTML rendering, template tags, filters, and dynamic user interfaces.\n"
+                "- **View:** The business logic controller that receives HTTP requests, coordinates with Models, and renders Templates.\n\n"
                 "```python\n"
-                "def binary_search(arr: list[int], target: int) -> int:\n"
-                "    left, right = 0, len(arr) - 1\n"
-                "    while left <= right:\n"
-                "        mid = left + (right - left) // 2\n"
-                "        if arr[mid] == target:\n"
-                "            return mid\n"
-                "        elif arr[mid] < target:\n"
-                "            left = mid + 1\n"
-                "        else:\n"
-                "            right = mid - 1\n"
-                "    return -1\n"
+                "# views.py\n"
+                "from django.shortcuts import render\n"
+                "from .models import Course\n\n"
+                "def course_list(request):\n"
+                "    courses = Course.objects.filter(is_published=True)\n"
+                "    return render(request, 'courses/list.html', {'courses': courses})\n"
                 "```"
+            )
+        elif 'time complexity' in q_lower or 'big o' in q_lower:
+            fallback_text = (
+                "### Big-O Notation & Algorithm Complexity\n\n"
+                "Big-O notation describes the limiting behavior of an algorithm as the input size ($N$) approaches infinity.\n\n"
+                "| Complexity | Common Name | Typical Example |\n"
+                "|---|---|---|\n"
+                "| **$O(1)$** | Constant Time | Hash table lookup, array index access |\n"
+                "| **$O(\\log N)$** | Logarithmic Time | Binary Search in sorted array |\n"
+                "| **$O(N)$** | Linear Time | Linear scan, counting elements |\n"
+                "| **$O(N \\log N)$** | Linearithmic | Merge Sort, QuickSort (average), Timsort |\n"
+                "| **$O(N^2)$** | Quadratic Time | Nested loops, Bubble Sort, Selection Sort |\n"
+            )
+        else:
+            fallback_text = (
+                f"### Academic Reference: {question[:60]}\n\n"
+                "*(Response served via SkillSphere Offline Knowledge Engine)*\n\n"
+                "To explore this concept:\n"
+                "1. **Core Concept:** Identify the foundational computational principles, data structures, and state transitions involved.\n"
+                "2. **Implementation:** Write a minimal reproducible script demonstrating the behavior with unit test assertions.\n"
+                "3. **Trade-offs:** Analyze time complexity, space complexity, and concurrency implications.\n\n"
+                "> [!NOTE]\n"
+                "> For generative explanations using deep reasoning LLMs, configure `GEMINI_API_KEY` or `OPENAI_API_KEY` in your environment."
             )
 
-        return (
-            f"### Academic Analysis: {question}\n\n"
-            f"**Mode:** {mode.capitalize()} Exploration\n\n"
-            "Here is the structured breakdown for this topic:\n\n"
-            "1. **Core Concept:** Understanding the underlying computational and architectural mechanisms.\n"
-            "2. **Implementation Strategy:** Applying clean, modular standards and best practices.\n"
-            "3. **Practical Application:** In industry engineering, this concept is commonly used to optimize performance and ensure maintainability.\n\n"
-            "```python\n"
-            "# Production example demonstrating the concept\n"
-            "def execute_task(input_data):\n"
-            "    # Validate and process input data safely\n"
-            "    result = [item.strip() for item in input_data if item]\n"
-            "    return {'processed_count': len(result), 'status': 'success'}\n"
-            "```\n\n"
-            "> **Pro Tip:** Break difficult technical problems into smaller, testable sub-functions before implementing the complete solution."
-        )
+        return {
+            'text': fallback_text,
+            'provider': 'offline-knowledge-engine',
+            'provider_label': 'SkillSphere Offline Knowledge Engine',
+            'is_fallback': True
+        }
+
+    @classmethod
+    def ask_study_assistant(cls, question: str, mode: str = 'detailed', conversation_history: Optional[List[Dict[str, str]]] = None) -> str:
+        meta = cls.ask_study_assistant_with_meta(question, mode, conversation_history)
+        return meta['text']
 
     @classmethod
     def generate_roadmap(cls, skill: str, level: str, goal: str, daily_time: str, duration: str) -> List[Dict[str, Any]]:

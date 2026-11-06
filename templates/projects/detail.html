@@ -15,13 +15,53 @@
 
     <!-- Main Detail Card -->
     <div class="custom-card card-glowing p-4 p-md-5 mb-4">
-        <div class="d-flex justify-content-between align-items-start mb-3">
-            <span class="badge-category">{{ project.category }}</span>
-            <span class="badge-difficulty {{ project.difficulty|lower }}">{{ project.difficulty }}</span>
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge-category">{{ project.category }}</span>
+                <span class="badge-difficulty {{ project.difficulty|lower }}">{{ project.difficulty }}</span>
+                {% if project.status == 'completed' %}
+                <span class="badge bg-success-subtle text-success border border-success px-2 py-1 small">
+                    <i data-lucide="check-circle" style="width: 12px; height: 12px;" class="me-1"></i>Completed & Deployed
+                </span>
+                {% elif project.status == 'in_progress' %}
+                <span class="badge bg-info-subtle text-info border border-info px-2 py-1 small">
+                    <i data-lucide="clock" style="width: 12px; height: 12px;" class="me-1"></i>In Active Development
+                </span>
+                {% else %}
+                <span class="badge bg-secondary px-2 py-1 small">
+                    <i data-lucide="compass" style="width: 12px; height: 12px;" class="me-1"></i>Planning Phase
+                </span>
+                {% endif %}
+            </div>
+
+            <!-- Public Project Reference with Copy Button -->
+            <div class="d-flex align-items-center gap-2 bg-dark px-2.5 py-1 rounded border border-secondary border-opacity-25">
+                <span class="text-secondary small">REF:</span>
+                <span class="mono fw-bold text-purple small" id="projectRefText">{{ project.project_ref }}</span>
+                <button type="button" class="btn btn-link text-secondary p-0 ms-1" title="Copy Project ID" onclick="navigator.clipboard.writeText('{{ project.project_ref }}'); this.innerHTML='<i data-lucide=\'check\' style=\'width:12px;height:12px;color:#22C55E;\'></i>'; setTimeout(() => { this.innerHTML='<i data-lucide=\'copy\' style=\'width:12px;height:12px;\'></i>'; lucide.createIcons(); }, 1500);">
+                    <i data-lucide="copy" style="width: 12px; height: 12px;"></i>
+                </button>
+            </div>
         </div>
 
         <h2 class="fw-bold text-white mb-2">{{ project.title }}</h2>
-        <p class="text-secondary mb-4">{{ project.description }}</p>
+        <p class="text-secondary mb-3">{{ project.description }}</p>
+
+        <!-- GitHub & Live Demo Links if provided -->
+        {% if project.github_url or project.demo_url %}
+        <div class="d-flex flex-wrap gap-2 mb-4">
+            {% if project.github_url %}
+            <a href="{{ project.github_url }}" target="_blank" rel="noopener" class="btn btn-secondary-custom btn-sm">
+                <i data-lucide="github" style="width: 14px; height: 14px;"></i> GitHub Repository
+            </a>
+            {% endif %}
+            {% if project.demo_url %}
+            <a href="{{ project.demo_url }}" target="_blank" rel="noopener" class="btn btn-outline-info btn-sm">
+                <i data-lucide="external-link" style="width: 14px; height: 14px;"></i> Live Deployment
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
 
         <!-- Tech Stack Banner -->
         <div class="p-3 rounded-3 mb-4" style="background-color: rgba(139, 92, 246, 0.08); border: 1px solid rgba(139, 92, 246, 0.3);">
@@ -65,6 +105,33 @@
             <div class="text-light small p-3 rounded-3" style="background-color: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); white-space: pre-line;">
                 {{ project.development_phases }}
             </div>
+        <!-- Project Development Status & Links Update -->
+        <div class="custom-card p-3 mb-4" style="background-color: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color);">
+            <h6 class="fw-bold text-white mb-2"><i data-lucide="sliders" style="width: 16px; height: 16px;" class="me-2 text-purple"></i>Manage Project Status & Links</h6>
+            <form method="post" class="row g-2 align-items-end">
+                {% csrf_token %}
+                <div class="col-md-4">
+                    <label class="form-label text-secondary small mb-1">Status</label>
+                    <select name="status" class="form-select form-select-sm bg-dark text-white border-secondary">
+                        <option value="planning" {% if project.status == 'planning' %}selected{% endif %}>Planning Phase</option>
+                        <option value="in_progress" {% if project.status == 'in_progress' %}selected{% endif %}>In Active Development</option>
+                        <option value="completed" {% if project.status == 'completed' %}selected{% endif %}>Completed & Deployed</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-secondary small mb-1">GitHub Repo URL</label>
+                    <input type="url" name="github_url" class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="https://github.com/..." value="{{ project.github_url }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-secondary small mb-1">Live Demo URL</label>
+                    <input type="url" name="demo_url" class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="https://..." value="{{ project.demo_url }}">
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary-custom btn-sm w-100">
+                        <i data-lucide="save" style="width: 14px; height: 14px;"></i> Update
+                    </button>
+                </div>
+            </form>
         </div>
 
         <div class="d-flex justify-content-between align-items-center pt-3 border-top" style="border-color: var(--border-color) !important;">
