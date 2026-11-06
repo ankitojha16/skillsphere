@@ -21,6 +21,56 @@
         </a>
     </div>
 
+    <!-- Official Certificate Eligibility Rules Banner -->
+    <div class="custom-card p-4 mb-4 border-purple-glow" style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(6, 182, 212, 0.05) 100%);">
+        <h5 class="text-white fw-bold mb-3 d-flex align-items-center gap-2">
+            <i data-lucide="award" class="text-primary-accent" style="width: 20px; height: 20px;"></i>
+            <span>Certificate Eligibility Standards</span>
+        </h5>
+        <div class="row g-3">
+            <div class="col-md-6 col-lg-3">
+                <div class="p-3 rounded-3 h-100" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <span class="badge bg-purple-subtle text-primary-accent fw-bold rounded-pill">Rule 1</span>
+                        <span class="text-white fw-semibold small">Assessment Unlock</span>
+                    </div>
+                    <div class="h6 fw-bold text-white mb-1">80% Course Progress</div>
+                    <p class="text-secondary small mb-0">Reaching 80% unlocks the Final Quiz and Final Mock Exam. Assessments remain locked below 80%.</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="p-3 rounded-3 h-100" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <span class="badge bg-purple-subtle text-primary-accent fw-bold rounded-pill">Rule 2</span>
+                        <span class="text-white fw-semibold small">Final Course Quiz</span>
+                    </div>
+                    <div class="h6 fw-bold text-white mb-1">Min. 70% Score</div>
+                    <p class="text-secondary small mb-0">Comprehensive evaluation of conceptual knowledge across all modules with detailed answer reviews.</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="p-3 rounded-3 h-100" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <span class="badge bg-purple-subtle text-primary-accent fw-bold rounded-pill">Rule 3</span>
+                        <span class="text-white fw-semibold small">Final Mock Exam</span>
+                    </div>
+                    <div class="h6 fw-bold text-white mb-1">Min. 70% Score</div>
+                    <p class="text-secondary small mb-0">Practical problem-solving examination testing architecture, implementation, and code debugging.</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="p-3 rounded-3 h-100" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <span class="badge bg-success-subtle text-success fw-bold rounded-pill">Rule 4</span>
+                        <span class="text-white fw-semibold small">Certificate Issue</span>
+                    </div>
+                    <div class="h6 fw-bold text-white mb-1">100% Completion</div>
+                    <p class="text-secondary small mb-0">All mandatory lessons + passed quiz + passed mock exam required to generate official certificate.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Ready to Claim Banner / Cards -->
     {% if eligible_courses %}
         <div class="custom-card p-4 mb-5 border-success border-opacity-50" style="background: rgba(34, 197, 94, 0.06);">
@@ -171,17 +221,17 @@
                                 </div>
 
                                 <!-- Exercises if present -->
-                                {% if item.progress.exercise_total > 0 %}
+                                {% if item.progress.exercises_total > 0 %}
                                     <div class="d-flex align-items-center justify-content-between small">
                                         <span class="text-light d-flex align-items-center gap-2">
-                                            {% if item.progress.exercise_completed >= item.progress.exercise_total %}
+                                            {% if item.progress.exercises_completed >= item.progress.exercises_total %}
                                                 <i data-lucide="check-circle" class="text-success" style="width: 16px; height: 16px;"></i>
                                             {% else %}
                                                 <i data-lucide="circle" class="text-muted" style="width: 16px; height: 16px;"></i>
                                             {% endif %}
                                             <span>Practical Coding Exercises</span>
                                         </span>
-                                        <span class="text-secondary">{{ item.progress.exercise_completed }}/{{ item.progress.exercise_total }} Solved</span>
+                                        <span class="text-secondary">{{ item.progress.exercises_completed }}/{{ item.progress.exercises_total }} Solved</span>
                                     </div>
                                 {% endif %}
 
@@ -208,7 +258,7 @@
                                         {% else %}
                                             <i data-lucide="circle" class="text-muted" style="width: 16px; height: 16px;"></i>
                                         {% endif %}
-                                        <span>Final Course Quiz ($\ge 70\%$)</span>
+                                        <span>Final Course Quiz (&ge; 70%)</span>
                                     </span>
                                     <span>
                                         {% if item.progress.quiz_passed %}
@@ -229,7 +279,7 @@
                                         {% else %}
                                             <i data-lucide="circle" class="text-muted" style="width: 16px; height: 16px;"></i>
                                         {% endif %}
-                                        <span>Final Mock Examination ($\ge 70\%$)</span>
+                                        <span>Final Mock Examination (&ge; 70%)</span>
                                     </span>
                                     <span>
                                         {% if item.progress.mock_passed %}
@@ -242,6 +292,20 @@
                                     </span>
                                 </div>
                             </div>
+
+                            {% if item.remaining_reasons %}
+                                <div class="p-2 mb-3 rounded-2" style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2);">
+                                    <div class="text-danger small fw-bold mb-1 d-flex align-items-center gap-1">
+                                        <i data-lucide="alert-circle" style="width: 13px; height: 13px;"></i>
+                                        <span>Pending Requirements:</span>
+                                    </div>
+                                    <ul class="mb-0 ps-3 small text-secondary">
+                                        {% for reason in item.remaining_reasons %}
+                                            <li>{{ reason }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            {% endif %}
 
                             <a href="{% url 'courses:detail' slug=item.course.slug %}" class="btn btn-secondary-custom w-100 py-2 small">
                                 <i data-lucide="play" style="width: 14px; height: 14px;"></i>

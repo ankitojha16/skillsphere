@@ -201,3 +201,52 @@ class LearningTests(TestCase):
         self.assertEqual(data['completed_count'], 1)
         self.assertEqual(data['total_count'], 2)
 
+    def test_unenrolled_api_access_blocked(self):
+        # Ensure that an authenticated student who is NOT enrolled is blocked from learning APIs
+        self.client.force_login(self.unenrolled_user)
+
+        # 1. Video Progress API -> 403
+        resp_video = self.client.post(
+            reverse('learning:video_progress', kwargs={'course_slug': self.course.slug, 'lesson_id': self.lesson1.id}),
+            json.dumps({'position': 10}),
+            content_type='application/json'
+        )
+        self.assertEqual(resp_video.status_code, 403)
+
+        # 2. Bookmark API -> 403
+        resp_bm = self.client.post(
+            reverse('learning:bookmark_toggle', kwargs={'course_slug': self.course.slug, 'lesson_id': self.lesson1.id})
+        )
+        self.assertEqual(resp_bm.status_code, 403)
+
+        # 3. Student Note API -> 403
+        resp_note = self.client.post(
+            reverse('learning:student_note', kwargs={'course_slug': self.course.slug, 'lesson_id': self.lesson1.id}),
+            json.dumps({'notes': 'Hacking notes'}),
+            content_type='application/json'
+        )
+        self.assertEqual(resp_note.status_code, 403)
+
+        # 4. Exercise Submit API -> 403
+        resp_ex = self.client.post(
+            reverse('learning:exercise_submit', kwargs={'course_slug': self.course.slug, 'lesson_id': self.lesson1.id, 'exercise_id': self.exercise1.id}),
+            json.dumps({'code': 'print("Hello")'}),
+            content_type='application/json'
+        )
+        self.assertEqual(resp_ex.status_code, 403)
+
+        # 5. AI Notes Assist API -> 403
+        resp_ai = self.client.post(
+            reverse('learning:ai_notes_assist', kwargs={'course_slug': self.course.slug, 'lesson_id': self.lesson1.id}),
+            json.dumps({'action': 'summarize'}),
+            content_type='application/json'
+        )
+        self.assertEqual(resp_ai.status_code, 403)
+
+        # 6. PDF Download View -> 302 redirect with message
+        resp_pdf = self.client.get(
+            reverse('learning:download_notes_pdf', kwargs={'course_slug': self.course.slug, 'lesson_id': self.lesson1.id})
+        )
+        self.assertEqual(resp_pdf.status_code, 302)
+
+

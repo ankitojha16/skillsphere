@@ -180,17 +180,20 @@ Copy `.env.example` to `.env`:
 ```bash
 cp .env.example .env
 ```
-Default `.env` configuration:
+Template configuration (safe placeholders):
 ```ini
-SECRET_KEY=django-insecure-skillsphere-development-key-phase1-production-ready-2026
+SECRET_KEY=<your-secure-random-secret-key>
 DEBUG=True
 ALLOWED_HOSTS=localhost,127.0.0.1
 
-# Database Configuration (PostgreSQL)
+# Database Configuration (PostgreSQL / Supabase)
+DATABASE_URL=postgresql://<db_user>:<db_password>@<db_host>:5432/<db_name>
+
+# Discrete PostgreSQL Settings:
 DB_ENGINE=django.db.backends.postgresql
-DB_NAME=skillsphere_db
-DB_USER=postgres
-DB_PASSWORD=postgres
+DB_NAME=<db_name>
+DB_USER=<db_user>
+DB_PASSWORD=<db_password>
 DB_HOST=localhost
 DB_PORT=5432
 
@@ -204,8 +207,8 @@ python manage.py makemigrations
 python manage.py migrate
 ```
 
-### 5. Seed Demonstration Content
-Populates courses, lessons, roadmaps, quizzes, interviews, career tracks, portfolios, resumes, verified opportunities, hackathons, and demo community posts:
+### 5. Seed Initial Curriculum
+Populates structured modules, lessons, exercises, assessments, and sample tracks:
 ```bash
 python manage.py seed_data
 ```
@@ -218,58 +221,68 @@ Visit **http://127.0.0.1:8000/** in your browser.
 
 ---
 
-## 🔑 Pre-Seeded Demonstration Account
+## 🔑 Account Access & Administration
 
-You can immediately explore the full experience using the pre-seeded student account:
-- **Email:** `student@skillsphere.edu`
-- **Password:** `Password123!`
-
-Or create a new student account by navigating to `/accounts/signup/`.
+Create your own personalized student account by navigating to `/accounts/signup/`.
+Follow the onboarding flow to set up your profile, institution, skill interests, and career goals.
 
 To access the Django Admin panel:
 ```bash
 python manage.py createsuperuser
 ```
-Then visit **http://127.0.0.1:8000/admin/**.
+Then visit **/admin/** to manage courses, modules, lessons, assessments, certificates, and opportunities.
 
 ---
 
 ## 🧪 Automated Testing
 
-Run the comprehensive automated test suite covering all Phase 1, Phase 2, and Phase 3 modules:
+Run the comprehensive automated test suite covering all authentication, courses, video progress, notes, assessments, certificates, gamification, and security modules:
 
 ```bash
 python manage.py test
 ```
 
-All 66 automated tests run with 0 failures:
+All 90 automated tests run with 0 failures:
 ```
-Found 66 test(s).
+Found 90 test(s).
 Creating test database for alias 'default'...
-..................................................................
+..........................................................................................
 ----------------------------------------------------------------------
-Ran 66 tests in 17.992s
+Ran 90 tests in 22.987s
 
 OK
 ```
 
 ---
 
-## 📦 Production Deployment (Render / Railway / Heroku)
+## 📦 Production Deployment Architecture
 
-SkillSphere includes production configurations ready for deployment:
+SkillSphere is architected for production-grade, highly scalable deployment:
 
-1. **Static Files**: Pre-configured with WhiteNoise:
+1. **Edge Hosting (Vercel Serverless)**:
+   - Python 3.12 WSGI application bundled through `vercel.json`.
+   - Reverse-proxy SSL terminates at edge (`SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')`).
+   - Production URL: `https://skillsphere-cyan.vercel.app`.
+
+2. **Managed Database (Supabase PostgreSQL)**:
+   - High-performance PostgreSQL database connected over SSL via `DATABASE_URL`.
+   - Continuous connection health checks and automatic pooling (`conn_max_age=600`).
+
+3. **Stateless Media & Document Storage**:
+   - In-memory processing for avatars, converting uploaded images into compact Base64 Data URIs persisted directly in database profiles.
+   - Dynamic ReportLab PDF rendering directly to HTTP response byte buffers without relying on ephemeral server disk.
+
+4. **Static Files**:
+   - Optimized WhiteNoise static file caching with gzip/Brotli compression:
    ```bash
    python manage.py collectstatic --noinput
    ```
-2. **WSGI Server**: Gunicorn entry point:
-   ```bash
-   gunicorn config.wsgi:application --bind 0.0.0.0:$PORT
-   ```
-3. **Environment Variables**:
-   Set `DEBUG=False`, `SECRET_KEY=<random-secret>`, and `DATABASE_URL=postgres://...`.
-   When `DEBUG=False`, HTTPS redirect, secure session cookies, CSRF cookies, and HSTS headers are enabled automatically.
+
+5. **Security Hardening**:
+   - Brute-force login rate limiting (5 failed attempts locks for 15 minutes).
+   - Strict password strength validation via Django validators.
+   - HTTPS redirect, HSTS preload (31536000s), secure cookies, and CSRF protection.
+   - Custom dark glassmorphism 400, 403, 404, 500 error handlers.
 
 ---
 

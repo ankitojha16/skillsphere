@@ -1681,6 +1681,151 @@ COURSES_CURRICULUM['cs-fundamentals-os-networks']['modules'][0]['lessons'].exten
 ])
 
 # ==============================================================================
+# MODULE 2 EXPANSIONS FOR SQL, AI, AND DATA SCIENCE
+# ==============================================================================
+COURSES_CURRICULUM['relational-databases-sql-postgresql']['modules'].append({
+    'order': 2,
+    'title': 'High-Performance PostgreSQL & Architecture',
+    'description': 'PostgreSQL internal MVCC, write-ahead logging (WAL), table partitioning, and transaction isolation levels.',
+    'lessons': [
+        {
+            'order': 4,
+            'chapter': 'PostgreSQL Internals',
+            'title': 'PostgreSQL Concurrency, MVCC & WAL Architecture',
+            'minutes': 30,
+            'video_url': 'https://www.youtube.com/embed/fW4oE5xL6h8?enablejsapi=1&rel=0',
+            'video_duration': 900,
+            'content': """<h3>Multi-Version Concurrency Control (MVCC) in PostgreSQL</h3>
+<p>Unlike database engines that lock rows for reading, PostgreSQL employs MVCC: readers never block writers, and writers never block readers.</p>
+<h4>PostgreSQL Transaction Isolation Levels</h4>
+<ul>
+    <li><strong>Read Committed (Default):</strong> Sees only rows committed before the current statement began.</li>
+    <li><strong>Repeatable Read:</strong> Sees only rows committed before the current transaction began; prevents non-repeatable reads.</li>
+    <li><strong>Serializable:</strong> Emulates serial execution, strictly eliminating phantom reads and serialization anomalies.</li>
+</ul>
+<pre><code class="language-sql">-- Setting transaction isolation level
+BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ;
+SELECT balance FROM accounts WHERE user_id = 101;
+-- Perform debit/credit
+UPDATE accounts SET balance = balance - 150 WHERE user_id = 101;
+COMMIT;
+</code></pre>""",
+            'key_takeaways': [
+                "PostgreSQL MVCC assigns 32-bit transaction IDs (xmin/xmax) to each row tuple to manage visibility without read locks.",
+                "VACUUM cleans dead row versions created by updates and deletes, preventing table bloat."
+            ],
+            'common_mistakes': [
+                "Disabling autovacuum in high-write transactional systems.",
+                "Using default Read Committed when financial ledger balances require Repeatable Read or Serializable guarantees."
+            ],
+            'resources': '<a href="https://www.postgresql.org/docs/current/mvcc.html" target="_blank" class="text-primary-accent-light">PostgreSQL Official MVCC Documentation</a>',
+            'exercise': {
+                'title': 'Calculate Net Balance After Transactions',
+                'instructions': 'Write a function `calculate_balance(initial: float, debits: list, credits: list) -> float` returning final balance rounded to 2 decimal places.',
+                'starter_code': "def calculate_balance(initial: float, debits: list, credits: list) -> float:\n    return round(initial + sum(credits) - sum(debits), 2)\n",
+                'expected_output': 'calculate_balance(1000.0, [200.0, 50.0], [300.0]) == 1050.0',
+                'hints': 'Initial + sum of credits - sum of debits.'
+            }
+        }
+    ]
+})
+
+COURSES_CURRICULUM['applied-ai-machine-learning']['modules'].append({
+    'order': 2,
+    'title': 'Deep Learning & Modern AI Architectures',
+    'description': 'Convolutional neural networks, transformer self-attention mechanisms, and production LLM orchestration.',
+    'lessons': [
+        {
+            'order': 4,
+            'chapter': 'Deep Learning Architectures',
+            'title': 'Transformers, Self-Attention & LLM Foundations',
+            'minutes': 35,
+            'video_url': 'https://www.youtube.com/embed/wjZofJX0v4U?enablejsapi=1&rel=0',
+            'video_duration': 960,
+            'content': """<h3>The Transformer Architecture and Self-Attention</h3>
+<p>Modern Large Language Models (LLMs) and vision transformers rely on scaled dot-product self-attention rather than sequential recurrent connections (RNNs/LSTMs).</p>
+<h4>Scaled Dot-Product Attention Formula</h4>
+<pre><code class="language-python"># Scaled Dot-Product Attention: Attention(Q, K, V) = softmax(Q * K^T / sqrt(d_k)) * V
+import numpy as np
+
+def scaled_dot_product_attention(Q, K, V):
+    d_k = Q.shape[-1]
+    scores = np.matmul(Q, K.T) / np.sqrt(d_k)
+    weights = np.exp(scores) / np.sum(np.exp(scores), axis=-1, keepdims=True)
+    return np.matmul(weights, V)
+</code></pre>""",
+            'key_takeaways': [
+                "Self-attention allows parallelization across all sequence positions during training, overcoming RNN sequential bottlenecks.",
+                "Multi-head attention projects Queries, Keys, and Values into multiple representation subspaces."
+            ],
+            'common_mistakes': [
+                "Omitting attention scaling by sqrt(d_k), causing softmax gradients to vanish in high dimensions.",
+                "Confusing encoder self-attention (bidirectional) with causal decoder self-attention (autoregressive)."
+            ],
+            'resources': '<a href="https://arxiv.org/abs/1706.03762" target="_blank" class="text-primary-accent-light">Attention Is All You Need (Vaswani et al.)</a>',
+            'exercise': {
+                'title': 'Softmax Function Implementation',
+                'instructions': 'Write a function `softmax(scores: list) -> list` that converts a list of float logits into normalized probabilities summing to 1.0 (each rounded to 3 decimal places).',
+                'starter_code': "import math\ndef softmax(scores: list) -> list:\n    exp_vals = [math.exp(s) for s in scores]\n    total = sum(exp_vals)\n    return [round(v / total, 3) for v in exp_vals]\n",
+                'expected_output': 'sum(softmax([1.0, 2.0, 3.0])) >= 0.99',
+                'hints': 'Compute exp(s) for each score and divide by the sum of exponentials.'
+            }
+        }
+    ]
+})
+
+COURSES_CURRICULUM['data-science-with-python-pandas']['modules'].append({
+    'order': 2,
+    'title': 'Advanced EDA & Statistical Hypothesis Testing',
+    'description': 'Parametric and non-parametric hypothesis testing, distribution checks, and feature scaling.',
+    'lessons': [
+        {
+            'order': 4,
+            'chapter': 'Statistical Inference',
+            'title': 'Hypothesis Testing, P-Values & Statistical Inference',
+            'minutes': 30,
+            'video_url': 'https://www.youtube.com/embed/0pd36apRe34?enablejsapi=1&rel=0',
+            'video_duration': 840,
+            'content': """<h3>Statistical Hypothesis Testing in Data Science</h3>
+<p>Exploratory data analysis must be backed by rigorous statistical testing before drawing business or engineering conclusions.</p>
+<h4>Two-Sample T-Test & P-Values</h4>
+<pre><code class="language-python"># Comparing treatment vs control conversion rates
+from scipy import stats
+
+t_stat, p_val = stats.ttest_ind(treatment_group, control_group)
+if p_val < 0.05:
+    print(f"Statistically significant difference observed (p={p_val:.4f})")
+else:
+    print(f"Failed to reject null hypothesis (p={p_val:.4f})")
+</code></pre>""",
+            'key_takeaways': [
+                "The p-value is the probability of observing test results at least as extreme as the observed data, assuming the null hypothesis is true.",
+                "Always check normality and homoscedasticity assumptions before applying parametric tests."
+            ],
+            'common_mistakes': [
+                "Interpreting p > 0.05 as proof that the null hypothesis is true (absence of evidence is not evidence of absence).",
+                "P-hacking: running multiple significance tests until one yields p < 0.05 without Bonferroni correction."
+            ],
+            'resources': '<a href="https://docs.scipy.org/doc/scipy/reference/stats.html" target="_blank" class="text-primary-accent-light">SciPy Stats Reference</a>',
+            'exercise': {
+                'title': 'Sample Variance Calculator',
+                'instructions': 'Write a function `sample_variance(nums: list) -> float` returning sample variance rounded to 2 decimal places using N-1 degrees of freedom.',
+                'starter_code': "def sample_variance(nums: list) -> float:\n    if len(nums) < 2:\n        return 0.0\n    mean = sum(nums) / len(nums)\n    return round(sum((x - mean) ** 2 for x in nums) / (len(nums) - 1), 2)\n",
+                'expected_output': 'sample_variance([2, 4, 4, 4, 5, 5, 7, 9]) == 4.57',
+                'hints': 'Compute mean, sum squared deviations, divide by len(nums) - 1.'
+            }
+        }
+    ]
+})
+
+# ==============================================================================
+# ALIAS MAPPINGS FOR DATABASE COURSE SLUGS
+# ==============================================================================
+COURSES_CURRICULUM['applied-data-science-eda'] = COURSES_CURRICULUM['data-science-with-python-pandas']
+COURSES_CURRICULUM['intro-to-ai-and-neural-networks'] = COURSES_CURRICULUM['applied-ai-machine-learning']
+COURSES_CURRICULUM['postgresql-database-mastery'] = COURSES_CURRICULUM['relational-databases-sql-postgresql']
+
+# ==============================================================================
 # VIDEO URL NORMALIZATION: Convert watch?v= and youtu.be to embed/ with jsapi
 # ==============================================================================
 for _course_slug, _cdata in COURSES_CURRICULUM.items():
@@ -1693,3 +1838,4 @@ for _course_slug, _cdata in COURSES_CURRICULUM.items():
             elif 'youtu.be/' in _vurl:
                 _vid = _vurl.split('youtu.be/')[-1].split('?')[0]
                 _les['video_url'] = f'https://www.youtube.com/embed/{_vid}?enablejsapi=1&rel=0'
+

@@ -149,3 +149,48 @@ class CoursesTests(TestCase):
         self.assertEqual(response.context['score'], 1)
         self.assertEqual(response.context['percentage'], 100)
         self.assertTrue(CourseAssessmentAttempt.objects.filter(user=self.user, assessment=self.final_quiz, is_passed=True).exists())
+
+    def test_enrollment_labels_three_states(self):
+        # 1. Logged-out visitor
+        res_list = self.client.get(reverse('courses:list'))
+        self.assertContains(res_list, 'Log in to enroll')
+
+        res_detail = self.client.get(reverse('courses:detail', kwargs={'slug': self.course.slug}))
+        self.assertContains(res_detail, 'Log in to enroll')
+
+        # 2. Logged-in non-enrolled user
+        self.client.force_login(self.user)
+        res_list = self.client.get(reverse('courses:list'))
+        self.assertContains(res_list, 'Enroll')
+        self.assertNotContains(res_list, 'Log in to enroll')
+        self.assertNotContains(res_list, 'Continue learning')
+
+        res_detail = self.client.get(reverse('courses:detail', kwargs={'slug': self.course.slug}))
+        self.assertContains(res_detail, 'Enroll')
+        self.assertNotContains(res_detail, 'Log in to enroll')
+        self.assertNotContains(res_detail, 'Continue learning')
+
+        # 3. Logged-in enrolled user
+        Enrollment.objects.create(user=self.user, course=self.course)
+        res_list = self.client.get(reverse('courses:list'))
+        self.assertContains(res_list, 'Continue learning')
+        self.assertNotContains(res_list, 'Log in to enroll')
+
+        res_detail = self.client.get(reverse('courses:detail', kwargs={'slug': self.course.slug}))
+        self.assertContains(res_detail, 'Continue learning')
+        self.assertNotContains(res_detail, 'Log in to enroll')
+
+    def test_submit_assessment_unauthorized_and_locked(self):
+        # 1. Direct POST when unenrolled
+        self.client.force_login(self.user)
+        submit_url = reverse('courses:submit_assessment', kwargs={'slug': self.course.slug, 'assessment_type': 'final_quiz'})
+        resp_unenrolled = self.client.post(submit_url, {f'question_{self.q1.id}': 'A'})
+        self.assertEqual(resp_unenrolled.status_code, 302)
+        self.assertFalse(CourseAssessmentAttempt.objects.filter(user=self.user, assessment=self.final_quiz).exists())
+
+        # 2. Direct POST when enrolled but progress < 80% (0% progress)
+        Enrollment.objects.create(user=self.user, course=self.course)
+        resp_locked = self.client.post(submit_url, {f'question_{self.q1.id}': 'A'})
+        self.assertEqual(resp_locked.status_code, 302)
+        self.assertFalse(CourseAssessmentAttempt.objects.filter(user=self.user, assessment=self.final_quiz).exists())
+

@@ -180,7 +180,7 @@ def complete_lesson_toggle(request, course_slug, lesson_id):
             reference_id=lesson.id,
             description=f"Completed '{lesson.title}' in {course.title}"
         )
-        award_user_xp(request.user, 25, f"Completed lesson: {lesson.title}")
+        award_user_xp(request.user, 25, f"Completed lesson: {lesson.title}", activity_key=f"lesson_{lesson.id}")
         messages.success(request, f"Great job! Marked '{lesson.title}' as completed.")
     else:
         messages.info(request, f"Marked '{lesson.title}' as incomplete.")
@@ -215,6 +215,9 @@ def video_progress_api(request, course_slug, lesson_id):
         return JsonResponse({'error': 'POST required'}, status=405)
 
     course = get_object_or_404(Course, slug=course_slug)
+    if not Enrollment.objects.filter(user=request.user, course=course).exists():
+        return JsonResponse({'error': 'Enrollment required'}, status=403)
+
     lesson = get_object_or_404(Lesson, id=lesson_id, course=course)
 
     try:
@@ -272,6 +275,9 @@ def bookmark_toggle_api(request, course_slug, lesson_id):
         return JsonResponse({'error': 'POST required'}, status=405)
 
     course = get_object_or_404(Course, slug=course_slug)
+    if not Enrollment.objects.filter(user=request.user, course=course).exists():
+        return JsonResponse({'error': 'Enrollment required'}, status=403)
+
     lesson = get_object_or_404(Lesson, id=lesson_id, course=course)
 
     bookmark = LessonBookmark.objects.filter(user=request.user, lesson=lesson).first()
@@ -288,6 +294,9 @@ def bookmark_toggle_api(request, course_slug, lesson_id):
 @login_required
 def student_note_api(request, course_slug, lesson_id):
     course = get_object_or_404(Course, slug=course_slug)
+    if not Enrollment.objects.filter(user=request.user, course=course).exists():
+        return JsonResponse({'error': 'Enrollment required'}, status=403)
+
     lesson = get_object_or_404(Lesson, id=lesson_id, course=course)
 
     if request.method == 'POST':
@@ -309,6 +318,10 @@ def student_note_api(request, course_slug, lesson_id):
 @login_required
 def download_lesson_notes_pdf_view(request, course_slug, lesson_id):
     course = get_object_or_404(Course, slug=course_slug)
+    if not Enrollment.objects.filter(user=request.user, course=course).exists():
+        messages.warning(request, "Enrollment is required to download course notes.")
+        return redirect('courses:detail', slug=course.slug)
+
     lesson = get_object_or_404(Lesson, id=lesson_id, course=course)
 
     pdf_bytes = PDFService.generate_lesson_notes_pdf(lesson)
@@ -325,6 +338,9 @@ def exercise_submit_api(request, course_slug, lesson_id, exercise_id):
         return JsonResponse({'error': 'POST required'}, status=405)
 
     course = get_object_or_404(Course, slug=course_slug)
+    if not Enrollment.objects.filter(user=request.user, course=course).exists():
+        return JsonResponse({'error': 'Enrollment required'}, status=403)
+
     lesson = get_object_or_404(Lesson, id=lesson_id, course=course)
     exercise = get_object_or_404(Exercise, id=exercise_id, lesson=lesson)
 
@@ -355,7 +371,7 @@ def exercise_submit_api(request, course_slug, lesson_id, exercise_id):
     )
 
     if is_passed:
-        award_user_xp(request.user, 15, f"Completed practical exercise: {exercise.title}")
+        award_user_xp(request.user, 15, f"Completed practical exercise: {exercise.title}", activity_key=f"exercise_{exercise.id}")
 
     # Re-calculate course progress
     prog = course.get_user_progress(request.user)
@@ -375,6 +391,9 @@ def ai_notes_assist_api(request, course_slug, lesson_id):
         return JsonResponse({'error': 'POST required'}, status=405)
 
     course = get_object_or_404(Course, slug=course_slug)
+    if not Enrollment.objects.filter(user=request.user, course=course).exists():
+        return JsonResponse({'error': 'Enrollment required'}, status=403)
+
     lesson = get_object_or_404(Lesson, id=lesson_id, course=course)
 
     try:

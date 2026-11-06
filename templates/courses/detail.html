@@ -54,12 +54,12 @@
                         {% if first_incomplete_lesson %}
                             <a href="{% url 'learning:lesson_detail' course_slug=course.slug lesson_id=first_incomplete_lesson.id %}" class="btn btn-primary-custom py-2 px-4">
                                 <i data-lucide="play" style="width: 18px; height: 18px;"></i>
-                                <span>Continue Learning</span>
+                                <span>Continue learning</span>
                             </a>
                         {% elif lessons.first %}
                             <a href="{% url 'learning:lesson_detail' course_slug=course.slug lesson_id=lessons.first.id %}" class="btn btn-primary-custom py-2 px-4">
                                 <i data-lucide="rotate-ccw" style="width: 18px; height: 18px;"></i>
-                                <span>Review Course</span>
+                                <span>Continue learning</span>
                             </a>
                         {% endif %}
                         <form action="{% url 'courses:unenroll' slug=course.slug %}" method="post" onsubmit="return confirm('Are you sure you want to unenroll? Your saved lesson progress will be removed.');">
@@ -75,12 +75,13 @@
                                 {% csrf_token %}
                                 <button type="submit" class="btn btn-primary-custom py-2 px-4">
                                     <i data-lucide="plus-circle" style="width: 18px; height: 18px;"></i>
-                                    <span>Enroll in Course</span>
+                                    <span>Enroll</span>
                                 </button>
                             </form>
                         {% else %}
                             <a href="{% url 'accounts:login' %}?next={{ request.path }}" class="btn btn-primary-custom py-2 px-4">
-                                <span>Log In to Enroll</span>
+                                <i data-lucide="log-in" style="width: 18px; height: 18px;"></i>
+                                <span>Log in to enroll</span>
                             </a>
                         {% endif %}
                     {% endif %}

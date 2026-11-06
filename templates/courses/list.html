@@ -123,14 +123,22 @@
                                     </div>
                                 </div>
                                 <a href="{% url 'courses:detail' slug=item.course.slug %}" class="btn btn-secondary-custom w-100 justify-content-center py-2">
-                                    <span>Continue Learning</span>
+                                    <span>Continue learning</span>
                                     <i data-lucide="arrow-right" style="width: 16px; height: 16px;"></i>
                                 </a>
-                            {% else %}
-                                <a href="{% url 'courses:detail' slug=item.course.slug %}" class="btn btn-primary-custom w-100 justify-content-center py-2">
-                                    <span>View Course</span>
-                                    <i data-lucide="chevron-right" style="width: 16px; height: 16px;"></i>
+                            {% elif not user.is_authenticated %}
+                                <a href="{% url 'accounts:login' %}?next={% url 'courses:detail' slug=item.course.slug %}" class="btn btn-primary-custom w-100 justify-content-center py-2">
+                                    <span>Log in to enroll</span>
+                                    <i data-lucide="log-in" style="width: 16px; height: 16px;"></i>
                                 </a>
+                            {% else %}
+                                <form action="{% url 'courses:enroll' slug=item.course.slug %}" method="post" class="w-100">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-primary-custom w-100 justify-content-center py-2">
+                                        <span>Enroll</span>
+                                        <i data-lucide="plus-circle" style="width: 16px; height: 16px;"></i>
+                                    </button>
+                                </form>
                             {% endif %}
                         </div>
                     </div>
