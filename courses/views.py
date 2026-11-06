@@ -6,18 +6,30 @@ from django.db.models import Count, Q
 from django.contrib import messages
 from django.http import HttpResponseRedirect
 from django.urls import reverse
+from django.core.cache import cache
 from .models import (
     Course, Category, Enrollment, CourseModule,
     CourseAssessment, CourseAssessmentQuestion,
     CourseAssessmentAttempt, CourseCompletion
 )
-from learning.models import Lesson, LessonProgress
+from learning.models import Lesson, LessonProgress, Exercise
 from goals.models import LearningActivity
 
 def course_list_view(request):
-    categories = Category.objects.annotate(course_count=Count('courses')).filter(courses__is_published=True).distinct()
+    # Tier-1 In-memory cache for public category metadata (15 mins TTL)
+    categories = cache.get('skillsphere_published_categories')
+    if categories is None:
+        categories = list(
+            Category.objects.annotate(course_count=Count('courses', distinct=True))
+            .filter(courses__is_published=True)
+            .distinct()
+        )
+        cache.set('skillsphere_published_categories', categories, 900)
+
+    # Base courses queryset with annotated total_lessons and enrollment_count to eliminate N+1 queries
     courses = Course.objects.filter(is_published=True).select_related('category').annotate(
-        enrollment_count=Count('enrollments', distinct=True)
+        enrollment_count=Count('enrollments', distinct=True),
+        total_lessons=Count('lessons', distinct=True)
     )
 
     # Search filter
@@ -48,26 +60,78 @@ def course_list_view(request):
     else:  # newest
         courses = courses.order_by('-created_at')
 
-    # Prepare enrolled course IDs for current user
+    # Convert queryset to list to reuse evaluated results
+    courses_list = list(courses)
+    total_courses_count = len(courses_list)
+
+    # Prepare enrolled course IDs and batch fetch progress for authenticated user
     user_enrolled_course_ids = set()
     user_progress_map = {}
     if request.user.is_authenticated:
         user_enrolled_course_ids = set(
             Enrollment.objects.filter(user=request.user).values_list('course_id', flat=True)
         )
-        for course in courses:
-            if course.id in user_enrolled_course_ids:
-                user_progress_map[course.id] = course.get_user_progress(request.user)
+        if user_enrolled_course_ids:
+            # Batch fetch completions and lesson progress in 2 fast queries instead of 40+ per-course loops
+            completions = {
+                c.course_id: c
+                for c in CourseCompletion.objects.filter(
+                    user=request.user,
+                    course_id__in=user_enrolled_course_ids
+                )
+            }
+            lesson_progress_counts = dict(
+                LessonProgress.objects.filter(
+                    user=request.user,
+                    is_completed=True,
+                    lesson__course_id__in=user_enrolled_course_ids
+                ).values('lesson__course_id').annotate(cnt=Count('id')).values_list('lesson__course_id', 'cnt')
+            )
+            for c_id in user_enrolled_course_ids:
+                comp = completions.get(c_id)
+                comp_lessons = lesson_progress_counts.get(c_id, 0)
+                if comp:
+                    user_progress_map[c_id] = {
+                        'percentage': comp.learning_progress,
+                        'completed': comp_lessons,
+                        'is_completed': comp.is_completed,
+                    }
+                else:
+                    user_progress_map[c_id] = {
+                        'percentage': 0,
+                        'completed': comp_lessons,
+                        'is_completed': False,
+                    }
 
     courses_data = []
-    for course in courses:
+    for course in courses_list:
         is_enrolled = course.id in user_enrolled_course_ids
-        prog = user_progress_map.get(course.id, {
-            'percentage': 0,
-            'completed': 0,
-            'total': course.total_lessons_count,
-            'is_completed': False
-        })
+        total_lessons = getattr(course, 'total_lessons', None) or course.total_lessons_count
+
+        if is_enrolled and course.id in user_progress_map:
+            cached_prog = user_progress_map[course.id]
+            pct = cached_prog.get('percentage', 0)
+            comp_count = cached_prog.get('completed', 0)
+            is_comp = cached_prog.get('is_completed', False)
+            if comp_count > 0 and total_lessons > 0:
+                calc_pct = min(100, int(round((comp_count / total_lessons) * 100)))
+                pct = max(pct, calc_pct)
+            if pct >= 100 or (comp_count >= total_lessons and total_lessons > 0):
+                pct = 100
+                is_comp = True
+            prog = {
+                'percentage': pct,
+                'completed': comp_count,
+                'total': total_lessons,
+                'is_completed': is_comp,
+            }
+        else:
+            prog = {
+                'percentage': 0,
+                'completed': 0,
+                'total': total_lessons,
+                'is_completed': False
+            }
 
         # Strict 4-State Enrollment Logic:
         # 1. Logged-out -> 'logged_out' ("Log In to Enroll")
@@ -97,26 +161,37 @@ def course_list_view(request):
         'selected_difficulty': selected_difficulty,
         'sort_by': sort_by,
         'q': q,
-        'total_courses_count': courses.count(),
+        'total_courses_count': total_courses_count,
     })
 
 
 def course_detail_view(request, slug):
-    course = get_object_or_404(Course, slug=slug, is_published=True)
-    lessons = course.lessons.all().order_by('lesson_order', 'id')
+    course = get_object_or_404(
+        Course.objects.filter(is_published=True)
+        .select_related('category')
+        .annotate(total_lessons=Count('lessons', distinct=True)),
+        slug=slug
+    )
+    lessons = list(course.lessons.all().order_by('lesson_order', 'id'))
+    modules = list(course.modules.prefetch_related('lessons').order_by('order'))
+    assessments = list(course.course_assessments.filter(is_active=True).order_by('assessment_type'))
+
+    # Pre-calculate lessons with exercises in 1 query to avoid N+1 queries in template
+    lesson_ids_with_exercises = set(
+        Exercise.objects.filter(lesson__course=course).values_list('lesson_id', flat=True)
+    )
+
     is_enrolled = False
     progress_info = {
         'percentage': 0,
         'completed': 0,
-        'total': course.total_lessons_count,
+        'total': getattr(course, 'total_lessons', len(lessons)),
         'is_unlocked': False,
         'is_completed': False,
         'quiz_passed': False,
         'mock_passed': False
     }
     first_incomplete_lesson = None
-    modules = course.modules.prefetch_related('lessons').order_by('order')
-    assessments = course.course_assessments.filter(is_active=True).order_by('assessment_type')
     completed_lesson_ids = set()
 
     if request.user.is_authenticated:
@@ -130,13 +205,13 @@ def course_detail_view(request, slug):
                     is_completed=True
                 ).values_list('lesson_id', flat=True)
             )
-            # Find next incomplete lesson
+            # Find next incomplete lesson from prefetched list
             for lesson in lessons:
                 if lesson.id not in completed_lesson_ids:
                     first_incomplete_lesson = lesson
                     break
-            if not first_incomplete_lesson and lessons.exists():
-                first_incomplete_lesson = lessons.first()
+            if not first_incomplete_lesson and lessons:
+                first_incomplete_lesson = lessons[0]
 
     # Strict 4-State Enrollment Logic:
     if not request.user.is_authenticated:
@@ -148,12 +223,16 @@ def course_detail_view(request, slug):
     else:
         enrollment_state = 'in_progress'
 
+    first_lesson = lessons[0] if lessons else None
+
     return render(request, 'courses/detail.html', {
         'course': course,
         'modules': modules,
         'lessons': lessons,
+        'first_lesson': first_lesson,
         'assessments': assessments,
         'completed_lesson_ids': completed_lesson_ids,
+        'lesson_ids_with_exercises': lesson_ids_with_exercises,
         'is_enrolled': is_enrolled,
         'enrollment_state': enrollment_state,
         'progress_info': progress_info,
@@ -202,48 +281,84 @@ def unenroll_course_view(request, slug):
 
 @login_required
 def my_learning_view(request):
-    enrollments = Enrollment.objects.filter(user=request.user).select_related('course', 'course__category').order_by('-enrolled_at')
-    
+    enrollments = list(
+        Enrollment.objects.filter(user=request.user)
+        .select_related('course', 'course__category')
+        .order_by('-enrolled_at')
+    )
+    total_enrolled = len(enrollments)
     enrolled_items = []
     filter_tab = request.GET.get('tab', 'all')  # all, in_progress, completed
 
-    for enrollment in enrollments:
-        course = enrollment.course
-        progress = course.get_user_progress(request.user)
-        
-        # Find next lesson
-        completed_ids = set(
+    if enrollments:
+        course_ids = [e.course_id for e in enrollments]
+        # Batch completions
+        completions = {
+            c.course_id: c
+            for c in CourseCompletion.objects.filter(user=request.user, course_id__in=course_ids)
+        }
+        # Batch completed lesson IDs
+        completed_lesson_ids = set(
             LessonProgress.objects.filter(
                 user=request.user,
-                lesson__course=course,
-                is_completed=True
+                is_completed=True,
+                lesson__course_id__in=course_ids
             ).values_list('lesson_id', flat=True)
         )
-        next_lesson = course.lessons.exclude(id__in=completed_ids).order_by('lesson_order').first()
-        if not next_lesson:
-            next_lesson = course.lessons.order_by('lesson_order').first()
+        # Batch lessons ordered
+        lessons_by_course = {}
+        for l in Lesson.objects.filter(course_id__in=course_ids).order_by('lesson_order', 'id'):
+            lessons_by_course.setdefault(l.course_id, []).append(l)
 
-        is_completed = progress['total'] > 0 and progress['percentage'] == 100
+        for enrollment in enrollments:
+            course = enrollment.course
+            course_lessons = lessons_by_course.get(course.id, [])
+            total_lessons = len(course_lessons)
+            completed_count = sum(1 for l in course_lessons if l.id in completed_lesson_ids)
 
-        item = {
-            'enrollment': enrollment,
-            'course': course,
-            'progress': progress,
-            'next_lesson': next_lesson,
-            'is_completed': is_completed,
-        }
+            comp = completions.get(course.id)
+            if comp:
+                pct = comp.learning_progress
+                is_completed = comp.is_completed
+            else:
+                pct = min(100, int(round((completed_count / total_lessons) * 100))) if total_lessons > 0 else 0
+                is_completed = (pct == 100)
 
-        if filter_tab == 'completed' and not is_completed:
-            continue
-        elif filter_tab == 'in_progress' and (is_completed or progress['total'] == 0):
-            continue
+            # Find next incomplete lesson
+            next_lesson = None
+            for l in course_lessons:
+                if l.id not in completed_lesson_ids:
+                    next_lesson = l
+                    break
+            if not next_lesson and course_lessons:
+                next_lesson = course_lessons[0]
 
-        enrolled_items.append(item)
+            progress = {
+                'percentage': pct,
+                'completed': completed_count,
+                'total': total_lessons,
+                'is_completed': is_completed,
+            }
+
+            item = {
+                'enrollment': enrollment,
+                'course': course,
+                'progress': progress,
+                'next_lesson': next_lesson,
+                'is_completed': is_completed,
+            }
+
+            if filter_tab == 'completed' and not is_completed:
+                continue
+            elif filter_tab == 'in_progress' and (is_completed or progress['total'] == 0):
+                continue
+
+            enrolled_items.append(item)
 
     return render(request, 'courses/my_learning.html', {
         'enrolled_items': enrolled_items,
         'active_tab': filter_tab,
-        'total_enrolled': enrollments.count(),
+        'total_enrolled': total_enrolled,
     })
 
 

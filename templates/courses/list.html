@@ -109,7 +109,7 @@
                         <div class="pt-2 border-top" style="border-color: var(--border-color) !important;">
                             <div class="d-flex align-items-center justify-content-between mb-2 text-muted small">
                                 <span><i data-lucide="user" class="me-1" style="width: 14px; height: 14px;"></i> {{ item.course.instructor_name }}</span>
-                                <span><i data-lucide="book-open" class="me-1" style="width: 14px; height: 14px;"></i> {{ item.course.total_lessons_count }} lessons</span>
+                                <span><i data-lucide="book-open" class="me-1" style="width: 14px; height: 14px;"></i> {{ item.progress.total|default:item.course.total_lessons_count }} lessons</span>
                             </div>
 
                             {% if item.enrollment_state == 'completed' %}

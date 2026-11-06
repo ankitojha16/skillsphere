@@ -27,9 +27,9 @@
                     <span class="text-muted small d-flex align-items-center gap-1">
                         <i data-lucide="book-open" style="width: 14px; height: 14px;"></i> {{ course.total_lessons_count }} Lessons
                     </span>
-                    {% if modules.exists %}
+                    {% if modules %}
                         <span class="text-muted small d-flex align-items-center gap-1">
-                            <i data-lucide="layers" style="width: 14px; height: 14px;"></i> {{ modules.count }} Modules
+                            <i data-lucide="layers" style="width: 14px; height: 14px;"></i> {{ modules|length }} Modules
                         </span>
                     {% endif %}
                 </div>
@@ -51,8 +51,8 @@
                 <!-- Action CTA -->
                 <div class="d-flex flex-wrap align-items-center gap-3">
                     {% if enrollment_state == 'completed' %}
-                        {% if lessons.first %}
-                            <a href="{% url 'learning:lesson_detail' course_slug=course.slug lesson_id=lessons.first.id %}" class="btn btn-primary-custom py-2 px-4">
+                        {% if first_lesson %}
+                            <a href="{% url 'learning:lesson_detail' course_slug=course.slug lesson_id=first_lesson.id %}" class="btn btn-primary-custom py-2 px-4">
                                 <i data-lucide="check-circle" style="width: 18px; height: 18px;"></i>
                                 <span>Review Course</span>
                             </a>
@@ -70,8 +70,8 @@
                                 <i data-lucide="play" style="width: 18px; height: 18px;"></i>
                                 <span>Continue Learning</span>
                             </a>
-                        {% elif lessons.first %}
-                            <a href="{% url 'learning:lesson_detail' course_slug=course.slug lesson_id=lessons.first.id %}" class="btn btn-primary-custom py-2 px-4">
+                        {% elif first_lesson %}
+                            <a href="{% url 'learning:lesson_detail' course_slug=course.slug lesson_id=first_lesson.id %}" class="btn btn-primary-custom py-2 px-4">
                                 <i data-lucide="play" style="width: 18px; height: 18px;"></i>
                                 <span>Continue Learning</span>
                             </a>
@@ -139,7 +139,7 @@
                 </h4>
                 <p class="text-secondary small mb-4">Modular learning progression with videos, comprehensive study notes, and hands-on coding challenges.</p>
 
-                {% if modules.exists %}
+                {% if modules %}
                     <!-- Render by Modules -->
                     <div class="d-flex flex-column gap-4">
                         {% for module in modules %}
@@ -149,7 +149,7 @@
                                         <span class="badge bg-purple-subtle text-primary-accent fw-bold small rounded-pill px-2 py-1">Module {{ module.order }}</span>
                                         <h5 class="text-white fw-bold mb-0">{{ module.title }}</h5>
                                     </div>
-                                    <span class="text-muted small">{{ module.lessons.count }} Lessons</span>
+                                    <span class="text-muted small">{{ module.lessons.all|length }} Lessons</span>
                                 </div>
                                 {% if module.description %}
                                     <p class="text-secondary small mb-3">{{ module.description }}</p>
@@ -173,7 +173,7 @@
                                                         {% if lesson.video_url %}
                                                             <span class="badge bg-secondary-subtle text-secondary py-0 px-1" style="font-size: 0.7rem;"><i data-lucide="video" style="width: 10px; height: 10px;"></i> Video</span>
                                                         {% endif %}
-                                                        {% if lesson.exercises.exists %}
+                                                        {% if lesson.id in lesson_ids_with_exercises %}
                                                             <span class="badge bg-success-subtle text-success py-0 px-1" style="font-size: 0.7rem;"><i data-lucide="code" style="width: 10px; height: 10px;"></i> Exercise</span>
                                                         {% endif %}
                                                     </div>

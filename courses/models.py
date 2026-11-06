@@ -70,6 +70,8 @@ class Course(models.Model):
     @property
     def total_lessons_count(self):
         """Authoritative single-source count of published lessons for this course."""
+        if hasattr(self, 'total_lessons') and self.total_lessons is not None:
+            return self.total_lessons
         return self.lessons.count()
 
     def get_total_lessons(self):

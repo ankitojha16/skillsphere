@@ -28,14 +28,16 @@ if not SECRET_KEY:
     else:
         SECRET_KEY = 'django-insecure-skillsphere-development-key-phase1-production-ready-2026'
 
-ALLOWED_HOSTS = [h.strip() for h in os.getenv('ALLOWED_HOSTS', '127.0.0.1,localhost').split(',') if h.strip()]
+ALLOWED_HOSTS = [h.strip() for h in os.getenv('ALLOWED_HOSTS', '127.0.0.1,localhost,testserver').split(',') if h.strip()]
+if 'testserver' not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append('testserver')
 if '.vercel.app' not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append('.vercel.app')
 vercel_url = os.getenv('VERCEL_URL')
 if vercel_url and vercel_url not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append(vercel_url)
 if not ALLOWED_HOSTS:
-    ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '*']
+    ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'testserver', '*']
 
 # Application definition
 INSTALLED_APPS = [
@@ -79,6 +81,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'config.middleware.PerformanceMonitoringMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -172,6 +175,18 @@ else:
                 'NAME': BASE_DIR / 'db.sqlite3',
             }
         }
+
+# Cache configuration (In-Memory Tier-1 caching for serverless environments)
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'skillsphere-cache-layer',
+        'TIMEOUT': 600,  # 10 minutes default TTL
+        'OPTIONS': {
+            'MAX_ENTRIES': 2000,
+        }
+    }
+}
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [

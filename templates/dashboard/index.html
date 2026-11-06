@@ -169,7 +169,7 @@
 
                             <div class="d-flex justify-content-between align-items-center pt-1">
                                 <span class="text-muted small">
-                                    {{ item.progress.completed }}/{{ item.course.total_lessons_count }} lessons
+                                    {{ item.progress.completed }}/{{ item.progress.total|default:item.course.total_lessons_count }} lessons
                                     {% if item.progress.exercises_total > 0 %}
                                         • {{ item.progress.exercises_completed }}/{{ item.progress.exercises_total }} challenges
                                     {% endif %}

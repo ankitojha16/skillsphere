@@ -1,5 +1,6 @@
 import io
 import re
+from django.core.cache import cache
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter, A4, landscape
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -15,6 +16,11 @@ class PDFService:
         with SkillSphere ivory/white background, gold double border, official seal,
         and public verification link per Module 9 specifications.
         """
+        cache_key = f"cert_pdf_{getattr(certificate, 'certificate_id', certificate.pk)}"
+        cached = cache.get(cache_key)
+        if cached:
+            return cached
+
         buffer = io.BytesIO()
         width, height = landscape(A4)
         c = canvas.Canvas(buffer, pagesize=landscape(A4))
@@ -133,6 +139,7 @@ class PDFService:
         c.save()
         pdf_data = buffer.getvalue()
         buffer.close()
+        cache.set(cache_key, pdf_data, 86400)
         return pdf_data
 
     @staticmethod
@@ -142,6 +149,11 @@ class PDFService:
         including SkillSphere header, chapter metadata, key concepts, code blocks,
         key takeaways, and common mistakes.
         """
+        cache_key = f"lesson_notes_pdf_{lesson.id}"
+        cached = cache.get(cache_key)
+        if cached:
+            return cached
+
         buffer = io.BytesIO()
         doc = SimpleDocTemplate(
             buffer,
@@ -290,6 +302,7 @@ class PDFService:
         doc.build(elements)
         pdf_data = buffer.getvalue()
         buffer.close()
+        cache.set(cache_key, pdf_data, 86400)
         return pdf_data
 
     @staticmethod

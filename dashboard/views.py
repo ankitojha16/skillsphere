@@ -4,7 +4,7 @@ from django.utils import timezone
 from datetime import timedelta
 import json
 
-from courses.models import Course, Enrollment
+from courses.models import Course, Enrollment, CourseCompletion
 from learning.models import Lesson, LessonProgress
 from goals.models import LearningGoal, LearningActivity
 from gamification.services import get_or_create_gamification
@@ -12,49 +12,89 @@ from roadmaps.models import LearningRoadmap
 from assessments.models import SkillAssessment, AssessmentAttempt
 from projects.models import ProjectIdea
 
+from django.db.models import Count, Avg, Q
+from django.db.models.functions import TruncDate
+
 @login_required
 def dashboard_view(request):
     user = request.user
     profile = getattr(user, 'profile', None)
 
-    # 1. Total Enrolled Courses
-    enrollments = Enrollment.objects.filter(user=user).select_related('course', 'course__category').order_by('-enrolled_at')
-    total_enrolled = enrollments.count()
-    enrolled_course_ids = set(enrollments.values_list('course_id', flat=True))
+    # 1. Total Enrolled Courses (evaluated as list for reuse)
+    enrollments = list(
+        Enrollment.objects.filter(user=user)
+        .select_related('course', 'course__category')
+        .order_by('-enrolled_at')
+    )
+    total_enrolled = len(enrollments)
+    enrolled_course_ids = [e.course_id for e in enrollments]
 
-    # 2. Compute per-course progress & completed courses
+    # 2. Batch compute per-course progress & completed courses in 3 fast queries
     completed_courses_count = 0
     enrolled_courses_data = []
     total_lessons_sum = 0
     completed_lessons_sum = 0
 
-    for enrollment in enrollments:
-        course = enrollment.course
-        progress = course.get_user_progress(user)
-        total_lessons_sum += progress['total']
-        completed_lessons_sum += progress['completed']
-
-        if progress['total'] > 0 and progress['percentage'] == 100:
-            completed_courses_count += 1
-
-        # Next incomplete lesson for this course
-        completed_ids = set(
+    if enrolled_course_ids:
+        completions = {
+            c.course_id: c
+            for c in CourseCompletion.objects.filter(user=user, course_id__in=enrolled_course_ids)
+        }
+        completed_lesson_ids = set(
             LessonProgress.objects.filter(
                 user=user,
-                lesson__course=course,
-                is_completed=True
+                is_completed=True,
+                lesson__course_id__in=enrolled_course_ids
             ).values_list('lesson_id', flat=True)
         )
-        next_lesson = course.lessons.exclude(id__in=completed_ids).order_by('lesson_order').first()
-        if not next_lesson:
-            next_lesson = course.lessons.order_by('lesson_order').first()
+        lessons_by_course = {}
+        for l in Lesson.objects.filter(course_id__in=enrolled_course_ids).order_by('lesson_order', 'id'):
+            lessons_by_course.setdefault(l.course_id, []).append(l)
 
-        enrolled_courses_data.append({
-            'course': course,
-            'progress': progress,
-            'next_lesson': next_lesson,
-            'is_completed': progress['total'] > 0 and progress['percentage'] == 100,
-        })
+        for enrollment in enrollments:
+            course = enrollment.course
+            course_lessons = lessons_by_course.get(course.id, [])
+            total_lessons = len(course_lessons)
+            comp_count = sum(1 for l in course_lessons if l.id in completed_lesson_ids)
+
+            comp = completions.get(course.id)
+            if comp:
+                pct = comp.learning_progress
+                is_completed = comp.is_completed
+            else:
+                pct = min(100, int(round((comp_count / total_lessons) * 100))) if total_lessons > 0 else 0
+                is_completed = (pct == 100 and total_lessons > 0)
+
+            total_lessons_sum += total_lessons
+            completed_lessons_sum += comp_count
+
+            if is_completed:
+                completed_courses_count += 1
+
+            next_lesson = None
+            for l in course_lessons:
+                if l.id not in completed_lesson_ids:
+                    next_lesson = l
+                    break
+            if not next_lesson and course_lessons:
+                next_lesson = course_lessons[0]
+
+            progress = {
+                'percentage': pct,
+                'completed': comp_count,
+                'total': total_lessons,
+                'is_completed': is_completed,
+                'is_unlocked': pct >= 80,
+                'quiz_passed': comp.quiz_passed if comp else False,
+                'mock_passed': comp.mock_passed if comp else False,
+            }
+
+            enrolled_courses_data.append({
+                'course': course,
+                'progress': progress,
+                'next_lesson': next_lesson,
+                'is_completed': is_completed,
+            })
 
     # 3. Completed Lessons total
     total_completed_lessons = LessonProgress.objects.filter(user=user, is_completed=True).count()
@@ -62,28 +102,32 @@ def dashboard_view(request):
     # 4. Overall Progress percentage
     overall_progress = int(round((completed_lessons_sum / total_lessons_sum) * 100)) if total_lessons_sum > 0 else 0
 
-    # 5. Weekly Learning Activity for Chart.js (Last 7 days)
+    # 5. Weekly Learning Activity for Chart.js (Last 7 days in 1 single aggregation query)
     today = timezone.now().date()
+    week_start = today - timedelta(days=6)
+    activity_by_day = dict(
+        LessonProgress.objects.filter(
+            user=user,
+            is_completed=True,
+            completed_at__date__gte=week_start
+        ).annotate(day=TruncDate('completed_at')).values('day').annotate(cnt=Count('id')).values_list('day', 'cnt')
+    )
+
     chart_labels = []
     chart_counts = []
     for i in range(6, -1, -1):
         day = today - timedelta(days=i)
-        day_name = day.strftime('%a')
-        chart_labels.append(day_name)
-        count = LessonProgress.objects.filter(
-            user=user,
-            is_completed=True,
-            completed_at__date=day
-        ).count()
-        chart_counts.append(count)
+        chart_labels.append(day.strftime('%a'))
+        chart_counts.append(activity_by_day.get(day, 0))
 
     # 6. Active and Recent Learning Goals
-    active_goals = LearningGoal.objects.filter(user=user, is_completed=False).order_by('target_date')[:4]
-    completed_goals_count = LearningGoal.objects.filter(user=user, is_completed=True).count()
-    total_goals_count = LearningGoal.objects.filter(user=user).count()
+    goals_qs = list(LearningGoal.objects.filter(user=user).order_by('target_date'))
+    active_goals = [g for g in goals_qs if not g.is_completed][:4]
+    completed_goals_count = sum(1 for g in goals_qs if g.is_completed)
+    total_goals_count = len(goals_qs)
 
     # 7. Recent Activity Feed
-    recent_activities = LearningActivity.objects.filter(user=user).order_by('-created_at')[:8]
+    recent_activities = list(LearningActivity.objects.filter(user=user).order_by('-created_at')[:8])
 
     # 8. Phase 2 Gamification (XP, Level, Streak)
     gamification = get_or_create_gamification(user)
@@ -93,14 +137,11 @@ def dashboard_view(request):
     roadmap_progress = active_roadmap.get_progress() if active_roadmap else {'percentage': 0, 'completed': 0, 'total': 0}
     pending_milestones = []
     if active_roadmap:
-        pending_milestones = active_roadmap.milestones.filter(is_completed=False).order_by('milestone_order')[:3]
+        pending_milestones = list(active_roadmap.milestones.filter(is_completed=False).order_by('milestone_order')[:3])
 
-    # 10. Phase 2 Assessments Stats
-    user_attempts = AssessmentAttempt.objects.filter(user=user)
-    assessment_avg = 0
-    if user_attempts.exists():
-        total_pct = sum(a.percentage for a in user_attempts)
-        assessment_avg = int(round(total_pct / user_attempts.count()))
+    # 10. Phase 2 Assessments Stats (Single Aggregation)
+    assessment_agg = AssessmentAttempt.objects.filter(user=user).aggregate(avg_score=Avg('percentage'))
+    assessment_avg = int(round(assessment_agg['avg_score'])) if assessment_agg['avg_score'] is not None else 0
 
     suggested_assessment = SkillAssessment.objects.filter(is_active=True).first()
     if profile and profile.get_interests_list():
@@ -113,15 +154,16 @@ def dashboard_view(request):
             suggested_assessment = matching_assessment
 
     # 11. Smart Course & Project Recommendations
-    recommended_courses = Course.objects.filter(is_published=True).exclude(id__in=enrolled_course_ids)
+    recommended_courses = Course.objects.filter(is_published=True).select_related('category').exclude(id__in=enrolled_course_ids)
     if profile and profile.get_interests_list():
-        # Match by interests
         interest_names = [i.replace('_', ' ') for i in profile.get_interests_list()]
-        q_courses = Course.objects.none()
+        q_interest = Q()
         for term in interest_names:
-            q_courses = q_courses | Course.objects.filter(is_published=True, title__icontains=term).exclude(id__in=enrolled_course_ids)
-        if q_courses.exists():
-            recommended_courses = q_courses.distinct()
+            q_interest |= Q(title__icontains=term)
+        if q_interest:
+            matched_rec = recommended_courses.filter(q_interest)
+            if matched_rec.exists():
+                recommended_courses = matched_rec
     recommended_courses = list(recommended_courses[:3])
 
     recommended_projects = ProjectIdea.objects.filter(user=user)[:2]
