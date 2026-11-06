@@ -100,7 +100,7 @@ class Command(BaseCommand):
                 'difficulty': 'Beginner',
                 'instructor_name': 'Dr. Elena Vance (Educational Demo)',
                 'instructor_title': 'Senior Software Architect & CS Educator',
-                'estimated_duration': '14 hours',
+                'estimated_duration': '4 hours',
                 'thumbnail_url': 'https://images.unsplash.com/photo-1526379095098-d400fd0bf935?auto=format&fit=crop&w=800&q=80',
                 'description': 'A comprehensive beginner-friendly introduction to Python 3. Learn fundamentals, control structures, functional programming, data manipulation, and Object-Oriented Design patterns.',
                 'short_description': 'Learn core syntax, data structures, and Object-Oriented Programming with Python 3.',
@@ -204,7 +204,7 @@ print("Total:", student.total_completed)
                 'difficulty': 'Intermediate',
                 'instructor_name': 'Marcus Vance (Educational Demo)',
                 'instructor_title': 'Staff Web Engineer',
-                'estimated_duration': '18 hours',
+                'estimated_duration': '4 hours',
                 'thumbnail_url': 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=800&q=80',
                 'description': 'Build industrial-strength full-stack web applications. Learn the Django MVT architecture, ORM queries, authentication, session security, Bootstrap 5 UI styling, and deployment.',
                 'short_description': 'Build secure, scalable full-stack web platforms using Django 4 and Bootstrap 5.',
@@ -257,7 +257,7 @@ courses = Course.objects.filter(
                 'difficulty': 'Intermediate',
                 'instructor_name': 'Prof. Dev Patel (Educational Demo)',
                 'instructor_title': 'Algorithms Researcher',
-                'estimated_duration': '20 hours',
+                'estimated_duration': '4 hours',
                 'thumbnail_url': 'https://images.unsplash.com/photo-1509228468518-180dd4864904?auto=format&fit=crop&w=800&q=80',
                 'description': 'Deep-dive into essential data structures: arrays, hash maps, linked lists, trees, and graphs. Master algorithmic patterns like two pointers, sliding window, DFS, BFS, and dynamic programming.',
                 'short_description': 'Ace technical interviews with asymptotic analysis, trees, graphs, and dynamic programming.',
@@ -292,7 +292,7 @@ courses = Course.objects.filter(
                 'difficulty': 'Intermediate',
                 'instructor_name': 'Sarah Jenkins (Educational Demo)',
                 'instructor_title': 'Principal Database Architect',
-                'estimated_duration': '12 hours',
+                'estimated_duration': '4 hours',
                 'thumbnail_url': 'https://images.unsplash.com/photo-1544383835-bda2bc66a55d?auto=format&fit=crop&w=800&q=80',
                 'description': 'Master PostgreSQL from basic DDL/DML to complex CTEs, window functions, indexing strategies, transactions, and ACID principles.',
                 'short_description': 'Design robust relational schemas and write high-performance SQL queries.',
@@ -318,7 +318,7 @@ courses = Course.objects.filter(
                 'difficulty': 'Beginner',
                 'instructor_name': 'Kavita Rao (Educational Demo)',
                 'instructor_title': 'AI Research Scientist',
-                'estimated_duration': '16 hours',
+                'estimated_duration': '4 hours',
                 'thumbnail_url': 'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?auto=format&fit=crop&w=800&q=80',
                 'description': 'Understand how modern artificial intelligence works. Learn machine learning foundations, supervised vs unsupervised learning, gradient descent, perceptrons, and multi-layer neural networks.',
                 'short_description': 'Demystify machine learning, gradient descent, and deep neural architectures.',
@@ -344,7 +344,7 @@ courses = Course.objects.filter(
                 'difficulty': 'Beginner',
                 'instructor_name': 'Arjun Mehta (Educational Demo)',
                 'instructor_title': 'Head of Data Science',
-                'estimated_duration': '15 hours',
+                'estimated_duration': '4 hours',
                 'thumbnail_url': 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=800&q=80',
                 'description': 'Harness the power of Python data libraries: NumPy, Pandas, Matplotlib, and Seaborn. Clean messy datasets, discover patterns, and present actionable visual insights.',
                 'short_description': 'Clean, analyze, and visualize complex datasets using NumPy, Pandas, and Matplotlib.',
@@ -370,7 +370,7 @@ courses = Course.objects.filter(
                 'difficulty': 'Advanced',
                 'instructor_name': 'Prof. Alan Clark (Educational Demo)',
                 'instructor_title': 'Distinguished CS Professor',
-                'estimated_duration': '18 hours',
+                'estimated_duration': '4 hours',
                 'thumbnail_url': 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=800&q=80',
                 'description': 'The foundational knowledge every software engineer needs: process scheduling, threads, concurrency, TCP/IP networking, and memory hierarchy.',
                 'short_description': 'Deep-dive into operating system internals, TCP/IP networking, and hardware memory.',
@@ -396,7 +396,7 @@ courses = Course.objects.filter(
                 'difficulty': 'Beginner',
                 'instructor_name': 'Rachel Green (Educational Demo)',
                 'instructor_title': 'Engineering Hiring Lead',
-                'estimated_duration': '8 hours',
+                'estimated_duration': '4 hours',
                 'thumbnail_url': 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=800&q=80',
                 'description': 'Turn your skills into career opportunities. Learn how to craft high-impact software engineering resumes, showcase projects in portfolio websites, and master behavioral interview techniques.',
                 'short_description': 'Craft standout portfolios, technical resumes, and master developer interviews.',
@@ -451,8 +451,17 @@ courses = Course.objects.filter(
                 )
 
             # Seed 2.0 Modular Curriculum, Exercises, and Certification Assessments
-            if c_data['slug'] in COURSES_CURRICULUM:
-                curr_info = COURSES_CURRICULUM[c_data['slug']]
+            curr_key = c_data['slug']
+            if curr_key not in COURSES_CURRICULUM:
+                alias_map = {
+                    'applied-data-science-eda': 'data-science-with-python-pandas',
+                    'intro-to-ai-and-neural-networks': 'applied-ai-machine-learning',
+                    'postgresql-database-mastery': 'relational-databases-sql-postgresql',
+                }
+                curr_key = alias_map.get(curr_key, curr_key)
+
+            if curr_key in COURSES_CURRICULUM:
+                curr_info = COURSES_CURRICULUM[curr_key]
 
                 # Modules & Lessons
                 for m_info in curr_info.get('modules', []):
@@ -476,7 +485,7 @@ courses = Course.objects.filter(
                                 'estimated_minutes': l_info.get('minutes', 20),
                                 'video_url': l_info.get('video_url', ''),
                                 'video_duration_seconds': l_info.get('video_duration', 600),
-                                'video_type': 'youtube',
+                                'video_type': 'optional',
                                 'content': l_info['content'].strip(),
                                 'key_takeaways': json.dumps(l_info.get('key_takeaways', [])),
                                 'common_mistakes': json.dumps(l_info.get('common_mistakes', [])),

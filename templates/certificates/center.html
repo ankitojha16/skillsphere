@@ -13,7 +13,7 @@
                     <i data-lucide="shield-check" style="width: 14px; height: 14px;"></i> Credential Center 2.0
                 </span>
             </div>
-            <h1 class="h3 fw-bold text-white mb-1">SkillSphere Official Certificates</h1>
+            <h1 class="h3 fw-bold text-white mb-1">SkillSphere Course Completion Certificates</h1>
             <p class="text-secondary mb-0">Cryptographically verifiable certificates of completion and technical mastery.</p>
         </div>
         <a href="{% url 'courses:list' %}" class="btn btn-secondary-custom">
@@ -21,7 +21,7 @@
         </a>
     </div>
 
-    <!-- Official Certificate Eligibility Rules Banner -->
+    <!-- Course Completion Certificate Eligibility Rules Banner -->
     <div class="custom-card p-4 mb-4 border-purple-glow" style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(6, 182, 212, 0.05) 100%);">
         <h5 class="text-white fw-bold mb-3 d-flex align-items-center gap-2">
             <i data-lucide="award" class="text-primary-accent" style="width: 20px; height: 20px;"></i>
@@ -65,7 +65,7 @@
                         <span class="text-white fw-semibold small">Certificate Issue</span>
                     </div>
                     <div class="h6 fw-bold text-white mb-1">100% Completion</div>
-                    <p class="text-secondary small mb-0">All mandatory lessons + passed quiz + passed mock exam required to generate official certificate.</p>
+                    <p class="text-secondary small mb-0">All mandatory lessons + passed quiz + passed mock exam required to generate completion certificate.</p>
                 </div>
             </div>
         </div>
@@ -118,7 +118,7 @@
                     <div class="custom-card p-4 h-100 d-flex flex-column justify-content-between border-purple-glow position-relative" style="background: linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(139,92,246,0.04) 100%);">
                         <div>
                             <div class="d-flex justify-content-between align-items-start mb-3">
-                                <span class="badge-category"><i data-lucide="award" style="width: 12px; height: 12px;"></i> Official Credential</span>
+                                <span class="badge-category"><i data-lucide="award" style="width: 12px; height: 12px;"></i> Verified Completion Credential</span>
                                 <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25 rounded-pill px-2 py-1 small">
                                     <i data-lucide="check" style="width: 12px; height: 12px;"></i> Verified
                                 </span>
@@ -318,7 +318,7 @@
         </div>
     {% endif %}
 
-    <!-- Official Issuer Notice -->
+    <!-- SkillSphere Issuer Notice -->
     <div class="p-3 rounded-3 text-secondary small" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06);">
         <i data-lucide="info" style="width: 14px; height: 14px;" class="text-primary-accent me-1"></i>
         <strong>Issuance Disclosure:</strong> SkillSphere certificates are verified internal credentials that certify the authentic completion of curriculum coursework, lessons, exercises, and proctored examinations on the SkillSphere platform. Each credential features a tamper-proof verification ID registered in our global verification portal.
@@ -332,7 +332,7 @@
             <div class="modal-header border-secondary border-opacity-25">
                 <h5 class="modal-title fw-bold d-flex align-items-center gap-2" id="claimModalLabel">
                     <i data-lucide="award" class="text-warning" style="width: 20px; height: 20px;"></i>
-                    Claim Official Certificate
+                    Claim Course Completion Certificate
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
@@ -341,7 +341,7 @@
                 <input type="hidden" name="claim_course_id" id="modalCourseId" value="">
                 <div class="modal-body">
                     <p class="text-secondary small mb-3">
-                        Confirm the exact display name to print on your official ivory/gold PDF certificate and public verification registry.
+                        Confirm the exact display name to print on your SkillSphere Course Completion Certificate and public verification registry.
                     </p>
 
                     <div class="mb-3">
@@ -353,7 +353,7 @@
 
                     <!-- Live Certificate Card Preview -->
                     <div class="p-3 rounded-3 text-center my-3" style="background: #FAF9F5; color: #1E293B; border: 2px solid #D97706; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
-                        <div style="font-size: 0.65rem; letter-spacing: 0.15em; color: #B45309; font-weight: bold; text-transform: uppercase;">SkillSphere Academic Credential</div>
+                        <div style="font-size: 0.65rem; letter-spacing: 0.15em; color: #B45309; font-weight: bold; text-transform: uppercase;">SkillSphere Course Completion Credential</div>
                         <h6 class="fw-bold my-1" style="font-family: serif; color: #0F172A;" id="previewCourseTitle">Course Title</h6>
                         <div style="font-size: 0.75rem; color: #64748B;">Awarded to</div>
                         <h5 class="fw-bold text-primary my-1" style="font-family: serif; color: #0F172A;" id="previewStudentName">Student Name</h5>

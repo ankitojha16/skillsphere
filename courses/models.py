@@ -67,8 +67,13 @@ class Course(models.Model):
             return []
         return [line.strip() for line in self.learning_objectives.split('\n') if line.strip()]
 
-    def get_total_lessons(self):
+    @property
+    def total_lessons_count(self):
+        """Authoritative single-source count of published lessons for this course."""
         return self.lessons.count()
+
+    def get_total_lessons(self):
+        return self.total_lessons_count
 
     def get_user_progress(self, user):
         """

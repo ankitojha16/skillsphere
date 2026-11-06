@@ -68,7 +68,7 @@ def certificate_center_view(request):
 
         # Check for existing certificate
         if Certificate.objects.filter(user=request.user, course=course_to_claim).exists():
-            messages.info(request, f"You already hold an official certificate for '{course_to_claim.title}'.")
+            messages.info(request, f"You already hold a SkillSphere Course Completion Certificate for '{course_to_claim.title}'.")
             return redirect('certificates:center')
 
         prog = course_to_claim.get_user_progress(request.user)
@@ -96,11 +96,11 @@ def certificate_center_view(request):
         Notification.objects.create(
             user=request.user,
             title="Certificate Issued! 🎓",
-            message=f"Congratulations, {custom_name}! Your official SkillSphere certificate for '{course_to_claim.title}' has been generated.",
+            message=f"Congratulations, {custom_name}! Your SkillSphere Course Completion Certificate for '{course_to_claim.title}' has been generated.",
             notification_type='certificate_issued',
             link="/certificates/"
         )
-        messages.success(request, f"Official verified certificate for '{course_to_claim.title}' issued to {custom_name}!")
+        messages.success(request, f"SkillSphere Course Completion Certificate for '{course_to_claim.title}' issued to {custom_name}!")
         return redirect('certificates:center')
 
     # Default name suggestion from student profile

@@ -91,7 +91,7 @@ class PDFService:
         c.circle(seal_x, seal_y, 34, fill=True, stroke=False)
         c.setFont("Helvetica-Bold", 8)
         c.setFillColor(colors.HexColor('#B45309'))
-        c.drawCentredString(seal_x, seal_y + 12, "★ OFFICIAL ★")
+        c.drawCentredString(seal_x, seal_y + 12, "★ VERIFIED ★")
         c.setFont("Helvetica-Bold", 10)
         c.drawCentredString(seal_x, seal_y, "VERIFIED")
         c.setFont("Helvetica", 7)

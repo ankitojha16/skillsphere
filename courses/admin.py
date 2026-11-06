@@ -57,7 +57,7 @@ class CourseAdmin(admin.ModelAdmin):
     module_count.short_description = "Modules"
 
     def lesson_count(self, obj):
-        return obj.lessons.count()
+        return obj.total_lessons_count
     lesson_count.short_description = "Lessons"
 
     def completeness_badge(self, obj):

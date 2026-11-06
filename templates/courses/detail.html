@@ -25,7 +25,7 @@
                         <i data-lucide="clock" style="width: 14px; height: 14px;"></i> {{ course.estimated_duration }}
                     </span>
                     <span class="text-muted small d-flex align-items-center gap-1">
-                        <i data-lucide="book-open" style="width: 14px; height: 14px;"></i> {{ lessons.count }} Lessons
+                        <i data-lucide="book-open" style="width: 14px; height: 14px;"></i> {{ course.total_lessons_count }} Lessons
                     </span>
                     {% if modules.exists %}
                         <span class="text-muted small d-flex align-items-center gap-1">
@@ -50,16 +50,11 @@
 
                 <!-- Action CTA -->
                 <div class="d-flex flex-wrap align-items-center gap-3">
-                    {% if is_enrolled %}
-                        {% if first_incomplete_lesson %}
-                            <a href="{% url 'learning:lesson_detail' course_slug=course.slug lesson_id=first_incomplete_lesson.id %}" class="btn btn-primary-custom py-2 px-4">
-                                <i data-lucide="play" style="width: 18px; height: 18px;"></i>
-                                <span>Continue learning</span>
-                            </a>
-                        {% elif lessons.first %}
+                    {% if enrollment_state == 'completed' %}
+                        {% if lessons.first %}
                             <a href="{% url 'learning:lesson_detail' course_slug=course.slug lesson_id=lessons.first.id %}" class="btn btn-primary-custom py-2 px-4">
-                                <i data-lucide="rotate-ccw" style="width: 18px; height: 18px;"></i>
-                                <span>Continue learning</span>
+                                <i data-lucide="check-circle" style="width: 18px; height: 18px;"></i>
+                                <span>Review Course</span>
                             </a>
                         {% endif %}
                         <form action="{% url 'courses:unenroll' slug=course.slug %}" method="post" onsubmit="return confirm('Are you sure you want to unenroll? Your saved lesson progress will be removed.');">
@@ -69,21 +64,38 @@
                                 <span>Unenroll</span>
                             </button>
                         </form>
-                    {% else %}
-                        {% if user.is_authenticated %}
-                            <form action="{% url 'courses:enroll' slug=course.slug %}" method="post">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-primary-custom py-2 px-4">
-                                    <i data-lucide="plus-circle" style="width: 18px; height: 18px;"></i>
-                                    <span>Enroll</span>
-                                </button>
-                            </form>
-                        {% else %}
-                            <a href="{% url 'accounts:login' %}?next={{ request.path }}" class="btn btn-primary-custom py-2 px-4">
-                                <i data-lucide="log-in" style="width: 18px; height: 18px;"></i>
-                                <span>Log in to enroll</span>
+                    {% elif enrollment_state == 'in_progress' %}
+                        {% if first_incomplete_lesson %}
+                            <a href="{% url 'learning:lesson_detail' course_slug=course.slug lesson_id=first_incomplete_lesson.id %}" class="btn btn-primary-custom py-2 px-4">
+                                <i data-lucide="play" style="width: 18px; height: 18px;"></i>
+                                <span>Continue Learning</span>
+                            </a>
+                        {% elif lessons.first %}
+                            <a href="{% url 'learning:lesson_detail' course_slug=course.slug lesson_id=lessons.first.id %}" class="btn btn-primary-custom py-2 px-4">
+                                <i data-lucide="play" style="width: 18px; height: 18px;"></i>
+                                <span>Continue Learning</span>
                             </a>
                         {% endif %}
+                        <form action="{% url 'courses:unenroll' slug=course.slug %}" method="post" onsubmit="return confirm('Are you sure you want to unenroll? Your saved lesson progress will be removed.');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-secondary-custom text-danger border-danger-subtle py-2">
+                                <i data-lucide="user-minus" style="width: 16px; height: 16px;"></i>
+                                <span>Unenroll</span>
+                            </button>
+                        </form>
+                    {% elif enrollment_state == 'logged_out' %}
+                        <a href="{% url 'accounts:login' %}?next={{ request.path }}" class="btn btn-primary-custom py-2 px-4">
+                            <i data-lucide="log-in" style="width: 18px; height: 18px;"></i>
+                            <span>Log In to Enroll</span>
+                        </a>
+                    {% else %}
+                        <form action="{% url 'courses:enroll' slug=course.slug %}" method="post">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-primary-custom py-2 px-4">
+                                <i data-lucide="plus-circle" style="width: 18px; height: 18px;"></i>
+                                <span>Enroll</span>
+                            </button>
+                        </form>
                     {% endif %}
                 </div>
             </div>
@@ -243,7 +255,7 @@
                         </span>
                     {% endif %}
                 </div>
-                <p class="text-secondary small mb-4">Passing both assessments with $\ge 70\%$ unlocks your official verified certificate.</p>
+                <p class="text-secondary small mb-4">Passing both assessments with $\ge 70\%$ unlocks your SkillSphere Course Completion Certificate (requires 80% progress to unlock and 100% completion for issuance).</p>
 
                 <div class="row g-3">
                     <!-- Final Quiz Card -->
@@ -337,9 +349,10 @@
                     <span>Certification Criteria</span>
                 </h5>
                 <ul class="text-secondary small d-flex flex-column gap-2 mb-3" style="padding-left: 1.25rem;">
-                    <li>100% completion of course lessons & practical challenges</li>
-                    <li>Achieving $\ge 70\%$ in Final Course Quiz</li>
-                    <li>Achieving $\ge 70\%$ in Final Mock Examination</li>
+                    <li><strong>80% Course Progress</strong> to unlock final assessments</li>
+                    <li><strong>$\ge 70\%$ in Final Quiz</strong> testing core conceptual mastery</li>
+                    <li><strong>$\ge 70\%$ in Final Mock Test</strong> under timed interview conditions</li>
+                    <li><strong>100% Course Completion</strong> of all lessons & challenges for certificate issuance</li>
                 </ul>
                 <a href="{% url 'certificates:center' %}" class="btn btn-secondary-custom w-100 py-2 small">
                     <i data-lucide="award" style="width: 16px; height: 16px;"></i>

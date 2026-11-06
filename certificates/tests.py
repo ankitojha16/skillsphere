@@ -128,7 +128,7 @@ class CertificateTests(TestCase):
         anon_client = Client()
         response = anon_client.get(reverse('certificates:verify', kwargs={'certificate_id': 'SS-CERT-2026-VERIFY01'}))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Official Verified Credential')
+        self.assertContains(response, 'SkillSphere Course Completion Certificate')
         self.assertContains(response, 'Test Student')
         # Private email is hidden
         self.assertNotContains(response, 'cert@test.com')

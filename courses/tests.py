@@ -150,35 +150,46 @@ class CoursesTests(TestCase):
         self.assertEqual(response.context['percentage'], 100)
         self.assertTrue(CourseAssessmentAttempt.objects.filter(user=self.user, assessment=self.final_quiz, is_passed=True).exists())
 
-    def test_enrollment_labels_three_states(self):
+    def test_enrollment_labels_four_states(self):
         # 1. Logged-out visitor
         res_list = self.client.get(reverse('courses:list'))
-        self.assertContains(res_list, 'Log in to enroll')
+        self.assertContains(res_list, 'Log In to Enroll')
 
         res_detail = self.client.get(reverse('courses:detail', kwargs={'slug': self.course.slug}))
-        self.assertContains(res_detail, 'Log in to enroll')
+        self.assertContains(res_detail, 'Log In to Enroll')
 
         # 2. Logged-in non-enrolled user
         self.client.force_login(self.user)
         res_list = self.client.get(reverse('courses:list'))
         self.assertContains(res_list, 'Enroll')
-        self.assertNotContains(res_list, 'Log in to enroll')
-        self.assertNotContains(res_list, 'Continue learning')
+        self.assertNotContains(res_list, 'Log In to Enroll')
+        self.assertNotContains(res_list, 'Continue Learning')
+        self.assertNotContains(res_list, 'Review Course')
 
         res_detail = self.client.get(reverse('courses:detail', kwargs={'slug': self.course.slug}))
         self.assertContains(res_detail, 'Enroll')
-        self.assertNotContains(res_detail, 'Log in to enroll')
-        self.assertNotContains(res_detail, 'Continue learning')
+        self.assertNotContains(res_detail, 'Log In to Enroll')
+        self.assertNotContains(res_detail, 'Continue Learning')
+        self.assertNotContains(res_detail, 'Review Course')
 
-        # 3. Logged-in enrolled user
-        Enrollment.objects.create(user=self.user, course=self.course)
+        # 3. Logged-in enrolled in-progress user
+        enrollment = Enrollment.objects.create(user=self.user, course=self.course)
+        LessonProgress.objects.create(user=self.user, lesson=self.lesson1, is_completed=True) # 50%
         res_list = self.client.get(reverse('courses:list'))
-        self.assertContains(res_list, 'Continue learning')
-        self.assertNotContains(res_list, 'Log in to enroll')
+        self.assertContains(res_list, 'Continue Learning')
+        self.assertNotContains(res_list, 'Review Course')
 
         res_detail = self.client.get(reverse('courses:detail', kwargs={'slug': self.course.slug}))
-        self.assertContains(res_detail, 'Continue learning')
-        self.assertNotContains(res_detail, 'Log in to enroll')
+        self.assertContains(res_detail, 'Continue Learning')
+        self.assertNotContains(res_detail, 'Review Course')
+
+        # 4. Logged-in enrolled 100% completed user
+        LessonProgress.objects.create(user=self.user, lesson=self.lesson2, is_completed=True) # 100%
+        res_list = self.client.get(reverse('courses:list'))
+        self.assertContains(res_list, 'Review Course')
+
+        res_detail = self.client.get(reverse('courses:detail', kwargs={'slug': self.course.slug}))
+        self.assertContains(res_detail, 'Review Course')
 
     def test_submit_assessment_unauthorized_and_locked(self):
         # 1. Direct POST when unenrolled

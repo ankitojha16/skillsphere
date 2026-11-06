@@ -109,10 +109,24 @@
                         <div class="pt-2 border-top" style="border-color: var(--border-color) !important;">
                             <div class="d-flex align-items-center justify-content-between mb-2 text-muted small">
                                 <span><i data-lucide="user" class="me-1" style="width: 14px; height: 14px;"></i> {{ item.course.instructor_name }}</span>
-                                <span><i data-lucide="book-open" class="me-1" style="width: 14px; height: 14px;"></i> {{ item.course.get_total_lessons }} lessons</span>
+                                <span><i data-lucide="book-open" class="me-1" style="width: 14px; height: 14px;"></i> {{ item.course.total_lessons_count }} lessons</span>
                             </div>
 
-                            {% if item.is_enrolled %}
+                            {% if item.enrollment_state == 'completed' %}
+                                <div class="mb-2">
+                                    <div class="d-flex justify-content-between text-secondary small mb-1">
+                                        <span>Progress</span>
+                                        <span class="fw-bold text-success">100% Completed</span>
+                                    </div>
+                                    <div class="custom-progress">
+                                        <div class="custom-progress-bar bg-success" style="width: 100%;"></div>
+                                    </div>
+                                </div>
+                                <a href="{% url 'courses:detail' slug=item.course.slug %}" class="btn btn-secondary-custom w-100 justify-content-center py-2">
+                                    <span>Review Course</span>
+                                    <i data-lucide="check-circle" style="width: 16px; height: 16px;"></i>
+                                </a>
+                            {% elif item.enrollment_state == 'in_progress' %}
                                 <div class="mb-2">
                                     <div class="d-flex justify-content-between text-secondary small mb-1">
                                         <span>Progress</span>
@@ -123,12 +137,12 @@
                                     </div>
                                 </div>
                                 <a href="{% url 'courses:detail' slug=item.course.slug %}" class="btn btn-secondary-custom w-100 justify-content-center py-2">
-                                    <span>Continue learning</span>
+                                    <span>Continue Learning</span>
                                     <i data-lucide="arrow-right" style="width: 16px; height: 16px;"></i>
                                 </a>
-                            {% elif not user.is_authenticated %}
+                            {% elif item.enrollment_state == 'logged_out' %}
                                 <a href="{% url 'accounts:login' %}?next={% url 'courses:detail' slug=item.course.slug %}" class="btn btn-primary-custom w-100 justify-content-center py-2">
-                                    <span>Log in to enroll</span>
+                                    <span>Log In to Enroll</span>
                                     <i data-lucide="log-in" style="width: 16px; height: 16px;"></i>
                                 </a>
                             {% else %}

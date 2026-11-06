@@ -17,7 +17,7 @@ from goals.models import LearningActivity
 def course_list_view(request):
     categories = Category.objects.annotate(course_count=Count('courses')).filter(courses__is_published=True).distinct()
     courses = Course.objects.filter(is_published=True).select_related('category').annotate(
-        enrollment_count=Count('enrollments')
+        enrollment_count=Count('enrollments', distinct=True)
     )
 
     # Search filter
@@ -61,11 +61,33 @@ def course_list_view(request):
 
     courses_data = []
     for course in courses:
-        prog = user_progress_map.get(course.id, {'percentage': 0, 'completed': 0, 'total': course.lessons.count()})
+        is_enrolled = course.id in user_enrolled_course_ids
+        prog = user_progress_map.get(course.id, {
+            'percentage': 0,
+            'completed': 0,
+            'total': course.total_lessons_count,
+            'is_completed': False
+        })
+
+        # Strict 4-State Enrollment Logic:
+        # 1. Logged-out -> 'logged_out' ("Log In to Enroll")
+        # 2. Logged-in not enrolled -> 'not_enrolled' ("Enroll")
+        # 3. Enrolled 100% complete -> 'completed' ("Review Course")
+        # 4. Enrolled in progress -> 'in_progress' ("Continue Learning")
+        if not request.user.is_authenticated:
+            enrollment_state = 'logged_out'
+        elif not is_enrolled:
+            enrollment_state = 'not_enrolled'
+        elif prog.get('percentage', 0) == 100 or prog.get('is_completed', False):
+            enrollment_state = 'completed'
+        else:
+            enrollment_state = 'in_progress'
+
         courses_data.append({
             'course': course,
-            'is_enrolled': course.id in user_enrolled_course_ids,
+            'is_enrolled': is_enrolled,
             'progress': prog,
+            'enrollment_state': enrollment_state,
         })
 
     return render(request, 'courses/list.html', {
@@ -83,7 +105,15 @@ def course_detail_view(request, slug):
     course = get_object_or_404(Course, slug=slug, is_published=True)
     lessons = course.lessons.all().order_by('lesson_order', 'id')
     is_enrolled = False
-    progress_info = {'percentage': 0, 'completed': 0, 'total': lessons.count(), 'is_unlocked': False, 'is_completed': False, 'quiz_passed': False, 'mock_passed': False}
+    progress_info = {
+        'percentage': 0,
+        'completed': 0,
+        'total': course.total_lessons_count,
+        'is_unlocked': False,
+        'is_completed': False,
+        'quiz_passed': False,
+        'mock_passed': False
+    }
     first_incomplete_lesson = None
     modules = course.modules.prefetch_related('lessons').order_by('order')
     assessments = course.course_assessments.filter(is_active=True).order_by('assessment_type')
@@ -108,6 +138,16 @@ def course_detail_view(request, slug):
             if not first_incomplete_lesson and lessons.exists():
                 first_incomplete_lesson = lessons.first()
 
+    # Strict 4-State Enrollment Logic:
+    if not request.user.is_authenticated:
+        enrollment_state = 'logged_out'
+    elif not is_enrolled:
+        enrollment_state = 'not_enrolled'
+    elif progress_info.get('percentage', 0) == 100 or progress_info.get('is_completed', False):
+        enrollment_state = 'completed'
+    else:
+        enrollment_state = 'in_progress'
+
     return render(request, 'courses/detail.html', {
         'course': course,
         'modules': modules,
@@ -115,6 +155,7 @@ def course_detail_view(request, slug):
         'assessments': assessments,
         'completed_lesson_ids': completed_lesson_ids,
         'is_enrolled': is_enrolled,
+        'enrollment_state': enrollment_state,
         'progress_info': progress_info,
         'first_incomplete_lesson': first_incomplete_lesson,
         'objectives': course.get_objectives_list(),
