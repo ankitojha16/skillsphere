@@ -85,3 +85,34 @@ class AccountsTests(TestCase):
         self.assertEqual(profile.institution, 'Stanford University')
         self.assertIn('python', profile.get_interests_list())
         self.assertIn('ai', profile.get_interests_list())
+
+    def test_profile_setup_with_avatar_upload(self):
+        import io
+        from PIL import Image
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        user = User.objects.create_user(username='avataruser', email='avatar@test.com', password='Password123!')
+        self.client.force_login(user)
+
+        # Create dummy PNG image
+        img = Image.new('RGB', (100, 100), color='purple')
+        img_io = io.BytesIO()
+        img.save(img_io, format='PNG')
+        img_file = SimpleUploadedFile("my_dp.png", img_io.getvalue(), content_type="image/png")
+
+        response = self.client.post(self.profile_setup_url, {
+            'full_name': 'Ankit Kumar',
+            'avatar': img_file,
+            'education_level': 'undergraduate',
+            'institution': 'IIT Delhi',
+            'learning_level': 'intermediate',
+            'selected_interests': ['python', 'dsa'],
+            'career_goal': 'Full-Stack Developer'
+        })
+        self.assertEqual(response.status_code, 302)
+
+        profile = StudentProfile.objects.get(user=user)
+        self.assertEqual(profile.full_name, 'Ankit Kumar')
+        self.assertEqual(profile.institution, 'IIT Delhi')
+        self.assertTrue(profile.avatar_data_uri.startswith('data:image/jpeg;base64,'))
+        self.assertEqual(profile.avatar_url, profile.avatar_data_uri)

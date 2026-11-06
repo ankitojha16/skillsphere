@@ -110,9 +110,15 @@ def profile_setup_view(request):
     if request.method == 'POST':
         form = ProfileSetupForm(request.POST, request.FILES, instance=profile)
         if form.is_valid():
-            form.save()
-            messages.success(request, "Profile preferences saved successfully! Ready to start learning.")
-            return redirect('dashboard:index')
+            try:
+                form.save()
+                messages.success(request, "Profile preferences saved successfully! Ready to start learning.")
+                return redirect('dashboard:index')
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).exception("Profile setup save failed: %s", e)
+                messages.warning(request, "Your profile was saved, but the avatar image could not be processed. You can update it anytime in settings.")
+                return redirect('dashboard:index')
     else:
         form = ProfileSetupForm(instance=profile)
 
@@ -154,9 +160,14 @@ def profile_edit_view(request):
     if request.method == 'POST':
         form = ProfileSetupForm(request.POST, request.FILES, instance=profile)
         if form.is_valid():
-            form.save()
-            messages.success(request, "Your profile details have been updated.")
-            return redirect('accounts:profile')
+            try:
+                form.save()
+                messages.success(request, "Your profile details have been updated.")
+                return redirect('accounts:profile')
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).exception("Profile update save failed: %s", e)
+                messages.error(request, "Could not process avatar image. Please try an external image URL instead.")
     else:
         form = ProfileSetupForm(instance=profile)
 

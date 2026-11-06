@@ -112,9 +112,42 @@ class ProfileSetupForm(forms.ModelForm):
             self.fields['selected_interests'].initial = self.instance.get_interests_list()
 
     def save(self, commit=True):
+        import os
+        import base64
+        import io
+        from django.conf import settings
+
         instance = super().save(commit=False)
         selected = self.cleaned_data.get('selected_interests', [])
         instance.set_interests_list(selected)
+
+        # Safely convert uploaded avatar into optimized base64 Data URI
+        avatar_file = self.cleaned_data.get('avatar')
+        if avatar_file and hasattr(avatar_file, 'read'):
+            try:
+                from PIL import Image
+                avatar_file.seek(0)
+                img = Image.open(avatar_file)
+                if img.mode in ('RGBA', 'P'):
+                    img = img.convert('RGB')
+                img.thumbnail((300, 300), Image.Resampling.LANCZOS)
+                buf = io.BytesIO()
+                img.save(buf, format='JPEG', quality=85, optimize=True)
+                encoded = base64.b64encode(buf.getvalue()).decode('ascii')
+                instance.avatar_data_uri = f"data:image/jpeg;base64,{encoded}"
+            except Exception:
+                try:
+                    avatar_file.seek(0)
+                    encoded = base64.b64encode(avatar_file.read()).decode('ascii')
+                    content_type = getattr(avatar_file, 'content_type', 'image/jpeg')
+                    instance.avatar_data_uri = f"data:{content_type};base64,{encoded}"
+                except Exception:
+                    pass
+
+            # In production or serverless environments, don't write to disk
+            if os.environ.get('VERCEL') or not settings.DEBUG:
+                instance.avatar = None
+
         if commit:
             instance.save()
         return instance

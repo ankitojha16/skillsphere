@@ -32,6 +32,7 @@ class StudentProfile(models.Model):
     full_name = models.CharField(max_length=150, blank=True)
     avatar = models.ImageField(upload_to='avatars/', null=True, blank=True)
     avatar_url_external = models.URLField(max_length=500, blank=True, help_text='Direct URL to profile photo (e.g. GitHub, Gravatar, Unsplash)')
+    avatar_data_uri = models.TextField(blank=True, default='', help_text='Base64 data URI of uploaded avatar for serverless cloud persistence')
     education_level = models.CharField(max_length=50, choices=EDUCATION_CHOICES, default='undergraduate')
     institution = models.CharField(max_length=200, blank=True)
     learning_level = models.CharField(max_length=20, choices=LEARNING_LEVEL_CHOICES, default='beginner')
@@ -59,6 +60,8 @@ class StudentProfile(models.Model):
 
     @property
     def avatar_url(self):
+        if self.avatar_data_uri:
+            return self.avatar_data_uri
         if self.avatar_url_external:
             return self.avatar_url_external
         if self.avatar and hasattr(self.avatar, 'url'):
