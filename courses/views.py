@@ -57,11 +57,24 @@ def course_list_view(request):
         courses = courses.order_by('-enrollment_count', '-created_at')
     elif sort_by == 'title':
         courses = courses.order_by('title')
-    else:  # newest
-        courses = courses.order_by('-created_at')
+    # Check if this is the default unfiltered catalogue for anonymous visitors
+    is_default_catalogue = (
+        not request.user.is_authenticated and
+        not q and
+        (not selected_category or selected_category == 'all') and
+        (not selected_difficulty or selected_difficulty == 'all') and
+        sort_by == 'newest'
+    )
+    if is_default_catalogue:
+        cached_catalogue = cache.get('skillsphere_course_catalogue_base')
+        if cached_catalogue is not None:
+            courses_list = cached_catalogue
+        else:
+            courses_list = list(courses)
+            cache.set('skillsphere_course_catalogue_base', courses_list, 900)
+    else:
+        courses_list = list(courses)
 
-    # Convert queryset to list to reuse evaluated results
-    courses_list = list(courses)
     total_courses_count = len(courses_list)
 
     # Prepare enrolled course IDs and batch fetch progress for authenticated user
@@ -166,26 +179,47 @@ def course_list_view(request):
 
 
 def course_detail_view(request, slug):
-    course = get_object_or_404(
-        Course.objects.filter(is_published=True)
-        .select_related('category')
-        .annotate(total_lessons=Count('lessons', distinct=True)),
-        slug=slug
-    )
-    lessons = list(course.lessons.all().order_by('lesson_order', 'id'))
-    modules = list(course.modules.prefetch_related('lessons').order_by('order'))
-    assessments = list(course.course_assessments.filter(is_active=True).order_by('assessment_type'))
+    syllabus_cache_key = f'skillsphere_course_syllabus_{slug}'
+    syllabus = cache.get(syllabus_cache_key)
+    if not syllabus:
+        course = get_object_or_404(
+            Course.objects.filter(is_published=True)
+            .select_related('category')
+            .annotate(total_lessons=Count('lessons', distinct=True)),
+            slug=slug
+        )
+        lessons = list(course.lessons.all().order_by('lesson_order', 'id'))
+        modules = list(course.modules.prefetch_related('lessons').order_by('order'))
+        assessments = list(course.course_assessments.filter(is_active=True).order_by('assessment_type'))
 
-    # Pre-calculate lessons with exercises in 1 query to avoid N+1 queries in template
-    lesson_ids_with_exercises = set(
-        Exercise.objects.filter(lesson__course=course).values_list('lesson_id', flat=True)
-    )
+        # Pre-calculate lessons with exercises in 1 query to avoid N+1 queries in template
+        lesson_ids_with_exercises = set(
+            Exercise.objects.filter(lesson__course=course).values_list('lesson_id', flat=True)
+        )
+        syllabus = {
+            'course': course,
+            'lessons': lessons,
+            'modules': modules,
+            'assessments': assessments,
+            'lesson_ids_with_exercises': lesson_ids_with_exercises,
+            'total_lessons': getattr(course, 'total_lessons', len(lessons)),
+            'objectives': course.get_objectives_list(),
+        }
+        cache.set(syllabus_cache_key, syllabus, 900)
+
+    course = syllabus['course']
+    lessons = syllabus['lessons']
+    modules = syllabus['modules']
+    assessments = syllabus['assessments']
+    lesson_ids_with_exercises = syllabus['lesson_ids_with_exercises']
+    total_lessons = syllabus['total_lessons']
+    objectives = syllabus['objectives']
 
     is_enrolled = False
     progress_info = {
         'percentage': 0,
         'completed': 0,
-        'total': getattr(course, 'total_lessons', len(lessons)),
+        'total': total_lessons,
         'is_unlocked': False,
         'is_completed': False,
         'quiz_passed': False,

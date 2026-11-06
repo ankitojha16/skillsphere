@@ -29,4 +29,5 @@ media/
 .vercel/
 .vercel
 .env*
+!.env.example
 supabase/.temp/

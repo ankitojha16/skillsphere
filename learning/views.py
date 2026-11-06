@@ -58,8 +58,32 @@ def lesson_view(request, course_slug, lesson_id):
                 next_lesson = all_lessons[idx + 1]
             break
 
-    # Accurate weighted progress
-    progress_info = course.get_user_progress(request.user)
+    # Fast progress lookup using CourseCompletion if present, else in-memory computation
+    from courses.models import CourseCompletion
+    comp = CourseCompletion.objects.filter(user=request.user, course=course).first()
+    tot_cnt = len(all_lessons)
+    comp_cnt = len(completed_lesson_ids)
+    pct = min(100, int(round((comp_cnt / tot_cnt) * 100))) if tot_cnt > 0 else 0
+    if comp:
+        progress_info = {
+            'percentage': comp.learning_progress,
+            'completed': comp_cnt,
+            'total': tot_cnt,
+            'is_unlocked': comp.is_assessment_unlocked,
+            'quiz_passed': comp.quiz_passed,
+            'mock_passed': comp.mock_passed,
+            'is_completed': comp.is_completed,
+        }
+    else:
+        progress_info = {
+            'percentage': pct,
+            'completed': comp_cnt,
+            'total': tot_cnt,
+            'is_unlocked': pct >= 80,
+            'quiz_passed': False,
+            'mock_passed': False,
+            'is_completed': (pct == 100 and tot_cnt > 0),
+        }
 
     # Modules structure (if CourseModule exists, use modules, else fallback to chapter_name)
     course_modules = list(course.modules.filter(is_published=True).prefetch_related('lessons'))
