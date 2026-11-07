@@ -124,16 +124,23 @@ def interview_submit_answer(request, interview_id):
     if not current_q:
         return redirect('interviews:report', interview_id=interview.id)
 
-    user_answer = request.POST.get('user_answer', '').strip()
+    user_answer = request.POST.get('user_answer', '').strip()[:3000]
     if not user_answer:
         messages.error(request, "Please enter your technical explanation before continuing.")
         return redirect('interviews:session', interview_id=interview.id)
 
-    # Evaluate answer using AI Service
+    # Rate limiting
+    allowed, retry_after = AIService.check_rate_limit(request.user.id)
+    if not allowed:
+        messages.error(request, f"Rate limit reached. Please wait {retry_after} seconds before submitting your response.")
+        return redirect('interviews:session', interview_id=interview.id)
+
+    # Evaluate answer using AI Service with user-scoped context
     eval_result = AIService.evaluate_interview_response(
         category=interview.category,
         question=current_q.question_text,
-        user_answer=user_answer
+        user_answer=user_answer,
+        user_id=request.user.id
     )
 
     current_q.user_answer = user_answer

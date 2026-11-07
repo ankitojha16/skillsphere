@@ -73,6 +73,11 @@ class SecurityCacheHeadersMiddleware:
         '/goals/',
         '/notes/',
         '/admin/',
+        '/assistant/',
+        '/resumes/',
+        '/interviews/',
+        '/roadmaps/',
+        '/projects/',
     )
 
     def __init__(self, get_response):

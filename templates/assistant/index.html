@@ -3,6 +3,56 @@
 
 {% block title %}AI Study Assistant - SkillSphere{% endblock %}
 
+{% block extra_css %}
+<style>
+.message-content h1, .message-content h2, .message-content h3, .message-content h4 {
+    color: #f8fafc;
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+}
+.message-content h3 { font-size: 1.1rem; }
+.message-content h4 { font-size: 1.0rem; }
+.message-content pre {
+    background: #090d16;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    padding: 12px 14px;
+    overflow-x: auto;
+    margin: 10px 0;
+}
+.message-content code {
+    color: #38bdf8;
+    font-family: 'Fira Code', 'Courier New', monospace;
+    font-size: 0.88rem;
+}
+.message-content pre code {
+    color: #e2e8f0;
+}
+.message-content table {
+    width: 100%;
+    margin: 10px 0;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+.message-content th, .message-content td {
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    padding: 6px 10px;
+    text-align: left;
+}
+.message-content th {
+    background: rgba(255, 255, 255, 0.05);
+}
+.message-content ul, .message-content ol {
+    padding-left: 20px;
+    margin-bottom: 8px;
+}
+.message-content p {
+    margin-bottom: 8px;
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid p-0">
     <div class="d-flex" style="height: calc(100vh - var(--navbar-height)); overflow: hidden;">
@@ -103,30 +153,40 @@
                         <!-- Quick Prompts Grid -->
                         <div class="row g-2 text-start">
                             <div class="col-sm-6">
-                                <button type="button" class="btn btn-secondary-custom w-100 text-start p-2 text-truncate small quick-prompt" data-text="Explain Python OOP with real-world examples">
-                                    💡 Explain Python OOP with examples
+                                <button type="button" class="btn btn-secondary-custom w-100 text-start p-2 text-truncate small quick-prompt" data-text="Explain Python OOP with practical real-world examples">
+                                    💡 Python OOP Architecture
                                 </button>
                             </div>
                             <div class="col-sm-6">
-                                <button type="button" class="btn btn-secondary-custom w-100 text-start p-2 text-truncate small quick-prompt" data-text="What is a Django model and how does ORM work?">
-                                    🌐 What is a Django model?
+                                <button type="button" class="btn btn-secondary-custom w-100 text-start p-2 text-truncate small quick-prompt" data-text="Explain Big-O Notation and Time Complexity with examples">
+                                    ⚡ Big-O Complexity Breakdown
                                 </button>
                             </div>
                             <div class="col-sm-6">
-                                <button type="button" class="btn btn-secondary-custom w-100 text-start p-2 text-truncate small quick-prompt" data-text="Explain SQL joins with visual syntax">
-                                    📊 Explain SQL joins & syntax
+                                <button type="button" class="btn btn-secondary-custom w-100 text-start p-2 text-truncate small quick-prompt" data-text="How does database indexing work and what are B-Trees?">
+                                    📊 Database Indexing & B-Trees
                                 </button>
                             </div>
                             <div class="col-sm-6">
-                                <button type="button" class="btn btn-secondary-custom w-100 text-start p-2 text-truncate small quick-prompt" data-text="How does binary search work and what is its time complexity?">
-                                    ⚡ How does binary search work?
+                                <button type="button" class="btn btn-secondary-custom w-100 text-start p-2 text-truncate small quick-prompt" data-text="Explain JWT token authentication vs Session authentication">
+                                    🛡️ JWT vs Session Auth
+                                </button>
+                            </div>
+                            <div class="col-sm-6">
+                                <button type="button" class="btn btn-secondary-custom w-100 text-start p-2 text-truncate small quick-prompt" data-text="How do async/await and event loops work under the hood?">
+                                    🔄 Async/Await & Event Loop
+                                </button>
+                            </div>
+                            <div class="col-sm-6">
+                                <button type="button" class="btn btn-secondary-custom w-100 text-start p-2 text-truncate small quick-prompt" data-text="How to design a scalable LRU Cache in Python with O(1) operations?">
+                                    🚀 Design an LRU Cache
                                 </button>
                             </div>
                         </div>
                     </div>
                 {% else %}
                     {% for msg in chat_messages %}
-                        <div class="d-flex gap-3 {% if msg.role == 'user' %}justify-content-end{% endif %}">
+                        <div class="d-flex gap-3 {% if msg.role == 'user' %}justify-content-end{% else %}assistant-bubble{% endif %}">
                             {% if msg.role == 'assistant' %}
                             <div class="stat-icon purple flex-shrink-0" style="width: 36px; height: 36px;">
                                 <i data-lucide="bot" style="width: 18px; height: 18px;"></i>
@@ -146,13 +206,13 @@
                                         {% else %}
                                         <span class="badge bg-secondary px-1.5 py-0.5" style="font-size: 0.65rem;"><i data-lucide="info" style="width: 10px; height: 10px;" class="me-1"></i>Offline Engine</span>
                                         {% endif %}
-                                        <button type="button" class="btn btn-link text-secondary p-0 ms-1 copy-msg-btn" title="Copy response" onclick="navigator.clipboard.writeText(this.closest('.p-3').querySelector('.message-content').innerText); this.innerHTML='<i data-lucide=\'check\' style=\'width:12px;height:12px;color:#22C55E;\'></i>'; setTimeout(() => { this.innerHTML='<i data-lucide=\'copy\' style=\'width:12px;height:12px;\'></i>'; lucide.createIcons(); }, 1500);">
+                                        <button type="button" class="btn btn-link text-secondary p-0 ms-1 copy-msg-btn" title="Copy response">
                                             <i data-lucide="copy" style="width: 12px; height: 12px;"></i>
                                         </button>
                                     </div>
                                     {% endif %}
                                 </div>
-                                <div class="message-content" style="line-height: 1.7;">
+                                <div class="message-content" style="line-height: 1.7;" {% if msg.role == 'assistant' %}data-raw="{{ msg.content|escapejs }}"{% endif %}>
                                     {{ msg.content|linebreaksbr }}
                                 </div>
                             </div>
@@ -207,6 +267,8 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.0/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.9/dist/purify.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const chatStream = document.getElementById('chatStream');
@@ -215,10 +277,46 @@ document.addEventListener('DOMContentLoaded', () => {
     const submitBtn = document.getElementById('submitBtn');
     const loadingIndicator = document.getElementById('loadingIndicator');
 
-    // Auto-scroll to bottom of chat
-    if (chatStream) {
-        chatStream.scrollTop = chatStream.scrollHeight;
+    // Safe Markdown parser with DOMPurify XSS protection
+    function renderSafeMarkdown(rawText) {
+        if (!rawText) return '';
+        let parsed = '';
+        if (typeof marked !== 'undefined') {
+            try {
+                parsed = marked.parse(rawText);
+            } catch(e) {
+                parsed = rawText.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+            }
+        } else {
+            parsed = rawText.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+        }
+
+        if (typeof DOMPurify !== 'undefined') {
+            return DOMPurify.sanitize(parsed, {
+                ALLOWED_TAGS: ['p', 'br', 'strong', 'b', 'em', 'i', 'u', 's', 'code', 'pre', 'blockquote', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'a', 'span', 'hr'],
+                ALLOWED_ATTR: ['href', 'title', 'target', 'class', 'style']
+            });
+        }
+        // Minimal emergency fallback if DOMPurify CDN is unavailable
+        const div = document.createElement('div');
+        div.textContent = parsed;
+        return div.innerHTML;
     }
+
+    // Parse existing markdown messages on page load securely
+    document.querySelectorAll('.assistant-bubble .message-content').forEach(el => {
+        const raw = el.getAttribute('data-raw');
+        if (raw) {
+            el.innerHTML = renderSafeMarkdown(raw);
+        }
+    });
+
+    const scrollToBottom = () => {
+        if (chatStream) {
+            chatStream.scrollTop = chatStream.scrollHeight;
+        }
+    };
+    scrollToBottom();
 
     // Quick prompt buttons
     document.querySelectorAll('.quick-prompt').forEach(btn => {
@@ -231,14 +329,158 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     if (chatForm) {
-        chatForm.addEventListener('submit', () => {
-            if (loadingIndicator) {
-                loadingIndicator.classList.remove('d-none');
-                chatStream.scrollTop = chatStream.scrollHeight;
+        let isSubmitting = false;
+
+        chatForm.addEventListener('submit', async (e) => {
+            const question = questionInput.value.trim();
+            if (!question || isSubmitting) {
+                e.preventDefault();
+                return;
             }
+
+            e.preventDefault();
+            isSubmitting = true;
+
+            // Disable input and show loading
             if (submitBtn) {
                 submitBtn.disabled = true;
                 submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Thinking...';
+            }
+            if (questionInput) questionInput.disabled = true;
+
+            // Remove welcome placeholder if active
+            const welcomeCard = chatStream.querySelector('.my-auto.text-center');
+            if (welcomeCard) welcomeCard.remove();
+
+            // Append user bubble immediately (safely escaped)
+            const userBubble = document.createElement('div');
+            userBubble.className = 'd-flex gap-3 justify-content-end';
+            userBubble.innerHTML = `
+                <div class="p-3 rounded-3 bg-primary text-white" style="max-width: 80%; background: var(--primary-gradient) !important;">
+                    <div class="small text-muted mb-1" style="font-size: 0.7rem; color: rgba(255,255,255,0.7) !important;">You • Just now</div>
+                    <div class="message-content" style="line-height: 1.7;">${question.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+                </div>
+            `;
+            chatStream.appendChild(userBubble);
+
+            // Move loading indicator to bottom and show
+            chatStream.appendChild(loadingIndicator);
+            loadingIndicator.classList.remove('d-none');
+            scrollToBottom();
+
+            const formData = new FormData(chatForm);
+
+            try {
+                const response = await fetch(chatForm.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: formData
+                });
+
+                loadingIndicator.classList.add('d-none');
+
+                if (response.ok) {
+                    const data = await response.json();
+
+                    const aiBubble = document.createElement('div');
+                    aiBubble.className = 'd-flex gap-3 assistant-bubble';
+                    
+                    const badgeHtml = !data.is_fallback
+                        ? `<span class="badge bg-purple px-1.5 py-0.5" style="font-size: 0.65rem;"><i data-lucide="sparkles" style="width: 10px; height: 10px;" class="me-1"></i>${(data.provider || 'GEMINI').toUpperCase()}</span>`
+                        : `<span class="badge bg-secondary px-1.5 py-0.5" style="font-size: 0.65rem;"><i data-lucide="info" style="width: 10px; height: 10px;" class="me-1"></i>Offline Engine</span>`;
+
+                    const sanitizedContent = renderSafeMarkdown(data.ai_message);
+
+                    aiBubble.innerHTML = `
+                        <div class="stat-icon purple flex-shrink-0" style="width: 36px; height: 36px;">
+                            <i data-lucide="bot" style="width: 18px; height: 18px;"></i>
+                        </div>
+                        <div class="p-3 rounded-3 custom-card text-light" style="max-width: 80%;">
+                            <div class="d-flex justify-content-between align-items-center mb-1 gap-2">
+                                <div class="small text-muted" style="font-size: 0.7rem; color: var(--text-muted) !important;">SkillSphere AI • ${data.created_at || 'Just now'}</div>
+                                <div class="d-flex align-items-center gap-1">
+                                    ${badgeHtml}
+                                    <button type="button" class="btn btn-link text-secondary p-0 ms-1 copy-msg-btn" title="Copy response">
+                                        <i data-lucide="copy" style="width: 12px; height: 12px;"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="message-content" style="line-height: 1.7;">${sanitizedContent}</div>
+                        </div>
+                    `;
+
+                    chatStream.appendChild(aiBubble);
+
+                    // Add copy handler to new bubble
+                    const copyBtn = aiBubble.querySelector('.copy-msg-btn');
+                    if (copyBtn) {
+                        copyBtn.addEventListener('click', () => {
+                            navigator.clipboard.writeText(data.ai_message);
+                            copyBtn.innerHTML = '<i data-lucide="check" style="width:12px;height:12px;color:#22C55E;"></i>';
+                            if (typeof lucide !== 'undefined') lucide.createIcons();
+                            setTimeout(() => {
+                                copyBtn.innerHTML = '<i data-lucide="copy" style="width:12px;height:12px;"></i>';
+                                if (typeof lucide !== 'undefined') lucide.createIcons();
+                            }, 1500);
+                        });
+                    }
+
+                    if (typeof lucide !== 'undefined') {
+                        lucide.createIcons();
+                    }
+                    scrollToBottom();
+                } else {
+                    let errorMsg = 'An error occurred while generating the response. Please try again.';
+                    try {
+                        const errData = await response.json();
+                        if (errData && errData.error) errorMsg = errData.error;
+                    } catch(parseErr) {}
+
+                    const errorBubble = document.createElement('div');
+                    errorBubble.className = 'd-flex gap-3 assistant-bubble';
+                    errorBubble.innerHTML = `
+                        <div class="stat-icon purple flex-shrink-0" style="width: 36px; height: 36px; background: rgba(239, 68, 68, 0.15); color: #EF4444;">
+                            <i data-lucide="alert-circle" style="width: 18px; height: 18px;"></i>
+                        </div>
+                        <div class="p-3 rounded-3 custom-card text-light border border-danger-subtle" style="max-width: 80%;">
+                            <div class="small text-danger mb-1 font-monospace">System Notification</div>
+                            <div class="message-content text-danger-emphasis">${errorMsg.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+                        </div>
+                    `;
+                    chatStream.appendChild(errorBubble);
+                    if (typeof lucide !== 'undefined') lucide.createIcons();
+                    scrollToBottom();
+                }
+            } catch (err) {
+                console.error(err);
+                const errorBubble = document.createElement('div');
+                errorBubble.className = 'd-flex gap-3 assistant-bubble';
+                errorBubble.innerHTML = `
+                    <div class="stat-icon purple flex-shrink-0" style="width: 36px; height: 36px; background: rgba(239, 68, 68, 0.15); color: #EF4444;">
+                        <i data-lucide="alert-circle" style="width: 18px; height: 18px;"></i>
+                    </div>
+                    <div class="p-3 rounded-3 custom-card text-light border border-danger-subtle" style="max-width: 80%;">
+                        <div class="small text-danger mb-1 font-monospace">Connection Notice</div>
+                        <div class="message-content text-secondary">Network request could not be completed. Please check your connection and retry.</div>
+                    </div>
+                `;
+                chatStream.appendChild(errorBubble);
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+                scrollToBottom();
+            } finally {
+                isSubmitting = false;
+                if (questionInput) {
+                    questionInput.disabled = false;
+                    questionInput.value = '';
+                    questionInput.focus();
+                }
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i data-lucide="send" style="width: 16px; height: 16px;"></i><span class="d-none d-sm-inline">Ask AI</span>';
+                    if (typeof lucide !== 'undefined') lucide.createIcons();
+                }
             }
         });
     }

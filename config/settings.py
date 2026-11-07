@@ -9,7 +9,8 @@ from dotenv import load_dotenv
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Load environment variables from .env if present
+# Load environment variables (.env.local takes precedence for local overrides, then .env)
+load_dotenv(BASE_DIR / '.env.local')
 load_dotenv(BASE_DIR / '.env')
 
 # Environment Detection
@@ -297,3 +298,19 @@ REST_FRAMEWORK = {
 ASSESSMENT_UNLOCK_THRESHOLD = int(os.getenv('ASSESSMENT_UNLOCK_THRESHOLD', 80))
 CERTIFICATE_ELIGIBILITY_THRESHOLD = int(os.getenv('CERTIFICATE_ELIGIBILITY_THRESHOLD', 85))
 ASSESSMENT_PASSING_PERCENTAGE = int(os.getenv('ASSESSMENT_PASSING_PERCENTAGE', 70))
+
+# Gemini AI Engine Configuration
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
+GEMINI_MODEL = os.getenv('GEMINI_MODEL', 'gemini-3.8-flash')
+GEMINI_FALLBACK_MODEL = os.getenv('GEMINI_FALLBACK_MODEL', 'gemini-3.6-flash')
+GEMINI_LIGHTWEIGHT_MODEL = os.getenv('GEMINI_LIGHTWEIGHT_MODEL', 'gemini-3.5-flash-lite')
+_raw_cascade = os.getenv('GEMINI_MODELS_CASCADE', '')
+GEMINI_MODELS_CASCADE = [m.strip() for m in _raw_cascade.split(',') if m.strip()] if _raw_cascade else [
+    GEMINI_MODEL,
+    GEMINI_FALLBACK_MODEL,
+    GEMINI_LIGHTWEIGHT_MODEL,
+]
+AI_REQUEST_TIMEOUT = int(os.getenv('AI_REQUEST_TIMEOUT', 12))  # per-request timeout in seconds
+AI_TOTAL_DEADLINE = int(os.getenv('AI_TOTAL_DEADLINE', 25))    # overall execution budget in seconds
+AI_RATE_LIMIT_PER_MINUTE = int(os.getenv('AI_RATE_LIMIT_PER_MINUTE', 20))
+AI_MAX_INPUT_LENGTH = int(os.getenv('AI_MAX_INPUT_LENGTH', 3000))

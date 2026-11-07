@@ -112,8 +112,8 @@ def resume_builder_view(request, pk=None):
                 try:
                     parsed = json.loads(data_raw)
                     resume.resume_data = parsed
-                    # Re-calculate ATS score
-                    analysis = AIService.check_ats_readability(parsed)
+                    # Re-calculate ATS score with user isolation
+                    analysis = AIService.check_ats_readability(parsed, user_id=request.user.id)
                     resume.ats_score = analysis['score']
                 except Exception as e:
                     messages.error(request, f"Error parsing resume JSON: {e}")
@@ -148,6 +148,11 @@ def ai_improve_view(request):
     if request.method != 'POST':
         return JsonResponse({'error': 'POST required'}, status=400)
 
+    # Check rate limit
+    allowed, retry_after = AIService.check_rate_limit(request.user.id)
+    if not allowed:
+        return JsonResponse({'error': f'Rate limit reached. Please wait {retry_after} seconds before requesting AI improvements.'}, status=429)
+
     try:
         body = json.loads(request.body.decode('utf-8'))
         action_type = body.get('type')
@@ -156,25 +161,25 @@ def ai_improve_view(request):
             headline = body.get('headline', '')
             skills = body.get('skills', [])
             education = body.get('education', '')
-            result = AIService.generate_resume_summary(headline, skills, education)
+            result = AIService.generate_resume_summary(headline, skills, education, user_id=request.user.id)
             return JsonResponse({'success': True, 'content': result})
 
         elif action_type == 'project':
             title = body.get('title', '')
             description = body.get('description', '')
             technologies = body.get('technologies', '')
-            result = AIService.improve_project_description(title, description, technologies)
+            result = AIService.improve_project_description(title, description, technologies, user_id=request.user.id)
             return JsonResponse({'success': True, 'content': result})
 
         elif action_type == 'bullet':
             text = body.get('text', '')
-            result = AIService.rewrite_resume_bullet(text)
+            result = AIService.rewrite_resume_bullet(text, user_id=request.user.id)
             return JsonResponse({'success': True, 'content': result})
 
         elif action_type == 'ats_check':
             resume_data = body.get('resume_data', {})
             job_desc = body.get('job_description', '')
-            analysis = AIService.check_ats_readability(resume_data, job_desc)
+            analysis = AIService.check_ats_readability(resume_data, job_desc, user_id=request.user.id)
             return JsonResponse({'success': True, 'analysis': analysis})
 
         return JsonResponse({'error': 'Unknown action type'}, status=400)

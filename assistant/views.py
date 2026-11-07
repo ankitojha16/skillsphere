@@ -6,6 +6,9 @@ from .models import AIConversation, AIMessage
 from services.ai_service import AIService
 from gamification.services import award_user_xp
 
+import hashlib
+from django.core.cache import cache
+
 @login_required
 def assistant_view(request, conversation_id=None):
     user_conversations = AIConversation.objects.filter(user=request.user)
@@ -24,7 +27,19 @@ def assistant_view(request, conversation_id=None):
 
     # Handle question submission
     if request.method == 'POST':
-        question = request.POST.get('question', '').strip()
+        # Rate limit check: max 20 req/min per user
+        allowed, retry_after = AIService.check_rate_limit(request.user.id)
+        if not allowed:
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'error': f'Rate limit exceeded. Please wait {retry_after}s before asking another question.',
+                    'rate_limited': True,
+                    'retry_after': retry_after
+                }, status=429)
+            messages.error(request, f"Rate limit reached. Please wait {retry_after} seconds.")
+            return redirect('assistant:chat_detail', conversation_id=current_conv.id)
+
+        question = request.POST.get('question', '').strip()[:2000]
         mode = request.POST.get('mode', current_conv.mode)
 
         if not question:
@@ -32,6 +47,15 @@ def assistant_view(request, conversation_id=None):
                 return JsonResponse({'error': 'Please enter a valid academic or programming question.'}, status=400)
             messages.error(request, "Please enter a question.")
             return redirect('assistant:chat_detail', conversation_id=current_conv.id)
+
+        # Duplicate message prevention (3-second window)
+        dup_key = f"dup_msg:{current_conv.id}:{hashlib.md5(question.encode('utf-8')).hexdigest()}"
+        if cache.get(dup_key):
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({'error': 'Duplicate request detected. Please wait a few seconds before resending.'}, status=429)
+            messages.warning(request, "Please wait a moment before sending duplicate messages.")
+            return redirect('assistant:chat_detail', conversation_id=current_conv.id)
+        cache.set(dup_key, 1, timeout=3)
 
         # Update mode if changed
         if mode in dict(AIConversation.MODE_CHOICES):
@@ -50,17 +74,20 @@ def assistant_view(request, conversation_id=None):
             content=question
         )
 
-        # Build history
+        # Build history from the 10 most recent messages (chronological order)
+        recent_msgs = list(current_conv.messages.exclude(id=student_msg.id).order_by('-created_at')[:10])
+        recent_msgs.reverse()
         history = [
             {'role': m.role, 'content': m.content}
-            for m in current_conv.messages.all()[:6]
+            for m in recent_msgs
         ]
 
-        # Call AI Engine with explicit metadata
+        # Call AI Engine with explicit metadata and user-isolated cache
         ai_meta = AIService.ask_study_assistant_with_meta(
             question=question,
             mode=current_conv.mode,
-            conversation_history=history
+            conversation_history=history,
+            user_id=request.user.id
         )
 
         # Save AI message with provider attribution

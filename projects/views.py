@@ -10,11 +10,17 @@ def generator_view(request):
     generated_project = None
 
     if request.method == 'POST':
-        language = request.POST.get('language', 'Python')
-        level = request.POST.get('level', 'Intermediate')
-        category = request.POST.get('category', 'Web Development')
-        complexity = request.POST.get('complexity', 'Medium')
-        project_type = request.POST.get('project_type', 'Full-Stack Application')
+        # Check rate limit
+        allowed, retry_after = AIService.check_rate_limit(request.user.id)
+        if not allowed:
+            messages.error(request, f"Rate limit reached. Please wait {retry_after} seconds before generating another project specification.")
+            return redirect('projects:generator')
+
+        language = request.POST.get('language', 'Python').strip()[:50]
+        level = request.POST.get('level', 'Intermediate').strip()[:50]
+        category = request.POST.get('category', 'Web Development').strip()[:100]
+        complexity = request.POST.get('complexity', 'Medium').strip()[:50]
+        project_type = request.POST.get('project_type', 'Full-Stack Application').strip()[:100]
 
         generated_project = AIService.generate_project_idea(
             language=language,

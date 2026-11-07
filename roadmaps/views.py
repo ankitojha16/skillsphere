@@ -24,12 +24,20 @@ def roadmaps_list_view(request):
     })
 
 
+from django.db import transaction
+
 @login_required
 def roadmap_generate_view(request):
     if request.method == 'POST':
-        skill = request.POST.get('target_skill', '').strip()
+        # Check rate limit
+        allowed, retry_after = AIService.check_rate_limit(request.user.id)
+        if not allowed:
+            messages.error(request, f"Rate limit reached. Please wait {retry_after} seconds before generating another roadmap.")
+            return render(request, 'roadmaps/generate.html')
+
+        skill = request.POST.get('target_skill', '').strip()[:100]
         current_level = request.POST.get('current_level', 'Beginner')
-        career_goal = request.POST.get('career_goal', '').strip()
+        career_goal = request.POST.get('career_goal', '').strip()[:200]
         daily_time = request.POST.get('daily_time', '1 hour/day')
         duration = request.POST.get('duration', '3 months')
 
@@ -37,19 +45,7 @@ def roadmap_generate_view(request):
             messages.error(request, "Please enter a target skill to generate your roadmap.")
             return render(request, 'roadmaps/generate.html')
 
-        title = f"{skill} Mastery ({career_goal or 'Developer Path'})"
-
-        roadmap = LearningRoadmap.objects.create(
-            user=request.user,
-            title=title,
-            target_skill=skill,
-            current_level=current_level,
-            career_goal=career_goal or f"{skill} Specialist",
-            daily_time=daily_time,
-            duration=duration,
-        )
-
-        # Call AI Roadmap Generator
+        # Call AI Roadmap Generator first to validate structured output
         phases = AIService.generate_roadmap(
             skill=skill,
             level=current_level,
@@ -58,17 +54,34 @@ def roadmap_generate_view(request):
             duration=duration
         )
 
-        for idx, phase in enumerate(phases, start=1):
-            topics = phase.get('topics', [])
-            RoadmapMilestone.objects.create(
-                roadmap=roadmap,
-                title=phase.get('title', f"Phase {idx}"),
-                description=phase.get('description', ''),
-                topics_json=json.dumps(topics),
-                mini_project=phase.get('mini_project', ''),
-                milestone_order=idx,
-                estimated_weeks=phase.get('estimated_weeks', 2),
+        if not phases:
+            messages.error(request, "Unable to generate a structured curriculum at this moment. Please try again.")
+            return render(request, 'roadmaps/generate.html')
+
+        title = f"{skill} Mastery ({career_goal or 'Developer Path'})"
+
+        with transaction.atomic():
+            roadmap = LearningRoadmap.objects.create(
+                user=request.user,
+                title=title,
+                target_skill=skill,
+                current_level=current_level,
+                career_goal=career_goal or f"{skill} Specialist",
+                daily_time=daily_time,
+                duration=duration,
             )
+
+            for idx, phase in enumerate(phases, start=1):
+                topics = phase.get('topics', [])
+                RoadmapMilestone.objects.create(
+                    roadmap=roadmap,
+                    title=phase.get('title', f"Phase {idx}"),
+                    description=phase.get('description', ''),
+                    topics_json=json.dumps(topics),
+                    mini_project=phase.get('mini_project', ''),
+                    milestone_order=idx,
+                    estimated_weeks=phase.get('estimated_weeks', 2),
+                )
 
         # Award XP for roadmap creation
         award_user_xp(request.user, 30, f"Generated roadmap for {skill}")
