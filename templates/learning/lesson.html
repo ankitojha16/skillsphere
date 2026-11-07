@@ -592,16 +592,123 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (response.ok) {
                     const data = await response.json();
+    // Centralized authoritative UI updater for Course Progress and Certificate Status
+    function syncCourseProgressUI(data) {
+        if (!data) return;
+        const pct = (data.percentage !== undefined) ? data.percentage : (data.course_percentage || 0);
+
+        const progressPct = document.getElementById('sidebarProgressPct');
+        const progressBar = document.getElementById('sidebarProgressBar');
+        const rightProgressPct = document.getElementById('rightProgressPct');
+        const rightProgressBar = document.getElementById('rightProgressBar');
+        const lessonsCount = document.getElementById('sidebarLessonsCount');
+        const rightLessonsCount = document.getElementById('rightLessonsCount');
+        const rightExercisesCount = document.getElementById('rightExercisesCount');
+        const sidebarExercisesCount = document.getElementById('sidebarExercisesCount');
+
+        if (progressPct) progressPct.textContent = pct + '%';
+        if (progressBar) progressBar.style.width = pct + '%';
+        if (rightProgressPct) rightProgressPct.textContent = pct + '%';
+        if (rightProgressBar) rightProgressBar.style.width = pct + '%';
+
+        if (data.completed_count !== undefined && data.total_count !== undefined) {
+            if (lessonsCount) lessonsCount.textContent = data.completed_count + '/' + data.total_count;
+            if (rightLessonsCount) rightLessonsCount.textContent = data.completed_count + ' / ' + data.total_count;
+        }
+
+        if (data.exercises_completed !== undefined && data.exercises_total !== undefined) {
+            if (rightExercisesCount) rightExercisesCount.textContent = data.exercises_completed + ' / ' + data.exercises_total;
+            if (sidebarExercisesCount) sidebarExercisesCount.textContent = data.exercises_completed + '/' + data.exercises_total;
+        }
+
+        // Update exam unlocked indicator in sidebar
+        const examBadge = document.getElementById('sidebarExamBadge');
+        if (examBadge) {
+            if (data.is_unlocked) {
+                examBadge.innerHTML = '<span class="badge bg-success-subtle text-success border border-success-subtle w-100 py-1" style="font-size: 0.7rem;"><i data-lucide="unlock" style="width: 11px; height: 11px;"></i> Exams Unlocked</span>';
+            } else {
+                examBadge.innerHTML = '<span class="badge bg-warning-subtle text-warning border border-warning-subtle w-100 py-1" style="font-size: 0.7rem;"><i data-lucide="lock" style="width: 11px; height: 11px;"></i> 80% to Unlock Exams</span>';
+            }
+        }
+
+        // Update exam milestone card on the right
+        const examMilestoneCard = document.getElementById('rightExamMilestoneCard');
+        const examMilestoneIcon = document.getElementById('rightExamMilestoneIcon');
+        const examMilestoneTitle = document.getElementById('rightExamMilestoneTitle');
+        const examMilestoneDesc = document.getElementById('rightExamMilestoneDesc');
+
+        if (examMilestoneCard) {
+            if (data.is_unlocked) {
+                examMilestoneCard.className = 'p-3 rounded-3 mb-3 border border-success-subtle bg-success-subtle text-success';
+                if (examMilestoneIcon) examMilestoneIcon.setAttribute('data-lucide', 'unlock');
+                if (examMilestoneTitle) examMilestoneTitle.textContent = 'Assessment Milestone Unlocked';
+                if (examMilestoneDesc) examMilestoneDesc.textContent = '🎉 Unlocked! Final Quiz and Final Mock Test are active.';
+            } else {
+                examMilestoneCard.className = 'p-3 rounded-3 mb-3 border border-secondary-subtle bg-dark text-secondary';
+                if (examMilestoneIcon) examMilestoneIcon.setAttribute('data-lucide', 'lock');
+                if (examMilestoneTitle) examMilestoneTitle.textContent = '80% Assessment Milestone';
+                if (examMilestoneDesc) examMilestoneDesc.textContent = `Reach 80% course progress to unlock final examinations (Currently: ${pct}%).`;
+            }
+        }
+
+        // Update certificate status card on the right
+        const certCard = document.getElementById('certificateStatusCard');
+        if (certCard) {
+            if (data.certificate_issued) {
+                certCard.innerHTML = `
+                    <i data-lucide="award" class="text-success mx-auto mb-2" style="width: 28px; height: 28px;"></i>
+                    <div class="fw-bold text-white small mb-1">Certificate Issued! 🎓</div>
+                    <p class="text-secondary small mb-2" style="font-size: 0.75rem;">Your official Course Completion Certificate is active.</p>
+                    <a href="{% url 'certificates:center' %}" class="btn btn-success-custom btn-sm py-1.5 px-3 w-100">View in Certificate Center</a>
+                `;
+            } else if (data.is_certificate_eligible) {
+                certCard.innerHTML = `
+                    <i data-lucide="award" class="text-warning mx-auto mb-2" style="width: 28px; height: 28px;"></i>
+                    <div class="fw-bold text-white small mb-1">Certificate Ready! 🎉</div>
+                    <p class="text-secondary small mb-2" style="font-size: 0.75rem;">You have met all certificate requirements (≥85% progress & passed exams).</p>
+                    <a href="{% url 'certificates:center' %}" class="btn btn-primary-custom btn-sm py-1.5 px-3 w-100">Claim Certificate</a>
+                `;
+            } else {
+                let reqsHtml = '';
+                if (data.missing_requirements && data.missing_requirements.length > 0) {
+                    const items = data.missing_requirements.map(r => `<li class="text-secondary">${r}</li>`).join('');
+                    reqsHtml = `<span class="fw-semibold text-muted d-block mb-1">Requirements to unlock:</span><ul class="mb-0 ps-3">${items}</ul>`;
+                } else {
+                    reqsHtml = `<p class="text-secondary small mb-0" style="font-size: 0.72rem;">Requires 85% course progress and passing final examinations (Currently: ${pct}%).</p>`;
+                }
+                if (data.optional_remaining_activities && data.optional_remaining_activities.length > 0) {
+                    reqsHtml += `<div class="mt-2 text-muted" style="font-size: 0.7rem; font-style: italic;">Note: Optional practice activities do not block certificate issuance.</div>`;
+                }
+                certCard.innerHTML = `
+                    <i data-lucide="shield-alert" class="text-secondary mx-auto mb-2" style="width: 24px; height: 24px;"></i>
+                    <div class="fw-bold text-light small mb-1">Certificate Locked</div>
+                    <div class="text-secondary small text-start mt-2" style="font-size: 0.75rem;">${reqsHtml}</div>
+                `;
+            }
+        }
+
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    if (completeBtn && form) {
+        completeBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(form);
+            const actionUrl = form.action;
+
+            try {
+                const response = await fetch(actionUrl, {
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
                     if (data.success) {
                         const icon = document.getElementById('completeBtnIcon');
                         const text = document.getElementById('completeBtnText');
                         const undoHint = document.getElementById('undoHint');
-                        const progressPct = document.getElementById('sidebarProgressPct');
-                        const progressBar = document.getElementById('sidebarProgressBar');
-                        const rightProgressPct = document.getElementById('rightProgressPct');
-                        const rightProgressBar = document.getElementById('rightProgressBar');
-                        const lessonsCount = document.getElementById('sidebarLessonsCount');
-                        const rightLessonsCount = document.getElementById('rightLessonsCount');
 
                         if (data.is_completed) {
                             completeBtn.className = 'btn btn-success-custom btn-sm py-1.5 px-3 d-inline-flex align-items-center gap-1.5';
@@ -615,13 +722,6 @@ document.addEventListener('DOMContentLoaded', () => {
                             if (undoHint) undoHint.textContent = '';
                         }
 
-                        if (progressPct) progressPct.textContent = data.percentage + '%';
-                        if (progressBar) progressBar.style.width = data.percentage + '%';
-                        if (rightProgressPct) rightProgressPct.textContent = data.percentage + '%';
-                        if (rightProgressBar) rightProgressBar.style.width = data.percentage + '%';
-                        if (lessonsCount) lessonsCount.textContent = data.completed_count + '/' + data.total_count;
-                        if (rightLessonsCount) rightLessonsCount.textContent = data.completed_count + ' / ' + data.total_count;
-
                         // Update current lesson icon in the left sidebar
                         const currentSidebarIcon = document.getElementById('sidebar-icon-{{ lesson.id }}');
                         if (currentSidebarIcon) {
@@ -634,63 +734,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             }
                         }
 
-                        // Update exam unlocked indicator in sidebar
-                        const examBadge = document.getElementById('sidebarExamBadge');
-                        if (examBadge) {
-                            if (data.is_unlocked) {
-                                examBadge.innerHTML = '<span class="badge bg-success-subtle text-success border border-success-subtle w-100 py-1" style="font-size: 0.7rem;"><i data-lucide="unlock" style="width: 11px; height: 11px;"></i> Exams Unlocked</span>';
-                            } else {
-                                examBadge.innerHTML = '<span class="badge bg-warning-subtle text-warning border border-warning-subtle w-100 py-1" style="font-size: 0.7rem;"><i data-lucide="lock" style="width: 11px; height: 11px;"></i> 80% to Unlock Exams</span>';
-                            }
-                        }
-
-                        // Update exam milestone card on the right
-                        const examMilestoneCard = document.getElementById('rightExamMilestoneCard');
-                        const examMilestoneIcon = document.getElementById('rightExamMilestoneIcon');
-                        const examMilestoneTitle = document.getElementById('rightExamMilestoneTitle');
-                        const examMilestoneDesc = document.getElementById('rightExamMilestoneDesc');
-
-                        if (examMilestoneCard) {
-                            if (data.is_unlocked) {
-                                examMilestoneCard.className = 'p-3 rounded-3 mb-3 border border-success-subtle bg-success-subtle text-success';
-                                if (examMilestoneIcon) examMilestoneIcon.setAttribute('data-lucide', 'unlock');
-                                if (examMilestoneTitle) examMilestoneTitle.textContent = 'Assessment Milestone Unlocked';
-                                if (examMilestoneDesc) examMilestoneDesc.textContent = '🎉 Unlocked! Final Quiz and Final Mock Test are active.';
-                            } else {
-                                examMilestoneCard.className = 'p-3 rounded-3 mb-3 border border-secondary-subtle bg-dark text-secondary';
-                                if (examMilestoneIcon) examMilestoneIcon.setAttribute('data-lucide', 'lock');
-                                if (examMilestoneTitle) examMilestoneTitle.textContent = '80% Assessment Milestone';
-                                if (examMilestoneDesc) examMilestoneDesc.textContent = `Reach 80% course progress to unlock final examinations (Currently: ${data.percentage}%).`;
-                            }
-                        }
-
-                        // Update certificate status card on the right
-                        const certCard = document.getElementById('certificateStatusCard');
-                        if (certCard) {
-                            if (data.is_certificate_eligible) {
-                                certCard.innerHTML = `
-                                    <i data-lucide="award" class="text-warning mx-auto mb-2" style="width: 28px; height: 28px;"></i>
-                                    <div class="fw-bold text-white small mb-1">Certificate Ready! 🎉</div>
-                                    <p class="text-secondary small mb-2" style="font-size: 0.75rem;">You have fulfilled all course requirements.</p>
-                                    <a href="{% url 'certificates:center' %}" class="btn btn-primary-custom btn-sm py-1.5 px-3 w-100">Claim Certificate</a>
-                                `;
-                            } else {
-                                let reqsHtml = '';
-                                if (data.missing_requirements && data.missing_requirements.length > 0) {
-                                    const items = data.missing_requirements.map(r => `<li class="text-secondary">${r}</li>`).join('');
-                                    reqsHtml = `<span class="fw-semibold text-muted d-block mb-1">Requirements to unlock:</span><ul class="mb-0 ps-3">${items}</ul>`;
-                                } else {
-                                    reqsHtml = '<p class="text-secondary small mb-0" style="font-size: 0.72rem;">Requires 85% course items and passing final examinations.</p>';
-                                }
-                                certCard.innerHTML = `
-                                    <i data-lucide="shield-alert" class="text-secondary mx-auto mb-2" style="width: 24px; height: 24px;"></i>
-                                    <div class="fw-bold text-light small mb-1">Certificate Locked</div>
-                                    <div class="text-secondary small text-start mt-2" style="font-size: 0.75rem;">${reqsHtml}</div>
-                                `;
-                            }
-                        }
-
-                        lucide.createIcons();
+                        syncCourseProgressUI(data);
                     }
                 } else {
                     form.submit();
@@ -726,7 +770,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                     if (text) text.textContent = 'Watched';
                     markVideoBtn.disabled = true;
-                    lucide.createIcons();
+                    syncCourseProgressUI(data);
                 }
             } catch (err) {
                 console.error('Error recording video progress:', err);
@@ -827,6 +871,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     feedbackEl.className = 'exercise-feedback mt-2 small text-warning';
                     feedbackEl.textContent = '⚠ ' + data.message;
                 }
+                syncCourseProgressUI(data);
             } catch (err) {
                 feedbackEl.className = 'exercise-feedback mt-2 small text-danger';
                 feedbackEl.textContent = 'Error executing code evaluation.';

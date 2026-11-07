@@ -249,31 +249,58 @@ class AIService:
                 pass
 
     # ------------------------------------------------------------------------
-    # Rate Limiting Guard
+    # Rate Limiting Guard & Distributed Telemetry
     # ------------------------------------------------------------------------
+    _METRICS = {
+        'total_requests': 0,
+        'successful_requests': 0,
+        'fallback_requests': 0,
+        'quota_429_hits': 0,
+        'total_latency_ms': 0.0,
+        'model_counts': {},
+    }
+
+    @classmethod
+    def _record_metric(cls, success: bool, model: str, latency_ms: float, fallback_used: bool = False, is_429: bool = False):
+        try:
+            cls._METRICS['total_requests'] += 1
+            if success:
+                cls._METRICS['successful_requests'] += 1
+            if fallback_used:
+                cls._METRICS['fallback_requests'] += 1
+            if is_429:
+                cls._METRICS['quota_429_hits'] += 1
+            cls._METRICS['total_latency_ms'] += latency_ms
+            cls._METRICS['model_counts'][model] = cls._METRICS['model_counts'].get(model, 0) + 1
+        except Exception:
+            pass
+
+    @classmethod
+    def get_ai_metrics(cls) -> Dict[str, Any]:
+        """Returns runtime AI telemetry summary."""
+        tot = cls._METRICS['total_requests']
+        avg_lat = (cls._METRICS['total_latency_ms'] / tot) if tot > 0 else 0.0
+        return {
+            'total_requests': tot,
+            'successful_requests': cls._METRICS['successful_requests'],
+            'fallback_requests': cls._METRICS['fallback_requests'],
+            'quota_429_hits': cls._METRICS['quota_429_hits'],
+            'average_latency_ms': round(avg_lat, 2),
+            'model_counts': dict(cls._METRICS['model_counts']),
+        }
+
     @staticmethod
     def check_rate_limit(user_id: int, max_per_minute: Optional[int] = None) -> Tuple[bool, int]:
         """
-        Sliding-minute rate limiter using Django cache.
+        Sliding-minute rate limiter backed by RedisService with LocMem fallback.
         Returns (allowed: bool, retry_after_seconds: int).
         """
-        if not cache or not user_id:
+        if not user_id:
             return True, 0
-
+        from services.redis_service import RedisService
         limit = max_per_minute or getattr(settings, 'AI_RATE_LIMIT_PER_MINUTE', 20)
-        current_minute = int(time.time() // 60)
-        cache_key = f"ai_rate:{user_id}:{current_minute}"
-
-        try:
-            current_count = cache.get(cache_key, 0)
-            if current_count >= limit:
-                retry_after = 60 - int(time.time() % 60)
-                return False, max(1, retry_after)
-            # Increment and set 90s TTL
-            cache.set(cache_key, current_count + 1, timeout=90)
-            return True, 0
-        except Exception:
-            return True, 0
+        cache_key = f"ai_rate:{user_id}"
+        return RedisService.check_sliding_window_rate_limit(cache_key, limit=limit, window_seconds=60)
 
     # ------------------------------------------------------------------------
     # Network Layer: Gemini API Single Call & Multi-Model Cascade
@@ -285,10 +312,10 @@ class AIService:
         api_key: str,
         data_bytes: bytes,
         timeout: float
-    ) -> Tuple[Optional[str], Optional[int], Optional[str], bool]:
+    ) -> Tuple[Optional[str], Optional[int], Optional[str], bool, int]:
         """
         Performs a single HTTP POST request to Google Gemini API.
-        Returns: (response_text, http_status_code, error_message, is_permanent_error)
+        Returns: (response_text, http_status_code, error_message, is_permanent_error, retry_after_seconds)
         Permanent errors: 400 (Bad Request), 401 (Unauthorized), 403 (Forbidden/Invalid Key).
         Transient errors: 429 (Rate Limit), 500, 502, 503, 504, Timeout.
         """
@@ -307,8 +334,8 @@ class AIService:
                 if candidates and 'content' in candidates[0]:
                     parts = candidates[0]['content'].get('parts', [])
                     if parts and 'text' in parts[0]:
-                        return parts[0]['text'].strip(), response.status, None, False
-                return None, response.status, "Empty candidates returned by model.", False
+                        return parts[0]['text'].strip(), response.status, None, False, 0
+                return None, response.status, "Empty candidates returned by model.", False, 0
 
         except urllib.error.HTTPError as e:
             err_body = ""
@@ -317,20 +344,29 @@ class AIService:
             except Exception:
                 pass
 
+            retry_after = 0
+            if e.code == 429 and hasattr(e, 'headers') and e.headers:
+                ra_header = e.headers.get('Retry-After')
+                if ra_header:
+                    try:
+                        retry_after = int(ra_header)
+                    except ValueError:
+                        retry_after = 5
+
             # Classify permanent vs transient
             # 400, 401, 403 are permanent auth/request errors: MUST NOT RETRY
             if e.code in (400, 401, 403):
-                return None, e.code, f"Permanent error {e.code}: {err_body}", True
+                return None, e.code, f"Permanent error {e.code}: {err_body}", True, 0
             # 404 means model ID doesn't exist: transient to cascade (try next model, but don't retry same model)
             if e.code == 404:
-                return None, 404, f"Model not found {model}: {err_body}", False
+                return None, 404, f"Model not found {model}: {err_body}", False, 0
             # 429, 500, 502, 503, 504: transient server/rate errors
-            return None, e.code, f"Transient HTTP {e.code}: {err_body}", False
+            return None, e.code, f"Transient HTTP {e.code}: {err_body}", False, retry_after
 
         except (urllib.error.URLError, TimeoutError, OSError) as e:
-            return None, None, f"Network/Socket Timeout: {str(e)}", False
+            return None, None, f"Network/Socket Timeout: {str(e)}", False, 0
         except Exception as e:
-            return None, None, f"Unexpected request failure: {str(e)}", False
+            return None, None, f"Unexpected request failure: {str(e)}", False, 0
 
     @classmethod
     def _call_gemini(
@@ -344,7 +380,7 @@ class AIService:
     ) -> Optional[Dict[str, Any]]:
         """
         Executes prompt across the Gemini model cascade with bounded retries,
-        exponential backoff, random jitter, and overall execution deadline budget.
+        exponential backoff, random jitter, and monotonic execution deadline budget.
         Returns: Dict with {'text': str, 'model': str, 'latency_ms': float} or None.
         """
         api_key = os.getenv('GEMINI_API_KEY') or getattr(settings, 'GEMINI_API_KEY', '')
@@ -392,39 +428,46 @@ class AIService:
 
         data_bytes = json.dumps(payload).encode('utf-8')
 
-        # Deadline budget
+        # Monotonic deadline budget
         total_deadline = getattr(settings, 'AI_TOTAL_DEADLINE', 25.0)
         request_timeout = getattr(settings, 'AI_REQUEST_TIMEOUT', 12.0)
-        deadline_time = time.time() + total_deadline
+        start_monotonic = time.monotonic()
+        deadline_time = start_monotonic + total_deadline
 
         cascade = cls.get_gemini_models_cascade()
         start_overall = time.perf_counter()
 
         for model_idx, model in enumerate(cascade):
-            if time.time() >= deadline_time:
-                logger.warning(f"[AIService] Total execution deadline ({total_deadline}s) reached. Aborting cascade.")
+            if time.monotonic() >= deadline_time:
+                logger.warning(f"[AIService] Monotonic execution deadline ({total_deadline}s) reached. Aborting cascade.")
                 break
 
             # Attempt model with bounded exponential backoff (up to 2 tries per model)
             max_attempts = 2
             for attempt in range(max_attempts):
-                now = time.time()
-                if now >= deadline_time:
+                now = time.monotonic()
+                remaining = deadline_time - now
+                if remaining <= 0:
                     break
 
-                per_req_timeout = min(request_timeout, max(2.0, deadline_time - now))
+                per_req_timeout = min(request_timeout, max(2.0, remaining))
                 call_start = time.perf_counter()
 
-                text, status_code, err_msg, is_permanent = cls._call_gemini_single(
+                call_res = cls._call_gemini_single(
                     model=model,
                     api_key=api_key,
                     data_bytes=data_bytes,
                     timeout=per_req_timeout
                 )
+                if len(call_res) == 5:
+                    text, status_code, err_msg, is_permanent, retry_after_seconds = call_res
+                else:
+                    text, status_code, err_msg, is_permanent = call_res
+                    retry_after_seconds = 0
                 latency_ms = (time.perf_counter() - call_start) * 1000.0
 
                 if text:
-                    # Success: Log model used without leaking prompt or user data
+                    cls._record_metric(success=True, model=model, latency_ms=latency_ms, fallback_used=(model_idx > 0))
                     logger.info(
                         f"[AIService] Request successfully handled by model '{model}' in {latency_ms:.1f}ms "
                         f"(cascade_step={model_idx + 1}/{len(cascade)}, attempt={attempt + 1})"
@@ -437,6 +480,7 @@ class AIService:
 
                 # If permanent error (e.g. 401/403 Invalid API Key): DO NOT RETRY, abort immediately
                 if is_permanent:
+                    cls._record_metric(success=False, model=model, latency_ms=latency_ms, is_429=False)
                     logger.error(
                         f"[AIService] Permanent HTTP {status_code} on model '{model}'. "
                         f"Aborting cascade to prevent repeated unauthorized calls. Reason: {err_msg}"
@@ -448,12 +492,22 @@ class AIService:
                     logger.warning(f"[AIService] Model '{model}' not found (404). Falling over to next model.")
                     break
 
+                # If 429 quota hit:
+                if status_code == 429:
+                    cls._record_metric(success=False, model=model, latency_ms=latency_ms, is_429=True)
+                    # If Retry-After exceeds remaining monotonic budget, skip retrying this model and immediately failover
+                    if retry_after_seconds > 0 and (time.monotonic() + retry_after_seconds) >= deadline_time:
+                        logger.warning(f"[AIService] 429 Retry-After ({retry_after_seconds}s) exceeds remaining deadline. Immediate failover.")
+                        break
+
                 # For transient errors (429, 500, 502, 503, 504, timeout):
                 # Apply exponential backoff with jitter if another attempt is allowed
                 if attempt < max_attempts - 1:
                     jitter = random.uniform(0.05, 0.25)
                     backoff = min(2.0, (0.5 * (2 ** attempt)) + jitter)
-                    if time.time() + backoff >= deadline_time:
+                    if retry_after_seconds > 0:
+                        backoff = min(backoff, float(retry_after_seconds))
+                    if time.monotonic() + backoff >= deadline_time:
                         break
                     logger.info(
                         f"[AIService] Transient failure on '{model}' ({err_msg}). "

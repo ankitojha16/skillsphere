@@ -277,7 +277,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const submitBtn = document.getElementById('submitBtn');
     const loadingIndicator = document.getElementById('loadingIndicator');
 
-    // Safe Markdown parser with DOMPurify XSS protection
+    // Secure DOMPurify hook for external link safety
+    if (typeof DOMPurify !== 'undefined') {
+        DOMPurify.addHook('afterSanitizeAttributes', function(node) {
+            if (node.tagName === 'A' || 'target' in node) {
+                node.setAttribute('target', '_blank');
+                node.setAttribute('rel', 'noopener noreferrer');
+            }
+        });
+    }
+
+    // Safe Markdown parser with hardened DOMPurify XSS protection
     function renderSafeMarkdown(rawText) {
         if (!rawText) return '';
         let parsed = '';
@@ -294,7 +304,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (typeof DOMPurify !== 'undefined') {
             return DOMPurify.sanitize(parsed, {
                 ALLOWED_TAGS: ['p', 'br', 'strong', 'b', 'em', 'i', 'u', 's', 'code', 'pre', 'blockquote', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'a', 'span', 'hr'],
-                ALLOWED_ATTR: ['href', 'title', 'target', 'class', 'style']
+                ALLOWED_ATTR: ['href', 'title', 'target', 'rel', 'class'],
+                ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+                USE_PROFILES: { html: true, svg: false, mathMl: false }
             });
         }
         // Minimal emergency fallback if DOMPurify CDN is unavailable

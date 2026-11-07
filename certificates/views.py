@@ -45,14 +45,30 @@ def certificate_center_view(request):
         course_id = request.POST.get('claim_course_id')
         course_to_claim = get_object_or_404(Course, id=course_id)
 
-        # Check for existing certificate
-        if Certificate.objects.filter(user=request.user, course=course_to_claim).exists():
+        # Check for existing certificate (idempotent, return existing certificate)
+        existing_cert = Certificate.objects.filter(user=request.user, course=course_to_claim).first()
+        if existing_cert:
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': True,
+                    'already_issued': True,
+                    'certificate_id': existing_cert.certificate_id,
+                    'download_url': f"/certificates/{existing_cert.id}/download/",
+                    'message': f"You already hold a certificate for '{course_to_claim.title}'."
+                })
             messages.info(request, f"You already hold a SkillSphere Course Completion Certificate for '{course_to_claim.title}'.")
             return redirect('certificates:center')
 
         prog = course_to_claim.get_user_progress(request.user)
         if not prog.get('is_certificate_eligible', False):
-            messages.error(request, f"Cannot claim certificate: {'; '.join(prog.get('missing_requirements', ['Requirements not met.']))}")
+            missing_text = '; '.join(prog.get('missing_requirements', ['Course requirements not met.']))
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': False,
+                    'error': f"Cannot claim certificate: {missing_text}",
+                    'missing_requirements': prog.get('missing_requirements', [])
+                }, status=400)
+            messages.error(request, f"Cannot claim certificate: {missing_text}")
             return redirect('certificates:center')
 
         # Recipient Name validation
@@ -69,7 +85,7 @@ def certificate_center_view(request):
             course=course_to_claim,
             title=f"Course Completion: {course_to_claim.title}",
             recipient_name=custom_name,
-            criteria_met=f"Completed 100% of curriculum, Final Course Quiz, and Final Mock Examination for {course_to_claim.title}."
+            criteria_met=f"Completed ≥85% of curriculum, Final Course Quiz, and Final Mock Examination for {course_to_claim.title}."
         )
 
         Notification.objects.create(
@@ -79,6 +95,13 @@ def certificate_center_view(request):
             notification_type='certificate_issued',
             link="/certificates/"
         )
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({
+                'success': True,
+                'certificate_id': cert.certificate_id,
+                'download_url': f"/certificates/{cert.id}/download/",
+                'message': f"SkillSphere Course Completion Certificate issued to {custom_name}!"
+            })
         messages.success(request, f"SkillSphere Course Completion Certificate for '{course_to_claim.title}' issued to {custom_name}!")
         return redirect('certificates:center')
 

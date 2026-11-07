@@ -48,14 +48,15 @@ def assistant_view(request, conversation_id=None):
             messages.error(request, "Please enter a question.")
             return redirect('assistant:chat_detail', conversation_id=current_conv.id)
 
-        # Duplicate message prevention (3-second window)
+        # Duplicate message prevention using atomic distributed lock (3-second window)
+        from services.redis_service import RedisService
         dup_key = f"dup_msg:{current_conv.id}:{hashlib.md5(question.encode('utf-8')).hexdigest()}"
-        if cache.get(dup_key):
+        acquired, lock_token = RedisService.acquire_lock(dup_key, ttl_seconds=3)
+        if not acquired:
             if request.headers.get('x-requested-with') == 'XMLHttpRequest':
                 return JsonResponse({'error': 'Duplicate request detected. Please wait a few seconds before resending.'}, status=429)
             messages.warning(request, "Please wait a moment before sending duplicate messages.")
             return redirect('assistant:chat_detail', conversation_id=current_conv.id)
-        cache.set(dup_key, 1, timeout=3)
 
         # Update mode if changed
         if mode in dict(AIConversation.MODE_CHOICES):

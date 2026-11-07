@@ -190,6 +190,7 @@ def complete_lesson_toggle(request, course_slug, lesson_id):
             'success': True,
             'is_completed': progress.is_completed,
             'percentage': course_progress['percentage'],
+            'required_percentage': course_progress.get('required_percentage', 85),
             'completed_count': course_progress['completed'],
             'total_count': course_progress['total'],
             'exercises_completed': course_progress.get('exercises_completed', 0),
@@ -198,7 +199,9 @@ def complete_lesson_toggle(request, course_slug, lesson_id):
             'quiz_passed': course_progress.get('quiz_passed', False),
             'mock_passed': course_progress.get('mock_passed', False),
             'is_certificate_eligible': course_progress.get('is_certificate_eligible', False),
+            'certificate_issued': course_progress.get('certificate_issued', False),
             'missing_requirements': course_progress.get('missing_requirements', []),
+            'optional_remaining_activities': course_progress.get('optional_remaining_activities', []),
         })
 
     next_action = request.POST.get('next_action')
@@ -263,11 +266,26 @@ def video_progress_api(request, course_slug, lesson_id):
 
     video_prog.save()
 
+    prog = course.get_user_progress(request.user)
+
     return JsonResponse({
         'success': True,
         'is_completed': video_prog.is_completed,
         'watched_seconds': video_prog.watched_seconds,
-        'position': video_prog.last_position_seconds
+        'position': video_prog.last_position_seconds,
+        'percentage': prog['percentage'],
+        'required_percentage': prog.get('required_percentage', 85),
+        'completed_count': prog['completed'],
+        'total_count': prog['total'],
+        'exercises_completed': prog.get('exercises_completed', 0),
+        'exercises_total': prog.get('exercises_total', 0),
+        'is_unlocked': prog['is_unlocked'],
+        'quiz_passed': prog.get('quiz_passed', False),
+        'mock_passed': prog.get('mock_passed', False),
+        'is_certificate_eligible': prog.get('is_certificate_eligible', False),
+        'certificate_issued': prog.get('certificate_issued', False),
+        'missing_requirements': prog.get('missing_requirements', []),
+        'optional_remaining_activities': prog.get('optional_remaining_activities', []),
     })
 
 
@@ -382,8 +400,20 @@ def exercise_submit_api(request, course_slug, lesson_id, exercise_id):
         'success': True,
         'is_passed': is_passed,
         'message': 'Exercise solved successfully! XP awarded.' if is_passed else 'Solution attempted, but output did not match expected criteria. Review the hint and try again.',
+        'percentage': prog['percentage'],
+        'required_percentage': prog.get('required_percentage', 85),
         'course_percentage': prog['percentage'],
+        'completed_count': prog['completed'],
+        'total_count': prog['total'],
+        'exercises_completed': prog.get('exercises_completed', 0),
+        'exercises_total': prog.get('exercises_total', 0),
         'is_unlocked': prog['is_unlocked'],
+        'quiz_passed': prog.get('quiz_passed', False),
+        'mock_passed': prog.get('mock_passed', False),
+        'is_certificate_eligible': prog.get('is_certificate_eligible', False),
+        'certificate_issued': prog.get('certificate_issued', False),
+        'missing_requirements': prog.get('missing_requirements', []),
+        'optional_remaining_activities': prog.get('optional_remaining_activities', []),
     })
 
 

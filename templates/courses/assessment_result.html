@@ -63,15 +63,15 @@
 
         <!-- Next Actions & Certification Status -->
         {% if is_passed %}
-            {% if course_progress.is_completed %}
+            {% if course_progress.is_completed or course_progress.is_certificate_eligible %}
                 <div class="p-4 rounded-3 text-start mb-4" style="background-color: rgba(217, 119, 6, 0.1); border: 1px solid rgba(217, 119, 6, 0.4);">
                     <div class="d-flex align-items-center gap-3">
                         <div class="stat-icon yellow" style="width: 48px; height: 48px;">
                             <i data-lucide="award" style="width: 24px; height: 24px;"></i>
                         </div>
                         <div class="flex-grow-1">
-                            <h5 class="text-white fw-bold mb-1">Course 100% Completed!</h5>
-                            <p class="text-secondary small mb-2">You have fulfilled all curricular requirements and passed your exams. Your SkillSphere Course Completion Certificate is ready to claim.</p>
+                            <h5 class="text-white fw-bold mb-1">Course Ready for Certificate!</h5>
+                            <p class="text-secondary small mb-2">You have fulfilled all curricular requirements ($\ge 85\%$ progress) and passed your exams. Your SkillSphere Course Completion Certificate is ready to claim.</p>
                             <a href="{% url 'certificates:center' %}" class="btn btn-warning-custom py-2 px-4 fw-bold">
                                 <i data-lucide="shield-check" style="width: 16px; height: 16px;"></i>
                                 <span>Go to Certificate Center</span>
@@ -86,7 +86,7 @@
                         Milestone Achieved
                     </div>
                     <div class="text-light small">
-                        Great job passing this assessment! Complete remaining lessons and exercises to hit 100% course progress and unlock your SkillSphere Course Completion Certificate.
+                        Great job passing this assessment! Reach at least 85% course progress to unlock and claim your SkillSphere Course Completion Certificate.
                     </div>
                 </div>
             {% endif %}

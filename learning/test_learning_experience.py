@@ -74,12 +74,12 @@ class LearningExperienceAndCertificateTests(TestCase):
 
     def test_progress_under_80_locks_assessment_and_certificate(self):
         """At < 80% progress, assessments and certificates must remain locked."""
-        # Complete 6 lessons (48% with uncompleted exercise)
+        # Complete 6 lessons (60% mandatory lesson progress)
         for i in range(6):
             LessonProgress.objects.create(user=self.user, lesson=self.lessons[i], is_completed=True)
 
         prog = self.course.get_user_progress(self.user)
-        self.assertEqual(prog['percentage'], 48)
+        self.assertEqual(prog['percentage'], 60)
         self.assertFalse(prog['is_unlocked'])
         self.assertFalse(prog['is_certificate_eligible'])
         self.assertTrue(any('80%' in r for r in prog['missing_requirements']))
@@ -87,19 +87,19 @@ class LearningExperienceAndCertificateTests(TestCase):
 
     def test_progress_80_to_84_unlocks_assessment_locks_certificate(self):
         """At 80-84% progress, assessments unlock but certificate requires 85% + passed exams."""
-        # 8 lessons (64%) + 1 exercise (20%) = 84%
+        # 8 lessons = 80% progress
         for i in range(8):
             LessonProgress.objects.create(user=self.user, lesson=self.lessons[i], is_completed=True)
         ExerciseSubmission.objects.create(user=self.user, exercise=self.exercise, submitted_code='pass', is_passed=True)
 
         prog = self.course.get_user_progress(self.user)
-        self.assertEqual(prog['percentage'], 84)
+        self.assertEqual(prog['percentage'], 80)
         self.assertTrue(prog['is_unlocked'], "Assessments should unlock at 80%+")
-        self.assertFalse(prog['is_certificate_eligible'], "Certificate should still be locked at 84%")
+        self.assertFalse(prog['is_certificate_eligible'], "Certificate should still be locked at 80% without passed exams")
 
     def test_progress_85_with_exams_passed_is_certificate_eligible(self):
         """At >= 85% progress with final quiz and mock passed >= 70%, certificate is eligible."""
-        # 9 lessons (72%) + 1 exercise (20%) = 92%
+        # 9 lessons = 90% progress
         for i in range(9):
             LessonProgress.objects.create(user=self.user, lesson=self.lessons[i], is_completed=True)
         ExerciseSubmission.objects.create(user=self.user, exercise=self.exercise, submitted_code='pass', is_passed=True)
@@ -123,7 +123,7 @@ class LearningExperienceAndCertificateTests(TestCase):
         )
 
         prog = self.course.get_user_progress(self.user)
-        self.assertEqual(prog['percentage'], 92)
+        self.assertEqual(prog['percentage'], 90)
         self.assertGreaterEqual(prog['percentage'], 85)
         self.assertTrue(prog['is_unlocked'])
         self.assertTrue(prog['quiz_passed'])

@@ -145,22 +145,8 @@ class Course(models.Model):
                 status__in=['submitted', 'reviewed', 'graded']
             ).values('assignment_id').distinct().count()
 
-        # Weighted calculation
-        if total_exercises == 0 and total_assignments == 0:
-            percentage = int(round((completed_lessons / total_lessons) * 100))
-        elif total_assignments == 0:
-            pct_lessons = (completed_lessons / total_lessons) * 80.0
-            pct_exercises = (completed_exercises / total_exercises) * 20.0
-            percentage = min(100, int(round(pct_lessons + pct_exercises)))
-        elif total_exercises == 0:
-            pct_lessons = (completed_lessons / total_lessons) * 80.0
-            pct_assignments = (completed_assignments / total_assignments) * 20.0
-            percentage = min(100, int(round(pct_lessons + pct_assignments)))
-        else:
-            w_lessons = (completed_lessons / total_lessons) * 60.0
-            w_exercises = (completed_exercises / total_exercises) * 20.0
-            w_assignments = (completed_assignments / total_assignments) * 20.0
-            percentage = min(100, int(round(w_lessons + w_exercises + w_assignments)))
+        # Calculate authoritative course progress based on mandatory curriculum (lessons)
+        percentage = min(100, int(round((completed_lessons / total_lessons) * 100)))
 
         is_unlocked = percentage >= unlock_threshold
 
@@ -190,24 +176,35 @@ class Course(models.Model):
         else:
             mock_passed = True  # Not required if not part of course
 
-        # Configurable certificate eligibility rule: >= 85% progress AND passing mandatory assessments
+        # Authoritative certificate eligibility: >= 85% progress AND passing mandatory assessments
         has_required_percentage = percentage >= cert_threshold
-        is_completed = has_required_percentage and quiz_passed and mock_passed
+        is_certificate_eligible = has_required_percentage and quiz_passed and mock_passed
 
-        # Explicit list of missing requirements
+        # Check if already issued
+        from certificates.models import Certificate
+        certificate_issued = Certificate.objects.filter(user=user, course=self).exists()
+
+        # Explicit list of missing requirements (mandatory only)
         missing_requirements = []
         if not has_required_percentage:
             missing_requirements.append(f"Reach {cert_threshold}% course progress (Currently: {percentage}%)")
         if has_quiz and not quiz_passed:
             if is_unlocked:
-                missing_requirements.append(f"Pass Final Course Quiz (Min. {passing_pct}%)")
+                missing_requirements.append(f"Pass Final Course Quiz with at least {passing_pct}%")
             else:
                 missing_requirements.append(f"Reach {unlock_threshold}% progress to unlock Final Course Quiz")
         if has_mock and not mock_passed:
             if is_unlocked:
-                missing_requirements.append(f"Pass Final Mock Examination (Min. {passing_pct}%)")
+                missing_requirements.append(f"Pass Final Mock Examination with at least {passing_pct}%")
             else:
                 missing_requirements.append(f"Reach {unlock_threshold}% progress to unlock Final Mock Test")
+
+        # Optional activities remaining (for feedback, but never block certificate)
+        optional_remaining_activities = []
+        if total_exercises > completed_exercises:
+            optional_remaining_activities.append(f"{total_exercises - completed_exercises} optional coding exercise(s) available for practice")
+        if total_assignments > completed_assignments:
+            optional_remaining_activities.append(f"{total_assignments - completed_assignments} optional project assignment(s) available")
 
         # Auto-sync CourseCompletion record
         completion, _ = CourseCompletion.objects.get_or_create(user=user, course=self)
@@ -215,21 +212,22 @@ class Course(models.Model):
             completion.is_assessment_unlocked != is_unlocked or
             completion.quiz_passed != (quiz_passed and has_quiz) or
             completion.mock_passed != (mock_passed and has_mock) or
-            completion.is_completed != is_completed):
+            completion.is_completed != is_certificate_eligible):
             completion.learning_progress = percentage
             completion.is_assessment_unlocked = is_unlocked
             completion.quiz_passed = bool(quiz_passed and has_quiz)
             completion.mock_passed = bool(mock_passed and has_mock)
-            if is_completed and not completion.is_completed:
+            if is_certificate_eligible and not completion.is_completed:
                 from django.utils import timezone
                 completion.is_completed = True
                 completion.completed_at = timezone.now()
-            elif not is_completed:
+            elif not is_certificate_eligible:
                 completion.is_completed = False
             completion.save()
 
         return {
             'percentage': percentage,
+            'required_percentage': cert_threshold,
             'completed': completed_lessons,
             'total': total_lessons,
             'exercises_completed': completed_exercises,
@@ -241,9 +239,11 @@ class Course(models.Model):
             'mock_passed': bool(mock_passed and has_mock),
             'has_quiz': has_quiz,
             'has_mock': has_mock,
-            'is_completed': is_completed,
-            'is_certificate_eligible': is_completed,
+            'is_completed': is_certificate_eligible,
+            'is_certificate_eligible': is_certificate_eligible,
+            'certificate_issued': certificate_issued,
             'missing_requirements': missing_requirements,
+            'optional_remaining_activities': optional_remaining_activities,
         }
 
 
