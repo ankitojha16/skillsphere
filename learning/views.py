@@ -58,32 +58,8 @@ def lesson_view(request, course_slug, lesson_id):
                 next_lesson = all_lessons[idx + 1]
             break
 
-    # Fast progress lookup using CourseCompletion if present, else in-memory computation
-    from courses.models import CourseCompletion
-    comp = CourseCompletion.objects.filter(user=request.user, course=course).first()
-    tot_cnt = len(all_lessons)
-    comp_cnt = len(completed_lesson_ids)
-    pct = min(100, int(round((comp_cnt / tot_cnt) * 100))) if tot_cnt > 0 else 0
-    if comp:
-        progress_info = {
-            'percentage': comp.learning_progress,
-            'completed': comp_cnt,
-            'total': tot_cnt,
-            'is_unlocked': comp.is_assessment_unlocked,
-            'quiz_passed': comp.quiz_passed,
-            'mock_passed': comp.mock_passed,
-            'is_completed': comp.is_completed,
-        }
-    else:
-        progress_info = {
-            'percentage': pct,
-            'completed': comp_cnt,
-            'total': tot_cnt,
-            'is_unlocked': pct >= 80,
-            'quiz_passed': False,
-            'mock_passed': False,
-            'is_completed': (pct == 100 and tot_cnt > 0),
-        }
+    # Authoritative progress lookup using course.get_user_progress
+    progress_info = course.get_user_progress(request.user)
 
     # Modules structure (if CourseModule exists, use modules, else fallback to chapter_name)
     course_modules = list(course.modules.filter(is_published=True).prefetch_related('lessons'))
@@ -133,19 +109,17 @@ def lesson_view(request, course_slug, lesson_id):
     student_note_obj = StudentNote.objects.filter(user=request.user, lesson=lesson).first()
     student_note_content = student_note_obj.content if student_note_obj else ""
 
-    # Exercises
+    # Exercises (Empty editor by default for unattempted challenges)
     exercises = list(lesson.exercises.all().order_by('order', 'id'))
-    passed_exercise_ids = set(
-        ExerciseSubmission.objects.filter(
-            user=request.user,
-            exercise__lesson=lesson,
-            is_passed=True
-        ).values_list('exercise_id', flat=True)
-    )
+    submissions_map = {}
+    for sub in ExerciseSubmission.objects.filter(user=request.user, exercise__lesson=lesson).order_by('id'):
+        submissions_map[sub.exercise_id] = sub
+
     exercises_data = [
         {
             'exercise': ex,
-            'is_passed': ex.id in passed_exercise_ids,
+            'is_passed': submissions_map.get(ex.id).is_passed if ex.id in submissions_map else False,
+            'user_code': submissions_map.get(ex.id).submitted_code if ex.id in submissions_map else "",
         }
         for ex in exercises
     ]
@@ -221,6 +195,10 @@ def complete_lesson_toggle(request, course_slug, lesson_id):
             'exercises_completed': course_progress.get('exercises_completed', 0),
             'exercises_total': course_progress.get('exercises_total', 0),
             'is_unlocked': course_progress['is_unlocked'],
+            'quiz_passed': course_progress.get('quiz_passed', False),
+            'mock_passed': course_progress.get('mock_passed', False),
+            'is_certificate_eligible': course_progress.get('is_certificate_eligible', False),
+            'missing_requirements': course_progress.get('missing_requirements', []),
         })
 
     next_action = request.POST.get('next_action')

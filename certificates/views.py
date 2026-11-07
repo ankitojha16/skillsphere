@@ -27,38 +27,17 @@ def certificate_center_view(request):
 
         prog = course.get_user_progress(request.user)
 
-        # Module 9 Criteria:
-        # 1. 100% completion of mandatory course activities
-        # 2. Final quiz passed
-        # 3. Final mock test passed
-        has_100_pct = prog['percentage'] >= 100
-        has_quiz = prog['quiz_passed']
-        has_mock = prog['mock_passed']
-
-        if has_100_pct and has_quiz and has_mock:
+        # Check authoritative eligibility from course.get_user_progress (85% + mandatory assessments)
+        if prog.get('is_certificate_eligible', False):
             eligible_courses.append({
                 'course': course,
                 'progress': prog,
             })
         else:
-            remaining_reasons = []
-            if not has_100_pct:
-                remaining_reasons.append(f"Complete remaining coursework (Currently: {prog['percentage']}%)")
-            if not has_quiz:
-                if prog['is_unlocked']:
-                    remaining_reasons.append("Pass the Final Course Quiz (Min. 70%)")
-                else:
-                    remaining_reasons.append("Reach 80% progress to unlock Final Course Quiz")
-            if not has_mock:
-                if prog['is_unlocked']:
-                    remaining_reasons.append("Pass the Final Mock Examination (Min. 70%)")
-                else:
-                    remaining_reasons.append("Reach 80% progress to unlock Final Mock Test")
-
             locked_courses.append({
                 'course': course,
                 'progress': prog,
-                'remaining_reasons': remaining_reasons,
+                'remaining_reasons': prog.get('missing_requirements', []),
             })
 
     # Handle claim request with custom chosen recipient name
@@ -72,8 +51,8 @@ def certificate_center_view(request):
             return redirect('certificates:center')
 
         prog = course_to_claim.get_user_progress(request.user)
-        if not (prog['percentage'] >= 100 and prog['quiz_passed'] and prog['mock_passed']):
-            messages.error(request, "Cannot claim certificate: all mandatory lessons, Final Quiz, and Final Mock Test must be completed.")
+        if not prog.get('is_certificate_eligible', False):
+            messages.error(request, f"Cannot claim certificate: {'; '.join(prog.get('missing_requirements', ['Requirements not met.']))}")
             return redirect('certificates:center')
 
         # Recipient Name validation

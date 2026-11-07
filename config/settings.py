@@ -292,3 +292,8 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.SessionAuthentication',
     ],
 }
+
+# Authoritative Learning & Certificate Eligibility Configuration
+ASSESSMENT_UNLOCK_THRESHOLD = int(os.getenv('ASSESSMENT_UNLOCK_THRESHOLD', 80))
+CERTIFICATE_ELIGIBILITY_THRESHOLD = int(os.getenv('CERTIFICATE_ELIGIBILITY_THRESHOLD', 85))
+ASSESSMENT_PASSING_PERCENTAGE = int(os.getenv('ASSESSMENT_PASSING_PERCENTAGE', 70))

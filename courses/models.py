@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils.text import slugify
+from django.conf import settings
 
 class Category(models.Model):
     name = models.CharField(max_length=100, unique=True)
@@ -79,9 +80,15 @@ class Course(models.Model):
 
     def get_user_progress(self, user):
         """
+        Authoritative single-source-of-truth progress calculation for SkillSphere.
         Returns accurate weighted progress (0 to 100), activity breakdown,
-        assessment unlock status (>= 80%), and certificate eligibility.
+        assessment unlock status (>= 80%), certificate eligibility (>= 85% + mandatory exams),
+        and explicit list of missing requirements.
         """
+        unlock_threshold = getattr(settings, 'ASSESSMENT_UNLOCK_THRESHOLD', 80)
+        cert_threshold = getattr(settings, 'CERTIFICATE_ELIGIBILITY_THRESHOLD', 85)
+        passing_pct = getattr(settings, 'ASSESSMENT_PASSING_PERCENTAGE', 70)
+
         if not user or not user.is_authenticated:
             return {
                 'percentage': 0,
@@ -91,8 +98,10 @@ class Course(models.Model):
                 'quiz_passed': False,
                 'mock_passed': False,
                 'is_completed': False,
+                'is_certificate_eligible': False,
                 'exercises_completed': 0,
                 'exercises_total': 0,
+                'missing_requirements': ['Log in to track progress and unlock certificates.'],
             }
 
         total_lessons = self.lessons.count()
@@ -105,8 +114,10 @@ class Course(models.Model):
                 'quiz_passed': False,
                 'mock_passed': False,
                 'is_completed': False,
+                'is_certificate_eligible': False,
                 'exercises_completed': 0,
                 'exercises_total': 0,
+                'missing_requirements': ['Course curriculum is being prepared.'],
             }
 
         from learning.models import LessonProgress, Exercise, ExerciseSubmission, Assignment, AssignmentSubmission
@@ -151,36 +162,70 @@ class Course(models.Model):
             w_assignments = (completed_assignments / total_assignments) * 20.0
             percentage = min(100, int(round(w_lessons + w_exercises + w_assignments)))
 
-        is_unlocked = percentage >= 80
+        is_unlocked = percentage >= unlock_threshold
 
         # Check CourseAssessment pass states
-        quiz_passed = CourseAssessmentAttempt.objects.filter(
-            user=user,
-            assessment__course=self,
-            assessment__assessment_type='final_quiz',
-            is_passed=True
-        ).exists()
+        has_quiz = self.course_assessments.filter(assessment_type='final_quiz', is_active=True).exists()
+        has_mock = self.course_assessments.filter(assessment_type='final_mock', is_active=True).exists()
 
-        mock_passed = CourseAssessmentAttempt.objects.filter(
-            user=user,
-            assessment__course=self,
-            assessment__assessment_type='final_mock',
-            is_passed=True
-        ).exists()
+        quiz_passed = False
+        if has_quiz:
+            quiz_passed = CourseAssessmentAttempt.objects.filter(
+                user=user,
+                assessment__course=self,
+                assessment__assessment_type='final_quiz',
+                is_passed=True
+            ).exists()
+        else:
+            quiz_passed = True  # Not required if not part of course
 
-        is_completed = (percentage >= 100) and quiz_passed and mock_passed
+        mock_passed = False
+        if has_mock:
+            mock_passed = CourseAssessmentAttempt.objects.filter(
+                user=user,
+                assessment__course=self,
+                assessment__assessment_type='final_mock',
+                is_passed=True
+            ).exists()
+        else:
+            mock_passed = True  # Not required if not part of course
+
+        # Configurable certificate eligibility rule: >= 85% progress AND passing mandatory assessments
+        has_required_percentage = percentage >= cert_threshold
+        is_completed = has_required_percentage and quiz_passed and mock_passed
+
+        # Explicit list of missing requirements
+        missing_requirements = []
+        if not has_required_percentage:
+            missing_requirements.append(f"Reach {cert_threshold}% course progress (Currently: {percentage}%)")
+        if has_quiz and not quiz_passed:
+            if is_unlocked:
+                missing_requirements.append(f"Pass Final Course Quiz (Min. {passing_pct}%)")
+            else:
+                missing_requirements.append(f"Reach {unlock_threshold}% progress to unlock Final Course Quiz")
+        if has_mock and not mock_passed:
+            if is_unlocked:
+                missing_requirements.append(f"Pass Final Mock Examination (Min. {passing_pct}%)")
+            else:
+                missing_requirements.append(f"Reach {unlock_threshold}% progress to unlock Final Mock Test")
 
         # Auto-sync CourseCompletion record
         completion, _ = CourseCompletion.objects.get_or_create(user=user, course=self)
-        if completion.learning_progress != percentage or completion.is_assessment_unlocked != is_unlocked or completion.quiz_passed != quiz_passed or completion.mock_passed != mock_passed or completion.is_completed != is_completed:
+        if (completion.learning_progress != percentage or
+            completion.is_assessment_unlocked != is_unlocked or
+            completion.quiz_passed != (quiz_passed and has_quiz) or
+            completion.mock_passed != (mock_passed and has_mock) or
+            completion.is_completed != is_completed):
             completion.learning_progress = percentage
             completion.is_assessment_unlocked = is_unlocked
-            completion.quiz_passed = quiz_passed
-            completion.mock_passed = mock_passed
+            completion.quiz_passed = bool(quiz_passed and has_quiz)
+            completion.mock_passed = bool(mock_passed and has_mock)
             if is_completed and not completion.is_completed:
                 from django.utils import timezone
                 completion.is_completed = True
                 completion.completed_at = timezone.now()
+            elif not is_completed:
+                completion.is_completed = False
             completion.save()
 
         return {
@@ -192,9 +237,13 @@ class Course(models.Model):
             'assignments_completed': completed_assignments,
             'assignments_total': total_assignments,
             'is_unlocked': is_unlocked,
-            'quiz_passed': quiz_passed,
-            'mock_passed': mock_passed,
+            'quiz_passed': bool(quiz_passed and has_quiz),
+            'mock_passed': bool(mock_passed and has_mock),
+            'has_quiz': has_quiz,
+            'has_mock': has_mock,
             'is_completed': is_completed,
+            'is_certificate_eligible': is_completed,
+            'missing_requirements': missing_requirements,
         }
 
 

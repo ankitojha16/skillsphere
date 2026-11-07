@@ -341,7 +341,7 @@
                                             {% csrf_token %}
                                             <div class="mb-3">
                                                 <label class="form-label text-secondary small">Your Solution Code:</label>
-                                                <textarea class="form-control font-monospace text-light" name="code" rows="5" style="background-color: #0b1120; border: 1px solid var(--border-color); font-size: 0.85rem;" placeholder="Write your solution here...">{{ ex_item.exercise.starter_code }}</textarea>
+                                                <textarea class="form-control font-monospace text-light" name="code" rows="6" style="background-color: #0b1120; border: 1px solid var(--border-color); font-size: 0.85rem;" placeholder="# Write your solution here...">{{ ex_item.user_code }}</textarea>
                                             </div>
 
                                             <div class="d-flex justify-content-between align-items-center">
@@ -354,10 +354,16 @@
                                                 <div></div>
                                                 {% endif %}
 
-                                                <button type="submit" class="btn btn-primary-custom btn-sm py-1.5 px-3">
-                                                    <i data-lucide="check" style="width: 14px; height: 14px;"></i>
-                                                    <span>Submit & Verify</span>
-                                                </button>
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <button type="button" class="btn btn-secondary-custom btn-sm py-1.5 px-3 clear-code-btn" title="Clear editor content">
+                                                        <i data-lucide="rotate-ccw" style="width: 14px; height: 14px;"></i>
+                                                        <span>Clear</span>
+                                                    </button>
+                                                    <button type="submit" class="btn btn-primary-custom btn-sm py-1.5 px-3">
+                                                        <i data-lucide="check" style="width: 14px; height: 14px;"></i>
+                                                        <span>Submit & Verify</span>
+                                                    </button>
+                                                </div>
                                             </div>
                                             <div class="exercise-feedback mt-2 small" style="display: none;"></div>
                                         </form>
@@ -535,15 +541,27 @@
                 </div>
 
                 <!-- Certificate Status -->
-                <div class="p-3 rounded-3 text-center border" style="background-color: rgba(255,255,255,0.02); border-color: var(--border-color) !important;">
-                    {% if progress_info.is_completed %}
+                <div class="p-3 rounded-3 text-center border" id="certificateStatusCard" style="background-color: rgba(255,255,255,0.02); border-color: var(--border-color) !important;">
+                    {% if progress_info.is_certificate_eligible %}
                         <i data-lucide="award" class="text-warning mx-auto mb-2" style="width: 28px; height: 28px;"></i>
-                        <div class="fw-bold text-white small mb-1">Certificate Ready!</div>
-                        <a href="{% url 'certificates:center' %}" class="btn btn-primary-custom btn-sm py-1 px-3 w-100">Claim Certificate</a>
+                        <div class="fw-bold text-white small mb-1">Certificate Ready! 🎉</div>
+                        <p class="text-secondary small mb-2" style="font-size: 0.75rem;">You have fulfilled all course requirements.</p>
+                        <a href="{% url 'certificates:center' %}" class="btn btn-primary-custom btn-sm py-1.5 px-3 w-100">Claim Certificate</a>
                     {% else %}
                         <i data-lucide="shield-alert" class="text-secondary mx-auto mb-2" style="width: 24px; height: 24px;"></i>
-                        <div class="fw-bold text-secondary small mb-1">Certificate Locked</div>
-                        <p class="text-muted small mb-0" style="font-size: 0.72rem;">Requires 100% course items and passing both final examinations.</p>
+                        <div class="fw-bold text-light small mb-1">Certificate Locked</div>
+                        <div class="text-secondary small text-start mt-2" style="font-size: 0.75rem;">
+                            {% if progress_info.missing_requirements %}
+                                <span class="fw-semibold text-muted d-block mb-1">Requirements to unlock:</span>
+                                <ul class="mb-0 ps-3">
+                                    {% for req in progress_info.missing_requirements %}
+                                        <li class="text-secondary">{{ req }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% else %}
+                                <p class="text-secondary small mb-0" style="font-size: 0.72rem;">Requires 85% course items and passing final examinations.</p>
+                            {% endif %}
+                        </div>
                     {% endif %}
                 </div>
             </div>
@@ -623,6 +641,52 @@ document.addEventListener('DOMContentLoaded', () => {
                                 examBadge.innerHTML = '<span class="badge bg-success-subtle text-success border border-success-subtle w-100 py-1" style="font-size: 0.7rem;"><i data-lucide="unlock" style="width: 11px; height: 11px;"></i> Exams Unlocked</span>';
                             } else {
                                 examBadge.innerHTML = '<span class="badge bg-warning-subtle text-warning border border-warning-subtle w-100 py-1" style="font-size: 0.7rem;"><i data-lucide="lock" style="width: 11px; height: 11px;"></i> 80% to Unlock Exams</span>';
+                            }
+                        }
+
+                        // Update exam milestone card on the right
+                        const examMilestoneCard = document.getElementById('rightExamMilestoneCard');
+                        const examMilestoneIcon = document.getElementById('rightExamMilestoneIcon');
+                        const examMilestoneTitle = document.getElementById('rightExamMilestoneTitle');
+                        const examMilestoneDesc = document.getElementById('rightExamMilestoneDesc');
+
+                        if (examMilestoneCard) {
+                            if (data.is_unlocked) {
+                                examMilestoneCard.className = 'p-3 rounded-3 mb-3 border border-success-subtle bg-success-subtle text-success';
+                                if (examMilestoneIcon) examMilestoneIcon.setAttribute('data-lucide', 'unlock');
+                                if (examMilestoneTitle) examMilestoneTitle.textContent = 'Assessment Milestone Unlocked';
+                                if (examMilestoneDesc) examMilestoneDesc.textContent = '🎉 Unlocked! Final Quiz and Final Mock Test are active.';
+                            } else {
+                                examMilestoneCard.className = 'p-3 rounded-3 mb-3 border border-secondary-subtle bg-dark text-secondary';
+                                if (examMilestoneIcon) examMilestoneIcon.setAttribute('data-lucide', 'lock');
+                                if (examMilestoneTitle) examMilestoneTitle.textContent = '80% Assessment Milestone';
+                                if (examMilestoneDesc) examMilestoneDesc.textContent = `Reach 80% course progress to unlock final examinations (Currently: ${data.percentage}%).`;
+                            }
+                        }
+
+                        // Update certificate status card on the right
+                        const certCard = document.getElementById('certificateStatusCard');
+                        if (certCard) {
+                            if (data.is_certificate_eligible) {
+                                certCard.innerHTML = `
+                                    <i data-lucide="award" class="text-warning mx-auto mb-2" style="width: 28px; height: 28px;"></i>
+                                    <div class="fw-bold text-white small mb-1">Certificate Ready! 🎉</div>
+                                    <p class="text-secondary small mb-2" style="font-size: 0.75rem;">You have fulfilled all course requirements.</p>
+                                    <a href="{% url 'certificates:center' %}" class="btn btn-primary-custom btn-sm py-1.5 px-3 w-100">Claim Certificate</a>
+                                `;
+                            } else {
+                                let reqsHtml = '';
+                                if (data.missing_requirements && data.missing_requirements.length > 0) {
+                                    const items = data.missing_requirements.map(r => `<li class="text-secondary">${r}</li>`).join('');
+                                    reqsHtml = `<span class="fw-semibold text-muted d-block mb-1">Requirements to unlock:</span><ul class="mb-0 ps-3">${items}</ul>`;
+                                } else {
+                                    reqsHtml = '<p class="text-secondary small mb-0" style="font-size: 0.72rem;">Requires 85% course items and passing final examinations.</p>';
+                                }
+                                certCard.innerHTML = `
+                                    <i data-lucide="shield-alert" class="text-secondary mx-auto mb-2" style="width: 24px; height: 24px;"></i>
+                                    <div class="fw-bold text-light small mb-1">Certificate Locked</div>
+                                    <div class="text-secondary small text-start mt-2" style="font-size: 0.75rem;">${reqsHtml}</div>
+                                `;
                             }
                         }
 
@@ -766,6 +830,20 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (err) {
                 feedbackEl.className = 'exercise-feedback mt-2 small text-danger';
                 feedbackEl.textContent = 'Error executing code evaluation.';
+            }
+        });
+    });
+
+    // 4b. Clear Editor Button Handler
+    document.querySelectorAll('.clear-code-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const form = btn.closest('form');
+            if (form) {
+                const ta = form.querySelector('textarea[name=code]');
+                if (ta) {
+                    ta.value = '';
+                    ta.focus();
+                }
             }
         });
     });
