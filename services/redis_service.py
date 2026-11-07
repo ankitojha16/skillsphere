@@ -12,26 +12,31 @@ class RedisService:
     """
     Distributed Redis coordination service for multi-instance serverless environments.
     Provides atomic distributed locks with token verification, sliding-window rate limiters,
-    and graceful zero-crash fallback to LocMemCache / Django cache.
+    automatic connection recovery without restart, and graceful zero-crash fallback to LocMemCache.
     Never exposes credentials or full URLs.
     """
     _client = None
-    _client_initialized = False
+    _last_failure_time = 0.0
+    _reconnect_interval_sec = 3.0  # Attempt reconnection every 3s if disconnected
 
     @classmethod
     def get_client(cls):
         """
         Returns a connected Redis client if configured and reachable, or None.
+        Automatically attempts reconnection if connection was previously dropped.
         Never logs or exposes the connection string or credentials.
         """
-        if cls._client_initialized:
+        now = time.monotonic()
+        if cls._client is not None:
             return cls._client
 
-        cls._client_initialized = True
+        # If recently failed, honor cooldown interval before re-trying
+        if cls._last_failure_time > 0 and (now - cls._last_failure_time) < cls._reconnect_interval_sec:
+            return None
+
         redis_url = os.environ.get('REDIS_URL') or os.environ.get('CACHE_URL') or getattr(settings, 'REDIS_URL', None)
         if not redis_url:
-            logger.info("[RedisService] REDIS_URL not configured. Operating in fallback mode (LocMemCache).")
-            cls._client = None
+            cls._last_failure_time = now
             return None
 
         try:
@@ -45,40 +50,54 @@ class RedisService:
             # Ping to verify actual connectivity
             client.ping()
             cls._client = client
-            logger.info("[RedisService] Connected successfully to Redis backend.")
+            cls._last_failure_time = 0.0
+            logger.info("[RedisService] Redis connection established. Distributed multi-instance synchronization active.")
             return cls._client
         except Exception as e:
-            logger.warning(f"[RedisService] Failed to connect to Redis ({type(e).__name__}). Using fallback mode.")
             cls._client = None
+            cls._last_failure_time = now
+            logger.warning(
+                f"[RedisService] Redis unavailable ({type(e).__name__}). "
+                f"Degraded to local fallback. Distributed cross-instance rate limiting and locking are INACTIVE."
+            )
             return None
 
     @classmethod
     def reset_client(cls):
         """Reset cached client connection (useful in tests and reconfigurations)."""
         cls._client = None
-        cls._client_initialized = False
+        cls._last_failure_time = 0.0
 
     @classmethod
     def is_redis_available(cls) -> bool:
-        """Checks if live Redis connection is responsive."""
+        """Checks if live Redis connection is responsive; marks degraded on failure."""
         client = cls.get_client()
         if not client:
             return False
         try:
             return bool(client.ping())
-        except Exception:
+        except Exception as e:
+            cls._client = None
+            cls._last_failure_time = time.monotonic()
+            logger.warning(
+                f"[RedisService] Redis ping failed ({type(e).__name__}). "
+                f"Degraded to local fallback. Distributed rate-limiting is INACTIVE."
+            )
             return False
 
     @classmethod
     def get_backend_status(cls) -> Dict[str, Any]:
         """
         Returns safe telemetry about the active backend without sensitive URLs or credentials.
+        Accurately reports whether distributed coordination is active or operating in degraded mode.
         """
         is_avail = cls.is_redis_available()
         return {
             'backend_type': 'redis' if is_avail else 'locmem_fallback',
             'redis_connected': is_avail,
             'distributed_ready': is_avail,
+            'protection_mode': 'distributed_redis' if is_avail else 'degraded_local_fallback',
+            'warning': None if is_avail else 'Operating in degraded mode with local cache. Cross-instance rate-limiting and locks are INACTIVE.',
         }
 
     # ------------------------------------------------------------------------

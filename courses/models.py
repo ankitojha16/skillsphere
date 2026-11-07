@@ -150,31 +150,32 @@ class Course(models.Model):
 
         is_unlocked = percentage >= unlock_threshold
 
-        # Check CourseAssessment pass states
-        has_quiz = self.course_assessments.filter(assessment_type='final_quiz', is_active=True).exists()
-        has_mock = self.course_assessments.filter(assessment_type='final_mock', is_active=True).exists()
+        # Check CourseAssessment pass states (course-specific requirements)
+        quiz_obj = self.course_assessments.filter(assessment_type='final_quiz', is_active=True).first()
+        mock_obj = self.course_assessments.filter(assessment_type='final_mock', is_active=True).first()
+
+        has_quiz = quiz_obj is not None and getattr(quiz_obj, 'is_mandatory', True)
+        has_mock = mock_obj is not None and getattr(mock_obj, 'is_mandatory', True)
 
         quiz_passed = False
         if has_quiz:
             quiz_passed = CourseAssessmentAttempt.objects.filter(
                 user=user,
-                assessment__course=self,
-                assessment__assessment_type='final_quiz',
+                assessment=quiz_obj,
                 is_passed=True
             ).exists()
         else:
-            quiz_passed = True  # Not required if not part of course
+            quiz_passed = True  # Not required if not configured or marked optional
 
         mock_passed = False
         if has_mock:
             mock_passed = CourseAssessmentAttempt.objects.filter(
                 user=user,
-                assessment__course=self,
-                assessment__assessment_type='final_mock',
+                assessment=mock_obj,
                 is_passed=True
             ).exists()
         else:
-            mock_passed = True  # Not required if not part of course
+            mock_passed = True  # Not required if not configured or marked optional
 
         # Authoritative certificate eligibility: >= 85% progress AND passing mandatory assessments
         has_required_percentage = percentage >= cert_threshold
@@ -189,15 +190,19 @@ class Course(models.Model):
         if not has_required_percentage:
             missing_requirements.append(f"Reach {cert_threshold}% course progress (Currently: {percentage}%)")
         if has_quiz and not quiz_passed:
+            title = quiz_obj.title if quiz_obj else "Final Course Quiz"
+            passing_score = quiz_obj.passing_percentage if quiz_obj else passing_pct
             if is_unlocked:
-                missing_requirements.append(f"Pass Final Course Quiz with at least {passing_pct}%")
+                missing_requirements.append(f"Pass {title} with at least {passing_score}%")
             else:
-                missing_requirements.append(f"Reach {unlock_threshold}% progress to unlock Final Course Quiz")
+                missing_requirements.append(f"Reach {unlock_threshold}% progress to unlock {title}")
         if has_mock and not mock_passed:
+            title = mock_obj.title if mock_obj else "Final Mock Examination"
+            passing_score = mock_obj.passing_percentage if mock_obj else passing_pct
             if is_unlocked:
-                missing_requirements.append(f"Pass Final Mock Examination with at least {passing_pct}%")
+                missing_requirements.append(f"Pass {title} with at least {passing_score}%")
             else:
-                missing_requirements.append(f"Reach {unlock_threshold}% progress to unlock Final Mock Test")
+                missing_requirements.append(f"Reach {unlock_threshold}% progress to unlock {title}")
 
         # Optional activities remaining (for feedback, but never block certificate)
         optional_remaining_activities = []
