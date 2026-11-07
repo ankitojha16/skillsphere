@@ -9,6 +9,7 @@ urlpatterns = [
     path('<slug:slug>/', views.course_detail_view, name='detail'),
     path('<slug:slug>/enroll/', views.enroll_course_view, name='enroll'),
     path('<slug:slug>/unenroll/', views.unenroll_course_view, name='unenroll'),
+    path('<slug:slug>/upgrade-curriculum/', views.upgrade_curriculum_view, name='upgrade_curriculum'),
     
     # 80% Unlocked Course Examinations (Final Quiz & Final Mock)
     path('<slug:slug>/assessments/<str:assessment_type>/', views.assessment_intro_view, name='assessment_intro'),

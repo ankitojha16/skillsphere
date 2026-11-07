@@ -225,14 +225,16 @@ class PDFService:
     @staticmethod
     def generate_lesson_notes_pdf(lesson) -> bytes:
         """
-        Generates an authentic, 16-section comprehensive academic PDF study guide
+        Generates an authentic, multi-page comprehensive academic PDF study guide (5 to 12 pages)
         using AcademicNumberedCanvas for two-pass running headers ('Page X of Y')
-        and professional academic typography.
+        and publication-grade academic typography.
         """
-        cache_key = f"lesson_notes_pdf_v2_{lesson.id}"
+        cache_key = f"lesson_notes_pdf_v3_{lesson.id}"
         cached = cache.get(cache_key)
         if cached:
             return cached
+
+        from services.academic_notes_content import SPECIALIZED_ACADEMIC_LESSONS
 
         buffer = io.BytesIO()
         doc = SimpleDocTemplate(
@@ -250,8 +252,8 @@ class PDFService:
             'AcademicTitle',
             parent=styles['Heading1'],
             fontName='Helvetica-Bold',
-            fontSize=18,
-            leading=22,
+            fontSize=17,
+            leading=21,
             textColor=colors.HexColor('#0F172A'),
             spaceAfter=4,
             keepWithNext=True
@@ -262,7 +264,7 @@ class PDFService:
             fontSize=10,
             leading=13,
             textColor=colors.HexColor('#4338CA'),
-            spaceAfter=8,
+            spaceAfter=6,
             keepWithNext=True
         )
         meta_style = ParagraphStyle(
@@ -271,335 +273,685 @@ class PDFService:
             fontSize=8.5,
             leading=11,
             textColor=colors.HexColor('#64748B'),
-            spaceAfter=12
+            spaceAfter=10
         )
         h2_style = ParagraphStyle(
             'AcademicH2',
             fontName='Helvetica-Bold',
-            fontSize=11.5,
-            leading=15,
+            fontSize=11,
+            leading=14.5,
             textColor=colors.HexColor('#1E293B'),
-            spaceBefore=14,
-            spaceAfter=6,
+            spaceBefore=12,
+            spaceAfter=5,
             keepWithNext=True
         )
         h3_style = ParagraphStyle(
             'AcademicH3',
             fontName='Helvetica-Bold',
             fontSize=9.5,
-            leading=13,
+            leading=12.5,
             textColor=colors.HexColor('#334155'),
-            spaceBefore=8,
+            spaceBefore=7,
             spaceAfter=3,
             keepWithNext=True
         )
         body_style = ParagraphStyle(
             'AcademicBody',
             fontName='Helvetica',
-            fontSize=9,
-            leading=13.5,
+            fontSize=8.5,
+            leading=12.5,
             textColor=colors.HexColor('#334155'),
-            spaceAfter=6
+            spaceAfter=5
         )
         code_style = ParagraphStyle(
             'AcademicCode',
             fontName='Courier',
-            fontSize=8,
-            leading=11.5,
+            fontSize=7.5,
+            leading=10.5,
             textColor=colors.HexColor('#0F172A'),
             backColor=colors.HexColor('#F8FAFC'),
-            borderPadding=8,
+            borderPadding=6,
             spaceBefore=4,
-            spaceAfter=8
+            spaceAfter=6
         )
         terminal_style = ParagraphStyle(
             'AcademicTerminal',
             fontName='Courier-Bold',
-            fontSize=8,
-            leading=11.5,
+            fontSize=7.5,
+            leading=10.5,
             textColor=colors.HexColor('#38BDF8'),
             backColor=colors.HexColor('#0F172A'),
-            borderPadding=8,
+            borderPadding=6,
             spaceBefore=4,
-            spaceAfter=8
+            spaceAfter=6
         )
         callout_style = ParagraphStyle(
             'AcademicCallout',
             fontName='Helvetica',
-            fontSize=8.5,
-            leading=12.5,
+            fontSize=8,
+            leading=11.5,
             textColor=colors.HexColor('#1E293B'),
             backColor=colors.HexColor('#EEF2FF'),
             borderColor=colors.HexColor('#6366F1'),
             borderWidth=0.8,
-            borderPadding=8,
-            spaceBefore=6,
-            spaceAfter=10
+            borderPadding=6,
+            spaceBefore=5,
+            spaceAfter=8
         )
         mistake_style = ParagraphStyle(
             'AcademicMistake',
             fontName='Helvetica',
-            fontSize=8.5,
-            leading=12.5,
+            fontSize=8,
+            leading=11.5,
             textColor=colors.HexColor('#991B1B'),
             backColor=colors.HexColor('#FEF2F2'),
             borderColor=colors.HexColor('#EF4444'),
             borderWidth=0.8,
-            borderPadding=8,
-            spaceBefore=6,
-            spaceAfter=10
+            borderPadding=6,
+            spaceBefore=5,
+            spaceAfter=8
+        )
+        th_style = ParagraphStyle(
+            'TH',
+            fontName='Helvetica-Bold',
+            fontSize=8,
+            leading=10.5,
+            textColor=colors.HexColor('#FFFFFF')
+        )
+        td_style = ParagraphStyle(
+            'TD',
+            fontName='Helvetica',
+            fontSize=7.5,
+            leading=10,
+            textColor=colors.HexColor('#1E293B')
+        )
+        td_code = ParagraphStyle(
+            'TDCode',
+            fontName='Courier',
+            fontSize=7,
+            leading=9.5,
+            textColor=colors.HexColor('#0F172A')
         )
 
         elements = []
-
-        # Course & Lesson Data Extraction
         course = lesson.course
         module_name = lesson.module.title if lesson.module else (lesson.chapter_name or "Core Module")
-        clean_paragraphs, code_snippets = PDFService._clean_html_text(lesson.content or "")
-        takeaways = PDFService._parse_bullet_list(lesson.key_takeaways)
-        mistakes = PDFService._parse_bullet_list(lesson.common_mistakes)
-        exercises = list(lesson.exercises.all()[:4])
+        normalized_title = lesson.title.lower()
 
-        # ----------------------------------------------------
-        # 1. Course and Lesson Title Banner
-        # ----------------------------------------------------
-        header_table = Table([
-            [
-                Paragraph("<b>SKILLSPHERE ACADEMIC COURSEWARE</b>", ParagraphStyle('H1', fontName='Helvetica-Bold', fontSize=11, textColor=colors.HexColor('#4338CA'))),
-                Paragraph(f"<b>Estimated:</b> {lesson.estimated_minutes} min read | <b>Difficulty:</b> {course.difficulty}", ParagraphStyle('H2', fontName='Helvetica', fontSize=8.5, alignment=2, textColor=colors.HexColor('#64748B')))
+        # Check for specialized curriculum data
+        spec_data = None
+        if 'control-flow' in normalized_title or 'if-else' in normalized_title or 'control flow' in normalized_title:
+            spec_data = SPECIALIZED_ACADEMIC_LESSONS.get('control-flow-if-else-loops')
+
+        if spec_data:
+            data = spec_data
+            # Banner
+            banner_data = [
+                [
+                    Paragraph('<b>SKILLSPHERE ACADEMIC COURSEWARE</b>', ParagraphStyle('BH1', fontName='Helvetica-Bold', fontSize=10, textColor=colors.HexColor('#4338CA'))),
+                    Paragraph(f'<b>Estimated:</b> {data["estimated_minutes"]} min read | <b>Difficulty:</b> {data["difficulty"]}', ParagraphStyle('BH2', fontName='Helvetica', fontSize=8, alignment=2, textColor=colors.HexColor('#64748B')))
+                ]
             ]
-        ], colWidths=[310, 205])
-        header_table.setStyle(TableStyle([
-            ('BOTTOMPADDING', (0,0), (-1,-1), 4),
-            ('LINEBELOW', (0,0), (-1,-1), 1.5, colors.HexColor('#4338CA')),
-        ]))
-        elements.append(header_table)
-        elements.append(Spacer(1, 10))
+            t_banner = Table(banner_data, colWidths=[310, 205])
+            t_banner.setStyle(TableStyle([
+                ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+                ('LINEBELOW', (0,0), (-1,-1), 1.5, colors.HexColor('#4338CA')),
+            ]))
+            elements.append(t_banner)
+            elements.append(Spacer(1, 8))
 
-        elements.append(Paragraph(f"{course.title.upper()} • {module_name.upper()}", subtitle_style))
-        elements.append(Paragraph(f"Lesson {lesson.lesson_order}: {lesson.title}", title_style))
-        instructor = course.instructor_name or "SkillSphere Academic Faculty"
-        elements.append(Paragraph(f"<b>Instructor:</b> {instructor} &nbsp;|&nbsp; <b>Academic Standard:</b> Industry Aligned Curriculum", meta_style))
-        elements.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#CBD5E1'), spaceAfter=10))
+            elements.append(Paragraph(f'{course.title.upper()} • {module_name.upper()}', subtitle_style))
+            elements.append(Paragraph(f'Lesson {lesson.lesson_order}: {lesson.title}', title_style))
+            instructor = course.instructor_name or data["instructor"]
+            elements.append(Paragraph(f'<b>Instructor:</b> {instructor} &nbsp;|&nbsp; <b>Academic Standard:</b> {data["academic_standard"]}', meta_style))
+            elements.append(HRFlowable(width='100%', thickness=0.5, color=colors.HexColor('#CBD5E1'), spaceAfter=8))
 
-        # ----------------------------------------------------
-        # 2. Learning Objectives
-        # ----------------------------------------------------
-        elements.append(Paragraph("1. Learning Objectives & Target Competencies", h2_style))
-        objs = [
-            f"Understand the conceptual model, architecture, and principles of <b>{lesson.title}</b>.",
-            f"Analyze core implementation patterns, syntax structures, and best practices in modern software systems.",
-            f"Evaluate edge cases, performance trade-offs, and computational complexities.",
-            f"Apply concepts directly to production-grade exercises and interview problem-solving."
-        ]
-        obj_text = "<br/>• ".join(objs)
-        elements.append(Paragraph(f"• {obj_text}", body_style))
-        elements.append(Spacer(1, 6))
+            # 1. Executive Summary & Competency Matrix
+            elements.append(Paragraph('1. Curriculum Overview & Competency Matrix', h2_style))
+            elements.append(Paragraph(data['executive_summary'], body_style))
+            elements.append(Spacer(1, 4))
 
-        # ----------------------------------------------------
-        # 3. Topic Introduction
-        # ----------------------------------------------------
-        elements.append(Paragraph("2. Topic Introduction & Real-World Context", h2_style))
-        intro_text = (
-            f"In modern software engineering, mastering <b>{lesson.title}</b> provides developers with foundational "
-            f"clarity when designing robust, maintainable, and scalable solutions. Whether developing distributed backend "
-            f"services, designing data pipelines, or optimizing algorithmic operations, this topic represents an essential "
-            f"milestone in the <i>{course.title}</i> curriculum."
-        )
-        elements.append(Paragraph(intro_text, body_style))
-        elements.append(Spacer(1, 6))
+            c_table_rows = []
+            for idx, row in enumerate(data['competency_matrix']):
+                if idx == 0:
+                    c_table_rows.append([Paragraph(f'<b>{c}</b>', th_style) for c in row])
+                else:
+                    c_table_rows.append([
+                        Paragraph(f'<b>{row[0]}</b>', td_style),
+                        Paragraph(row[1], td_style),
+                        Paragraph(row[2], td_style),
+                        Paragraph(row[3], td_style)
+                    ])
+            t_comp = Table(c_table_rows, colWidths=[120, 100, 115, 180])
+            t_comp.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4338CA')),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#CBD5E1')),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.HexColor('#FFFFFF'), colors.HexColor('#F8FAFC')]),
+                ('TOPPADDING', (0, 0), (-1, -1), 4),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ]))
+            elements.append(t_comp)
+            elements.append(Spacer(1, 8))
 
-        # ----------------------------------------------------
-        # 4. Detailed Concepts
-        # ----------------------------------------------------
-        elements.append(Paragraph("3. Theoretical Foundations & Detailed Concepts", h2_style))
-        if clean_paragraphs:
-            for p in clean_paragraphs[:5]:
-                if '[CODE_BLOCK]' not in p and len(p.strip()) > 15:
-                    elements.append(Paragraph(p, body_style))
+            # 2. Learning Objectives
+            elements.append(Paragraph('2. Learning Objectives & Pedagogical Target Competencies', h2_style))
+            objs_text = '<br/>• '.join([''] + data['learning_objectives']).strip()
+            elements.append(Paragraph(objs_text, body_style))
+            elements.append(Spacer(1, 6))
+
+            # 3. Theoretical Foundations
+            elements.append(Paragraph('3. Theoretical Foundations & Execution Models', h2_style))
+            for tf in data['theoretical_foundations']:
+                elements.append(Paragraph(tf, body_style))
+                elements.append(Spacer(1, 3))
+            elements.append(Spacer(1, 6))
+
+            # 4. Syntax & Specifications
+            elements.append(Paragraph('4. Formal Syntax & Construct Specifications', h2_style))
+            s_table_rows = []
+            for idx, row in enumerate(data['syntax_specifications']):
+                if idx == 0:
+                    s_table_rows.append([Paragraph(f'<b>{c}</b>', th_style) for c in row])
+                else:
+                    s_table_rows.append([
+                        Paragraph(f'<b>{row[0]}</b>', td_style),
+                        Paragraph(row[1].replace('\n', '<br/>').replace(' ', '&nbsp;'), td_code),
+                        Paragraph(row[2], td_style),
+                        Paragraph(row[3], td_style)
+                    ])
+            t_syntax = Table(s_table_rows, colWidths=[80, 140, 175, 120])
+            t_syntax.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1E293B')),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#CBD5E1')),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.HexColor('#FFFFFF'), colors.HexColor('#F8FAFC')]),
+                ('TOPPADDING', (0, 0), (-1, -1), 4),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ]))
+            elements.append(t_syntax)
+            elements.append(Spacer(1, 8))
+
+            # 5. Boolean Logic Truth Matrix
+            elements.append(Paragraph('5. Boolean Logic Truth Matrix & Short-Circuit Evaluation', h2_style))
+            tt = data['truth_tables']
+            tt_rows = [[Paragraph(f'<b>{h}</b>', th_style) for h in tt['headers']]]
+            for r in tt['rows']:
+                tt_rows.append([
+                    Paragraph(r[0], td_style),
+                    Paragraph(r[1], td_style),
+                    Paragraph(f'<b>{r[2]}</b>', td_style),
+                    Paragraph(f'<b>{r[3]}</b>', td_style),
+                    Paragraph(f'<b>{r[4]}</b>', td_style)
+                ])
+            t_tt = Table(tt_rows, colWidths=[130, 130, 85, 85, 85])
+            t_tt.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4338CA')),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#CBD5E1')),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.HexColor('#FFFFFF'), colors.HexColor('#F8FAFC')]),
+                ('TOPPADDING', (0, 0), (-1, -1), 4),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ]))
+            elements.append(t_tt)
+            elements.append(Spacer(1, 6))
+
+            sc_rows = [[Paragraph(f'<b>{c}</b>', th_style) for c in tt['short_circuit_rules'][0]]]
+            for r in tt['short_circuit_rules'][1:]:
+                sc_rows.append([
+                    Paragraph(f'<b>{r[0]}</b>', td_code),
+                    Paragraph(r[1], td_style),
+                    Paragraph(r[2], td_style),
+                    Paragraph(r[3], td_style)
+                ])
+            t_sc = Table(sc_rows, colWidths=[80, 160, 120, 155])
+            t_sc.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0F172A')),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#CBD5E1')),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.HexColor('#FFFFFF'), colors.HexColor('#F8FAFC')]),
+                ('TOPPADDING', (0, 0), (-1, -1), 4),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ]))
+            elements.append(t_sc)
+            elements.append(Spacer(1, 8))
+
+            # 6. Flowcharts
+            elements.append(Paragraph('6. Execution Flow Architecture & Control Diagrams', h2_style))
+            for fc in data['execution_flowcharts']:
+                elements.append(Paragraph(f'<b>{fc["title"]}</b>', h3_style))
+                fc_clean = fc['diagram'].replace(' ', '&nbsp;').replace('\n', '<br/>')
+                elements.append(Paragraph(f'<font face="Courier">{fc_clean}</font>', code_style))
+                elements.append(Spacer(1, 4))
+            elements.append(Spacer(1, 6))
+
+            # 7. Code Examples
+            elements.append(Paragraph('7. Production Implementations, Annotations & Console Traces', h2_style))
+            for ce in data['code_examples']:
+                elements.append(Paragraph(f'<b>{ce["title"]}</b>', h3_style))
+                elements.append(Paragraph(ce['description'], body_style))
+                code_clean = ce['code'].replace(' ', '&nbsp;').replace('\n', '<br/>')
+                elements.append(Paragraph(f'<font face="Courier">{code_clean}</font>', code_style))
+
+                ann_rows = [[Paragraph(f'<b>{c}</b>', th_style) for c in ce['annotations'][0]]]
+                for an in ce['annotations'][1:]:
+                    ann_rows.append([
+                        Paragraph(f'<b>{an[0]}</b>', td_style),
+                        Paragraph(an[1], td_code),
+                        Paragraph(an[2], td_style),
+                        Paragraph(an[3], td_style)
+                    ])
+                t_ann = Table(ann_rows, colWidths=[70, 135, 145, 165])
+                t_ann.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1E293B')),
+                    ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#CBD5E1')),
+                    ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.HexColor('#FFFFFF'), colors.HexColor('#F8FAFC')]),
+                    ('TOPPADDING', (0, 0), (-1, -1), 4),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+                ]))
+                elements.append(t_ann)
+                elements.append(Spacer(1, 4))
+
+                out_clean = ce['console_output'].replace(' ', '&nbsp;').replace('\n', '<br/>')
+                elements.append(Paragraph(f'<font face="Courier-Bold">{out_clean}</font>', terminal_style))
+                elements.append(Spacer(1, 8))
+
+            # 8. Architectural Comparisons
+            elements.append(Paragraph('8. Architectural Comparisons & Decision Matrices', h2_style))
+            for comp in data['comparisons']:
+                elements.append(Paragraph(f'<b>{comp["title"]}</b>', h3_style))
+                comp_rows = [[Paragraph(f'<b>{h}</b>', th_style) for h in comp['headers']]]
+                for cr in comp['rows']:
+                    comp_rows.append([Paragraph(f'<b>{cr[0]}</b>', td_style)] + [Paragraph(c, td_style) for c in cr[1:]])
+                t_cmp = Table(comp_rows, colWidths=[95, 95, 95, 80, 150])
+                t_cmp.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4338CA')),
+                    ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#CBD5E1')),
+                    ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.HexColor('#FFFFFF'), colors.HexColor('#F8FAFC')]),
+                    ('TOPPADDING', (0, 0), (-1, -1), 4),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+                ]))
+                elements.append(t_cmp)
+                elements.append(Spacer(1, 8))
+
+            # 9. Common Pitfalls
+            elements.append(Paragraph('9. Common Pitfalls, Anti-Patterns & Defensive Debugging', h2_style))
+            for pitfall in data['common_pitfalls']:
+                elements.append(Paragraph(f'<b>⚠️ {pitfall[0]}</b>', h3_style))
+                elements.append(Paragraph(pitfall[1], body_style))
+                bad_code = pitfall[2].replace(' ', '&nbsp;').replace('\n', '<br/>')
+                good_code = pitfall[3].replace(' ', '&nbsp;').replace('\n', '<br/>')
+                elements.append(Paragraph(f'<b>Broken Anti-Pattern:</b><br/><font face="Courier">{bad_code}</font>', mistake_style))
+                elements.append(Paragraph(f'<b>Idiomatic Resolution:</b><br/><font face="Courier">{good_code}</font>', callout_style))
+                elements.append(Spacer(1, 4))
+
+            # 10. Technical Interview Masterclass
+            elements.append(Paragraph('10. Technical Interview Questions & Model Answers', h2_style))
+            for iqa in data['interview_qa']:
+                elements.append(Paragraph(f'<b>{iqa["q"]}</b>', h3_style))
+                elements.append(Paragraph(f'<i>Interviewer Evaluation Criteria:</i> {iqa["eval_criteria"]}', meta_style))
+                elements.append(Paragraph(f'<b>Model Answer:</b><br/>{iqa["answer"]}', body_style))
+                elements.append(Spacer(1, 6))
+
+            # 11. Practice Challenges
+            elements.append(Paragraph('11. Graded Practice Challenges & Problem Sets', h2_style))
+            for pc in data['practice_challenges']:
+                elements.append(Paragraph(f'<b>{pc["level"]}: {pc["title"]}</b>', h3_style))
+                elements.append(Paragraph(pc['description'], body_style))
+                sc_clean = pc['starter_code'].replace(' ', '&nbsp;').replace('\n', '<br/>')
+                elements.append(Paragraph(f'<font face="Courier">{sc_clean}</font>', code_style))
+                elements.append(Spacer(1, 4))
+
+            # 12. Quick Revision Cheat Sheet
+            elements.append(Paragraph('12. Quick Revision Summary & Architectural Cheat Sheet', h2_style))
+            cs_rows = [[Paragraph(f'<b>{c}</b>', th_style) for c in data['cheat_sheet'][0]]]
+            for csr in data['cheat_sheet'][1:]:
+                cs_rows.append([
+                    Paragraph(f'<b>{csr[0]}</b>', td_style),
+                    Paragraph(csr[1], td_code),
+                    Paragraph(csr[2], td_style),
+                    Paragraph(csr[3], td_style)
+                ])
+            t_cs = Table(cs_rows, colWidths=[70, 120, 160, 165])
+            t_cs.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0F172A')),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#CBD5E1')),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.HexColor('#FFFFFF'), colors.HexColor('#F8FAFC')]),
+                ('TOPPADDING', (0, 0), (-1, -1), 4),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ]))
+            elements.append(t_cs)
+            elements.append(Spacer(1, 8))
+
+            # 13. References
+            elements.append(Paragraph('13. Academic Bibliography & Formal References', h2_style))
+            for ref in data['references']:
+                elements.append(Paragraph(f'• <b>{ref[0]}:</b> <i>{ref[1]}</i> — {ref[2]}', body_style))
+
         else:
+            # Domain-Aware Comprehensive Generator for All Other Lessons (5 to 8 Pages)
+            clean_paragraphs, code_snippets = PDFService._clean_html_text(lesson.content or "")
+            takeaways = PDFService._parse_bullet_list(lesson.key_takeaways)
+            mistakes = PDFService._parse_bullet_list(lesson.common_mistakes)
+            exercises = list(lesson.exercises.all()[:4])
+
+            # Header Banner
+            banner_data = [
+                [
+                    Paragraph('<b>SKILLSPHERE ACADEMIC COURSEWARE</b>', ParagraphStyle('BH1', fontName='Helvetica-Bold', fontSize=10, textColor=colors.HexColor('#4338CA'))),
+                    Paragraph(f'<b>Estimated:</b> {lesson.estimated_minutes} min read | <b>Difficulty:</b> {course.difficulty}', ParagraphStyle('BH2', fontName='Helvetica', fontSize=8, alignment=2, textColor=colors.HexColor('#64748B')))
+                ]
+            ]
+            t_banner = Table(banner_data, colWidths=[310, 205])
+            t_banner.setStyle(TableStyle([
+                ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+                ('LINEBELOW', (0,0), (-1,-1), 1.5, colors.HexColor('#4338CA')),
+            ]))
+            elements.append(t_banner)
+            elements.append(Spacer(1, 8))
+
+            elements.append(Paragraph(f'{course.title.upper()} • {module_name.upper()}', subtitle_style))
+            elements.append(Paragraph(f'Lesson {lesson.lesson_order}: {lesson.title}', title_style))
+            instructor = course.instructor_name or "SkillSphere Academic Faculty"
+            elements.append(Paragraph(f'<b>Instructor:</b> {instructor} &nbsp;|&nbsp; <b>Academic Standard:</b> Industry Aligned Curriculum', meta_style))
+            elements.append(HRFlowable(width='100%', thickness=0.5, color=colors.HexColor('#CBD5E1'), spaceAfter=8))
+
+            # 1. Executive Summary & Competency Matrix
+            elements.append(Paragraph('1. Curriculum Overview & Competency Matrix', h2_style))
             elements.append(Paragraph(
-                f"The architecture of <b>{lesson.title}</b> revolves around structured memory allocation, deterministic execution, "
-                f"and clear separation of concerns. Developers must understand how data structures and execution contexts interact "
-                f"to guarantee consistency, prevent race conditions, and minimize computational overhead.", body_style
+                f"This academic study guide provides in-depth technical analysis of <b>{lesson.title}</b> within the "
+                f"<b>{course.title}</b> curriculum. It synthesizes core theoretical foundations, runtime characteristics, "
+                f"production design patterns, and defensive implementation standards necessary for enterprise engineering.",
+                body_style
             ))
-        elements.append(Spacer(1, 6))
+            elements.append(Spacer(1, 4))
 
-        # ----------------------------------------------------
-        # 5. Syntax & Definitions
-        # ----------------------------------------------------
-        elements.append(Paragraph("4. Syntax, Rules & Formal Specifications", h2_style))
-        syntax_defs = [
-            f"<b>Standard Declaration:</b> Formal signatures follow standard conventions with explicit parameter contracts.",
-            f"<b>Scope & Mutability:</b> Variables and references operate within designated lexical scopes and lifetime boundaries.",
-            f"<b>Error Protocols:</b> Deterministic error checking and boundary handling must be enforced before state modification."
-        ]
-        elements.append(Paragraph("<br/>• ".join([""] + syntax_defs).strip(), body_style))
-        elements.append(Spacer(1, 6))
+            c_matrix = [
+                [Paragraph('<b>Competency Domain</b>', th_style), Paragraph('<b>Cognitive Level</b>', th_style), Paragraph('<b>Prerequisite Knowledge</b>', th_style), Paragraph('<b>Mastery Target</b>', th_style)],
+                [Paragraph(f'<b>{lesson.title} Core Architecture</b>', td_style), Paragraph('Understanding & Analysis', td_style), Paragraph('Foundation Concepts', td_style), Paragraph('Master internal mechanics and execution semantics.', td_style)],
+                [Paragraph('Production Implementation', td_style), Paragraph('Application & Synthesis', td_style), Paragraph('Syntax & Data Structures', td_style), Paragraph('Write deterministic, defensively guarded code.', td_style)],
+                [Paragraph('Error Handling & Optimization', td_style), Paragraph('Evaluation', td_style), Paragraph('Runtime Profiling', td_style), Paragraph('Identify edge cases, mitigate pitfalls, and ensure scalability.', td_style)],
+                [Paragraph('System Design Integration', td_style), Paragraph('Creation', td_style), Paragraph('API & Module Design', td_style), Paragraph('Integrate cleanly into enterprise-scale architectures.', td_style)]
+            ]
+            t_comp = Table(c_matrix, colWidths=[120, 100, 115, 180])
+            t_comp.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4338CA')),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#CBD5E1')),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.HexColor('#FFFFFF'), colors.HexColor('#F8FAFC')]),
+                ('TOPPADDING', (0, 0), (-1, -1), 4),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ]))
+            elements.append(t_comp)
+            elements.append(Spacer(1, 8))
 
-        # ----------------------------------------------------
-        # 6. Step-by-Step Architecture
-        # ----------------------------------------------------
-        elements.append(Paragraph("5. Step-by-Step Architecture & Execution Flow", h2_style))
-        steps = [
-            "<b>Phase 1: Input Ingestion & Sanitization:</b> Validate and parse incoming payloads against expected schema constraints.",
-            "<b>Phase 2: Context Initialization:</b> Allocate required stack/heap resources and instantiate operational state.",
-            "<b>Phase 3: Core Algorithmic Execution:</b> Execute business logic, transformations, or query executions safely.",
-            "<b>Phase 4: Output Verification & Persistence:</b> Verify post-conditions, commit state changes, and return clean response."
-        ]
-        elements.append(Paragraph("<br/>• ".join([""] + steps).strip(), body_style))
-        elements.append(Spacer(1, 6))
+            # 2. Learning Objectives
+            elements.append(Paragraph('2. Learning Objectives & Pedagogical Target Competencies', h2_style))
+            objs = [
+                f"Deconstruct the architecture, memory model, and operational semantics of <b>{lesson.title}</b>.",
+                f"Apply idiomatic syntax patterns, type safety constraints, and interface contracts to production systems.",
+                f"Evaluate algorithmic complexity, memory allocation trade-offs, and latency implications under peak workloads.",
+                f"Diagnose anti-patterns, boundary edge cases, and concurrency risks associated with this domain.",
+                f"Synthesize comprehensive unit, integration, and property-based test suites to guarantee correctness."
+            ]
+            elements.append(Paragraph('<br/>• '.join([''] + objs).strip(), body_style))
+            elements.append(Spacer(1, 6))
 
-        # ----------------------------------------------------
-        # 7. Practical Walkthrough
-        # ----------------------------------------------------
-        elements.append(Paragraph("6. Practical Walkthrough & Real-World Scenario", h2_style))
-        elements.append(Paragraph(
-            f"Consider an enterprise production system requiring resilient handling of <b>{lesson.title}</b>. "
-            f"The implementation below highlights defensive programming, explicit error trapping, and optimal runtime efficiency. "
-            f"Follow the walkthrough annotations to understand every critical decision made in the implementation.", body_style
-        ))
-        elements.append(Spacer(1, 6))
+            # 3. Theoretical Foundations
+            elements.append(Paragraph('3. Theoretical Foundations & Detailed Concepts', h2_style))
+            if clean_paragraphs:
+                for p in clean_paragraphs:
+                    if '[CODE_BLOCK]' not in p and len(p.strip()) > 15:
+                        elements.append(Paragraph(p, body_style))
+            else:
+                elements.append(Paragraph(
+                    f"The architectural design of <b>{lesson.title}</b> is grounded in structured program decomposition, "
+                    f"deterministic state transformation, and explicit invariant enforcement. In production environments, "
+                    f"understanding the underlying execution lifecycle enables engineers to avoid resource contention, "
+                    f"optimize throughput, and build maintainable software components.",
+                    body_style
+                ))
+            elements.append(Spacer(1, 6))
 
-        # ----------------------------------------------------
-        # 8. Complete Code Examples
-        # ----------------------------------------------------
-        elements.append(Paragraph("7. Complete Production-Grade Code Example", h2_style))
-        sample_code = ""
-        if code_snippets:
-            sample_code = code_snippets[0].replace('&lt;', '<').replace('&gt;', '>').replace('&amp;', '&').strip()
-        elif exercises and exercises[0].solution:
-            sample_code = exercises[0].solution.strip()
-        elif exercises and exercises[0].starter_code:
-            sample_code = exercises[0].starter_code.strip()
-        else:
-            sample_code = (
-                f"# Production implementation: {lesson.title}\n"
-                f"class SolutionArchitecture:\n"
-                f"    def __init__(self, context: dict):\n"
-                f"        self.context = context\n"
-                f"        self.is_valid = True\n\n"
-                f"    def execute(self, payload: dict) -> dict:\n"
-                f"        if not payload:\n"
-                f"            raise ValueError('Payload cannot be empty')\n"
-                f"        result = {{'status': 'SUCCESS', 'topic': '{lesson.title}'}}\n"
-                f"        return result\n\n"
-                f"# Execution trace\n"
-                f"service = SolutionArchitecture(context={{'env': 'prod'}})\n"
-                f"response = service.execute({{'id': 101}})\n"
-                f"print('Execution Result:', response)"
+            # 4. Formal Syntax & Specifications Table
+            elements.append(Paragraph('4. Formal Syntax & Structural Specifications', h2_style))
+            spec_rows = [
+                [Paragraph('<b>Construct / Component</b>', th_style), Paragraph('<b>Signature / Pattern</b>', th_style), Paragraph('<b>Operational Semantics</b>', th_style), Paragraph('<b>Complexity Profile</b>', th_style)],
+                [Paragraph('Primary Interface', td_style), Paragraph(f'def execute_{lesson.id}(*args, **kwargs) -> Any', td_code), Paragraph('Defines the entry point and execution contract.', td_style), Paragraph('O(1) dispatch overhead', td_style)],
+                [Paragraph('State Encapsulation', td_style), Paragraph('class StateContext: ...', td_code), Paragraph('Isolates mutable state within scoped boundaries.', td_style), Paragraph('O(1) memory allocation', td_style)],
+                [Paragraph('Defensive Validation', td_style), Paragraph('assert payload is not None', td_code), Paragraph('Guarantees pre-conditions before mutating state.', td_style), Paragraph('O(k) schema validation', td_style)],
+                [Paragraph('Terminal Execution', td_style), Paragraph('return ResultPayload(...)', td_code), Paragraph('Emits immutable response payload cleanly.', td_style), Paragraph('O(1) clean exit', td_style)]
+            ]
+            t_spec = Table(spec_rows, colWidths=[100, 140, 165, 110])
+            t_spec.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1E293B')),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#CBD5E1')),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.HexColor('#FFFFFF'), colors.HexColor('#F8FAFC')]),
+                ('TOPPADDING', (0, 0), (-1, -1), 4),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ]))
+            elements.append(t_spec)
+            elements.append(Spacer(1, 8))
+
+            # 5. Execution Flow Architecture & Control Diagrams
+            elements.append(Paragraph('5. Execution Flow Architecture & Control Diagrams', h2_style))
+            flow_ascii = (
+                f"   [Input Payload Ingestion] ──► [Pre-Condition Validation] ──► [Context Initialization]\n"
+                f"                                                                        │\n"
+                f"   [Clean State Output] ◄── [Post-Condition Invariant Check] ◄── [Core Algorithmic Engine]\n"
+                f"                                                                        │\n"
+                f"                                                           (On Error: Defensive Rollback)"
             )
-        # Limit to 30 lines for clean layout
-        code_lines = sample_code.split('\n')[:25]
-        safe_code_html = "<br/>".join([line.replace(' ', '&nbsp;').replace('\t', '&nbsp;&nbsp;&nbsp;&nbsp;') for line in code_lines])
-        elements.append(Paragraph(f"<font face='Courier'>{safe_code_html}</font>", code_style))
-        elements.append(Spacer(1, 6))
+            flow_clean = flow_ascii.replace(' ', '&nbsp;').replace('\n', '<br/>')
+            elements.append(Paragraph(f'<font face="Courier">{flow_clean}</font>', code_style))
+            elements.append(Spacer(1, 6))
 
-        # ----------------------------------------------------
-        # 9. Line-by-Line Annotations
-        # ----------------------------------------------------
-        elements.append(Paragraph("8. Line-by-Line Code Annotations", h2_style))
-        annotations = [
-            "<b>Lines 1-4:</b> Class initialization defines essential state attributes and configures defensive baseline guards.",
-            "<b>Lines 5-8:</b> Validation check guarantees input integrity before proceeding into algorithmic execution.",
-            "<b>Lines 9-12:</b> Immutable result payload assembled and dispatched cleanly without side-effects."
-        ]
-        elements.append(Paragraph("<br/>• ".join([""] + annotations).strip(), body_style))
-        elements.append(Spacer(1, 6))
+            # 6. Production Implementations
+            elements.append(Paragraph('6. Production Implementation, Annotations & Console Traces', h2_style))
+            sample_code = ""
+            if code_snippets:
+                sample_code = code_snippets[0].replace('&lt;', '<').replace('&gt;', '>').replace('&amp;', '&').strip()
+            elif exercises and exercises[0].solution:
+                sample_code = exercises[0].solution.strip()
+            elif exercises and exercises[0].starter_code:
+                sample_code = exercises[0].starter_code.strip()
+            else:
+                sample_code = (
+                    f"from typing import Dict, Any, Optional\n"
+                    f"\n"
+                    f"class {lesson.title.replace(' ', '').replace(':', '').replace('-', '')}Engine:\n"
+                    f"    \"\"\"\n"
+                    f"    Production reference implementation for {lesson.title}.\n"
+                    f"    \"\"\"\n"
+                    f"    def __init__(self, config: Optional[Dict[str, Any]] = None) -> None:\n"
+                    f"        self.config = config or {{'mode': 'strict', 'timeout': 30}}\n"
+                    f"        self._initialized = True\n"
+                    f"\n"
+                    f"    def execute_transaction(self, payload: Dict[str, Any]) -> Dict[str, Any]:\n"
+                    f"        if not payload or not isinstance(payload, dict):\n"
+                    f"            raise ValueError('Invalid payload specification')\n"
+                    f"\n"
+                    f"        # Execute core domain operations with invariant enforcement\n"
+                    f"        processed_data = {{k: v for k, v in payload.items() if v is not None}}\n"
+                    f"        return {{'status': 'SUCCESS', 'data': processed_data, 'topic': '{lesson.title}'}}\n"
+                    f"\n"
+                    f"# Verification Execution\n"
+                    f"engine = {lesson.title.replace(' ', '').replace(':', '').replace('-', '')}Engine()\n"
+                    f"response = engine.execute_transaction({{'id': 'TX-901', 'metric': 42.0}})\n"
+                    f"print('Transaction Result:', response)"
+                )
+            code_lines = sample_code.split('\n')
+            safe_code_html = "<br/>".join([line.replace(' ', '&nbsp;').replace('\t', '&nbsp;&nbsp;&nbsp;&nbsp;') for line in code_lines])
+            elements.append(Paragraph(f"<font face='Courier'>{safe_code_html}</font>", code_style))
 
-        # ----------------------------------------------------
-        # 10. Output Examples
-        # ----------------------------------------------------
-        elements.append(Paragraph("9. Expected Output & Console Trace", h2_style))
-        output_snippet = (
-            f"$ python -m app.module.runner\n"
-            f"[INFO] Initializing {lesson.title} context: SUCCESS\n"
-            f"[INFO] Verification checks passed (0 warnings, 0 errors)\n"
-            f"Execution Result: {{'status': 'SUCCESS', 'topic': '{lesson.title}', 'exit_code': 0}}"
-        )
-        safe_output_html = "<br/>".join([line.replace(' ', '&nbsp;') for line in output_snippet.split('\n')])
-        elements.append(Paragraph(f"<font face='Courier-Bold'>{safe_output_html}</font>", terminal_style))
-        elements.append(Spacer(1, 6))
+            ann_rows = [
+                [Paragraph('<b>Line Range</b>', th_style), Paragraph('<b>Construct / Pattern</b>', th_style), Paragraph('<b>Technical Rationale</b>', th_style), Paragraph('<b>Operational Behavior</b>', th_style)],
+                [Paragraph('Lines 1-5', td_style), Paragraph('Class & Signature Definition', td_code), Paragraph('Defines explicit contracts and configuration options.', td_style), Paragraph('Instantiates state safely in heap memory.', td_style)],
+                [Paragraph('Lines 6-10', td_style), Paragraph('Defensive Input Guards', td_code), Paragraph('Ensures invalid payloads fail fast before resource usage.', td_style), Paragraph('Raises ValueError on malformed inputs.', td_style)],
+                [Paragraph('Lines 11-15', td_style), Paragraph('Transformation & Dispatch', td_code), Paragraph('Applies pure business transformation cleanly.', td_style), Paragraph('Emits immutable response payload.', td_style)]
+            ]
+            t_ann = Table(ann_rows, colWidths=[70, 135, 145, 165])
+            t_ann.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1E293B')),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#CBD5E1')),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.HexColor('#FFFFFF'), colors.HexColor('#F8FAFC')]),
+                ('TOPPADDING', (0, 0), (-1, -1), 4),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ]))
+            elements.append(t_ann)
+            elements.append(Spacer(1, 4))
 
-        # ----------------------------------------------------
-        # 11. Real-World Applications
-        # ----------------------------------------------------
-        elements.append(Paragraph("10. Real-World Applications & Industry Patterns", h2_style))
-        apps = [
-            f"<b>Distributed Microservices:</b> Managing concurrency, thread isolation, and data integrity in multi-tenant environments.",
-            f"<b>High-Throughput Pipelines:</b> Minimizing I/O bottlenecks and memory footprint during batch and stream processing.",
-            f"<b>Enterprise Security:</b> Guarding against untrusted input, state mutation vulnerabilities, and memory leaks."
-        ]
-        elements.append(Paragraph("<br/>• ".join([""] + apps).strip(), body_style))
-        elements.append(Spacer(1, 6))
-
-        # ----------------------------------------------------
-        # 12. Common Mistakes & Anti-Patterns
-        # ----------------------------------------------------
-        elements.append(Paragraph("11. Common Mistakes & Anti-Patterns to Avoid", h2_style))
-        if mistakes:
-            mistakes_text = "<br/>• ".join(mistakes)
-        else:
-            mistakes_text = (
-                f"Ignoring boundary conditions when handling empty collections or edge cases.<br/>• "
-                f"Unintentionally mutating shared objects across thread or request boundaries.<br/>• "
-                f"Failing to profile time and space complexity under peak load volumes."
+            output_snippet = (
+                f"$ python -m runtime.executor\n"
+                f"[INFO] Initializing {lesson.title} context: SUCCESS\n"
+                f"[INFO] Verification checks passed (0 warnings, 0 errors)\n"
+                f"Transaction Result: {{'status': 'SUCCESS', 'data': {{'id': 'TX-901', 'metric': 42.0}}, 'topic': '{lesson.title}'}}"
             )
-        elements.append(Paragraph(f"<b>⚠️ Critical Anti-Patterns:</b><br/>• {mistakes_text}", mistake_style))
-        elements.append(Spacer(1, 6))
+            safe_output_html = "<br/>".join([line.replace(' ', '&nbsp;') for line in output_snippet.split('\n')])
+            elements.append(Paragraph(f"<font face='Courier-Bold'>{safe_output_html}</font>", terminal_style))
+            elements.append(Spacer(1, 8))
 
-        # ----------------------------------------------------
-        # 13. Technical Interview Questions
-        # ----------------------------------------------------
-        elements.append(Paragraph("12. Technical Interview Questions & Model Answers", h2_style))
-        elements.append(Paragraph(f"<b>Q1: What are the core architectural trade-offs involved in {lesson.title}?</b>", h3_style))
-        elements.append(Paragraph("<b>Model Answer:</b> The primary trade-offs typically balance computational latency against memory footprint. Engineers must evaluate whether immutability and defensive copying justify the memory overhead or whether targeted caching should be applied.", body_style))
-        elements.append(Paragraph(f"<b>Q2: How would you debug an intermittent failure or performance regression related to this topic?</b>", h3_style))
-        elements.append(Paragraph("<b>Model Answer:</b> Isolate the reproducible unit test, inspect execution profiles with tracing/benchmarks, verify garbage collection behavior, and check for unhandled edge-case inputs.", body_style))
-        elements.append(Spacer(1, 6))
-
-        # ----------------------------------------------------
-        # 14. Practice Questions
-        # ----------------------------------------------------
-        elements.append(Paragraph("13. Self-Assessment Practice Challenges", h2_style))
-        if exercises:
-            for idx, ex in enumerate(exercises, 1):
-                clean_inst = re.sub(r'<[^>]+>', '', ex.instructions or '')[:140]
-                elements.append(Paragraph(f"<b>Challenge #{idx}: {ex.title}</b> — {clean_inst}...", body_style))
-        else:
-            elements.append(Paragraph(f"<b>Challenge 1:</b> Refactor the code example to accept variable configuration params and validate exceptions.", body_style))
-            elements.append(Paragraph(f"<b>Challenge 2:</b> Implement a benchmark test measuring throughput under 10,000 continuous iterations.", body_style))
-        elements.append(Spacer(1, 6))
-
-        # ----------------------------------------------------
-        # 15. Quick Revision Summary
-        # ----------------------------------------------------
-        elements.append(Paragraph("14. Quick Revision Summary & Core Takeaways", h2_style))
-        if takeaways:
-            takeaways_text = "<br/>• ".join(takeaways)
-        else:
-            takeaways_text = (
-                f"<b>{lesson.title}</b> provides predictable, high-performance program behavior when applied cleanly.<br/>• "
-                f"Always enforce input validation and defensive error boundaries.<br/>• "
-                f"Review memory allocation profiles and runtime complexity characteristics before deploying to production."
+            # Implementation 2: Defensive Edge-Case Trapping & Optimization
+            elements.append(Paragraph(f'<b>Implementation 2: Defensive Edge-Case Validation & Memory Bounds</b>', h3_style))
+            code_2 = (
+                f"# Defensive Edge-Case Validation & Memory Isolation\n"
+                f"def validate_and_transform_batch(records: list) -> list:\n"
+                f"    \"\"\"\n"
+                f"    Transforms record sequence with strict type checking and bounded memory allocation.\n"
+                f"    \"\"\"\n"
+                f"    if not records:\n"
+                f"        return []\n"
+                f"    validated = []\n"
+                f"    for idx, item in enumerate(records, start=1):\n"
+                f"        if item is None:\n"
+                f"            continue  # Defensive skip\n"
+                f"        validated.append({{'index': idx, 'value': item, 'valid': True}})\n"
+                f"    return validated\n\n"
+                f"# Verification Trace\n"
+                f"batch_result = validate_and_transform_batch(['alpha', None, 'gamma'])\n"
+                f"print('Batch Transformation:', batch_result)"
             )
-        elements.append(Paragraph(f"<b>💡 Key Revision Takeaways:</b><br/>• {takeaways_text}", callout_style))
-        elements.append(Spacer(1, 6))
+            code_2_html = "<br/>".join([line.replace(' ', '&nbsp;').replace('\t', '&nbsp;&nbsp;&nbsp;&nbsp;') for line in code_2.split('\n')])
+            elements.append(Paragraph(f"<font face='Courier'>{code_2_html}</font>", code_style))
+            elements.append(Spacer(1, 6))
 
-        # ----------------------------------------------------
-        # 16. Key Terms & Glossary
-        # ----------------------------------------------------
-        elements.append(Paragraph("15. Key Terms & Architectural Glossary", h2_style))
-        terms = [
-            f"<b>Deterministic Execution:</b> A computation that always produces the exact same output given the same input.",
-            f"<b>Immutability:</b> An architectural design where state cannot be modified after initial creation.",
-            f"<b>Defensive Programming:</b> A paradigm ensuring continuing program function under unexpected input conditions.",
-            f"<b>Complexity Profiling:</b> Systematic analysis of algorithmic resource consumption (Big-O time and space)."
-        ]
-        elements.append(Paragraph("<br/>• ".join([""] + terms).strip(), body_style))
+            # 7. Architectural Comparisons
+            elements.append(Paragraph('7. Architectural Comparisons & Trade-Off Matrix', h2_style))
+            cmp_rows = [
+                [Paragraph('<b>Approach / Strategy</b>', th_style), Paragraph('<b>Throughput</b>', th_style), Paragraph('<b>Memory Overhead</b>', th_style), Paragraph('<b>Maintainability</b>', th_style), Paragraph('<b>Optimal Scenario</b>', th_style)],
+                [Paragraph('Standard Implementation', td_style), Paragraph('High (O(1) to O(N))', td_style), Paragraph('Minimal (O(1))', td_style), Paragraph('High (clean idioms)', td_style), Paragraph('Production baseline workflows.', td_style)],
+                [Paragraph('Defensive Cached Pattern', td_style), Paragraph('Very High (sub-ms)', td_style), Paragraph('Moderate (cache pool)', td_style), Paragraph('Moderate (invalidation)', td_style), Paragraph('Read-heavy enterprise APIs.', td_style)],
+                [Paragraph('Async / Event-Driven', td_style), Paragraph('Ultra High (concurrent)', td_style), Paragraph('Low per connection', td_style), Paragraph('High (structured concurrency)', td_style), Paragraph('I/O-bound microservices.', td_style)],
+                [Paragraph('Streaming / Generator', td_style), Paragraph('High (pipelined)', td_style), Paragraph('Strictly O(1) memory', td_style), Paragraph('High (iterator protocol)', td_style), Paragraph('Large datasets & continuous feeds.', td_style)]
+            ]
+            t_cmp = Table(cmp_rows, colWidths=[100, 95, 95, 95, 130])
+            t_cmp.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4338CA')),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#CBD5E1')),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.HexColor('#FFFFFF'), colors.HexColor('#F8FAFC')]),
+                ('TOPPADDING', (0, 0), (-1, -1), 4),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ]))
+            elements.append(t_cmp)
+            elements.append(Spacer(1, 8))
+
+            # 8. Common Pitfalls
+            elements.append(Paragraph('8. Common Pitfalls, Anti-Patterns & Defensive Debugging', h2_style))
+            if mistakes:
+                for idx, m in enumerate(mistakes, 1):
+                    elements.append(Paragraph(f'<b>⚠️ Pitfall {idx}:</b> {m}', mistake_style))
+            else:
+                elements.append(Paragraph(
+                    "<b>⚠️ Pitfall 1: Unvalidated Input Mutation:</b> Modifying shared input objects in-place leads to unintended side-effects across asynchronous execution contexts.<br/>"
+                    "<b>Idiomatic Resolution:</b> Treat input payloads as strictly immutable or create defensive shallow/deep copies prior to transformation.",
+                    mistake_style
+                ))
+                elements.append(Paragraph(
+                    "<b>⚠️ Pitfall 2: Silent Exception Swallowing:</b> Catching broad exceptions (`except Exception: pass`) conceals runtime failures, database deadlocks, and syntax bugs.<br/>"
+                    "<b>Idiomatic Resolution:</b> Catch specific exceptions explicitly and record structured telemetry logs before gracefully degrading.",
+                    callout_style
+                ))
+            elements.append(Paragraph(
+                "<b>⚠️ Pitfall 3: Inadequate Boundary Invariant Checks:</b> Failing to validate edge boundaries (empty inputs, zero values, overflow limits) causes unhandled exceptions in production.<br/>"
+                "<b>Idiomatic Resolution:</b> Establish explicit preconditions at function entry points.",
+                mistake_style
+            ))
+            elements.append(Spacer(1, 6))
+
+            # 9. Technical Interview Questions
+            elements.append(Paragraph('9. Technical Interview Questions & Model Answers', h2_style))
+            elements.append(Paragraph(f"<b>Q1: What are the primary computational and memory trade-offs in {lesson.title}?</b>", h3_style))
+            elements.append(Paragraph(f"<i>Interviewer Evaluation Criteria:</i> Evaluates depth of runtime mechanics, cache efficiency, and Big-O asymptotic limits.", meta_style))
+            elements.append(Paragraph(f"<b>Model Answer:</b> In production systems, <b>{lesson.title}</b> balances CPU cycle utilization against RAM consumption. Implementations must optimize locality of reference, avoid unnecessary object allocations on heap memory, and ensure predictable latency without GC pauses.", body_style))
+            elements.append(Spacer(1, 4))
+
+            elements.append(Paragraph(f"<b>Q2: How would you debug an intermittent production regression associated with this component?</b>", h3_style))
+            elements.append(Paragraph(f"<i>Interviewer Evaluation Criteria:</i> Assesses systematic observability, distributed tracing, and root-cause analysis methodology.", meta_style))
+            elements.append(Paragraph(f"<b>Model Answer:</b> Isolate the reproducible failure in a sandbox harness with deterministic fixtures. Enable structured telemetry, inspect thread/connection pool starvation, verify database lock contention, and validate invariant boundary tests.", body_style))
+            elements.append(Spacer(1, 4))
+
+            elements.append(Paragraph(f"<b>Q3: What concurrency risks or thread-safety considerations apply to {lesson.title}?</b>", h3_style))
+            elements.append(Paragraph(f"<i>Interviewer Evaluation Criteria:</i> Tests understanding of state mutation, atomic operations, and lock contention.", meta_style))
+            elements.append(Paragraph(f"<b>Model Answer:</b> Concurrency issues arise when multiple threads mutate shared references without synchronization. In Python, while the GIL protects CPython internal data structures, application-level race conditions must be resolved with mutex locks, thread-local storage, or immutable data structures.", body_style))
+            elements.append(Spacer(1, 4))
+
+            elements.append(Paragraph(f"<b>Q4: How does this architectural component behave under horizontal scaling across multiple instances?</b>", h3_style))
+            elements.append(Paragraph(f"<i>Interviewer Evaluation Criteria:</i> Evaluates distributed systems design, shared vs local state, and cache coherence.", meta_style))
+            elements.append(Paragraph(f"<b>Model Answer:</b> Under multi-instance deployments (such as serverless workers or container clusters), local in-memory state is isolated per instance. Shared coordinates, rate-limits, and token buckets must be backed by distributed Redis stores with atomic transactions.", body_style))
+            elements.append(Spacer(1, 6))
+
+            # 10. Self-Assessment Practice Challenges
+            elements.append(Paragraph('10. Graded Practice Challenges & Problem Sets', h2_style))
+            if exercises:
+                for idx, ex in enumerate(exercises, 1):
+                    clean_inst = re.sub(r'<[^>]+>', '', ex.instructions or '')
+                    elements.append(Paragraph(f'<b>Challenge #{idx}: {ex.title}</b>', h3_style))
+                    elements.append(Paragraph(clean_inst, body_style))
+                    if ex.starter_code:
+                        clean_sc = ex.starter_code.strip().replace(' ', '&nbsp;').replace('\n', '<br/>')
+                        elements.append(Paragraph(f'<font face="Courier">{clean_sc}</font>', code_style))
+                    elements.append(Spacer(1, 4))
+            else:
+                elements.append(Paragraph(f'<b>Challenge 1 (Foundational):</b> Implement a clean validation wrapper for {lesson.title} enforcing strict parameter contracts and boundary checks.', body_style))
+                elements.append(Paragraph(f'<b>Challenge 2 (Intermediate):</b> Implement an idempotent handler verifying that duplicate inputs produce deterministic outcomes without side-effects.', body_style))
+                elements.append(Paragraph(f'<b>Challenge 3 (Advanced):</b> Benchmark throughput under 50,000 continuous iterations, measuring p95 and p99 latency distributions.', body_style))
+            elements.append(Spacer(1, 6))
+
+            # 11. Quick Revision Summary & Cheat Sheet
+            elements.append(Paragraph('11. Quick Revision Summary & Architectural Cheat Sheet', h2_style))
+            cs_gen_rows = [
+                [Paragraph('<b>Construct / Component</b>', th_style), Paragraph('<b>Syntax Pattern</b>', th_style), Paragraph('<b>Core Rule</b>', th_style), Paragraph('<b>Idiomatic Practice</b>', th_style)],
+                [Paragraph('Entrypoint', td_style), Paragraph('def handle(ctx: dict)', td_code), Paragraph('Must declare explicit typed arguments.', td_style), Paragraph('Validate pre-conditions first.', td_style)],
+                [Paragraph('State Scope', td_style), Paragraph('with lock: ...', td_code), Paragraph('Synchronize mutable shared state.', td_style), Paragraph('Prefer immutable objects.', td_style)],
+                [Paragraph('Error Protocol', td_style), Paragraph('except SpecificError as e:', td_code), Paragraph('Catch narrow exceptions only.', td_style), Paragraph('Log structured diagnostics.', td_style)],
+                [Paragraph('Response Envelope', td_style), Paragraph('return {"status": "ok"}', td_code), Paragraph('Maintain consistent payload contracts.', td_style), Paragraph('Include telemetry metadata.', td_style)]
+            ]
+            t_cs_gen = Table(cs_gen_rows, colWidths=[80, 130, 150, 155])
+            t_cs_gen.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0F172A')),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#CBD5E1')),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.HexColor('#FFFFFF'), colors.HexColor('#F8FAFC')]),
+                ('TOPPADDING', (0, 0), (-1, -1), 4),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ]))
+            elements.append(t_cs_gen)
+            elements.append(Spacer(1, 8))
+
+            if takeaways:
+                takeaways_text = '<br/>• '.join([''] + takeaways).strip()
+            else:
+                takeaways_text = (
+                    f"Mastery of <b>{lesson.title}</b> guarantees reliable, maintainable software architecture.<br/>• "
+                    f"Always enforce defensive input boundaries and pre-condition invariants.<br/>• "
+                    f"Review runtime profiles and space-time complexity bounds prior to production rollout."
+                )
+            elements.append(Paragraph(f'<b>💡 Key Revision Takeaways:</b><br/>{takeaways_text}', callout_style))
+            elements.append(Spacer(1, 6))
+
+            # 12. References
+            elements.append(Paragraph('12. Academic Bibliography & Formal References', h2_style))
+            elements.append(Paragraph(f'• <b>Official Documentation:</b> Industry Reference Standard for {course.title}.', body_style))
+            elements.append(Paragraph(f'• <b>Knuth, D. E.:</b> <i>The Art of Computer Programming</i>, Addison-Wesley, Core System Foundations.', body_style))
+            elements.append(Paragraph(f'• <b>IEEE Software Engineering Standards:</b> Architectural Patterns & Code Quality Guidelines.', body_style))
+            elements.append(Paragraph(f'• <b>Gamma, Helm, Johnson, Vlissides:</b> <i>Design Patterns: Elements of Reusable Object-Oriented Software</i>.', body_style))
 
         # End of Document Signature
-        elements.append(Spacer(1, 14))
+        elements.append(Spacer(1, 12))
         elements.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#CBD5E1'), spaceAfter=8))
         elements.append(Paragraph("<i>Official SkillSphere Learning Resource • Verified Technical Study Notes • Academic Publication</i>", ParagraphStyle('Footer', fontName='Helvetica-Oblique', fontSize=8, textColor=colors.HexColor('#94A3B8'), alignment=1)))
 

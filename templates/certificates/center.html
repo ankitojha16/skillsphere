@@ -151,7 +151,7 @@
                                     <i data-lucide="shield-check" style="width: 14px; height: 14px;"></i> Verify
                                 </a>
                             </div>
-                            <a href="{% url 'certificates:download_pdf' pk=cert.pk %}" class="btn btn-sm btn-primary-custom">
+                            <a href="{% url 'certificates:download' pk=cert.pk %}" class="btn btn-sm btn-primary-custom">
                                 <i data-lucide="download" style="width: 14px; height: 14px;"></i> Download PDF
                             </a>
                         </div>
@@ -164,7 +164,7 @@
                     </div>
                     <h5 class="text-white mb-2">No Certificates Earned Yet</h5>
                     <p class="text-secondary small mb-4" style="max-width: 480px; margin: 0 auto;">
-                        Enroll in a course, achieve 100% course progress, and pass both the Final Course Quiz and Final Mock Test to earn your verifiable certificate.
+                        Enroll in a course, achieve ≥85% course progress, and pass both the Final Course Quiz and Final Mock Test to earn your verifiable certificate.
                     </p>
                     <a href="{% url 'courses:list' %}" class="btn btn-primary-custom py-2 px-4">
                         <i data-lucide="compass" style="width: 16px; height: 16px;"></i>
@@ -183,7 +183,7 @@
                 Courses in Progress ({{ locked_courses|length }})
             </h4>
             <p class="text-secondary small mb-4">
-                To unlock your certificate, each enrolled course requires: 100% weighted coursework completion, passing the Final Course Quiz ($\ge 70\%$), and passing the Final Mock Test ($\ge 70\%$).
+                To unlock your certificate, each enrolled course requires: ≥85% coursework progress, passing the Final Course Quiz (≥70%), and passing the Final Mock Test (≥70%).
             </p>
 
             <div class="row g-4">

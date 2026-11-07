@@ -9,6 +9,7 @@ from courses.models import Category, Course, Enrollment, CourseModule, CourseAss
 from learning.models import Lesson, LessonProgress, Exercise
 from goals.models import LearningGoal, LearningActivity
 from courses.curriculum_data import COURSES_CURRICULUM
+from courses.curriculum_expansion_full import NEW_COURSES_DATA
 
 from opportunities.models import Opportunity, SavedOpportunity
 from events.models import Event, SavedEvent
@@ -417,6 +418,8 @@ courses = Course.objects.filter(
             }
         ]
 
+        courses_data.extend(NEW_COURSES_DATA)
+
         for c_data in courses_data:
             cat = categories_map[c_data['category']]
             course, _ = Course.objects.update_or_create(
@@ -432,12 +435,14 @@ courses = Course.objects.filter(
                     'description': c_data['description'],
                     'short_description': c_data['short_description'],
                     'learning_objectives': c_data['learning_objectives'],
-                    'is_published': True
+                    'is_published': True,
+                    'curriculum_version': 2,
+                    'legacy_total_lessons': 4,
                 }
             )
 
-            # Seed legacy lessons
-            for l_data in c_data['lessons']:
+            # Seed legacy lessons if specified
+            for l_data in c_data.get('lessons', []):
                 Lesson.objects.update_or_create(
                     course=course,
                     lesson_order=l_data['order'],
@@ -446,7 +451,8 @@ courses = Course.objects.filter(
                         'title': l_data['title'],
                         'estimated_minutes': l_data['minutes'],
                         'content': l_data['content'].strip(),
-                        'external_resources': l_data['resources'].strip()
+                        'external_resources': l_data['resources'].strip(),
+                        'curriculum_version': 1,
                     }
                 )
 
@@ -489,7 +495,8 @@ courses = Course.objects.filter(
                                 'content': l_info['content'].strip(),
                                 'key_takeaways': json.dumps(l_info.get('key_takeaways', [])),
                                 'common_mistakes': json.dumps(l_info.get('common_mistakes', [])),
-                                'external_resources': l_info.get('resources', '').strip()
+                                'external_resources': l_info.get('resources', '').strip(),
+                                'curriculum_version': 1 if l_info['order'] <= 4 else 2,
                             }
                         )
 
@@ -508,15 +515,24 @@ courses = Course.objects.filter(
                             )
 
                 # Assessments (Final Quiz & Mock Test)
-                for a_info in curr_info.get('assessments', []):
+                assessments_data = curr_info.get('assessments', [])
+                if isinstance(assessments_data, dict):
+                    temp = []
+                    for a_type, a_val in assessments_data.items():
+                        val = dict(a_val)
+                        val['type'] = a_type
+                        temp.append(val)
+                    assessments_data = temp
+
+                for a_info in assessments_data:
                     assessment, _ = CourseAssessment.objects.update_or_create(
                         course=course,
-                        assessment_type=a_info['type'],
+                        assessment_type=a_info.get('type') or a_info.get('assessment_type'),
                         defaults={
                             'title': a_info['title'],
                             'description': a_info['description'],
-                            'duration_minutes': a_info['duration'],
-                            'passing_percentage': a_info['pass_pct'],
+                            'duration_minutes': a_info.get('duration_minutes') or a_info.get('duration', 30),
+                            'passing_percentage': a_info.get('passing_percentage') or a_info.get('pass_pct', 70),
                             'is_active': True
                         }
                     )
@@ -526,18 +542,18 @@ courses = Course.objects.filter(
                             assessment=assessment,
                             order=q_idx,
                             defaults={
-                                'question_text': q_info['text'],
-                                'option_a': q_info['a'],
-                                'option_b': q_info['b'],
-                                'option_c': q_info['c'],
-                                'option_d': q_info['d'],
-                                'correct_answer': q_info['correct'],
+                                'question_text': q_info.get('question_text') or q_info.get('text', ''),
+                                'option_a': q_info.get('option_a') or q_info.get('a', ''),
+                                'option_b': q_info.get('option_b') or q_info.get('b', ''),
+                                'option_c': q_info.get('option_c') or q_info.get('c', ''),
+                                'option_d': q_info.get('option_d') or q_info.get('d', ''),
+                                'correct_answer': q_info.get('correct_answer') or q_info.get('correct', 'A'),
                                 'topic': q_info.get('topic', 'Core'),
                                 'explanation': q_info.get('explanation', '')
                             }
                         )
 
-        self.stdout.write(self.style.SUCCESS('Created 8 comprehensive courses with structured modules, lessons, exercises, and assessments.'))
+        self.stdout.write(self.style.SUCCESS(f'Created/updated {len(courses_data)} comprehensive courses with structured modules, lessons, exercises, and assessments.'))
 
         # 3. Create Demo Student Account
         demo_user, created = User.objects.get_or_create(
@@ -1075,19 +1091,19 @@ courses = Course.objects.filter(
         )
 
         # 5. Certificates
-        # Issue verified certificate to demo_user for first course
-        first_course = Course.objects.first()
-        if first_course:
+        # Issue verified certificate to demo_user for python course
+        cert_course = Course.objects.filter(slug='python-programming-from-scratch').first() or Course.objects.first()
+        if cert_course:
             Certificate.objects.update_or_create(
-                user=demo_user,
-                course=first_course,
+                certificate_id='SKILL-2026-DEMO001',
                 defaults={
-                    'title': f"Course Mastery: {first_course.title}",
-                    'certificate_id': 'SKILL-2026-DEMO001',
+                    'user': demo_user,
+                    'course': cert_course,
+                    'title': f"Course Mastery: {cert_course.title}",
                     'issued_at': timezone.now() - timedelta(days=5),
                     'verification_status': True,
                     'recipient_name': 'Alex Mercer',
-                    'criteria_met': f"Successfully completed all curriculum modules, exercises, and assessments in {first_course.title}."
+                    'criteria_met': f"Successfully completed all curriculum modules, exercises, and assessments in {cert_course.title}."
                 }
             )
 

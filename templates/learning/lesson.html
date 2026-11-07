@@ -542,15 +542,26 @@
 
                 <!-- Certificate Status -->
                 <div class="p-3 rounded-3 text-center border" id="certificateStatusCard" style="background-color: rgba(255,255,255,0.02); border-color: var(--border-color) !important;">
-                    {% if progress_info.is_certificate_eligible %}
+                    {% if progress_info.certificate_issued %}
+                        <i data-lucide="award" class="text-success mx-auto mb-2" style="width: 28px; height: 28px;"></i>
+                        <div class="fw-bold text-white small mb-1">Certificate Issued! 🎓</div>
+                        <p class="text-secondary small mb-2" style="font-size: 0.75rem;">Verified Academic & Technical Credential active.</p>
+                        <a href="{% url 'certificates:download_by_course' course_id=course.id %}" class="btn btn-success btn-sm py-1.5 px-3 w-100 mb-2 d-inline-flex align-items-center justify-content-center gap-1.5">
+                            <i data-lucide="download" style="width: 14px; height: 14px;"></i> Download PDF
+                        </a>
+                        <a href="{% url 'certificates:center' %}" class="btn btn-outline-secondary btn-sm py-1 px-3 w-100">View Certificate Details</a>
+                    {% elif progress_info.is_certificate_eligible %}
                         <i data-lucide="award" class="text-warning mx-auto mb-2" style="width: 28px; height: 28px;"></i>
                         <div class="fw-bold text-white small mb-1">Certificate Ready! 🎉</div>
                         <p class="text-secondary small mb-2" style="font-size: 0.75rem;">You have fulfilled all course requirements.</p>
-                        <a href="{% url 'certificates:center' %}" class="btn btn-primary-custom btn-sm py-1.5 px-3 w-100">Claim Certificate</a>
+                        <a href="{% url 'certificates:download_by_course' course_id=course.id %}" class="btn btn-primary-custom btn-sm py-1.5 px-3 w-100 d-inline-flex align-items-center justify-content-center gap-1.5">
+                            <i data-lucide="award" style="width: 14px; height: 14px;"></i> Claim & Download
+                        </a>
                     {% else %}
                         <i data-lucide="shield-alert" class="text-secondary mx-auto mb-2" style="width: 24px; height: 24px;"></i>
                         <div class="fw-bold text-light small mb-1">Certificate Locked</div>
                         <div class="text-secondary small text-start mt-2" style="font-size: 0.75rem;">
+                            <div class="mb-1 text-muted">Progress: <span class="text-white fw-bold">{{ progress_info.percentage }}%</span> (Required: {{ progress_info.required_percentage }}%)</div>
                             {% if progress_info.missing_requirements %}
                                 <span class="fw-semibold text-muted d-block mb-1">Requirements to unlock:</span>
                                 <ul class="mb-0 ps-3">
@@ -559,9 +570,10 @@
                                     {% endfor %}
                                 </ul>
                             {% else %}
-                                <p class="text-secondary small mb-0" style="font-size: 0.72rem;">Requires 85% course items and passing final examinations.</p>
+                                <p class="text-secondary small mb-0" style="font-size: 0.72rem;">Requires 85% course progress and passing final examinations.</p>
                             {% endif %}
                         </div>
+                        <a href="#courseCurriculumAccordion" class="btn btn-outline-secondary btn-sm py-1 px-3 w-100 mt-2.5">Continue Learning</a>
                     {% endif %}
                 </div>
             </div>
@@ -577,21 +589,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const completeBtn = document.getElementById('completeBtn');
     const form = document.getElementById('completeToggleForm');
 
-    if (completeBtn && form) {
-        completeBtn.addEventListener('click', async (e) => {
-            e.preventDefault();
-            const formData = new FormData(form);
-            const actionUrl = form.action;
-
-            try {
-                const response = await fetch(actionUrl, {
-                    method: 'POST',
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
-                    body: formData
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
     // Centralized authoritative UI updater for Course Progress and Certificate Status
     function syncCourseProgressUI(data) {
         if (!data) return;
@@ -654,27 +651,33 @@ document.addEventListener('DOMContentLoaded', () => {
         // Update certificate status card on the right
         const certCard = document.getElementById('certificateStatusCard');
         if (certCard) {
+            const courseId = {{ course.id }};
             if (data.certificate_issued) {
                 certCard.innerHTML = `
                     <i data-lucide="award" class="text-success mx-auto mb-2" style="width: 28px; height: 28px;"></i>
                     <div class="fw-bold text-white small mb-1">Certificate Issued! 🎓</div>
-                    <p class="text-secondary small mb-2" style="font-size: 0.75rem;">Your official Course Completion Certificate is active.</p>
-                    <a href="{% url 'certificates:center' %}" class="btn btn-success-custom btn-sm py-1.5 px-3 w-100">View in Certificate Center</a>
+                    <p class="text-secondary small mb-2" style="font-size: 0.75rem;">Verified Academic & Technical Credential active.</p>
+                    <a href="/certificates/course/${courseId}/download/" class="btn btn-success btn-sm py-1.5 px-3 w-100 mb-2 d-inline-flex align-items-center justify-content-center gap-1.5">
+                        <i data-lucide="download" style="width: 14px; height: 14px;"></i> Download PDF
+                    </a>
+                    <a href="/certificates/" class="btn btn-outline-secondary btn-sm py-1 px-3 w-100">View Certificate Details</a>
                 `;
             } else if (data.is_certificate_eligible) {
                 certCard.innerHTML = `
                     <i data-lucide="award" class="text-warning mx-auto mb-2" style="width: 28px; height: 28px;"></i>
                     <div class="fw-bold text-white small mb-1">Certificate Ready! 🎉</div>
-                    <p class="text-secondary small mb-2" style="font-size: 0.75rem;">You have met all certificate requirements (≥85% progress & passed exams).</p>
-                    <a href="{% url 'certificates:center' %}" class="btn btn-primary-custom btn-sm py-1.5 px-3 w-100">Claim Certificate</a>
+                    <p class="text-secondary small mb-2" style="font-size: 0.75rem;">You have fulfilled all course requirements.</p>
+                    <a href="/certificates/course/${courseId}/download/" class="btn btn-primary-custom btn-sm py-1.5 px-3 w-100 d-inline-flex align-items-center justify-content-center gap-1.5">
+                        <i data-lucide="award" style="width: 14px; height: 14px;"></i> Claim & Download
+                    </a>
                 `;
             } else {
-                let reqsHtml = '';
+                let reqsHtml = `<div class="mb-1 text-muted">Progress: <span class="text-white fw-bold">${pct}%</span> (Required: ${data.required_percentage || 85}%)</div>`;
                 if (data.missing_requirements && data.missing_requirements.length > 0) {
                     const items = data.missing_requirements.map(r => `<li class="text-secondary">${r}</li>`).join('');
-                    reqsHtml = `<span class="fw-semibold text-muted d-block mb-1">Requirements to unlock:</span><ul class="mb-0 ps-3">${items}</ul>`;
+                    reqsHtml += `<span class="fw-semibold text-muted d-block mb-1">Requirements to unlock:</span><ul class="mb-0 ps-3">${items}</ul>`;
                 } else {
-                    reqsHtml = `<p class="text-secondary small mb-0" style="font-size: 0.72rem;">Requires 85% course progress and passing final examinations (Currently: ${pct}%).</p>`;
+                    reqsHtml += `<p class="text-secondary small mb-0" style="font-size: 0.72rem;">Requires 85% course progress and passing final examinations.</p>`;
                 }
                 if (data.optional_remaining_activities && data.optional_remaining_activities.length > 0) {
                     reqsHtml += `<div class="mt-2 text-muted" style="font-size: 0.7rem; font-style: italic;">Note: Optional practice activities do not block certificate issuance.</div>`;
@@ -683,6 +686,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <i data-lucide="shield-alert" class="text-secondary mx-auto mb-2" style="width: 24px; height: 24px;"></i>
                     <div class="fw-bold text-light small mb-1">Certificate Locked</div>
                     <div class="text-secondary small text-start mt-2" style="font-size: 0.75rem;">${reqsHtml}</div>
+                    <a href="#courseCurriculumAccordion" class="btn btn-outline-secondary btn-sm py-1 px-3 w-100 mt-2.5">Continue Learning</a>
                 `;
             }
         }

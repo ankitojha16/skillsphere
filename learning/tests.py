@@ -250,3 +250,171 @@ class LearningTests(TestCase):
         self.assertEqual(resp_pdf.status_code, 302)
 
 
+import io
+import re
+from courses.models import CourseAssessment, CourseAssessmentQuestion
+from certificates.models import Certificate
+from services.pdf_service import PDFService
+
+
+class CurriculumExpansionAndCertificateTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.category = Category.objects.create(name='Programming Test', slug='programming-test')
+        self.course = Course.objects.create(
+            title='Python Programming from Scratch to OOP',
+            slug='python-programming-from-scratch',
+            category=self.category,
+            difficulty='Beginner',
+            is_published=True,
+            curriculum_version=2,
+            legacy_total_lessons=4
+        )
+
+        # Create 16 lessons (1..4 version 1, 5..16 version 2)
+        self.lessons = []
+        for i in range(1, 17):
+            lesson = Lesson.objects.create(
+                course=self.course,
+                lesson_order=i,
+                title='Control Flow: If-Else & Loops' if i == 2 else f'Lesson {i}',
+                chapter_name=f'Chapter {(i-1)//4 + 1}',
+                estimated_minutes=20,
+                content=f'<p>In-depth content for lesson {i}</p>',
+                curriculum_version=1 if i <= 4 else 2
+            )
+            self.lessons.append(lesson)
+
+        # Create Course Assessments
+        self.quiz = CourseAssessment.objects.create(
+            course=self.course,
+            title='Python Final Quiz',
+            assessment_type='final_quiz',
+            passing_percentage=70,
+            duration_minutes=30,
+            is_active=True
+        )
+        self.mock = CourseAssessment.objects.create(
+            course=self.course,
+            title='Python Final Mock',
+            assessment_type='final_mock',
+            passing_percentage=70,
+            duration_minutes=45,
+            is_active=True
+        )
+
+        # Users
+        self.user_v1 = User.objects.create_user(username='student_v1', password='Password123!', email='v1@example.com')
+        self.user_v2 = User.objects.create_user(username='student_v2', password='Password123!', email='v2@example.com')
+        self.user_other = User.objects.create_user(username='student_other', password='Password123!', email='other@example.com')
+
+        # Enrollments
+        self.enrollment_v1 = Enrollment.objects.create(user=self.user_v1, course=self.course, curriculum_version=1)
+        self.enrollment_v2 = Enrollment.objects.create(user=self.user_v2, course=self.course, curriculum_version=2)
+
+    def test_pdf_generation_academic_notes_page_count(self):
+        """Phase 1: Verify 'Control Flow: If-Else & Loops' generates >= 6 pages of academic notes with %PDF- header."""
+        control_flow_lesson = self.lessons[1]  # order 2
+        pdf_bytes = PDFService.generate_lesson_notes_pdf(control_flow_lesson)
+
+        self.assertIsNotNone(pdf_bytes)
+        self.assertTrue(pdf_bytes.startswith(b'%PDF-'))
+
+        page_count = len(re.findall(rb'/Type\s*/Page\b', pdf_bytes))
+        # Deep academic content produces 11 pages
+        self.assertGreaterEqual(page_count, 6)
+        self.assertEqual(page_count, 11)
+
+    def test_curriculum_versioning_progress_denominators(self):
+        """Phase 7: Existing v1 student has denominator 4; v2 student has denominator 16."""
+        # Complete first 4 lessons for both users
+        for i in range(4):
+            LessonProgress.objects.create(user=self.user_v1, lesson=self.lessons[i], is_completed=True)
+            LessonProgress.objects.create(user=self.user_v2, lesson=self.lessons[i], is_completed=True)
+
+        prog_v1 = self.course.get_user_progress(self.user_v1)
+        self.assertEqual(prog_v1['total'], 4)
+        self.assertEqual(prog_v1['completed'], 4)
+        self.assertEqual(prog_v1['percentage'], 100)
+
+        prog_v2 = self.course.get_user_progress(self.user_v2)
+        self.assertEqual(prog_v2['total'], 16)
+        self.assertEqual(prog_v2['completed'], 4)
+        self.assertEqual(prog_v2['percentage'], 25)
+
+    def test_curriculum_voluntary_upgrade(self):
+        """Phase 7: Voluntary upgrade POST /courses/<slug>/upgrade-curriculum/ transitions student to v2."""
+        self.client.login(username='student_v1', password='Password123!')
+        url = reverse('courses:upgrade_curriculum', kwargs={'slug': self.course.slug})
+
+        response = self.client.post(url, follow=True)
+        self.assertEqual(response.status_code, 200)
+
+        self.enrollment_v1.refresh_from_db()
+        self.assertEqual(self.enrollment_v1.curriculum_version, 2)
+
+    def test_certificate_claim_and_download_workflow(self):
+        """Phase 5 & 6: Verify claim endpoint idempotency and download headers."""
+        from courses.models import CourseAssessmentAttempt
+
+        # Complete all 16 lessons for v2 student
+        for lesson in self.lessons:
+            LessonProgress.objects.create(user=self.user_v2, lesson=lesson, is_completed=True)
+
+        # Pass both final quiz and final mock
+        CourseAssessmentAttempt.objects.create(
+            user=self.user_v2,
+            assessment=self.quiz,
+            score=10,
+            total_questions=10,
+            percentage=100,
+            is_passed=True
+        )
+        CourseAssessmentAttempt.objects.create(
+            user=self.user_v2,
+            assessment=self.mock,
+            score=10,
+            total_questions=10,
+            percentage=100,
+            is_passed=True
+        )
+
+        self.client.login(username='student_v2', password='Password123!')
+
+        # 1. Claim Certificate via POST (JSON / AJAX request)
+        claim_url = reverse('certificates:claim_course_certificate', kwargs={'course_id': self.course.id})
+        response = self.client.post(claim_url, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data.get('success'))
+        self.assertIn('certificate_id', data)
+
+        cert = Certificate.objects.get(user=self.user_v2, course=self.course)
+
+        # 2. Idempotent claim
+        response_repeat = self.client.post(claim_url, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(response_repeat.status_code, 200)
+        self.assertEqual(response_repeat.json()['certificate_id'], cert.certificate_id)
+
+        # 3. Direct course download pathway GET /certificates/course/<id>/download/
+        course_download_url = reverse('certificates:download_course_certificate', kwargs={'course_id': self.course.id})
+        dl_resp = self.client.get(course_download_url)
+        self.assertEqual(dl_resp.status_code, 200)
+        self.assertEqual(dl_resp['Content-Type'], 'application/pdf')
+        self.assertIn('attachment;', dl_resp['Content-Disposition'])
+        self.assertTrue(int(dl_resp['Content-Length']) > 0)
+        self.assertIn('private', dl_resp['Cache-Control'])
+
+        # 4. Download by PK GET /certificates/<pk>/download/
+        pk_download_url = reverse('certificates:download_certificate_pdf', kwargs={'pk': cert.pk})
+        pk_resp = self.client.get(pk_download_url)
+        self.assertEqual(pk_resp.status_code, 200)
+        self.assertEqual(pk_resp['Content-Type'], 'application/pdf')
+
+        # 5. Ownership isolation: Another student should receive 404 Not Found (enumeration prevention)
+        self.client.login(username='student_other', password='Password123!')
+        unauth_resp = self.client.get(pk_download_url)
+        self.assertEqual(unauth_resp.status_code, 404)
+
+
+

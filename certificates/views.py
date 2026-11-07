@@ -125,28 +125,167 @@ def certificate_center_view(request):
 
 
 @login_required
-def download_certificate_pdf_view(request, pk):
-    cert = get_object_or_404(Certificate, pk=pk, user=request.user)
-    if not cert.verification_status:
-        raise Http404("Certificate has been revoked or is invalid.")
-    pdf_bytes = PDFService.generate_certificate_pdf(cert)
+def claim_certificate_view(request, course_id):
+    """
+    Dedicated POST endpoint for claiming course completion certificates.
+    Enforces authentication, CSRF, curriculum progress (>= 85%), and assessment checks.
+    Idempotent: returns existing certificate if already issued.
+    """
+    if request.method != 'POST':
+        from django.http import HttpResponseNotAllowed
+        return HttpResponseNotAllowed(['POST'])
 
+    course = get_object_or_404(Course, id=course_id)
+
+    is_json = (
+        request.headers.get('x-requested-with') == 'XMLHttpRequest' or
+        'application/json' in request.headers.get('accept', '') or
+        request.content_type == 'application/json'
+    )
+
+    # Check for existing certificate (idempotent, return existing certificate)
+    existing_cert = Certificate.objects.filter(user=request.user, course=course).first()
+    if existing_cert:
+        download_url = f"/certificates/{existing_cert.id}/download/"
+        if is_json:
+            return JsonResponse({
+                'success': True,
+                'already_issued': True,
+                'certificate_id': existing_cert.certificate_id,
+                'download_url': download_url,
+                'message': f"You already hold a certificate for '{course.title}'."
+            })
+        messages.info(request, f"You already hold a SkillSphere Course Completion Certificate for '{course.title}'.")
+        return redirect(download_url)
+
+    prog = course.get_user_progress(request.user)
+    if not prog.get('is_certificate_eligible', False):
+        missing_text = '; '.join(prog.get('missing_requirements', ['Course requirements not met.']))
+        if is_json:
+            return JsonResponse({
+                'success': False,
+                'error': f"Cannot claim certificate: {missing_text}",
+                'missing_requirements': prog.get('missing_requirements', [])
+            }, status=400)
+        messages.error(request, f"Cannot claim certificate: {missing_text}")
+        return redirect('certificates:center')
+
+    # Recipient Name validation
+    custom_name = request.POST.get('recipient_name', '').strip()
+    if not custom_name:
+        profile = getattr(request.user, 'profile', None)
+        custom_name = profile.full_name if (profile and profile.full_name) else (request.user.get_full_name() or request.user.username)
+
+    custom_name = re.sub(r'[\r\n\t]', ' ', custom_name)[:100]
+
+    cert = Certificate.objects.create(
+        user=request.user,
+        course=course,
+        title=f"Course Completion: {course.title}",
+        recipient_name=custom_name,
+        criteria_met=f"Completed ≥85% of curriculum, Final Course Quiz, and Final Mock Examination for {course.title}."
+    )
+
+    Notification.objects.create(
+        user=request.user,
+        title="Certificate Issued! 🎓",
+        message=f"Congratulations, {custom_name}! Your SkillSphere Course Completion Certificate for '{course.title}' has been generated.",
+        notification_type='certificate_issued',
+        link="/certificates/"
+    )
+    download_url = f"/certificates/{cert.id}/download/"
+    if is_json:
+        return JsonResponse({
+            'success': True,
+            'certificate_id': cert.certificate_id,
+            'download_url': download_url,
+            'message': f"SkillSphere Course Completion Certificate issued to {custom_name}!"
+        })
+    messages.success(request, f"SkillSphere Course Completion Certificate for '{course.title}' issued to {custom_name}!")
+    return redirect(download_url)
+
+
+@login_required
+def download_course_certificate_view(request, course_id):
+    """
+    Direct course-level certificate download pathway.
+    If already issued, immediately serves PDF. If eligible but unclaimed, auto-claims.
+    """
+    from django.http import HttpResponseForbidden
+    course = get_object_or_404(Course, id=course_id)
+    cert = Certificate.objects.filter(user=request.user, course=course).first()
+    if not cert:
+        prog = course.get_user_progress(request.user)
+        if not prog.get('is_certificate_eligible', False):
+            missing_text = '; '.join(prog.get('missing_requirements', ['Course requirements not met.']))
+            messages.error(request, f"Cannot download certificate: {missing_text}")
+            return redirect('courses:detail', slug=course.slug)
+
+        profile = getattr(request.user, 'profile', None)
+        custom_name = profile.full_name if (profile and profile.full_name) else (request.user.get_full_name() or request.user.username)
+        cert = Certificate.objects.create(
+            user=request.user,
+            course=course,
+            title=f"Course Completion: {course.title}",
+            recipient_name=custom_name,
+            criteria_met=f"Completed ≥85% of curriculum, Final Course Quiz, and Final Mock Examination for {course.title}."
+        )
+
+    if not cert.verification_status:
+        return HttpResponseForbidden("Certificate has been revoked or is invalid.")
+
+    pdf_bytes = PDFService.generate_certificate_pdf(cert)
     response = HttpResponse(pdf_bytes, content_type='application/pdf')
     filename = f"SkillSphere_Certificate_{cert.certificate_id}.pdf"
-    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    response['Content-Disposition'] = f'attachment; filename="{filename}"; filename*=UTF-8\'\'{filename}'
+    response['Content-Length'] = str(len(pdf_bytes))
+    response['Cache-Control'] = 'private, no-cache, no-store, must-revalidate'
+    response['Pragma'] = 'no-cache'
+    response['Expires'] = '0'
+    return response
+
+
+@login_required
+def download_certificate_pdf_view(request, pk):
+    """
+    Protected download endpoint by certificate ID.
+    Enforces user ownership (404 on mismatch to prevent enumeration) and validity.
+    """
+    cert = Certificate.objects.filter(pk=pk).first()
+    if not cert:
+        raise Http404("Certificate not found.")
+    if cert.user != request.user:
+        raise Http404("Certificate not found.")
+    if not cert.verification_status:
+        raise Http404("Certificate has been revoked or is invalid.")
+
+    pdf_bytes = PDFService.generate_certificate_pdf(cert)
+    response = HttpResponse(pdf_bytes, content_type='application/pdf')
+    filename = f"SkillSphere_Certificate_{cert.certificate_id}.pdf"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"; filename*=UTF-8\'\'{filename}'
+    response['Content-Length'] = str(len(pdf_bytes))
+    response['Cache-Control'] = 'private, no-cache, no-store, must-revalidate'
+    response['Pragma'] = 'no-cache'
+    response['Expires'] = '0'
     return response
 
 
 @login_required
 def preview_certificate_pdf_view(request, pk):
     """Inline browser preview of the certificate."""
-    cert = get_object_or_404(Certificate, pk=pk, user=request.user)
+    cert = Certificate.objects.filter(pk=pk).first()
+    if not cert:
+        raise Http404("Certificate not found.")
+    if cert.user != request.user:
+        raise Http404("Certificate not found.")
     if not cert.verification_status:
         raise Http404("Certificate has been revoked or is invalid.")
+
     pdf_bytes = PDFService.generate_certificate_pdf(cert)
     response = HttpResponse(pdf_bytes, content_type='application/pdf')
     filename = f"SkillSphere_Certificate_{cert.certificate_id}.pdf"
-    response['Content-Disposition'] = f'inline; filename="{filename}"'
+    response['Content-Disposition'] = f'inline; filename="{filename}"; filename*=UTF-8\'\'{filename}'
+    response['Content-Length'] = str(len(pdf_bytes))
     return response
 
 

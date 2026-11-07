@@ -41,6 +41,8 @@ class Course(models.Model):
     instructor_title = models.CharField(max_length=150, blank=True, default='Lead Curriculum Developer')
     estimated_duration = models.CharField(max_length=50, default='12 hours')
     learning_objectives = models.TextField(blank=True, help_text='Newline-separated list of objectives')
+    curriculum_version = models.PositiveIntegerField(default=1, help_text='Current active curriculum version')
+    legacy_total_lessons = models.PositiveIntegerField(default=0, help_text='Cached lesson count for version 1')
     is_published = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -81,9 +83,8 @@ class Course(models.Model):
     def get_user_progress(self, user):
         """
         Authoritative single-source-of-truth progress calculation for SkillSphere.
-        Returns accurate weighted progress (0 to 100), activity breakdown,
-        assessment unlock status (>= 80%), certificate eligibility (>= 85% + mandatory exams),
-        and explicit list of missing requirements.
+        Supports curriculum versioning to ensure existing enrolled students and
+        certificate earners preserve their progress without regression.
         """
         unlock_threshold = getattr(settings, 'ASSESSMENT_UNLOCK_THRESHOLD', 80)
         cert_threshold = getattr(settings, 'CERTIFICATE_ELIGIBILITY_THRESHOLD', 85)
@@ -104,7 +105,20 @@ class Course(models.Model):
                 'missing_requirements': ['Log in to track progress and unlock certificates.'],
             }
 
-        total_lessons = self.lessons.count()
+        # Check existing certificate status
+        from certificates.models import Certificate
+        certificate_issued = Certificate.objects.filter(user=user, course=self).exists()
+
+        # Determine curriculum version applicable to this student
+        enrollment = Enrollment.objects.filter(user=user, course=self).first()
+        student_curriculum_version = enrollment.curriculum_version if enrollment else self.curriculum_version
+
+        # Filter lessons applicable to student's curriculum version
+        applicable_lessons = self.lessons.filter(curriculum_version__lte=student_curriculum_version)
+        total_lessons = applicable_lessons.count()
+        if total_lessons == 0:
+            total_lessons = self.lessons.count()
+
         if total_lessons == 0:
             return {
                 'percentage': 0,
@@ -123,11 +137,11 @@ class Course(models.Model):
         from learning.models import LessonProgress, Exercise, ExerciseSubmission, Assignment, AssignmentSubmission
         completed_lessons = LessonProgress.objects.filter(
             user=user,
-            lesson__course=self,
+            lesson__in=applicable_lessons if applicable_lessons.exists() else self.lessons.all(),
             is_completed=True
         ).count()
 
-        total_exercises = Exercise.objects.filter(lesson__course=self).count()
+        total_exercises = Exercise.objects.filter(lesson__in=applicable_lessons if applicable_lessons.exists() else self.lessons.all()).count()
         completed_exercises = 0
         if total_exercises > 0:
             completed_exercises = ExerciseSubmission.objects.filter(
@@ -145,8 +159,16 @@ class Course(models.Model):
                 status__in=['submitted', 'reviewed', 'graded']
             ).values('assignment_id').distinct().count()
 
-        # Calculate authoritative course progress based on mandatory curriculum (lessons)
-        percentage = min(100, int(round((completed_lessons / total_lessons) * 100)))
+        # Calculate authoritative course progress based on applicable curriculum
+        calculated_percentage = min(100, int(round((completed_lessons / total_lessons) * 100)))
+
+        # Safeguard: preserve historical progress from CourseCompletion or Certificate
+        completion = CourseCompletion.objects.filter(user=user, course=self).first()
+        percentage = calculated_percentage
+        if completion and completion.learning_progress > percentage:
+            percentage = completion.learning_progress
+        if certificate_issued:
+            percentage = max(percentage, 100)
 
         is_unlocked = percentage >= unlock_threshold
 
@@ -177,32 +199,35 @@ class Course(models.Model):
         else:
             mock_passed = True  # Not required if not configured or marked optional
 
+        # If already certified, assessments are permanently credited
+        if certificate_issued:
+            quiz_passed = True
+            mock_passed = True
+            is_unlocked = True
+
         # Authoritative certificate eligibility: >= 85% progress AND passing mandatory assessments
         has_required_percentage = percentage >= cert_threshold
-        is_certificate_eligible = has_required_percentage and quiz_passed and mock_passed
-
-        # Check if already issued
-        from certificates.models import Certificate
-        certificate_issued = Certificate.objects.filter(user=user, course=self).exists()
+        is_certificate_eligible = certificate_issued or (has_required_percentage and quiz_passed and mock_passed)
 
         # Explicit list of missing requirements (mandatory only)
         missing_requirements = []
-        if not has_required_percentage:
-            missing_requirements.append(f"Reach {cert_threshold}% course progress (Currently: {percentage}%)")
-        if has_quiz and not quiz_passed:
-            title = quiz_obj.title if quiz_obj else "Final Course Quiz"
-            passing_score = quiz_obj.passing_percentage if quiz_obj else passing_pct
-            if is_unlocked:
-                missing_requirements.append(f"Pass {title} with at least {passing_score}%")
-            else:
-                missing_requirements.append(f"Reach {unlock_threshold}% progress to unlock {title}")
-        if has_mock and not mock_passed:
-            title = mock_obj.title if mock_obj else "Final Mock Examination"
-            passing_score = mock_obj.passing_percentage if mock_obj else passing_pct
-            if is_unlocked:
-                missing_requirements.append(f"Pass {title} with at least {passing_score}%")
-            else:
-                missing_requirements.append(f"Reach {unlock_threshold}% progress to unlock {title}")
+        if not certificate_issued:
+            if not has_required_percentage:
+                missing_requirements.append(f"Reach {cert_threshold}% course progress (Currently: {percentage}%)")
+            if has_quiz and not quiz_passed:
+                title = quiz_obj.title if quiz_obj else "Final Course Quiz"
+                passing_score = quiz_obj.passing_percentage if quiz_obj else passing_pct
+                if is_unlocked:
+                    missing_requirements.append(f"Pass {title} with at least {passing_score}%")
+                else:
+                    missing_requirements.append(f"Reach {unlock_threshold}% progress to unlock {title}")
+            if has_mock and not mock_passed:
+                title = mock_obj.title if mock_obj else "Final Mock Examination"
+                passing_score = mock_obj.passing_percentage if mock_obj else passing_pct
+                if is_unlocked:
+                    missing_requirements.append(f"Pass {title} with at least {passing_score}%")
+                else:
+                    missing_requirements.append(f"Reach {unlock_threshold}% progress to unlock {title}")
 
         # Optional activities remaining (for feedback, but never block certificate)
         optional_remaining_activities = []
@@ -226,7 +251,7 @@ class Course(models.Model):
                 from django.utils import timezone
                 completion.is_completed = True
                 completion.completed_at = timezone.now()
-            elif not is_certificate_eligible:
+            elif not is_certificate_eligible and not certificate_issued:
                 completion.is_completed = False
             completion.save()
 
@@ -354,6 +379,7 @@ class CourseCompletion(models.Model):
 class Enrollment(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='enrollments')
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='enrollments')
+    curriculum_version = models.PositiveIntegerField(default=1, help_text='Curriculum version locked at enrollment')
     enrolled_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

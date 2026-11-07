@@ -279,7 +279,11 @@ def course_detail_view(request, slug):
 def enroll_course_view(request, slug):
     course = get_object_or_404(Course, slug=slug, is_published=True)
     if request.method == 'POST':
-        enrollment, created = Enrollment.objects.get_or_create(user=request.user, course=course)
+        enrollment, created = Enrollment.objects.get_or_create(
+            user=request.user,
+            course=course,
+            defaults={'curriculum_version': course.curriculum_version}
+        )
         if created:
             LearningActivity.objects.create(
                 user=request.user,
@@ -297,6 +301,20 @@ def enroll_course_view(request, slug):
             return redirect('learning:lesson_detail', course_slug=course.slug, lesson_id=first_lesson.id)
         return redirect('courses:detail', slug=course.slug)
 
+    return redirect('courses:detail', slug=course.slug)
+
+
+@login_required
+def upgrade_curriculum_view(request, slug):
+    course = get_object_or_404(Course, slug=slug, is_published=True)
+    if request.method == 'POST':
+        enrollment = Enrollment.objects.filter(user=request.user, course=course).first()
+        if enrollment and enrollment.curriculum_version < course.curriculum_version:
+            enrollment.curriculum_version = course.curriculum_version
+            enrollment.save(update_fields=['curriculum_version'])
+            messages.success(request, f"Successfully upgraded your curriculum for '{course.title}' to Version {course.curriculum_version}!")
+        else:
+            messages.info(request, "You are already on the latest curriculum version.")
     return redirect('courses:detail', slug=course.slug)
 
 

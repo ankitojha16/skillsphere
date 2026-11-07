@@ -27,6 +27,7 @@ class Lesson(models.Model):
     key_takeaways = models.TextField(blank=True, help_text='Important bullet points and quick review takeaways')
     common_mistakes = models.TextField(blank=True, help_text='Common pitfalls and anti-patterns to avoid')
 
+    curriculum_version = models.PositiveIntegerField(default=1, help_text='Curriculum version when this lesson was introduced')
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
