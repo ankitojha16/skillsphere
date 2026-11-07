@@ -343,15 +343,41 @@ class CurriculumExpansionAndCertificateTests(TestCase):
         self.assertEqual(prog_v2['percentage'], 25)
 
     def test_curriculum_voluntary_upgrade(self):
-        """Phase 7: Voluntary upgrade POST /courses/<slug>/upgrade-curriculum/ transitions student to v2."""
-        self.client.login(username='student_v1', password='Password123!')
-        url = reverse('courses:upgrade_curriculum', kwargs={'slug': self.course.slug})
+        """Phase 7: Voluntary upgrade POST transitions student to v2, is idempotent, and preserves certificates."""
+        # 1. Issue a V1 certificate to student_v1
+        cert_v1 = Certificate.objects.create(
+            user=self.user_v1,
+            course=self.course,
+            title=f"Course Completion: {self.course.title}",
+            certificate_id="SKILL-V1-CERT-001",
+            recipient_name="Student V1"
+        )
 
-        response = self.client.post(url, follow=True)
-        self.assertEqual(response.status_code, 200)
+        # Confirm V1 certificate remains downloadable
+        self.client.login(username='student_v1', password='Password123!')
+        dl_url = reverse('certificates:download_certificate_pdf', kwargs={'pk': cert_v1.pk})
+        resp = self.client.get(dl_url)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp['Content-Type'], 'application/pdf')
+
+        # 2. Perform first upgrade request
+        upgrade_url = reverse('courses:upgrade_curriculum', kwargs={'slug': self.course.slug})
+        response1 = self.client.post(upgrade_url, follow=True)
+        self.assertEqual(response1.status_code, 200)
 
         self.enrollment_v1.refresh_from_db()
         self.assertEqual(self.enrollment_v1.curriculum_version, 2)
+        self.assertEqual(Enrollment.objects.filter(user=self.user_v1, course=self.course).count(), 1)
+
+        # 3. Repeated upgrade request must be idempotent and NEVER duplicate enrollment
+        response2 = self.client.post(upgrade_url, follow=True)
+        self.assertEqual(response2.status_code, 200)
+        self.assertEqual(Enrollment.objects.filter(user=self.user_v1, course=self.course).count(), 1)
+
+        # 4. New lessons must NOT silently invalidate old certificates
+        prog_after_upgrade = self.course.get_user_progress(self.user_v1)
+        self.assertTrue(prog_after_upgrade['is_certificate_eligible'])
+        self.assertEqual(prog_after_upgrade['percentage'], 100)
 
     def test_certificate_claim_and_download_workflow(self):
         """Phase 5 & 6: Verify claim endpoint idempotency and download headers."""
@@ -380,6 +406,13 @@ class CurriculumExpansionAndCertificateTests(TestCase):
         )
 
         self.client.login(username='student_v2', password='Password123!')
+
+        # 0. HTTP Method Safety: GET before claim must NEVER create records; redirects to claim flow
+        course_download_url = reverse('certificates:download_course_certificate', kwargs={'course_id': self.course.id})
+        get_before_claim = self.client.get(course_download_url, follow=False)
+        self.assertEqual(get_before_claim.status_code, 302)
+        self.assertIn('/certificates/', get_before_claim.url)
+        self.assertEqual(Certificate.objects.filter(user=self.user_v2, course=self.course).count(), 0)
 
         # 1. Claim Certificate via POST (JSON / AJAX request)
         claim_url = reverse('certificates:claim_course_certificate', kwargs={'course_id': self.course.id})

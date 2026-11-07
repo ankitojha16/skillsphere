@@ -208,31 +208,28 @@ def claim_certificate_view(request, course_id):
 @login_required
 def download_course_certificate_view(request, course_id):
     """
-    Direct course-level certificate download pathway.
-    If already issued, immediately serves PDF. If eligible but unclaimed, auto-claims.
+    Direct course-level certificate download pathway (GET).
+    Strictly read-only: retrieves an existing issued certificate.
+    GET requests NEVER create database records.
+    If eligible but unclaimed, redirects to the claim flow with an explicit message.
     """
-    from django.http import HttpResponseForbidden
     course = get_object_or_404(Course, id=course_id)
     cert = Certificate.objects.filter(user=request.user, course=course).first()
     if not cert:
         prog = course.get_user_progress(request.user)
-        if not prog.get('is_certificate_eligible', False):
+        if prog.get('is_certificate_eligible', False):
+            messages.info(
+                request,
+                f"You are eligible for the '{course.title}' Certificate! Please claim your certificate to generate your official credential."
+            )
+            return redirect('certificates:center')
+        else:
             missing_text = '; '.join(prog.get('missing_requirements', ['Course requirements not met.']))
-            messages.error(request, f"Cannot download certificate: {missing_text}")
+            messages.error(request, f"Certificate locked: {missing_text}")
             return redirect('courses:detail', slug=course.slug)
 
-        profile = getattr(request.user, 'profile', None)
-        custom_name = profile.full_name if (profile and profile.full_name) else (request.user.get_full_name() or request.user.username)
-        cert = Certificate.objects.create(
-            user=request.user,
-            course=course,
-            title=f"Course Completion: {course.title}",
-            recipient_name=custom_name,
-            criteria_met=f"Completed ≥85% of curriculum, Final Course Quiz, and Final Mock Examination for {course.title}."
-        )
-
     if not cert.verification_status:
-        return HttpResponseForbidden("Certificate has been revoked or is invalid.")
+        raise Http404("Certificate has been revoked or is invalid.")
 
     pdf_bytes = PDFService.generate_certificate_pdf(cert)
     response = HttpResponse(pdf_bytes, content_type='application/pdf')
