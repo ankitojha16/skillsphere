@@ -502,7 +502,7 @@
                 </div>
 
                 <!-- Assessment Shortcuts -->
-                <div class="d-flex flex-column gap-2 mb-3">
+                <div class="d-flex flex-column gap-2 mb-3" id="assessmentShortcutsContainer">
                     {% if final_quiz %}
                         {% if progress_info.is_unlocked %}
                             <a href="{% url 'courses:assessment_intro' slug=course.slug assessment_type='final_quiz' %}" class="btn btn-secondary-custom btn-sm text-start d-flex justify-content-between align-items-center py-2 px-3">
@@ -646,6 +646,33 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (examMilestoneTitle) examMilestoneTitle.textContent = '80% Assessment Milestone';
                 if (examMilestoneDesc) examMilestoneDesc.textContent = `Reach 80% course progress to unlock final examinations (Currently: ${pct}%).`;
             }
+        }
+
+        // Dynamically update assessment shortcut buttons when unlocked
+        const assessmentContainer = document.getElementById('assessmentShortcutsContainer');
+        if (assessmentContainer && data.is_unlocked) {
+            const courseSlug = "{{ course.slug }}";
+            let quizHtml = '';
+            {% if final_quiz %}
+            const quizPassed = data.quiz_passed;
+            quizHtml = `
+                <a href="/courses/${courseSlug}/assessments/final_quiz/" class="btn btn-secondary-custom btn-sm text-start d-flex justify-content-between align-items-center py-2 px-3">
+                    <span><i data-lucide="file-question" style="width: 14px; height: 14px; margin-right: 6px;"></i>Final Course Quiz</span>
+                    ${quizPassed ? '<span class="badge bg-success text-white small">Passed</span>' : '<span class="badge bg-primary text-white small">Take Quiz</span>'}
+                </a>
+            `;
+            {% endif %}
+            let mockHtml = '';
+            {% if final_mock %}
+            const mockPassed = data.mock_passed;
+            mockHtml = `
+                <a href="/courses/${courseSlug}/assessments/final_mock/" class="btn btn-secondary-custom btn-sm text-start d-flex justify-content-between align-items-center py-2 px-3">
+                    <span><i data-lucide="layers" style="width: 14px; height: 14px; margin-right: 6px;"></i>Final Mock Test</span>
+                    ${mockPassed ? '<span class="badge bg-success text-white small">Passed</span>' : '<span class="badge bg-primary text-white small">Take Test</span>'}
+                </a>
+            `;
+            {% endif %}
+            assessmentContainer.innerHTML = quizHtml + mockHtml;
         }
 
         // Update certificate status card on the right

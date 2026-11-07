@@ -449,5 +449,158 @@ class CurriculumExpansionAndCertificateTests(TestCase):
         unauth_resp = self.client.get(pk_download_url)
         self.assertEqual(unauth_resp.status_code, 404)
 
+    def test_version_2_exact_progress_calculations_and_milestone(self):
+        """Regression: Verify 16/16=100%, 15/16=94%, 13/16=81%, and milestone unlocking at 81%."""
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        test_student = User.objects.create_user(username='v2_progress_student', password='Password123!')
+        Enrollment.objects.create(user=test_student, course=self.course, curriculum_version=2)
+
+        # 13 lessons completed out of 16
+        for i in range(13):
+            LessonProgress.objects.create(user=test_student, lesson=self.lessons[i], is_completed=True)
+
+        prog_13 = self.course.get_user_progress(test_student)
+        self.assertEqual(prog_13['total'], 16)
+        self.assertEqual(prog_13['completed'], 13)
+        self.assertEqual(prog_13['percentage'], 81)
+        self.assertTrue(prog_13['is_unlocked'], "81% progress must unlock the 80% assessment milestone")
+
+        # 15 lessons completed out of 16
+        for i in [13, 14]:
+            LessonProgress.objects.create(user=test_student, lesson=self.lessons[i], is_completed=True)
+
+        prog_15 = self.course.get_user_progress(test_student)
+        self.assertEqual(prog_15['total'], 16)
+        self.assertEqual(prog_15['completed'], 15)
+        self.assertEqual(prog_15['percentage'], 94)
+        self.assertTrue(prog_15['is_unlocked'])
+
+        # 16 lessons completed out of 16
+        LessonProgress.objects.create(user=test_student, lesson=self.lessons[15], is_completed=True)
+        prog_16 = self.course.get_user_progress(test_student)
+        self.assertEqual(prog_16['total'], 16)
+        self.assertEqual(prog_16['completed'], 16)
+        self.assertEqual(prog_16['percentage'], 100)
+        self.assertTrue(prog_16['is_unlocked'])
+
+    def test_capstone_pending_does_not_block_certificate(self):
+        """Regression: Pending capstone practice exercise must NEVER block certificate eligibility."""
+        from django.contrib.auth import get_user_model
+        from courses.models import CourseAssessmentAttempt
+        from learning.models import Exercise
+        User = get_user_model()
+        test_student = User.objects.create_user(username='capstone_student', password='Password123!')
+        Enrollment.objects.create(user=test_student, course=self.course, curriculum_version=2)
+
+        # Create optional capstone exercise on lesson 16
+        Exercise.objects.create(
+            lesson=self.lessons[15],
+            title="Implement Capstone Project: Enterprise CLI Task Automation Engine",
+            instructions="Build an enterprise CLI",
+            starter_code="# TODO: CLI",
+            order=1
+        )
+
+        # Complete all 16 lessons
+        for lesson in self.lessons:
+            LessonProgress.objects.create(user=test_student, lesson=lesson, is_completed=True)
+
+        # Pass final assessments
+        CourseAssessmentAttempt.objects.create(user=test_student, assessment=self.quiz, is_passed=True, percentage=90)
+        CourseAssessmentAttempt.objects.create(user=test_student, assessment=self.mock, is_passed=True, percentage=85)
+
+        # Evaluate progress: Capstone exercise is unattempted / pending
+        prog = self.course.get_user_progress(test_student)
+        self.assertEqual(prog['percentage'], 100)
+        self.assertEqual(prog['completed'], 16)
+        self.assertEqual(prog['total'], 16)
+        self.assertEqual(prog['exercises_completed'], 0)
+        self.assertEqual(prog['exercises_total'], 1)
+        self.assertTrue(prog['is_certificate_eligible'], "Certificate must be eligible even when capstone exercise is pending")
+
+        # Test claim endpoint via POST
+        self.client.login(username='capstone_student', password='Password123!')
+        claim_url = reverse('certificates:claim_course_certificate', kwargs={'course_id': self.course.id})
+        res = self.client.post(claim_url, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(res.json()['success'])
+        self.assertTrue(Certificate.objects.filter(user=test_student, course=self.course).exists())
+
+    def test_auto_migration_from_v1_to_v2_on_v2_lesson_completion(self):
+        """Regression: A V1 student completing a V2 lesson automatically migrates enrollment to V2."""
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        test_student = User.objects.create_user(username='migrating_student', password='Password123!')
+        enr = Enrollment.objects.create(user=test_student, course=self.course, curriculum_version=1)
+
+        # Complete lessons 1 to 4 (V1 lessons)
+        for i in range(4):
+            LessonProgress.objects.create(user=test_student, lesson=self.lessons[i], is_completed=True)
+
+        # Before touching V2: Student is on V1, denominator is 4
+        prog_v1 = self.course.get_user_progress(test_student)
+        self.assertEqual(prog_v1['total'], 4)
+        self.assertEqual(prog_v1['completed'], 4)
+        self.assertEqual(prog_v1['percentage'], 100)
+        enr.refresh_from_db()
+        self.assertEqual(enr.curriculum_version, 1)
+
+        # Student completes lesson 5 (curriculum_version = 2)
+        LessonProgress.objects.create(user=test_student, lesson=self.lessons[4], is_completed=True)
+
+        # Calling get_user_progress auto-advances enrollment to V2
+        prog_v2 = self.course.get_user_progress(test_student)
+        enr.refresh_from_db()
+        self.assertEqual(enr.curriculum_version, 2)
+        self.assertEqual(prog_v2['total'], 16)
+        self.assertEqual(prog_v2['completed'], 5)
+        self.assertEqual(prog_v2['percentage'], 31)
+
+    def test_parity_across_dashboard_course_detail_and_lesson(self):
+        """Regression: Dashboard, Course Detail, and Lesson views return identical progress."""
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        test_student = User.objects.create_user(username='parity_student', password='Password123!')
+        Enrollment.objects.create(user=test_student, course=self.course, curriculum_version=2)
+
+        for i in range(13):
+            LessonProgress.objects.create(user=test_student, lesson=self.lessons[i], is_completed=True)
+
+        self.client.login(username='parity_student', password='Password123!')
+
+        # 1. Lesson View progress_info
+        lesson_url = reverse('learning:lesson_detail', kwargs={'course_slug': self.course.slug, 'lesson_id': self.lessons[12].id})
+        resp_lesson = self.client.get(lesson_url)
+        self.assertEqual(resp_lesson.status_code, 200)
+        prog_lesson = resp_lesson.context['progress_info']
+        self.assertEqual(prog_lesson['percentage'], 81)
+        self.assertEqual(prog_lesson['completed'], 13)
+        self.assertEqual(prog_lesson['total'], 16)
+        self.assertTrue(prog_lesson['is_unlocked'])
+
+        # 2. Dashboard progress
+        resp_dash = self.client.get(reverse('dashboard:index'))
+        self.assertEqual(resp_dash.status_code, 200)
+        enrolled_data = resp_dash.context['enrolled_courses_data']
+        self.assertEqual(len(enrolled_data), 1)
+        prog_dash = enrolled_data[0]['progress']
+        self.assertEqual(prog_dash['percentage'], 81)
+        self.assertEqual(prog_dash['completed'], 13)
+        self.assertEqual(prog_dash['total'], 16)
+        self.assertTrue(prog_dash['is_unlocked'])
+
+        # 3. Course detail / My Learning progress
+        resp_my_learning = self.client.get(reverse('courses:my_learning'))
+        self.assertEqual(resp_my_learning.status_code, 200)
+        items = resp_my_learning.context['enrolled_items']
+        self.assertEqual(len(items), 1)
+        prog_my = items[0]['progress']
+        self.assertEqual(prog_my['percentage'], 81)
+        self.assertEqual(prog_my['completed'], 13)
+        self.assertEqual(prog_my['total'], 16)
+        self.assertTrue(prog_my['is_unlocked'])
+
+
 
 

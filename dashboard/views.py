@@ -54,27 +54,12 @@ def dashboard_view(request):
         for enrollment in enrollments:
             course = enrollment.course
             course_lessons = lessons_by_course.get(course.id, [])
-            total_lessons = len(course_lessons)
-            comp_count = sum(1 for l in course_lessons if l.id in completed_lesson_ids)
+            prog = course.get_user_progress(user)
 
-            comp = completions.get(course.id)
-            calc_pct = min(100, int(round((comp_count / total_lessons) * 100))) if total_lessons > 0 else 0
-            quiz_passed = comp.quiz_passed if comp else False
-            mock_passed = comp.mock_passed if comp else False
-            pct = calc_pct
+            total_lessons_sum += prog['total']
+            completed_lessons_sum += prog['completed']
 
-            is_certificate_eligible = (pct >= 85 and quiz_passed and mock_passed)
-            is_completed = (comp.is_completed if comp else False) or is_certificate_eligible
-
-            if comp and (comp.learning_progress != pct or comp.is_completed != is_completed):
-                comp.learning_progress = pct
-                comp.is_completed = is_completed
-                comp.save(update_fields=['learning_progress', 'is_completed', 'updated_at'])
-
-            total_lessons_sum += total_lessons
-            completed_lessons_sum += comp_count
-
-            if is_completed:
+            if prog['is_completed']:
                 completed_courses_count += 1
 
             next_lesson = None
@@ -85,22 +70,11 @@ def dashboard_view(request):
             if not next_lesson and course_lessons:
                 next_lesson = course_lessons[0]
 
-            progress = {
-                'percentage': pct,
-                'completed': comp_count,
-                'total': total_lessons,
-                'is_completed': is_completed,
-                'is_certificate_eligible': is_certificate_eligible,
-                'is_unlocked': pct >= 80,
-                'quiz_passed': quiz_passed,
-                'mock_passed': mock_passed,
-            }
-
             enrolled_courses_data.append({
                 'course': course,
-                'progress': progress,
+                'progress': prog,
                 'next_lesson': next_lesson,
-                'is_completed': is_completed,
+                'is_completed': prog['is_completed'],
             })
 
     # 3. Completed Lessons total

@@ -365,16 +365,7 @@ def my_learning_view(request):
         for enrollment in enrollments:
             course = enrollment.course
             course_lessons = lessons_by_course.get(course.id, [])
-            total_lessons = len(course_lessons)
-            completed_count = sum(1 for l in course_lessons if l.id in completed_lesson_ids)
-
-            comp = completions.get(course.id)
-            if comp:
-                pct = comp.learning_progress
-                is_completed = comp.is_completed
-            else:
-                pct = min(100, int(round((completed_count / total_lessons) * 100))) if total_lessons > 0 else 0
-                is_completed = (pct == 100)
+            prog = course.get_user_progress(request.user)
 
             # Find next incomplete lesson
             next_lesson = None
@@ -385,24 +376,17 @@ def my_learning_view(request):
             if not next_lesson and course_lessons:
                 next_lesson = course_lessons[0]
 
-            progress = {
-                'percentage': pct,
-                'completed': completed_count,
-                'total': total_lessons,
-                'is_completed': is_completed,
-            }
-
             item = {
                 'enrollment': enrollment,
                 'course': course,
-                'progress': progress,
+                'progress': prog,
                 'next_lesson': next_lesson,
-                'is_completed': is_completed,
+                'is_completed': prog['is_completed'],
             }
 
-            if filter_tab == 'completed' and not is_completed:
+            if filter_tab == 'completed' and not prog['is_completed']:
                 continue
-            elif filter_tab == 'in_progress' and (is_completed or progress['total'] == 0):
+            elif filter_tab == 'in_progress' and (prog['is_completed'] or prog['total'] == 0):
                 continue
 
             enrolled_items.append(item)

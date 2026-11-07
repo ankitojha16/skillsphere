@@ -113,6 +113,22 @@ class Course(models.Model):
         enrollment = Enrollment.objects.filter(user=user, course=self).first()
         student_curriculum_version = enrollment.curriculum_version if enrollment else self.curriculum_version
 
+        from learning.models import LessonProgress, Exercise, ExerciseSubmission, Assignment, AssignmentSubmission
+
+        # If student completed any lesson with curriculum_version > student_curriculum_version,
+        # they have engaged with newer curriculum content -> auto-advance enrollment to latest course version
+        if enrollment and student_curriculum_version < self.curriculum_version:
+            has_newer_progress = LessonProgress.objects.filter(
+                user=user,
+                lesson__course=self,
+                lesson__curriculum_version__gt=student_curriculum_version,
+                is_completed=True
+            ).exists()
+            if has_newer_progress:
+                student_curriculum_version = self.curriculum_version
+                enrollment.curriculum_version = self.curriculum_version
+                enrollment.save(update_fields=['curriculum_version'])
+
         # Filter lessons applicable to student's curriculum version
         applicable_lessons = self.lessons.filter(curriculum_version__lte=student_curriculum_version)
         total_lessons = applicable_lessons.count()
@@ -134,7 +150,6 @@ class Course(models.Model):
                 'missing_requirements': ['Course curriculum is being prepared.'],
             }
 
-        from learning.models import LessonProgress, Exercise, ExerciseSubmission, Assignment, AssignmentSubmission
         completed_lessons = LessonProgress.objects.filter(
             user=user,
             lesson__in=applicable_lessons if applicable_lessons.exists() else self.lessons.all(),
@@ -160,13 +175,11 @@ class Course(models.Model):
             ).values('assignment_id').distinct().count()
 
         # Calculate authoritative course progress based on applicable curriculum
-        calculated_percentage = min(100, int(round((completed_lessons / total_lessons) * 100)))
+        calculated_percentage = min(100, int(round((completed_lessons / total_lessons) * 100))) if total_lessons > 0 else 0
 
-        # Safeguard: preserve historical progress from CourseCompletion or Certificate
-        completion = CourseCompletion.objects.filter(user=user, course=self).first()
+        # Authoritative progress percentage: strictly based on applicable curriculum
+        # Safeguard: any issued certificate permanently retains 100%
         percentage = calculated_percentage
-        if completion and completion.learning_progress > percentage:
-            percentage = completion.learning_progress
         if certificate_issued:
             percentage = max(percentage, 100)
 
@@ -240,13 +253,13 @@ class Course(models.Model):
         completion, _ = CourseCompletion.objects.get_or_create(user=user, course=self)
         if (completion.learning_progress != percentage or
             completion.is_assessment_unlocked != is_unlocked or
-            completion.quiz_passed != (quiz_passed and has_quiz) or
-            completion.mock_passed != (mock_passed and has_mock) or
+            completion.quiz_passed != bool(quiz_passed) or
+            completion.mock_passed != bool(mock_passed) or
             completion.is_completed != is_certificate_eligible):
             completion.learning_progress = percentage
             completion.is_assessment_unlocked = is_unlocked
-            completion.quiz_passed = bool(quiz_passed and has_quiz)
-            completion.mock_passed = bool(mock_passed and has_mock)
+            completion.quiz_passed = bool(quiz_passed)
+            completion.mock_passed = bool(mock_passed)
             if is_certificate_eligible and not completion.is_completed:
                 from django.utils import timezone
                 completion.is_completed = True
