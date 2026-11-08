@@ -260,6 +260,8 @@ if not DEBUG:
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
 
+SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
+
 CSRF_TRUSTED_ORIGINS = [f"https://{h}" for h in ALLOWED_HOSTS if h not in ['127.0.0.1', 'localhost', '*']]
 CSRF_TRUSTED_ORIGINS.extend([
     'https://skillsphere-cyan.vercel.app',

@@ -68,16 +68,24 @@ class CertificateWorkflowE2ETests(TestCase):
         # 1. Login as primary student
         self.client.login(username='student_e2e', password='Password123!')
 
-        # 2. Complete exactly 17 lessons out of 20 (17 / 20 * 100 = 85%)
+        # 2. Incomplete lessons (17 out of 20) = 68% progress -> Certificate Locked
         for i in range(17):
             LessonProgress.objects.create(user=self.student, lesson=self.lessons[i], is_completed=True)
 
-        prog_before_exams = self.course.get_user_progress(self.student)
-        self.assertEqual(prog_before_exams['percentage'], 85)
-        self.assertTrue(prog_before_exams['is_unlocked'])
-        self.assertFalse(prog_before_exams['is_certificate_eligible'], "Must not be eligible before passing mandatory exams")
+        prog_before_complete = self.course.get_user_progress(self.student)
+        self.assertEqual(prog_before_complete['percentage'], 68)
+        self.assertFalse(prog_before_complete['is_certificate_eligible'], "Must not be eligible with incomplete mandatory video lessons")
 
-        # 3. Pass mandatory assessments
+        # 3. Complete all 20 lessons -> 80% progress -> Certificate Eligible!
+        for i in range(17, 20):
+            LessonProgress.objects.create(user=self.student, lesson=self.lessons[i], is_completed=True)
+
+        prog_eligible = self.course.get_user_progress(self.student)
+        self.assertEqual(prog_eligible['percentage'], 80)
+        self.assertTrue(prog_eligible['is_certificate_eligible'], "Must be eligible once all video lessons are complete")
+        self.assertEqual(prog_eligible['missing_requirements'], [])
+
+        # 4. Optional assessments boost progress up to 100%
         CourseAssessmentAttempt.objects.create(
             user=self.student,
             assessment=self.quiz,
@@ -94,12 +102,9 @@ class CertificateWorkflowE2ETests(TestCase):
             percentage=90,
             is_passed=True
         )
-
-        # 4. Confirm certificate eligibility
-        prog_eligible = self.course.get_user_progress(self.student)
-        self.assertEqual(prog_eligible['percentage'], 85)
-        self.assertTrue(prog_eligible['is_certificate_eligible'], "Must be eligible at 85% with passed assessments")
-        self.assertEqual(prog_eligible['missing_requirements'], [])
+        prog_with_exams = self.course.get_user_progress(self.student)
+        self.assertEqual(prog_with_exams['percentage'], 100)
+        self.assertTrue(prog_with_exams['is_certificate_eligible'])
 
         # 5. Claim certificate via Center POST
         claim_res = self.client.post(reverse('certificates:center'), {

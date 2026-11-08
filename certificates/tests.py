@@ -200,17 +200,15 @@ class CertificateTests(TestCase):
         self.assertTrue(response2.content.startswith(b'%PDF-'))
 
     def test_certificate_center_rules_and_copy(self):
-        """Certificate Center renders updated 85% rules and no 100% completion requirement text."""
+        """Certificate Center renders updated Video-First rules and no compulsory exam text."""
         response = self.client.get(reverse('certificates:center'))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Rule 1')
-        self.assertContains(response, 'Assessment Unlock')
-        self.assertContains(response, '80% Mandatory Lesson Progress')
-        self.assertContains(response, 'Rule 4')
-        self.assertContains(response, 'Certificate Issue')
-        self.assertContains(response, 'Minimum 85% mandatory lesson progress plus all applicable mandatory assessments passed.')
-        self.assertContains(response, 'Complete at least 85% of mandatory course lessons and pass all applicable mandatory final assessments')
-        self.assertNotContains(response, '100% Completion')
+        self.assertContains(response, 'Mandatory Curriculum Completion')
+        self.assertContains(response, 'Rule 2')
+        self.assertContains(response, 'Optional Assessments')
+        self.assertContains(response, 'Rule 3')
+        self.assertContains(response, 'Instant Issuance')
         self.assertNotContains(response, '100% course completion required')
 
     def test_premium_certificate_pdf_generation_and_edge_cases(self):

@@ -103,68 +103,58 @@ class CertificateEligibility85Tests(TestCase):
         )
 
     def test_scenario_01_zero_progress(self):
-        """Scenario 1: 0% progress -> Locked, assessments locked"""
+        """Scenario 1: 0% progress -> Locked"""
         prog = self.course.get_user_progress(self.user)
         self.assertEqual(prog['percentage'], 0)
-        self.assertFalse(prog['is_unlocked'])
         self.assertFalse(prog['is_certificate_eligible'])
-        self.assertIn("Reach 85% course progress", prog['missing_requirements'][0])
+        self.assertIn("Complete 20 more mandatory video lessons", prog['missing_requirements'][0])
 
-    def test_scenario_02_75_percent_progress(self):
-        """Scenario 2: 75% progress (15/20 lessons) -> Assessments locked (< 80%)"""
+    def test_scenario_02_60_percent_progress(self):
+        """Scenario 2: 15/20 lessons -> 60% progress, certificate locked"""
         self._complete_n_lessons(15)
         prog = self.course.get_user_progress(self.user)
-        self.assertEqual(prog['percentage'], 75)
-        self.assertFalse(prog['is_unlocked'])
+        self.assertEqual(prog['percentage'], 60)
         self.assertFalse(prog['is_certificate_eligible'])
 
-    def test_scenario_03_80_percent_progress_assessments_unlocked(self):
-        """Scenario 3: 80% progress (16/20 lessons) -> Assessments unlocked, cert locked"""
+    def test_scenario_03_64_percent_progress(self):
+        """Scenario 3: 16/20 lessons -> 64% progress, cert locked"""
         self._complete_n_lessons(16)
         prog = self.course.get_user_progress(self.user)
-        self.assertEqual(prog['percentage'], 80)
-        self.assertTrue(prog['is_unlocked'])
+        self.assertEqual(prog['percentage'], 64)
         self.assertFalse(prog['is_certificate_eligible'])
 
-    def test_scenario_04_85_percent_without_exams(self):
-        """Scenario 4: 85% progress (17/20 lessons) -> Cert locked because exams not passed"""
+    def test_scenario_04_68_percent_without_exams(self):
+        """Scenario 4: 17/20 lessons -> 68% progress, cert locked (lessons incomplete)"""
         self._complete_n_lessons(17)
         prog = self.course.get_user_progress(self.user)
-        self.assertEqual(prog['percentage'], 85)
-        self.assertTrue(prog['is_unlocked'])
+        self.assertEqual(prog['percentage'], 68)
         self.assertFalse(prog['is_certificate_eligible'])
-        self.assertTrue(any("Final Course Quiz" in req for req in prog['missing_requirements']))
-        self.assertTrue(any("Final Mock Examination" in req for req in prog['missing_requirements']))
+        self.assertIn("Complete 3 more mandatory video lessons", prog['missing_requirements'][0])
 
-    def test_scenario_05_85_percent_with_quiz_only(self):
-        """Scenario 5: 85% progress + Quiz passed -> Cert locked (missing mock)"""
+    def test_scenario_05_68_percent_with_quiz(self):
+        """Scenario 5: 17/20 lessons + Quiz passed (+10%) -> 78% progress, cert locked"""
         self._complete_n_lessons(17)
         self._pass_quiz(80)
         prog = self.course.get_user_progress(self.user)
-        self.assertEqual(prog['percentage'], 85)
+        self.assertEqual(prog['percentage'], 78)
         self.assertTrue(prog['quiz_passed'])
-        self.assertFalse(prog['mock_passed'])
         self.assertFalse(prog['is_certificate_eligible'])
-        self.assertEqual(len(prog['missing_requirements']), 1)
-        self.assertIn("Final Mock Examination", prog['missing_requirements'][0])
 
-    def test_scenario_06_85_percent_failed_quiz(self):
-        """Scenario 6: 85% progress + Quiz failed (60%) + Mock passed (80%) -> Locked"""
+    def test_scenario_06_failed_quiz(self):
+        """Scenario 6: Incomplete lessons + Quiz failed"""
         self._complete_n_lessons(17)
         self._pass_quiz(60)
-        self._pass_mock(80)
         prog = self.course.get_user_progress(self.user)
         self.assertFalse(prog['quiz_passed'])
-        self.assertTrue(prog['mock_passed'])
         self.assertFalse(prog['is_certificate_eligible'])
 
-    def test_scenario_07_85_percent_eligible_and_claimed(self):
-        """Scenario 7: 85% progress + Quiz passed + Mock passed -> ELIGIBLE! Claim succeeds."""
-        self._complete_n_lessons(17)
+    def test_scenario_07_full_curriculum_eligible_and_claimed(self):
+        """Scenario 7: 20/20 lessons + Quiz passed + Mock passed -> 100% progress, ELIGIBLE! Claim succeeds."""
+        self._complete_n_lessons(20)
         self._pass_quiz(75)
         self._pass_mock(80)
         prog = self.course.get_user_progress(self.user)
-        self.assertEqual(prog['percentage'], 85)
+        self.assertEqual(prog['percentage'], 100)
         self.assertTrue(prog['quiz_passed'])
         self.assertTrue(prog['mock_passed'])
         self.assertTrue(prog['is_certificate_eligible'])
@@ -181,19 +171,17 @@ class CertificateEligibility85Tests(TestCase):
         self.assertEqual(cert.recipient_name, 'Student EightyFive')
 
     def test_scenario_08_optional_exercises_do_not_block_certificate(self):
-        """Scenario 8: Optional exercises incomplete; certificate is STILL eligible at 85%."""
-        self._complete_n_lessons(17)
-        self._pass_quiz(80)
-        self._pass_mock(80)
+        """Scenario 8: Optional exercises incomplete; certificate is STILL eligible when lessons completed."""
+        self._complete_n_lessons(20)
         # Note: 0 exercises completed out of 2 optional exercises
         prog = self.course.get_user_progress(self.user)
         self.assertTrue(prog['is_certificate_eligible'])
         self.assertTrue(len(prog['optional_remaining_activities']) > 0)
-        self.assertIn("optional coding exercise", prog['optional_remaining_activities'][0])
+        self.assertIn("optional coding exercise", prog['optional_remaining_activities'][1])
 
     def test_scenario_09_idempotent_certificate_claim(self):
         """Scenario 9: Multiple claims return the existing certificate gracefully."""
-        self._complete_n_lessons(17)
+        self._complete_n_lessons(20)
         self._pass_quiz(80)
         self._pass_mock(80)
 
@@ -227,7 +215,7 @@ class CertificateEligibility85Tests(TestCase):
         self.assertEqual(res.status_code, 200)
         data = res.json()
         self.assertTrue(data['success'])
-        self.assertEqual(data['percentage'], 5)
+        self.assertEqual(data['percentage'], 4)
         self.assertIn('is_certificate_eligible', data)
         self.assertIn('missing_requirements', data)
 

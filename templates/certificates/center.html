@@ -21,51 +21,41 @@
         </a>
     </div>
 
-    <!-- Course Completion Certificate Eligibility Rules Banner -->
-    <div class="custom-card p-4 mb-4 border-purple-glow" style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(6, 182, 212, 0.05) 100%);">
+    <!-- Video-First Course Completion Certificate Eligibility Rules Banner -->
+    <div class="custom-card p-4 mb-4 border-purple-glow" style="background: linear-gradient(135deg, rgba(37, 99, 166, 0.12) 0%, rgba(21, 54, 91, 0.18) 100%); border: 1px solid rgba(139, 188, 235, 0.3);">
         <h5 class="text-white fw-bold mb-3 d-flex align-items-center gap-2">
-            <i data-lucide="award" class="text-primary-accent" style="width: 20px; height: 20px;"></i>
-            <span>Certificate Eligibility Standards</span>
+            <i data-lucide="award" class="text-warning" style="width: 20px; height: 20px;"></i>
+            <span>Video-First Certificate Standards</span>
         </h5>
         <div class="row g-3">
-            <div class="col-md-6 col-lg-3">
+            <div class="col-md-4">
                 <div class="p-3 rounded-3 h-100" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);">
                     <div class="d-flex align-items-center gap-2 mb-2">
-                        <span class="badge bg-purple-subtle text-primary-accent fw-bold rounded-pill">Rule 1</span>
-                        <span class="text-white fw-semibold small">Assessment Unlock</span>
+                        <span class="badge bg-primary-subtle text-primary fw-bold rounded-pill">Rule 1</span>
+                        <span class="text-white fw-semibold small">Mandatory Curriculum Completion</span>
                     </div>
-                    <div class="h6 fw-bold text-white mb-1">80% Mandatory Lesson Progress</div>
-                    <p class="text-secondary small mb-0">Reaching 80% mandatory lesson progress unlocks the Final Quiz and Final Mock Exam. Assessments remain locked below 80%.</p>
+                    <div class="h6 fw-bold text-white mb-1">80% Video Completion</div>
+                    <p class="text-secondary small mb-0">Completing all mandatory video lessons earns the full 80% video curriculum component and unlocks certificate eligibility.</p>
                 </div>
             </div>
-            <div class="col-md-6 col-lg-3">
+            <div class="col-md-4">
                 <div class="p-3 rounded-3 h-100" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);">
                     <div class="d-flex align-items-center gap-2 mb-2">
-                        <span class="badge bg-purple-subtle text-primary-accent fw-bold rounded-pill">Rule 2</span>
-                        <span class="text-white fw-semibold small">Final Course Quiz</span>
+                        <span class="badge bg-info-subtle text-info fw-bold rounded-pill">Rule 2</span>
+                        <span class="text-white fw-semibold small">Optional Assessments</span>
                     </div>
-                    <div class="h6 fw-bold text-white mb-1">Minimum 70%, if applicable</div>
-                    <p class="text-secondary small mb-0">Comprehensive evaluation of conceptual knowledge across all modules with detailed answer reviews.</p>
+                    <div class="h6 fw-bold text-white mb-1">Optional +20% Extra Credit</div>
+                    <p class="text-secondary small mb-0">Tests and quizzes are 100% optional. They help you evaluate your understanding and can boost your overall progress to 100%, but never block certification.</p>
                 </div>
             </div>
-            <div class="col-md-6 col-lg-3">
+            <div class="col-md-4">
                 <div class="p-3 rounded-3 h-100" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);">
                     <div class="d-flex align-items-center gap-2 mb-2">
-                        <span class="badge bg-purple-subtle text-primary-accent fw-bold rounded-pill">Rule 3</span>
-                        <span class="text-white fw-semibold small">Final Mock Examination</span>
+                        <span class="badge bg-success-subtle text-success fw-bold rounded-pill">Rule 3</span>
+                        <span class="text-white fw-semibold small">Instant Issuance</span>
                     </div>
-                    <div class="h6 fw-bold text-white mb-1">Minimum 70%, if applicable</div>
-                    <p class="text-secondary small mb-0">Practical problem-solving examination testing architecture, implementation, and code debugging.</p>
-                </div>
-            </div>
-            <div class="col-md-6 col-lg-3">
-                <div class="p-3 rounded-3 h-100" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);">
-                    <div class="d-flex align-items-center gap-2 mb-2">
-                        <span class="badge bg-success-subtle text-success fw-bold rounded-pill">Rule 4</span>
-                        <span class="text-white fw-semibold small">Certificate Issue</span>
-                    </div>
-                    <div class="h6 fw-bold text-white mb-1">Minimum 85% Progress</div>
-                    <p class="text-secondary small mb-0">Minimum 85% mandatory lesson progress plus all applicable mandatory assessments passed.</p>
+                    <div class="h6 fw-bold text-white mb-1">Verified Digital PDF</div>
+                    <p class="text-secondary small mb-0">As soon as your video curriculum is complete, claim your official verified SkillSphere certificate with live QR verification.</p>
                 </div>
             </div>
         </div>
@@ -79,7 +69,7 @@
                 <h5 class="mb-0 text-success fw-bold">Congratulations! You Have Eligible Certificates to Claim</h5>
             </div>
             <p class="text-light small mb-4">
-                You have fulfilled all curricular requirements (≥85% coursework, passed the Final Course Quiz, and passed the Final Mock Examination) for the following course(s):
+                You have completed all mandatory video lessons (80% video curriculum threshold) for the following course(s):
             </p>
 
             <div class="row g-3">
@@ -235,62 +225,20 @@
                                     </div>
                                 {% endif %}
 
-                                <!-- 80% Unlock Status -->
-                                <div class="d-flex align-items-center justify-content-between small">
-                                    <span class="text-light d-flex align-items-center gap-2">
-                                        {% if item.progress.is_unlocked %}
-                                            <i data-lucide="unlock" class="text-success" style="width: 16px; height: 16px;"></i>
-                                        {% else %}
-                                            <i data-lucide="lock" class="text-danger" style="width: 16px; height: 16px;"></i>
-                                        {% endif %}
-                                        <span>80% Assessment Unlock Milestone</span>
-                                    </span>
-                                    <span class="{% if item.progress.is_unlocked %}text-success{% else %}text-muted{% endif %}">
-                                        {% if item.progress.is_unlocked %}Unlocked{% else %}Locked (< 80%){% endif %}
-                                    </span>
-                                </div>
-
-                                <!-- Final Quiz -->
-                                <div class="d-flex align-items-center justify-content-between small">
-                                    <span class="text-light d-flex align-items-center gap-2">
-                                        {% if item.progress.quiz_passed %}
-                                            <i data-lucide="check-circle" class="text-success" style="width: 16px; height: 16px;"></i>
-                                        {% else %}
-                                            <i data-lucide="circle" class="text-muted" style="width: 16px; height: 16px;"></i>
-                                        {% endif %}
-                                        <span>Final Course Quiz (&ge; 70%)</span>
-                                    </span>
-                                    <span>
-                                        {% if item.progress.quiz_passed %}
-                                            <span class="badge bg-success-subtle text-success small">Passed</span>
-                                        {% elif item.progress.is_unlocked %}
-                                            <a href="{% url 'courses:assessment_intro' slug=item.course.slug assessment_type='final_quiz' %}" class="btn btn-sm btn-outline-warning py-0 px-2" style="font-size: 0.75rem;">Take Quiz</a>
-                                        {% else %}
-                                            <span class="text-muted small">Locked</span>
-                                        {% endif %}
-                                    </span>
-                                </div>
-
-                                <!-- Final Mock Test -->
-                                <div class="d-flex align-items-center justify-content-between small">
-                                    <span class="text-light d-flex align-items-center gap-2">
-                                        {% if item.progress.mock_passed %}
-                                            <i data-lucide="check-circle" class="text-success" style="width: 16px; height: 16px;"></i>
-                                        {% else %}
-                                            <i data-lucide="circle" class="text-muted" style="width: 16px; height: 16px;"></i>
-                                        {% endif %}
-                                        <span>Final Mock Examination (&ge; 70%)</span>
-                                    </span>
-                                    <span>
-                                        {% if item.progress.mock_passed %}
-                                            <span class="badge bg-success-subtle text-success small">Passed</span>
-                                        {% elif item.progress.is_unlocked %}
-                                            <a href="{% url 'courses:assessment_intro' slug=item.course.slug assessment_type='final_mock' %}" class="btn btn-sm btn-outline-warning py-0 px-2" style="font-size: 0.75rem;">Take Exam</a>
-                                        {% else %}
-                                            <span class="text-muted small">Locked</span>
-                                        {% endif %}
-                                    </span>
-                                </div>
+                                <!-- Optional Tests if configured -->
+                                {% if item.progress.has_optional_assessments %}
+                                    <div class="d-flex align-items-center justify-content-between small">
+                                        <span class="text-light d-flex align-items-center gap-2">
+                                            {% if item.progress.optional_assessments_completed >= item.progress.optional_assessments_count %}
+                                                <i data-lucide="check-circle" class="text-success" style="width: 16px; height: 16px;"></i>
+                                            {% else %}
+                                                <i data-lucide="circle" class="text-muted" style="width: 16px; height: 16px;"></i>
+                                            {% endif %}
+                                            <span>Optional Tests & Quizzes <span class="badge bg-secondary-subtle text-muted" style="font-size: 0.65rem;">Optional</span></span>
+                                        </span>
+                                        <span class="text-secondary">{{ item.progress.optional_assessments_completed }}/{{ item.progress.optional_assessments_count }} Passed</span>
+                                    </div>
+                                {% endif %}
                             </div>
 
                             {% if item.remaining_reasons %}

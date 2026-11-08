@@ -83,26 +83,41 @@ class Course(models.Model):
     def get_user_progress(self, user):
         """
         Authoritative single-source-of-truth progress calculation for SkillSphere.
-        Supports curriculum versioning to ensure existing enrolled students and
-        certificate earners preserve their progress without regression.
+        Implements Video-First Learning System:
+          - Video Lessons & Curriculum: 80% weight (Mandatory)
+          - Tests, Quizzes & Assessments: 20% weight (100% Optional)
+          - Completing all mandatory video lessons = 80% completion and unlocks certificate.
+          - Optional assessments can raise progress up to 100%, but never block certificate.
+          - Optional assessments cannot compensate for incomplete mandatory video lessons.
         """
-        unlock_threshold = getattr(settings, 'ASSESSMENT_UNLOCK_THRESHOLD', 80)
-        cert_threshold = getattr(settings, 'CERTIFICATE_ELIGIBILITY_THRESHOLD', 85)
-        passing_pct = getattr(settings, 'ASSESSMENT_PASSING_PERCENTAGE', 70)
-
         if not user or not user.is_authenticated:
             return {
                 'percentage': 0,
+                'overall_progress': 0,
+                'video_progress': 0.0,
+                'video_progress_percentage': 0,
+                'optional_assessment_progress': 0.0,
+                'optional_assessment_progress_percentage': 0,
+                'completed_mandatory_lessons': 0,
+                'total_mandatory_lessons': self.get_total_lessons(),
                 'completed': 0,
                 'total': self.get_total_lessons(),
+                'available_optional_assessments': [],
+                'optional_assessments_count': 0,
+                'optional_assessments_completed': 0,
+                'has_optional_assessments': False,
                 'is_unlocked': False,
                 'quiz_passed': False,
                 'mock_passed': False,
                 'is_completed': False,
                 'is_certificate_eligible': False,
+                'certificate_issued': False,
                 'exercises_completed': 0,
                 'exercises_total': 0,
+                'assignments_completed': 0,
+                'assignments_total': 0,
                 'missing_requirements': ['Log in to track progress and unlock certificates.'],
+                'optional_remaining_activities': [],
             }
 
         # Check existing certificate status
@@ -116,7 +131,7 @@ class Course(models.Model):
         from learning.models import LessonProgress, Exercise, ExerciseSubmission, Assignment, AssignmentSubmission
 
         # If student completed any lesson with curriculum_version > student_curriculum_version,
-        # they have engaged with newer curriculum content -> auto-advance enrollment to latest course version
+        # auto-advance enrollment to latest course version
         if enrollment and student_curriculum_version < self.curriculum_version:
             has_newer_progress = LessonProgress.objects.filter(
                 user=user,
@@ -138,16 +153,31 @@ class Course(models.Model):
         if total_lessons == 0:
             return {
                 'percentage': 0,
+                'overall_progress': 0,
+                'video_progress': 0.0,
+                'video_progress_percentage': 0,
+                'optional_assessment_progress': 0.0,
+                'optional_assessment_progress_percentage': 0,
+                'completed_mandatory_lessons': 0,
+                'total_mandatory_lessons': 0,
                 'completed': 0,
                 'total': 0,
+                'available_optional_assessments': [],
+                'optional_assessments_count': 0,
+                'optional_assessments_completed': 0,
+                'has_optional_assessments': False,
                 'is_unlocked': False,
                 'quiz_passed': False,
                 'mock_passed': False,
                 'is_completed': False,
                 'is_certificate_eligible': False,
+                'certificate_issued': False,
                 'exercises_completed': 0,
                 'exercises_total': 0,
+                'assignments_completed': 0,
+                'assignments_total': 0,
                 'missing_requirements': ['Course curriculum is being prepared.'],
+                'optional_remaining_activities': [],
             }
 
         completed_lessons = LessonProgress.objects.filter(
@@ -174,76 +204,74 @@ class Course(models.Model):
                 status__in=['submitted', 'reviewed', 'graded']
             ).values('assignment_id').distinct().count()
 
-        # Calculate authoritative course progress based on applicable curriculum
-        calculated_percentage = min(100, int(round((completed_lessons / total_lessons) * 100))) if total_lessons > 0 else 0
+        # --------------------------------------------------------------------
+        # 1. Video Progress (80% Weight - Mandatory)
+        # --------------------------------------------------------------------
+        video_ratio = (completed_lessons / total_lessons) if total_lessons > 0 else 0.0
+        video_component = video_ratio * 80.0
 
-        # Authoritative progress percentage: strictly based on applicable curriculum
-        # Safeguard: any issued certificate permanently retains 100%
-        percentage = calculated_percentage
-        if certificate_issued:
-            percentage = max(percentage, 100)
+        # --------------------------------------------------------------------
+        # 2. Optional Assessments (20% Weight - 100% Optional)
+        # --------------------------------------------------------------------
+        active_assessments = list(self.course_assessments.filter(is_active=True).order_by('assessment_type'))
+        total_optional_assessments = len(active_assessments)
+        completed_optional_assessments = 0
+        available_optional_assessments = []
 
-        is_unlocked = percentage >= unlock_threshold
-
-        # Check CourseAssessment pass states (course-specific requirements)
-        quiz_obj = self.course_assessments.filter(assessment_type='final_quiz', is_active=True).first()
-        mock_obj = self.course_assessments.filter(assessment_type='final_mock', is_active=True).first()
-
-        has_quiz = quiz_obj is not None and getattr(quiz_obj, 'is_mandatory', True)
-        has_mock = mock_obj is not None and getattr(mock_obj, 'is_mandatory', True)
-
-        quiz_passed = False
-        if has_quiz:
-            quiz_passed = CourseAssessmentAttempt.objects.filter(
-                user=user,
-                assessment=quiz_obj,
-                is_passed=True
+        for a in active_assessments:
+            is_passed = CourseAssessmentAttempt.objects.filter(
+                user=user, assessment=a, is_passed=True
             ).exists()
+            best_attempt = CourseAssessmentAttempt.objects.filter(
+                user=user, assessment=a
+            ).order_by('-percentage').first()
+            attempts_cnt = CourseAssessmentAttempt.objects.filter(user=user, assessment=a).count()
+            if is_passed:
+                completed_optional_assessments += 1
+            available_optional_assessments.append({
+                'id': a.id,
+                'title': a.title,
+                'assessment_type': a.assessment_type,
+                'duration_minutes': a.duration_minutes,
+                'passing_percentage': a.passing_percentage,
+                'is_passed': is_passed,
+                'best_score': best_attempt.percentage if best_attempt else None,
+                'attempts_count': attempts_cnt,
+            })
+
+        if total_optional_assessments > 0:
+            assessment_ratio = completed_optional_assessments / total_optional_assessments
         else:
-            quiz_passed = True  # Not required if not configured or marked optional
+            assessment_ratio = 0.0
+        assessment_component = assessment_ratio * 20.0
 
-        mock_passed = False
-        if has_mock:
-            mock_passed = CourseAssessmentAttempt.objects.filter(
-                user=user,
-                assessment=mock_obj,
-                is_passed=True
-            ).exists()
-        else:
-            mock_passed = True  # Not required if not configured or marked optional
+        # --------------------------------------------------------------------
+        # 3. Overall Course Progress
+        # --------------------------------------------------------------------
+        overall_progress = min(100, int(round(video_component + assessment_component)))
 
-        # If already certified, assessments are permanently credited
-        if certificate_issued:
-            quiz_passed = True
-            mock_passed = True
-            is_unlocked = True
+        # --------------------------------------------------------------------
+        # 4. Certificate Eligibility (Video-First Threshold)
+        # Completing all mandatory video lessons unlocks certificate eligibility.
+        # Optional assessments NEVER block certificate eligibility.
+        # Optional assessments NEVER compensate for incomplete video lessons.
+        # --------------------------------------------------------------------
+        all_mandatory_completed = (completed_lessons >= total_lessons and total_lessons > 0)
+        is_certificate_eligible = certificate_issued or all_mandatory_completed
 
-        # Authoritative certificate eligibility: >= 85% progress AND passing mandatory assessments
-        has_required_percentage = percentage >= cert_threshold
-        is_certificate_eligible = certificate_issued or (has_required_percentage and quiz_passed and mock_passed)
-
-        # Explicit list of missing requirements (mandatory only)
+        # Missing requirements list (Only mandatory video lessons)
         missing_requirements = []
-        if not certificate_issued:
-            if not has_required_percentage:
-                missing_requirements.append(f"Reach {cert_threshold}% course progress (Currently: {percentage}%)")
-            if has_quiz and not quiz_passed:
-                title = quiz_obj.title if quiz_obj else "Final Course Quiz"
-                passing_score = quiz_obj.passing_percentage if quiz_obj else passing_pct
-                if is_unlocked:
-                    missing_requirements.append(f"Pass {title} with at least {passing_score}%")
-                else:
-                    missing_requirements.append(f"Reach {unlock_threshold}% progress to unlock {title}")
-            if has_mock and not mock_passed:
-                title = mock_obj.title if mock_obj else "Final Mock Examination"
-                passing_score = mock_obj.passing_percentage if mock_obj else passing_pct
-                if is_unlocked:
-                    missing_requirements.append(f"Pass {title} with at least {passing_score}%")
-                else:
-                    missing_requirements.append(f"Reach {unlock_threshold}% progress to unlock {title}")
+        if not is_certificate_eligible:
+            remaining_lessons = max(0, total_lessons - completed_lessons)
+            missing_requirements.append(
+                f"Complete {remaining_lessons} more mandatory video lesson{'s' if remaining_lessons != 1 else ''} to reach 80% video completion and unlock your certificate."
+            )
 
-        # Optional activities remaining (for feedback, but never block certificate)
+        # Optional activities remaining
         optional_remaining_activities = []
+        if total_optional_assessments > completed_optional_assessments:
+            rem_tests = total_optional_assessments - completed_optional_assessments
+            optional_remaining_activities.append(f"{rem_tests} optional test{'s' if rem_tests != 1 else ''} available for extra credit (up to +20%)")
         if total_exercises > completed_exercises:
             optional_remaining_activities.append(f"{total_exercises - completed_exercises} optional coding exercise(s) available for practice")
         if total_assignments > completed_assignments:
@@ -251,15 +279,12 @@ class Course(models.Model):
 
         # Auto-sync CourseCompletion record
         completion, _ = CourseCompletion.objects.get_or_create(user=user, course=self)
-        if (completion.learning_progress != percentage or
-            completion.is_assessment_unlocked != is_unlocked or
-            completion.quiz_passed != bool(quiz_passed) or
-            completion.mock_passed != bool(mock_passed) or
+        has_tests = total_optional_assessments > 0
+        if (completion.learning_progress != overall_progress or
+            completion.is_assessment_unlocked != has_tests or
             completion.is_completed != is_certificate_eligible):
-            completion.learning_progress = percentage
-            completion.is_assessment_unlocked = is_unlocked
-            completion.quiz_passed = bool(quiz_passed)
-            completion.mock_passed = bool(mock_passed)
+            completion.learning_progress = overall_progress
+            completion.is_assessment_unlocked = has_tests
             if is_certificate_eligible and not completion.is_completed:
                 from django.utils import timezone
                 completion.is_completed = True
@@ -268,20 +293,33 @@ class Course(models.Model):
                 completion.is_completed = False
             completion.save()
 
+        quiz_obj = next((a for a in available_optional_assessments if a['assessment_type'] == 'final_quiz'), None)
+        mock_obj = next((a for a in available_optional_assessments if a['assessment_type'] == 'final_mock'), None)
+
         return {
-            'percentage': percentage,
-            'required_percentage': cert_threshold,
+            'percentage': overall_progress,
+            'overall_progress': overall_progress,
+            'video_progress': video_ratio,
+            'video_progress_percentage': int(round(video_ratio * 100)),
+            'optional_assessment_progress': assessment_ratio,
+            'optional_assessment_progress_percentage': int(round(assessment_ratio * 100)),
+            'completed_mandatory_lessons': completed_lessons,
+            'total_mandatory_lessons': total_lessons,
             'completed': completed_lessons,
             'total': total_lessons,
             'exercises_completed': completed_exercises,
             'exercises_total': total_exercises,
             'assignments_completed': completed_assignments,
             'assignments_total': total_assignments,
-            'is_unlocked': is_unlocked,
-            'quiz_passed': bool(quiz_passed and has_quiz),
-            'mock_passed': bool(mock_passed and has_mock),
-            'has_quiz': has_quiz,
-            'has_mock': has_mock,
+            'is_unlocked': has_tests,
+            'has_optional_assessments': has_tests,
+            'available_optional_assessments': available_optional_assessments,
+            'optional_assessments_count': total_optional_assessments,
+            'optional_assessments_completed': completed_optional_assessments,
+            'quiz_passed': quiz_obj['is_passed'] if quiz_obj else False,
+            'mock_passed': mock_obj['is_passed'] if mock_obj else False,
+            'has_quiz': quiz_obj is not None,
+            'has_mock': mock_obj is not None,
             'is_completed': is_certificate_eligible,
             'is_certificate_eligible': is_certificate_eligible,
             'certificate_issued': certificate_issued,

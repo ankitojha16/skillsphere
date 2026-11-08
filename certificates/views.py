@@ -85,7 +85,7 @@ def certificate_center_view(request):
             course=course_to_claim,
             title=f"Course Completion: {course_to_claim.title}",
             recipient_name=custom_name,
-            criteria_met=f"Completed ≥85% of curriculum, Final Course Quiz, and Final Mock Examination for {course_to_claim.title}."
+            criteria_met=f"Successfully completed all mandatory video lessons and curriculum for {course_to_claim.title}."
         )
 
         Notification.objects.create(
@@ -183,7 +183,7 @@ def claim_certificate_view(request, course_id):
         course=course,
         title=f"Course Completion: {course.title}",
         recipient_name=custom_name,
-        criteria_met=f"Completed ≥85% of curriculum, Final Course Quiz, and Final Mock Examination for {course.title}."
+        criteria_met=f"Successfully completed all mandatory video lessons and curriculum for {course.title}."
     )
 
     Notification.objects.create(

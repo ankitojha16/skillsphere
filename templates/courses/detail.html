@@ -117,10 +117,12 @@
                     </div>
                     <div class="d-flex justify-content-between text-muted small">
                         <span>{{ progress_info.completed }} of {{ progress_info.total }} Lessons</span>
-                        {% if progress_info.is_unlocked %}
-                            <span class="text-success fw-bold"><i data-lucide="unlock" style="width: 12px; height: 12px;"></i> Exams Unlocked</span>
+                        {% if progress_info.is_certificate_eligible %}
+                            <span class="text-success fw-bold"><i data-lucide="award" style="width: 12px; height: 12px;"></i> Certificate Ready</span>
+                        {% elif progress_info.has_optional_assessments %}
+                            <span class="text-info"><i data-lucide="help-circle" style="width: 12px; height: 12px;"></i> Optional Tests ({{ progress_info.optional_assessments_completed }}/{{ progress_info.optional_assessments_count }})</span>
                         {% else %}
-                            <span class="text-muted"><i data-lucide="lock" style="width: 12px; height: 12px;"></i> 80% to Unlock Exams</span>
+                            <span class="text-muted"><i data-lucide="video" style="width: 12px; height: 12px;"></i> Video Curriculum</span>
                         {% endif %}
                     </div>
                 </div>
@@ -238,86 +240,69 @@
                 {% endif %}
             </div>
 
-            <!-- Course Final Assessments Section -->
+            <!-- Course Optional Assessments Section -->
             <div class="custom-card p-4">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h4 class="fw-bold text-white mb-0 d-flex align-items-center gap-2">
-                        <i data-lucide="award" class="text-warning" style="width: 22px; height: 22px;"></i>
-                        <span>Course Certification Assessments</span>
+                        <i data-lucide="clipboard-check" class="text-primary-accent" style="width: 22px; height: 22px;"></i>
+                        <span>Optional Tests & Knowledge Checks</span>
                     </h4>
-                    {% if progress_info.is_unlocked %}
-                        <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1 rounded-pill small">
-                            <i data-lucide="unlock" style="width: 12px; height: 12px;"></i> Unlocked ($\ge 80\%$)
+                    {% if assessments %}
+                        <span class="badge bg-info-subtle text-info border border-info-subtle px-3 py-1 rounded-pill small">
+                            <i data-lucide="info" style="width: 12px; height: 12px;"></i> Optional (+20% Total Progress)
                         </span>
                     {% else %}
-                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-1 rounded-pill small">
-                            <i data-lucide="lock" style="width: 12px; height: 12px;"></i> Unlocks at 80% Progress
+                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-3 py-1 rounded-pill small">
+                            Curriculum Only
                         </span>
                     {% endif %}
                 </div>
-                <p class="text-secondary small mb-4">Passing both assessments with $\ge 70\%$ unlocks your SkillSphere Course Completion Certificate (requires 80% progress to unlock and $\ge 85\%$ progress for issuance).</p>
+                <p class="text-secondary small mb-4">
+                    {% if assessments %}
+                        Tests and quizzes are 100% optional! You can take them anytime to test your mastery and boost your overall progress up to 100%. Passing exams is <strong>never required</strong> to earn your certificate.
+                    {% else %}
+                        This course is 100% video and curriculum based. Complete all lessons to achieve certificate eligibility.
+                    {% endif %}
+                </p>
 
-                <div class="row g-3">
-                    <!-- Final Quiz Card -->
-                    <div class="col-md-6">
-                        <div class="p-3 rounded-3 h-100 d-flex flex-column justify-content-between" style="background-color: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color);">
-                            <div>
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <span class="badge bg-purple-subtle text-primary-accent small rounded-pill">Final Course Quiz</span>
-                                    <span class="text-muted small">Pass: 70%</span>
-                                </div>
-                                <h6 class="text-white fw-bold mb-1">Comprehensive Course Quiz</h6>
-                                <p class="text-secondary small mb-3">Evaluate conceptual mastery of core architectural topics and terminology.</p>
-                            </div>
+                {% if assessments %}
+                    <div class="row g-3">
+                        {% for assessment in assessments %}
+                            <div class="col-md-6">
+                                <div class="p-3 rounded-3 h-100 d-flex flex-column justify-content-between" style="background-color: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color);">
+                                    <div>
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <span class="badge {% if assessment.assessment_type == 'final_quiz' %}bg-purple-subtle text-primary-accent{% else %}bg-warning-subtle text-warning{% endif %} small rounded-pill">
+                                                {{ assessment.get_assessment_type_display }}
+                                            </span>
+                                            <span class="text-muted small">Passing: {{ assessment.passing_percentage }}%</span>
+                                        </div>
+                                        <h6 class="text-white fw-bold mb-1">{{ assessment.title }}</h6>
+                                        <p class="text-secondary small mb-3">{{ assessment.description|default:"Reinforce your knowledge with practice questions." }}</p>
+                                    </div>
 
-                            <div>
-                                {% if is_enrolled %}
-                                    <a href="{% url 'courses:assessment_intro' slug=course.slug assessment_type='final_quiz' %}" class="btn btn-sm {% if progress_info.quiz_passed %}btn-success-custom{% elif progress_info.is_unlocked %}btn-primary-custom{% else %}btn-secondary-custom disabled{% endif %} w-100 py-2">
-                                        {% if progress_info.quiz_passed %}
-                                            <i data-lucide="check" style="width: 14px; height: 14px;"></i> Passed • Retake
-                                        {% elif progress_info.is_unlocked %}
-                                            <i data-lucide="play" style="width: 14px; height: 14px;"></i> Take Final Quiz
+                                    <div>
+                                        {% if is_enrolled %}
+                                            <a href="{% url 'courses:assessment_intro' slug=course.slug assessment_type=assessment.assessment_type %}" class="btn btn-sm btn-primary-custom w-100 py-2">
+                                                <i data-lucide="play" style="width: 14px; height: 14px;"></i>
+                                                {% if assessment.assessment_type == 'final_quiz' and progress_info.quiz_passed %}Passed • Retake
+                                                {% elif assessment.assessment_type == 'final_mock' and progress_info.mock_passed %}Passed • Retake
+                                                {% else %}Start Test{% endif %}
+                                            </a>
                                         {% else %}
-                                            <i data-lucide="lock" style="width: 14px; height: 14px;"></i> Locked (< 80%)
+                                            <button class="btn btn-sm btn-secondary-custom disabled w-100 py-2">Enroll to Access</button>
                                         {% endif %}
-                                    </a>
-                                {% else %}
-                                    <button class="btn btn-sm btn-secondary-custom disabled w-100 py-2">Enroll to Access</button>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Final Mock Test Card -->
-                    <div class="col-md-6">
-                        <div class="p-3 rounded-3 h-100 d-flex flex-column justify-content-between" style="background-color: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color);">
-                            <div>
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <span class="badge bg-warning-subtle text-warning small rounded-pill">Final Mock Test</span>
-                                    <span class="text-muted small">Pass: 70%</span>
+                                    </div>
                                 </div>
-                                <h6 class="text-white fw-bold mb-1">Timed Industry Mock Exam</h6>
-                                <p class="text-secondary small mb-3">Realistic industry interview and coding exam simulation under timed constraints.</p>
                             </div>
-
-                            <div>
-                                {% if is_enrolled %}
-                                    <a href="{% url 'courses:assessment_intro' slug=course.slug assessment_type='final_mock' %}" class="btn btn-sm {% if progress_info.mock_passed %}btn-success-custom{% elif progress_info.is_unlocked %}btn-primary-custom{% else %}btn-secondary-custom disabled{% endif %} w-100 py-2">
-                                        {% if progress_info.mock_passed %}
-                                            <i data-lucide="check" style="width: 14px; height: 14px;"></i> Passed • Retake
-                                        {% elif progress_info.is_unlocked %}
-                                            <i data-lucide="play" style="width: 14px; height: 14px;"></i> Take Mock Exam
-                                        {% else %}
-                                            <i data-lucide="lock" style="width: 14px; height: 14px;"></i> Locked (< 80%)
-                                        {% endif %}
-                                    </a>
-                                {% else %}
-                                    <button class="btn btn-sm btn-secondary-custom disabled w-100 py-2">Enroll to Access</button>
-                                {% endif %}
-                            </div>
-                        </div>
+                        {% endfor %}
                     </div>
-                </div>
+                {% else %}
+                    <div class="text-center py-4 text-secondary">
+                        <i data-lucide="check-circle" class="text-muted mx-auto mb-2" style="width: 32px; height: 32px;"></i>
+                        <p class="small mb-0">No optional tests are currently configured for this course. Complete all lessons to claim your certificate!</p>
+                    </div>
+                {% endif %}
             </div>
         </div>
 

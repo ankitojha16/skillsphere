@@ -26,15 +26,9 @@
                 {% endif %}
             </div>
             <div>
-                {% if is_unlocked %}
-                    <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1 rounded-pill small d-inline-flex align-items-center gap-1">
-                        <i data-lucide="unlock" style="width: 14px; height: 14px;"></i> Assessment Unlocked ({{ progress.percentage }}%)
-                    </span>
-                {% else %}
-                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-1 rounded-pill small d-inline-flex align-items-center gap-1">
-                        <i data-lucide="lock" style="width: 14px; height: 14px;"></i> Locked ({{ progress.percentage }}% / 80% Required)
-                    </span>
-                {% endif %}
+                <span class="badge bg-info-subtle text-info border border-info-subtle px-3 py-1 rounded-pill small d-inline-flex align-items-center gap-1">
+                    <i data-lucide="help-circle" style="width: 14px; height: 14px;"></i> Optional Assessment (+20% Progress)
+                </span>
             </div>
         </div>
 
@@ -107,7 +101,7 @@
                 <ul class="text-secondary small mb-0 d-flex flex-column gap-2" style="padding-left: 1.25rem;">
                     <li>This examination contains <strong>{{ question_count }} multiple-choice questions</strong> designed to test your conceptual and practical mastery.</li>
                     <li>You have <strong>{{ assessment.duration_minutes }} minutes</strong>. Once started, the countdown timer cannot be paused.</li>
-                    <li>You must score at least <strong>{{ assessment.passing_percentage }}%</strong> to pass and qualify for your SkillSphere Course Completion Certificate (minimum 85% mandatory lesson progress required for issuance).</li>
+                    <li>Passing this assessment adds <strong>extra credit (up to +20%)</strong> to your overall progress. It is <strong>100% optional</strong> and never blocks your SkillSphere Course Certificate, which unlocks when all mandatory video lessons are completed.</li>
                     <li>If you do not pass on your first attempt, you may retake the test after reviewing the study notes and lesson materials.</li>
                     <li>Each attempt records your topic-wise mastery in your academic record.</li>
                 </ul>

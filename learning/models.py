@@ -42,30 +42,35 @@ class Lesson(models.Model):
         return self.user_progress.filter(user=user, is_completed=True).exists()
 
     @property
+    def youtube_id(self):
+        """Extracts the 11-character YouTube video ID if present in video_url."""
+        if not self.video_url:
+            return None
+        import re
+        url = self.video_url.strip()
+        match = re.search(r'(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})', url)
+        return match.group(1) if match else None
+
+    @property
     def embed_video_url(self):
-        """Converts standard YouTube watch links, shortened youtu.be, or embed links into a safe iframe embed URL."""
+        """
+        Converts standard YouTube watch links, shortened youtu.be, or embed links into a safe,
+        privacy-enhanced YouTube embed URL (youtube-nocookie.com) that avoids Error 153.
+        """
         if not self.video_url:
             return ""
-        url = self.video_url.strip()
-        if "youtube.com/embed/" in url:
-            if "enablejsapi=1" not in url:
-                delim = "&" if "?" in url else "?"
-                return f"{url}{delim}enablejsapi=1&rel=0"
-            return url
-        if "youtube.com/watch" in url:
-            import urllib.parse
-            parsed = urllib.parse.urlparse(url)
-            params = urllib.parse.parse_qs(parsed.query)
-            vid = params.get('v', [None])[0]
-            if vid:
-                return f"https://www.youtube.com/embed/{vid}?enablejsapi=1&rel=0"
-        if "youtu.be/" in url:
-            import urllib.parse
-            parsed = urllib.parse.urlparse(url)
-            vid = parsed.path.strip('/')
-            if vid:
-                return f"https://www.youtube.com/embed/{vid}?enablejsapi=1&rel=0"
-        return url
+        vid = self.youtube_id
+        if vid:
+            return f"https://www.youtube-nocookie.com/embed/{vid}?rel=0&modestbranding=1&playsinline=1"
+        return self.video_url.strip()
+
+    @property
+    def youtube_watch_url(self):
+        """Provides a direct external watch URL for YouTube videos."""
+        vid = self.youtube_id
+        if vid:
+            return f"https://www.youtube.com/watch?v={vid}"
+        return self.video_url or ""
 
 
 class LessonProgress(models.Model):

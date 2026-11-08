@@ -46,10 +46,10 @@
                     {% endif %}
                     <div class="pt-1 mt-1 border-top" style="border-color: rgba(255,255,255,0.05) !important;">
                         <div id="sidebarExamBadge">
-                            {% if progress_info.is_unlocked %}
-                                <span class="badge bg-success-subtle text-success border border-success-subtle w-100 py-1" style="font-size: 0.7rem;"><i data-lucide="unlock" style="width: 11px; height: 11px;"></i> Exams Unlocked</span>
+                            {% if progress_info.has_optional_assessments %}
+                                <span class="badge bg-info-subtle text-info border border-info-subtle w-100 py-1" style="font-size: 0.7rem;"><i data-lucide="help-circle" style="width: 11px; height: 11px;"></i> Optional Tests ({{ progress_info.optional_assessments_completed }}/{{ progress_info.optional_assessments_count }})</span>
                             {% else %}
-                                <span class="badge bg-warning-subtle text-warning border border-warning-subtle w-100 py-1" style="font-size: 0.7rem;"><i data-lucide="lock" style="width: 11px; height: 11px;"></i> 80% to Unlock Exams</span>
+                                <span class="badge bg-secondary-subtle text-muted border border-secondary-subtle w-100 py-1" style="font-size: 0.7rem;"><i data-lucide="video" style="width: 11px; height: 11px;"></i> Video Curriculum</span>
                             {% endif %}
                         </div>
                     </div>
@@ -160,6 +160,13 @@
                         <span>AI Assistant</span>
                     </button>
                 </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link py-2 px-3 fw-bold small" id="tests-tab" data-bs-toggle="pill" data-bs-target="#tab-tests" type="button" role="tab">
+                        <i data-lucide="clipboard-check" style="width: 15px; height: 15px; margin-right: 4px;"></i>
+                        <span>Optional Tests</span>
+                        <span class="badge bg-secondary-subtle text-muted ms-1" style="font-size: 0.65rem;">Optional</span>
+                    </button>
+                </li>
             </ul>
 
             <div class="tab-content" id="workspaceTabContent">
@@ -190,18 +197,19 @@
                                         <span class="text-white small fw-bold">{{ lesson.title }}</span>
                                     </div>
                                     <div class="d-flex align-items-center gap-2">
-                                        <a href="{{ lesson.video_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-danger btn-sm py-1 px-2.5 d-inline-flex align-items-center gap-1.5" title="Watch directly on YouTube in new tab">
+                                        <a href="{{ lesson.youtube_watch_url|default:lesson.video_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-danger btn-sm py-1 px-2.5 d-inline-flex align-items-center gap-1.5" title="Watch directly on YouTube in new tab">
                                             <i data-lucide="external-link" style="width: 13px; height: 13px;"></i>
                                             <span>Open on YouTube</span>
                                         </a>
                                     </div>
                                 </div>
 
-                                <div class="ratio ratio-16x9 rounded-3 overflow-hidden border mb-3 shadow-lg" style="border-color: var(--border-color) !important; background: #000;">
+                                <div class="ratio ratio-16x9 rounded-3 overflow-hidden border mb-2 shadow-lg" style="border-color: var(--border-color) !important; background: #000;">
                                     {% if "youtube.com" in lesson.video_url or "youtu.be" in lesson.video_url %}
                                         <iframe id="videoIframe"
                                                 src="{{ lesson.embed_video_url }}"
                                                 title="{{ lesson.title }}"
+                                                referrerpolicy="strict-origin-when-cross-origin"
                                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                                                 allowfullscreen
                                                 loading="lazy">
@@ -212,6 +220,13 @@
                                             Your browser does not support HTML5 video streaming.
                                         </video>
                                     {% endif %}
+                                </div>
+
+                                <!-- Video Player Fallback / YouTube Error 153 Helper -->
+                                <div id="videoFallback" class="p-2.5 rounded-2 text-center border mb-3 small text-secondary" style="background: rgba(255,255,255,0.02); border-color: var(--border-color);">
+                                    <span>💡 Having trouble with playback or seeing YouTube Error 153? </span>
+                                    <a href="{{ lesson.youtube_watch_url|default:lesson.video_url }}" target="_blank" rel="noopener noreferrer" class="text-danger fw-bold text-decoration-none">Watch directly on YouTube <i data-lucide="external-link" style="width: 12px; height: 12px; display: inline;"></i></a>
+                                    <span class="text-muted"> • If unavailable, you can use the study notes while we update the lesson.</span>
                                 </div>
 
                                 <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 p-3 rounded-2" style="background-color: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color);">
@@ -539,6 +554,84 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- TAB 5: Optional Tests -->
+                <div class="tab-pane fade" id="tab-tests" role="tabpanel">
+                    <div class="custom-card p-4 p-md-5 mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom" style="border-color: var(--border-color) !important;">
+                            <div>
+                                <h4 class="fw-bold text-white mb-0 d-flex align-items-center gap-2">
+                                    <i data-lucide="clipboard-check" class="text-primary-accent" style="width: 20px; height: 20px;"></i>
+                                    <span>Optional Tests & Quizzes</span>
+                                    <span class="badge bg-secondary-subtle text-muted" style="font-size: 0.7rem;">Optional +20%</span>
+                                </h4>
+                                <p class="text-secondary small mb-0">Evaluate your understanding, earn extra course progress, and reinforce concepts. Never required for certification.</p>
+                            </div>
+                            {% if progress_info.has_optional_assessments %}
+                                <span class="badge bg-dark border text-info font-monospace">{{ progress_info.optional_assessments_completed }}/{{ progress_info.optional_assessments_count }} Passed</span>
+                            {% endif %}
+                        </div>
+
+                        <!-- 100% Optional Disclaimer Banner -->
+                        <div class="p-3 rounded-3 mb-4 d-flex align-items-center gap-3" style="background: rgba(14, 165, 233, 0.08); border: 1px solid rgba(14, 165, 233, 0.25);">
+                            <div class="p-2 rounded-circle bg-info text-white flex-shrink-0">
+                                <i data-lucide="info" style="width: 18px; height: 18px;"></i>
+                            </div>
+                            <div class="text-light small" style="font-size: 0.84rem;">
+                                <strong>Beginner-Friendly Policy:</strong> Tests and quizzes are 100% optional! They help you test your mastery and can boost your overall course progress up to 100%, but <strong>completing or passing them is never required to earn your SkillSphere certificate</strong>. Your certificate is unlocked purely by completing all mandatory curriculum lessons.
+                            </div>
+                        </div>
+
+                        {% if optional_assessments %}
+                            <div class="row g-3">
+                                {% for item in optional_assessments %}
+                                    <div class="col-md-6">
+                                        <div class="p-4 rounded-3 border h-100 d-flex flex-column justify-content-between" style="border-color: var(--border-color) !important; background-color: rgba(255, 255, 255, 0.02);">
+                                            <div>
+                                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                                    <span class="badge {% if item.assessment_type == 'final_quiz' %}bg-primary-subtle text-primary border border-primary-subtle{% else %}bg-purple-subtle text-purple border border-purple-subtle{% endif %} small">
+                                                        {% if item.assessment_type == 'final_quiz' %}Final Course Quiz{% else %}Final Mock Test{% endif %}
+                                                    </span>
+                                                    {% if item.is_passed %}
+                                                        <span class="badge bg-success-subtle text-success border border-success-subtle small d-inline-flex align-items-center gap-1">
+                                                            <i data-lucide="check-circle" style="width: 12px; height: 12px;"></i> Passed ({{ item.best_score }}%)
+                                                        </span>
+                                                    {% elif item.best_score %}
+                                                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle small">
+                                                            Best: {{ item.best_score }}% (Pass: {{ item.passing_percentage }}%)
+                                                        </span>
+                                                    {% else %}
+                                                        <span class="badge bg-secondary-subtle text-muted border border-secondary-subtle small">Not Attempted</span>
+                                                    {% endif %}
+                                                </div>
+                                                <h5 class="fw-bold text-white mb-2">{{ item.title }}</h5>
+                                                <p class="text-secondary small mb-3">Optional knowledge check. Pass to boost your course progress by up to +20%.</p>
+
+                                                <div class="d-flex flex-wrap gap-3 text-muted small mb-3" style="font-size: 0.78rem;">
+                                                    <span><i data-lucide="clock" style="width: 13px; height: 13px; margin-right: 4px;"></i>{{ item.duration_minutes }} mins</span>
+                                                    <span><i data-lucide="target" style="width: 13px; height: 13px; margin-right: 4px;"></i>Pass: {{ item.passing_percentage }}%</span>
+                                                    <span><i data-lucide="rotate-ccw" style="width: 13px; height: 13px; margin-right: 4px;"></i>Attempts: {{ item.attempts_count }}</span>
+                                                </div>
+                                            </div>
+
+                                            <div class="d-flex align-items-center gap-2 pt-2 border-top" style="border-color: rgba(255,255,255,0.05) !important;">
+                                                <a href="{% url 'courses:assessment_intro' slug=course.slug assessment_type=item.assessment_type %}" class="btn btn-primary-custom btn-sm py-1.5 px-3 flex-grow-1 text-center">
+                                                    {% if item.is_passed %}Retake Test{% elif item.attempts_count > 0 %}Try Again{% else %}Start Test{% endif %}
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="text-center py-5 text-secondary">
+                                <i data-lucide="check-circle" class="text-muted mx-auto mb-3" style="width: 42px; height: 42px;"></i>
+                                <h6 class="text-white fw-bold mb-1">No Optional Tests Configured</h6>
+                                <p class="small mb-0">No optional assessments are currently required or available for this course. Simply complete all video lessons to claim your certificate!</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
 
             <!-- Bottom Navigation Bar -->
@@ -594,57 +687,51 @@
                     {% endif %}
                 </div>
 
-                <!-- 80% Assessment Unlock Meter -->
-                <div class="p-3 rounded-3 mb-3 border {% if progress_info.is_unlocked %}border-success-subtle bg-success-subtle text-success{% else %}border-secondary-subtle bg-dark text-secondary{% endif %}" id="rightExamMilestoneCard">
+                <!-- Certificate Milestone Card (80% Video Completion) -->
+                <div class="p-3 rounded-3 mb-3 border {% if progress_info.is_certificate_eligible %}border-success-subtle bg-success-subtle text-success{% else %}border-primary-subtle bg-dark text-light{% endif %}" id="rightCertMilestoneCard">
                     <div class="d-flex align-items-center gap-2 mb-1">
-                        <i data-lucide="{% if progress_info.is_unlocked %}unlock{% else %}lock{% endif %}" id="rightExamMilestoneIcon" style="width: 16px; height: 16px;"></i>
-                        <span class="fw-bold small" id="rightExamMilestoneTitle">{% if progress_info.is_unlocked %}Assessment Milestone Unlocked{% else %}80% Assessment Milestone{% endif %}</span>
+                        <i data-lucide="{% if progress_info.is_certificate_eligible %}award{% else %}video{% endif %}" id="rightCertMilestoneIcon" style="width: 16px; height: 16px;"></i>
+                        <span class="fw-bold small" id="rightCertMilestoneTitle">{% if progress_info.is_certificate_eligible %}Certificate Milestone Achieved! 🎉{% else %}Certificate Milestone (80% Video){% endif %}</span>
                     </div>
-                    <p class="mb-0" id="rightExamMilestoneDesc" style="font-size: 0.78rem;">
-                        {% if progress_info.is_unlocked %}
-                            🎉 Unlocked! Final Quiz and Final Mock Test are active.
+                    <p class="mb-0" id="rightCertMilestoneDesc" style="font-size: 0.78rem;">
+                        {% if progress_info.is_certificate_eligible %}
+                            You completed all {{ progress_info.total }} mandatory lessons! Your certificate is ready to claim.
                         {% else %}
-                            Reach 80% course progress to unlock final examinations (Currently: {{ progress_info.percentage }}%).
+                            Complete all mandatory video lessons to reach 80% and earn your certificate (Currently: {{ progress_info.completed }} / {{ progress_info.total }} completed).
                         {% endif %}
                     </p>
                 </div>
 
-                <!-- Assessment Shortcuts -->
+                <!-- Assessment Shortcuts / Status -->
                 <div class="d-flex flex-column gap-2 mb-3" id="assessmentShortcutsContainer">
-                    {% if final_quiz %}
-                        {% if progress_info.is_unlocked %}
+                    {% if progress_info.has_optional_assessments %}
+                        {% if final_quiz %}
                             <a href="{% url 'courses:assessment_intro' slug=course.slug assessment_type='final_quiz' %}" class="btn btn-secondary-custom btn-sm text-start d-flex justify-content-between align-items-center py-2 px-3">
-                                <span><i data-lucide="file-question" style="width: 14px; height: 14px; margin-right: 6px;"></i>Final Course Quiz</span>
+                                <span><i data-lucide="file-question" style="width: 14px; height: 14px; margin-right: 6px;"></i>Final Quiz (Optional)</span>
                                 {% if progress_info.quiz_passed %}
                                     <span class="badge bg-success text-white small">Passed</span>
                                 {% else %}
                                     <span class="badge bg-primary text-white small">Take Quiz</span>
                                 {% endif %}
                             </a>
-                        {% else %}
-                            <div class="p-2 rounded bg-dark border text-muted small d-flex justify-content-between align-items-center opacity-75">
-                                <span><i data-lucide="lock" style="width: 13px; height: 13px; margin-right: 4px;"></i>Final Quiz</span>
-                                <span class="badge bg-secondary">Locked</span>
-                            </div>
                         {% endif %}
-                    {% endif %}
 
-                    {% if final_mock %}
-                        {% if progress_info.is_unlocked %}
+                        {% if final_mock %}
                             <a href="{% url 'courses:assessment_intro' slug=course.slug assessment_type='final_mock' %}" class="btn btn-secondary-custom btn-sm text-start d-flex justify-content-between align-items-center py-2 px-3">
-                                <span><i data-lucide="layers" style="width: 14px; height: 14px; margin-right: 6px;"></i>Final Mock Test</span>
+                                <span><i data-lucide="layers" style="width: 14px; height: 14px; margin-right: 6px;"></i>Final Mock (Optional)</span>
                                 {% if progress_info.mock_passed %}
                                     <span class="badge bg-success text-white small">Passed</span>
                                 {% else %}
                                     <span class="badge bg-primary text-white small">Take Test</span>
                                 {% endif %}
                             </a>
-                        {% else %}
-                            <div class="p-2 rounded bg-dark border text-muted small d-flex justify-content-between align-items-center opacity-75">
-                                <span><i data-lucide="lock" style="width: 13px; height: 13px; margin-right: 4px;"></i>Final Mock</span>
-                                <span class="badge bg-secondary">Locked</span>
-                            </div>
                         {% endif %}
+                    {% else %}
+                        <div class="p-2.5 rounded-3 border text-center small text-secondary" style="background-color: rgba(255,255,255,0.02); border-color: var(--border-color) !important;">
+                            <i data-lucide="video" class="text-primary-accent mx-auto mb-1" style="width: 18px; height: 18px;"></i>
+                            <div class="fw-semibold text-light" style="font-size: 0.78rem;">Video-Only Curriculum</div>
+                            <div class="text-muted" style="font-size: 0.72rem;">No optional tests required. Complete all lessons to claim certificate.</div>
+                        </div>
                     {% endif %}
                 </div>
 
@@ -672,7 +759,7 @@
                         <i data-lucide="shield-alert" class="text-secondary mx-auto mb-2" style="width: 24px; height: 24px;"></i>
                         <div class="fw-bold text-light small mb-1">Certificate Locked</div>
                         <div class="text-secondary small text-start mt-2" style="font-size: 0.75rem;">
-                            <div class="mb-1 text-muted">Progress: <span class="text-white fw-bold">{{ progress_info.percentage }}%</span> (Required: {{ progress_info.required_percentage }}%)</div>
+                            <div class="mb-1 text-muted">Progress: <span class="text-white fw-bold">{{ progress_info.percentage }}%</span> (80% Video Required)</div>
                             {% if progress_info.missing_requirements %}
                                 <span class="fw-semibold text-muted d-block mb-1">Requirements to unlock:</span>
                                 <ul class="mb-0 ps-3">
@@ -681,7 +768,10 @@
                                     {% endfor %}
                                 </ul>
                             {% else %}
-                                <p class="text-secondary small mb-0" style="font-size: 0.72rem;">Requires 85% course progress and passing final examinations.</p>
+                                <p class="text-secondary small mb-0" style="font-size: 0.72rem;">Complete all {{ progress_info.total }} mandatory video lessons to claim certificate.</p>
+                            {% endif %}
+                            {% if progress_info.optional_remaining_activities %}
+                                <div class="mt-2 text-muted" style="font-size: 0.7rem; font-style: italic;">Note: Optional practice activities do not block certificate issuance.</div>
                             {% endif %}
                         </div>
                         <a href="#courseCurriculumAccordion" class="btn btn-outline-secondary btn-sm py-1 px-3 w-100 mt-2.5">Continue Learning</a>
@@ -732,58 +822,37 @@ document.addEventListener('DOMContentLoaded', () => {
         // Update exam unlocked indicator in sidebar
         const examBadge = document.getElementById('sidebarExamBadge');
         if (examBadge) {
-            if (data.is_unlocked) {
-                examBadge.innerHTML = '<span class="badge bg-success-subtle text-success border border-success-subtle w-100 py-1" style="font-size: 0.7rem;"><i data-lucide="unlock" style="width: 11px; height: 11px;"></i> Exams Unlocked</span>';
+            if (data.has_optional_assessments) {
+                const comp = data.optional_assessments_completed !== undefined ? data.optional_assessments_completed : 0;
+                const tot = data.optional_assessments_count !== undefined ? data.optional_assessments_count : 0;
+                examBadge.innerHTML = `<span class="badge bg-info-subtle text-info border border-info-subtle w-100 py-1" style="font-size: 0.7rem;"><i data-lucide="help-circle" style="width: 11px; height: 11px;"></i> Optional Tests (${comp}/${tot})</span>`;
             } else {
-                examBadge.innerHTML = '<span class="badge bg-warning-subtle text-warning border border-warning-subtle w-100 py-1" style="font-size: 0.7rem;"><i data-lucide="lock" style="width: 11px; height: 11px;"></i> 80% to Unlock Exams</span>';
+                examBadge.innerHTML = '<span class="badge bg-secondary-subtle text-muted border border-secondary-subtle w-100 py-1" style="font-size: 0.7rem;"><i data-lucide="video" style="width: 11px; height: 11px;"></i> Video Curriculum</span>';
             }
         }
 
-        // Update exam milestone card on the right
-        const examMilestoneCard = document.getElementById('rightExamMilestoneCard');
-        const examMilestoneIcon = document.getElementById('rightExamMilestoneIcon');
-        const examMilestoneTitle = document.getElementById('rightExamMilestoneTitle');
-        const examMilestoneDesc = document.getElementById('rightExamMilestoneDesc');
+        // Update Certificate Milestone card on the right
+        const certMilestoneCard = document.getElementById('rightCertMilestoneCard');
+        const certMilestoneIcon = document.getElementById('rightCertMilestoneIcon');
+        const certMilestoneTitle = document.getElementById('rightCertMilestoneTitle');
+        const certMilestoneDesc = document.getElementById('rightCertMilestoneDesc');
 
-        if (examMilestoneCard) {
-            if (data.is_unlocked) {
-                examMilestoneCard.className = 'p-3 rounded-3 mb-3 border border-success-subtle bg-success-subtle text-success';
-                if (examMilestoneIcon) examMilestoneIcon.setAttribute('data-lucide', 'unlock');
-                if (examMilestoneTitle) examMilestoneTitle.textContent = 'Assessment Milestone Unlocked';
-                if (examMilestoneDesc) examMilestoneDesc.textContent = '🎉 Unlocked! Final Quiz and Final Mock Test are active.';
+        const isCertEligible = data.is_certificate_eligible || data.certificate_issued;
+        const compLessons = data.completed_mandatory_lessons !== undefined ? data.completed_mandatory_lessons : (data.completed_count || 0);
+        const totLessons = data.total_mandatory_lessons !== undefined ? data.total_mandatory_lessons : (data.total_count || 0);
+
+        if (certMilestoneCard) {
+            if (isCertEligible) {
+                certMilestoneCard.className = 'p-3 rounded-3 mb-3 border border-success-subtle bg-success-subtle text-success';
+                if (certMilestoneIcon) certMilestoneIcon.setAttribute('data-lucide', 'award');
+                if (certMilestoneTitle) certMilestoneTitle.textContent = 'Certificate Milestone Achieved! 🎉';
+                if (certMilestoneDesc) certMilestoneDesc.textContent = `You completed all ${totLessons} mandatory lessons! Your certificate is ready to claim.`;
             } else {
-                examMilestoneCard.className = 'p-3 rounded-3 mb-3 border border-secondary-subtle bg-dark text-secondary';
-                if (examMilestoneIcon) examMilestoneIcon.setAttribute('data-lucide', 'lock');
-                if (examMilestoneTitle) examMilestoneTitle.textContent = '80% Assessment Milestone';
-                if (examMilestoneDesc) examMilestoneDesc.textContent = `Reach 80% course progress to unlock final examinations (Currently: ${pct}%).`;
+                certMilestoneCard.className = 'p-3 rounded-3 mb-3 border border-primary-subtle bg-dark text-light';
+                if (certMilestoneIcon) certMilestoneIcon.setAttribute('data-lucide', 'video');
+                if (certMilestoneTitle) certMilestoneTitle.textContent = 'Certificate Milestone (80% Video)';
+                if (certMilestoneDesc) certMilestoneDesc.textContent = `Complete all mandatory video lessons to reach 80% and earn your certificate (Currently: ${compLessons} / ${totLessons} completed).`;
             }
-        }
-
-        // Dynamically update assessment shortcut buttons when unlocked
-        const assessmentContainer = document.getElementById('assessmentShortcutsContainer');
-        if (assessmentContainer && data.is_unlocked) {
-            const courseSlug = "{{ course.slug }}";
-            let quizHtml = '';
-            {% if final_quiz %}
-            const quizPassed = data.quiz_passed;
-            quizHtml = `
-                <a href="/courses/${courseSlug}/assessments/final_quiz/" class="btn btn-secondary-custom btn-sm text-start d-flex justify-content-between align-items-center py-2 px-3">
-                    <span><i data-lucide="file-question" style="width: 14px; height: 14px; margin-right: 6px;"></i>Final Course Quiz</span>
-                    ${quizPassed ? '<span class="badge bg-success text-white small">Passed</span>' : '<span class="badge bg-primary text-white small">Take Quiz</span>'}
-                </a>
-            `;
-            {% endif %}
-            let mockHtml = '';
-            {% if final_mock %}
-            const mockPassed = data.mock_passed;
-            mockHtml = `
-                <a href="/courses/${courseSlug}/assessments/final_mock/" class="btn btn-secondary-custom btn-sm text-start d-flex justify-content-between align-items-center py-2 px-3">
-                    <span><i data-lucide="layers" style="width: 14px; height: 14px; margin-right: 6px;"></i>Final Mock Test</span>
-                    ${mockPassed ? '<span class="badge bg-success text-white small">Passed</span>' : '<span class="badge bg-primary text-white small">Take Test</span>'}
-                </a>
-            `;
-            {% endif %}
-            assessmentContainer.innerHTML = quizHtml + mockHtml;
         }
 
         // Update certificate status card on the right
@@ -814,12 +883,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     </form>
                 `;
             } else {
-                let reqsHtml = `<div class="mb-1 text-muted">Progress: <span class="text-white fw-bold">${pct}%</span> (Required: ${data.required_percentage || 85}%)</div>`;
+                let reqsHtml = `<div class="mb-1 text-muted">Progress: <span class="text-white fw-bold">${pct}%</span> (80% Video Required)</div>`;
                 if (data.missing_requirements && data.missing_requirements.length > 0) {
                     const items = data.missing_requirements.map(r => `<li class="text-secondary">${r}</li>`).join('');
                     reqsHtml += `<span class="fw-semibold text-muted d-block mb-1">Requirements to unlock:</span><ul class="mb-0 ps-3">${items}</ul>`;
                 } else {
-                    reqsHtml += `<p class="text-secondary small mb-0" style="font-size: 0.72rem;">Requires 85% course progress and passing final examinations.</p>`;
+                    reqsHtml += `<p class="text-secondary small mb-0" style="font-size: 0.72rem;">Complete all ${totLessons} mandatory video lessons to claim certificate.</p>`;
                 }
                 if (data.optional_remaining_activities && data.optional_remaining_activities.length > 0) {
                     reqsHtml += `<div class="mt-2 text-muted" style="font-size: 0.7rem; font-style: italic;">Note: Optional practice activities do not block certificate issuance.</div>`;

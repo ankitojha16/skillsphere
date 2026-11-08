@@ -207,8 +207,10 @@
                                         </div>
                                         <div>
                                             <span class="fw-bold text-white small">{{ item.progress.percentage }}%</span>
-                                            {% if item.progress.is_unlocked %}
-                                                <span class="badge bg-success-subtle text-success border border-success-subtle ms-1" style="font-size: 0.65rem;">Exam Unlocked</span>
+                                            {% if item.progress.is_certificate_eligible %}
+                                                <span class="badge bg-success-subtle text-success border border-success-subtle ms-1" style="font-size: 0.65rem;">Certificate Ready</span>
+                                            {% elif item.progress.has_optional_assessments %}
+                                                <span class="badge bg-info-subtle text-info border border-info-subtle ms-1" style="font-size: 0.65rem;">Optional Tests</span>
                                             {% endif %}
                                         </div>
                                     </div>

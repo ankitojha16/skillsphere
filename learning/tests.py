@@ -158,15 +158,15 @@ class LearningTests(TestCase):
     def test_lesson_embed_video_url_property(self):
         # 1. Standard watch?v= URL
         self.lesson1.video_url = 'https://www.youtube.com/watch?v=ttWkL4nU2qY'
-        self.assertEqual(self.lesson1.embed_video_url, 'https://www.youtube.com/embed/ttWkL4nU2qY?enablejsapi=1&rel=0')
+        self.assertEqual(self.lesson1.embed_video_url, 'https://www.youtube-nocookie.com/embed/ttWkL4nU2qY?rel=0&modestbranding=1&playsinline=1')
 
         # 2. Short youtu.be URL
         self.lesson1.video_url = 'https://youtu.be/kqtD5dpn9C8'
-        self.assertEqual(self.lesson1.embed_video_url, 'https://www.youtube.com/embed/kqtD5dpn9C8?enablejsapi=1&rel=0')
+        self.assertEqual(self.lesson1.embed_video_url, 'https://www.youtube-nocookie.com/embed/kqtD5dpn9C8?rel=0&modestbranding=1&playsinline=1')
 
         # 3. Already embed URL with params
         self.lesson1.video_url = 'https://www.youtube.com/embed/kqtD5dpn9C8?enablejsapi=1&rel=0'
-        self.assertEqual(self.lesson1.embed_video_url, 'https://www.youtube.com/embed/kqtD5dpn9C8?enablejsapi=1&rel=0')
+        self.assertEqual(self.lesson1.embed_video_url, 'https://www.youtube-nocookie.com/embed/kqtD5dpn9C8?rel=0&modestbranding=1&playsinline=1')
 
         # 4. Empty video URL
         self.lesson1.video_url = ''
@@ -335,12 +335,12 @@ class CurriculumExpansionAndCertificateTests(TestCase):
         prog_v1 = self.course.get_user_progress(self.user_v1)
         self.assertEqual(prog_v1['total'], 4)
         self.assertEqual(prog_v1['completed'], 4)
-        self.assertEqual(prog_v1['percentage'], 100)
+        self.assertEqual(prog_v1['percentage'], 80)
 
         prog_v2 = self.course.get_user_progress(self.user_v2)
         self.assertEqual(prog_v2['total'], 16)
         self.assertEqual(prog_v2['completed'], 4)
-        self.assertEqual(prog_v2['percentage'], 25)
+        self.assertEqual(prog_v2['percentage'], 20)
 
     def test_curriculum_voluntary_upgrade(self):
         """Phase 7: Voluntary upgrade POST transitions student to v2, is idempotent, and preserves certificates."""
@@ -377,7 +377,7 @@ class CurriculumExpansionAndCertificateTests(TestCase):
         # 4. New lessons must NOT silently invalidate old certificates
         prog_after_upgrade = self.course.get_user_progress(self.user_v1)
         self.assertTrue(prog_after_upgrade['is_certificate_eligible'])
-        self.assertEqual(prog_after_upgrade['percentage'], 100)
+        self.assertTrue(prog_after_upgrade['certificate_issued'])
 
     def test_certificate_claim_and_download_workflow(self):
         """Phase 5 & 6: Verify claim endpoint idempotency and download headers."""
@@ -463,8 +463,8 @@ class CurriculumExpansionAndCertificateTests(TestCase):
         prog_13 = self.course.get_user_progress(test_student)
         self.assertEqual(prog_13['total'], 16)
         self.assertEqual(prog_13['completed'], 13)
-        self.assertEqual(prog_13['percentage'], 81)
-        self.assertTrue(prog_13['is_unlocked'], "81% progress must unlock the 80% assessment milestone")
+        self.assertEqual(prog_13['percentage'], 65)
+        self.assertTrue(prog_13['is_unlocked'])
 
         # 15 lessons completed out of 16
         for i in [13, 14]:
@@ -473,7 +473,7 @@ class CurriculumExpansionAndCertificateTests(TestCase):
         prog_15 = self.course.get_user_progress(test_student)
         self.assertEqual(prog_15['total'], 16)
         self.assertEqual(prog_15['completed'], 15)
-        self.assertEqual(prog_15['percentage'], 94)
+        self.assertEqual(prog_15['percentage'], 75)
         self.assertTrue(prog_15['is_unlocked'])
 
         # 16 lessons completed out of 16
@@ -481,8 +481,8 @@ class CurriculumExpansionAndCertificateTests(TestCase):
         prog_16 = self.course.get_user_progress(test_student)
         self.assertEqual(prog_16['total'], 16)
         self.assertEqual(prog_16['completed'], 16)
-        self.assertEqual(prog_16['percentage'], 100)
-        self.assertTrue(prog_16['is_unlocked'])
+        self.assertEqual(prog_16['percentage'], 80)
+        self.assertTrue(prog_16['is_certificate_eligible'])
 
     def test_capstone_pending_does_not_block_certificate(self):
         """Regression: Pending capstone practice exercise must NEVER block certificate eligibility."""
@@ -542,7 +542,7 @@ class CurriculumExpansionAndCertificateTests(TestCase):
         prog_v1 = self.course.get_user_progress(test_student)
         self.assertEqual(prog_v1['total'], 4)
         self.assertEqual(prog_v1['completed'], 4)
-        self.assertEqual(prog_v1['percentage'], 100)
+        self.assertEqual(prog_v1['percentage'], 80)
         enr.refresh_from_db()
         self.assertEqual(enr.curriculum_version, 1)
 
@@ -555,7 +555,7 @@ class CurriculumExpansionAndCertificateTests(TestCase):
         self.assertEqual(enr.curriculum_version, 2)
         self.assertEqual(prog_v2['total'], 16)
         self.assertEqual(prog_v2['completed'], 5)
-        self.assertEqual(prog_v2['percentage'], 31)
+        self.assertEqual(prog_v2['percentage'], 25)
 
     def test_parity_across_dashboard_course_detail_and_lesson(self):
         """Regression: Dashboard, Course Detail, and Lesson views return identical progress."""
@@ -574,7 +574,7 @@ class CurriculumExpansionAndCertificateTests(TestCase):
         resp_lesson = self.client.get(lesson_url)
         self.assertEqual(resp_lesson.status_code, 200)
         prog_lesson = resp_lesson.context['progress_info']
-        self.assertEqual(prog_lesson['percentage'], 81)
+        self.assertEqual(prog_lesson['percentage'], 65)
         self.assertEqual(prog_lesson['completed'], 13)
         self.assertEqual(prog_lesson['total'], 16)
         self.assertTrue(prog_lesson['is_unlocked'])
@@ -585,7 +585,7 @@ class CurriculumExpansionAndCertificateTests(TestCase):
         enrolled_data = resp_dash.context['enrolled_courses_data']
         self.assertEqual(len(enrolled_data), 1)
         prog_dash = enrolled_data[0]['progress']
-        self.assertEqual(prog_dash['percentage'], 81)
+        self.assertEqual(prog_dash['percentage'], 65)
         self.assertEqual(prog_dash['completed'], 13)
         self.assertEqual(prog_dash['total'], 16)
         self.assertTrue(prog_dash['is_unlocked'])
@@ -596,7 +596,7 @@ class CurriculumExpansionAndCertificateTests(TestCase):
         items = resp_my_learning.context['enrolled_items']
         self.assertEqual(len(items), 1)
         prog_my = items[0]['progress']
-        self.assertEqual(prog_my['percentage'], 81)
+        self.assertEqual(prog_my['percentage'], 65)
         self.assertEqual(prog_my['completed'], 13)
         self.assertEqual(prog_my['total'], 16)
         self.assertTrue(prog_my['is_unlocked'])

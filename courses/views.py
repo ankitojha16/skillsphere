@@ -426,12 +426,10 @@ def assessment_intro_view(request, slug, assessment_type):
 def take_assessment_view(request, slug, assessment_type):
     course = get_object_or_404(Course, slug=slug, is_published=True)
     assessment = get_object_or_404(course.course_assessments, assessment_type=assessment_type, is_active=True)
-
-    # Server-side 80% unlock verification
-    progress = course.get_user_progress(request.user)
-    if not progress['is_unlocked']:
-        messages.error(request, f"Assessments are locked until you reach at least 80% course progress (Current: {progress['percentage']}%).")
-        return redirect('courses:assessment_intro', slug=course.slug, assessment_type=assessment_type)
+    # Enforce course enrollment for optional assessment
+    if not Enrollment.objects.filter(user=request.user, course=course).exists():
+        messages.error(request, "Please enroll in the course before taking this assessment.")
+        return redirect('courses:detail', slug=course.slug)
 
     questions = list(assessment.questions.all().order_by('order', 'id'))
     if not questions:
@@ -462,12 +460,6 @@ def submit_assessment_view(request, slug, assessment_type):
     if not Enrollment.objects.filter(user=request.user, course=course).exists():
         messages.error(request, "Enrollment required to take assessments.")
         return redirect('courses:detail', slug=course.slug)
-
-    # Server-side 80% progress gate verification
-    progress = course.get_user_progress(request.user)
-    if not progress['is_unlocked']:
-        messages.error(request, f"Assessments are locked until you reach at least 80% course progress (Current: {progress['percentage']}%).")
-        return redirect('courses:assessment_intro', slug=course.slug, assessment_type=assessment_type)
 
     questions = list(assessment.questions.all().order_by('order', 'id'))
     total_q = len(questions)
