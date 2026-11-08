@@ -554,9 +554,12 @@
                         <i data-lucide="award" class="text-warning mx-auto mb-2" style="width: 28px; height: 28px;"></i>
                         <div class="fw-bold text-white small mb-1">Certificate Ready! 🎉</div>
                         <p class="text-secondary small mb-2" style="font-size: 0.75rem;">You have fulfilled all course requirements.</p>
-                        <a href="{% url 'certificates:download_by_course' course_id=course.id %}" class="btn btn-primary-custom btn-sm py-1.5 px-3 w-100 d-inline-flex align-items-center justify-content-center gap-1.5">
-                            <i data-lucide="award" style="width: 14px; height: 14px;"></i> Claim & Download
-                        </a>
+                        <form method="post" action="{% url 'certificates:claim_course_certificate' course_id=course.id %}" class="w-100">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-primary-custom btn-sm py-1.5 px-3 w-100 d-inline-flex align-items-center justify-content-center gap-1.5">
+                                <i data-lucide="award" style="width: 14px; height: 14px;"></i> Claim Certificate
+                            </button>
+                        </form>
                     {% else %}
                         <i data-lucide="shield-alert" class="text-secondary mx-auto mb-2" style="width: 24px; height: 24px;"></i>
                         <div class="fw-bold text-light small mb-1">Certificate Locked</div>
@@ -690,13 +693,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     <a href="/certificates/" class="btn btn-outline-secondary btn-sm py-1 px-3 w-100">View Certificate Details</a>
                 `;
             } else if (data.is_certificate_eligible) {
+                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]') ? document.querySelector('[name=csrfmiddlewaretoken]').value : '';
                 certCard.innerHTML = `
                     <i data-lucide="award" class="text-warning mx-auto mb-2" style="width: 28px; height: 28px;"></i>
                     <div class="fw-bold text-white small mb-1">Certificate Ready! 🎉</div>
                     <p class="text-secondary small mb-2" style="font-size: 0.75rem;">You have fulfilled all course requirements.</p>
-                    <a href="/certificates/course/${courseId}/download/" class="btn btn-primary-custom btn-sm py-1.5 px-3 w-100 d-inline-flex align-items-center justify-content-center gap-1.5">
-                        <i data-lucide="award" style="width: 14px; height: 14px;"></i> Claim & Download
-                    </a>
+                    <form method="post" action="/certificates/course/${courseId}/claim-cert/" class="w-100">
+                        <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
+                        <button type="submit" class="btn btn-primary-custom btn-sm py-1.5 px-3 w-100 d-inline-flex align-items-center justify-content-center gap-1.5">
+                            <i data-lucide="award" style="width: 14px; height: 14px;"></i> Claim Certificate
+                        </button>
+                    </form>
                 `;
             } else {
                 let reqsHtml = `<div class="mb-1 text-muted">Progress: <span class="text-white fw-bold">${pct}%</span> (Required: ${data.required_percentage || 85}%)</div>`;

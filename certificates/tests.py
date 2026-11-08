@@ -138,3 +138,79 @@ class CertificateTests(TestCase):
         response = anon_client.get(reverse('certificates:verify', kwargs={'certificate_id': 'SS-CERT-FAKE-9999'}))
         self.assertEqual(response.status_code, 404)
         self.assertContains(response, 'Certificate Not Verified', status_code=404)
+
+    def test_claim_course_certificate_post_endpoint_success(self):
+        """Test POST /certificates/course/<course_id>/claim-cert/ creates cert and redirects to download."""
+        LessonProgress.objects.create(user=self.user, lesson=self.lesson, is_completed=True)
+        CourseAssessmentAttempt.objects.create(
+            user=self.user, assessment=self.quiz, score=5, total_questions=5, percentage=100, is_passed=True
+        )
+        CourseAssessmentAttempt.objects.create(
+            user=self.user, assessment=self.mock, score=5, total_questions=5, percentage=100, is_passed=True
+        )
+
+        claim_url = reverse('certificates:claim_course_certificate', kwargs={'course_id': self.course.id})
+        response = self.client.post(claim_url, {'recipient_name': 'Ankit Kumar'})
+        
+        cert = Certificate.objects.filter(user=self.user, course=self.course).first()
+        self.assertIsNotNone(cert)
+        self.assertRedirects(response, reverse('certificates:download', kwargs={'pk': cert.id}))
+
+        # Idempotent repeat claim redirects to download without error or duplication
+        response2 = self.client.post(claim_url)
+        self.assertRedirects(response2, reverse('certificates:download', kwargs={'pk': cert.id}))
+        self.assertEqual(Certificate.objects.filter(user=self.user, course=self.course).count(), 1)
+
+    def test_claim_course_certificate_post_endpoint_incomplete_fails(self):
+        """Ineligible user cannot claim certificate via POST."""
+        claim_url = reverse('certificates:claim_course_certificate', kwargs={'course_id': self.course.id})
+        response = self.client.post(claim_url)
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(Certificate.objects.filter(user=self.user, course=self.course).exists())
+
+    def test_claim_endpoint_http_method_safety(self):
+        """GET request to claim endpoint must return 405 Method Not Allowed."""
+        claim_url = reverse('certificates:claim_course_certificate', kwargs={'course_id': self.course.id})
+        response = self.client.get(claim_url)
+        self.assertEqual(response.status_code, 405)
+
+    def test_download_course_certificate_get_safety(self):
+        """GET /certificates/course/<id>/download/ does not create certificate if unclaimed."""
+        LessonProgress.objects.create(user=self.user, lesson=self.lesson, is_completed=True)
+        CourseAssessmentAttempt.objects.create(
+            user=self.user, assessment=self.quiz, score=5, total_questions=5, percentage=100, is_passed=True
+        )
+        CourseAssessmentAttempt.objects.create(
+            user=self.user, assessment=self.mock, score=5, total_questions=5, percentage=100, is_passed=True
+        )
+
+        dl_url = reverse('certificates:download_by_course', kwargs={'course_id': self.course.id})
+        # Eligible but not yet claimed -> GET must redirect to center without creating cert
+        response = self.client.get(dl_url)
+        self.assertRedirects(response, reverse('certificates:center'))
+        self.assertFalse(Certificate.objects.filter(user=self.user, course=self.course).exists())
+
+        # Now create cert and verify GET streams PDF
+        cert = Certificate.objects.create(
+            user=self.user, course=self.course, title=self.course.title, recipient_name='Ankit'
+        )
+        response2 = self.client.get(dl_url)
+        self.assertEqual(response2.status_code, 200)
+        self.assertEqual(response2['Content-Type'], 'application/pdf')
+        self.assertTrue(response2.content.startswith(b'%PDF-'))
+
+    def test_certificate_center_rules_and_copy(self):
+        """Certificate Center renders updated 85% rules and no 100% completion requirement text."""
+        response = self.client.get(reverse('certificates:center'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Rule 1')
+        self.assertContains(response, 'Assessment Unlock')
+        self.assertContains(response, '80% Mandatory Lesson Progress')
+        self.assertContains(response, 'Rule 4')
+        self.assertContains(response, 'Certificate Issue')
+        self.assertContains(response, 'Minimum 85% mandatory lesson progress plus all applicable mandatory assessments passed.')
+        self.assertContains(response, 'Complete at least 85% of mandatory course lessons and pass all applicable mandatory final assessments')
+        self.assertNotContains(response, '100% Completion')
+        self.assertNotContains(response, '100% course completion required')
+
+
