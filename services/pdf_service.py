@@ -1,11 +1,16 @@
 import io
 import re
+import math
 from django.core.cache import cache
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter, A4, landscape
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
 from reportlab.pdfgen import canvas
+from reportlab.graphics.barcode import qr
+from reportlab.graphics.shapes import Drawing
+from reportlab.graphics import renderPDF
+
 
 class AcademicNumberedCanvas(canvas.Canvas):
     def __init__(self, *args, **kwargs):
@@ -92,11 +97,21 @@ class PDFService:
     @staticmethod
     def generate_certificate_pdf(certificate) -> bytes:
         """
-        Generates an authentic, high-resolution landscape certificate PDF
-        with SkillSphere ivory/white background, gold double border, official seal,
-        and public verification link per Module 9 specifications.
+        Generates an authentic, high-resolution landscape A4 vector certificate PDF
+        implementing the approved SkillSphere premium light-blue design:
+        - Light-blue (#EAF4FF) canvas with decorative corner waves
+        - White central card with blue double-line border (#2563A6 outer, #8BBCEB inner)
+        - Subtle oversized SkillSphere logo watermark in center (4-7% opacity)
+        - Top section with vector diamond logo, SKILLSPHERE, and divider
+        - Main heading CERTIFICATE OF COMPLETION with gold laurels
+        - Dynamically scaled recipient typography and gold divider
+        - Course achievement light-blue rounded panel with category and difficulty badges
+        - Truthful completion statement
+        - Real vector QR code resolving to public verification URL
+        - Gold-and-navy SkillSphere official verification seal
+        - Authorized platform issuer block
         """
-        cache_key = f"cert_pdf_{getattr(certificate, 'certificate_id', certificate.pk)}"
+        cache_key = f"cert_pdf_premium_v4_{getattr(certificate, 'certificate_id', certificate.pk)}"
         cached = cache.get(cache_key)
         if cached:
             return cached
@@ -105,116 +120,283 @@ class PDFService:
         width, height = landscape(A4)
         c = canvas.Canvas(buffer, pagesize=landscape(A4))
 
-        # 1. Background Fill: Elegant Ivory / Soft White
-        c.setFillColor(colors.HexColor('#FAF9F5'))
+        # Color Palette
+        BG_LIGHT_BLUE = colors.HexColor('#EAF4FF')
+        NAVY_HEADING = colors.HexColor('#15365B')
+        PRIMARY_BLUE = colors.HexColor('#2563A6')
+        SKY_BLUE = colors.HexColor('#8BBCEB')
+        WHITE = colors.HexColor('#FFFFFF')
+        MAIN_TEXT = colors.HexColor('#172B45')
+        SECONDARY_TEXT = colors.HexColor('#64748B')
+        GOLD_ACCENT = colors.HexColor('#D6A63D')
+        GOLD_LIGHT = colors.HexColor('#F8E7B2')
+        GOLD_DARK = colors.HexColor('#B28222')
+
+        # 1. Main Background: Premium Light-Blue
+        c.setFillColor(BG_LIGHT_BLUE)
         c.rect(0, 0, width, height, fill=True, stroke=False)
 
-        # 2. Outer Ornate Gold Border
-        c.setStrokeColor(colors.HexColor('#D97706'))  # Amber/Gold
-        c.setLineWidth(3.5)
-        c.rect(22, 22, width - 44, height - 44)
+        # 2. Decorative Corner Wave Accents
+        c.saveState()
+        for (start_x, start_y, cp1_x, cp1_y, cp2_x, cp2_y, end_x, end_y) in [
+            (0, height, 80, height - 25, 25, height - 80, 0, height - 110),
+            (width, height, width - 80, height - 25, width - 25, height - 80, width, height - 110),
+            (0, 0, 80, 25, 25, 80, 0, 110),
+            (width, 0, width - 80, 25, width - 25, 80, width, 110),
+        ]:
+            p = c.beginPath()
+            p.moveTo(start_x, start_y)
+            p.curveTo(cp1_x, cp1_y, cp2_x, cp2_y, end_x, end_y)
+            p.close()
+            c.setFillColor(colors.Color(0.545, 0.737, 0.922, alpha=0.35))
+            c.drawPath(p, fill=True, stroke=False)
+        c.restoreState()
 
-        # 3. Inner Secondary Accent Border
-        c.setStrokeColor(colors.HexColor('#F59E0B'))  # Light Gold
-        c.setLineWidth(1.2)
-        c.rect(28, 28, width - 56, height - 56)
+        # 3. White Central Card
+        card_x, card_y = 26, 26
+        card_w, card_h = width - 52, height - 52
+        c.setFillColor(WHITE)
+        c.roundRect(card_x, card_y, card_w, card_h, 12, fill=True, stroke=False)
 
-        # 4. Corner Rosettes / Decorative Accents
-        c.setFillColor(colors.HexColor('#B45309'))
-        c.circle(28, 28, 5, fill=True, stroke=False)
-        c.circle(width - 28, 28, 5, fill=True, stroke=False)
-        c.circle(28, height - 28, 4, fill=True, stroke=False)
-        c.circle(width - 28, height - 28, 4, fill=True, stroke=False)
+        # 4. Double Line Border
+        # Outer Border
+        c.setStrokeColor(PRIMARY_BLUE)
+        c.setLineWidth(2.5)
+        c.roundRect(card_x, card_y, card_w, card_h, 12, fill=False, stroke=True)
 
-        # 5. Header Brand Title
-        c.setFont("Helvetica-Bold", 13)
-        c.setFillColor(colors.HexColor('#6B7280'))
-        c.drawCentredString(width / 2.0, height - 66, "SKILLSPHERE PROFESSIONAL LEARNING PLATFORM")
+        # Inner Border
+        c.setStrokeColor(SKY_BLUE)
+        c.setLineWidth(1.0)
+        c.roundRect(card_x + 6, card_y + 6, card_w - 12, card_h - 12, 8, fill=False, stroke=True)
 
-        # 6. Main Certificate Title
-        c.setFont("Helvetica-Bold", 28)
-        c.setFillColor(colors.HexColor('#0F172A'))  # Deep Navy
-        c.drawCentredString(width / 2.0, height - 105, "CERTIFICATE OF COMPLETION")
+        # Corner Rosettes
+        for cx, cy in [(card_x + 6, card_y + 6), (card_x + card_w - 6, card_y + 6),
+                       (card_x + 6, card_y + card_h - 6), (card_x + card_w - 6, card_y + card_h - 6)]:
+            c.setFillColor(GOLD_ACCENT)
+            c.circle(cx, cy, 4, fill=True, stroke=False)
+            c.setFillColor(PRIMARY_BLUE)
+            c.circle(cx, cy, 2, fill=True, stroke=False)
 
-        # 7. Subtitle
-        c.setFont("Helvetica", 11)
-        c.setFillColor(colors.HexColor('#64748B'))
-        c.drawCentredString(width / 2.0, height - 130, "VERIFIED ACADEMIC & TECHNICAL CREDENTIAL")
-
-        # 8. Student Name
-        c.setFont("Helvetica-Bold", 26)
-        c.setFillColor(colors.HexColor('#1E293B'))  # Slate Navy
-        recipient = certificate.recipient_name or certificate.user.get_full_name() or certificate.user.username
-        c.drawCentredString(width / 2.0, height - 175, recipient)
-
-        # Divider line under student name
-        c.setStrokeColor(colors.HexColor('#D97706'))
+        # 5. Center Watermark (Subtle 5% opacity stacked diamond logo layers)
+        c.saveState()
+        cx, cy = width / 2.0, height / 2.0 - 5
+        c.setStrokeColor(colors.Color(0.145, 0.388, 0.651, alpha=0.06))
+        c.setFillColor(colors.Color(0.918, 0.957, 1.0, alpha=0.08))
         c.setLineWidth(1.5)
-        c.line(width / 2.0 - 200, height - 190, width / 2.0 + 200, height - 190)
+        for offset_y in [45, 0, -45]:
+            p = c.beginPath()
+            p.moveTo(cx, cy + offset_y + 40)
+            p.lineTo(cx + 100, cy + offset_y)
+            p.lineTo(cx, cy + offset_y - 40)
+            p.lineTo(cx - 100, cy + offset_y)
+            p.close()
+            c.drawPath(p, fill=True, stroke=True)
+        c.restoreState()
 
-        # 9. Standardized Completion Wording (Module 9 Requirement)
-        c.setFont("Helvetica", 11)
-        c.setFillColor(colors.HexColor('#475569'))
+        # 6. Top Section (Brand Logo & Platform Header)
+        top_y = height - 56
+        # Vector Diamond Glyph
+        p = c.beginPath()
+        p.moveTo(width / 2.0, top_y + 12)
+        p.lineTo(width / 2.0 + 9, top_y + 4)
+        p.lineTo(width / 2.0, top_y - 4)
+        p.lineTo(width / 2.0 - 9, top_y + 4)
+        p.close()
+        c.setFillColor(PRIMARY_BLUE)
+        c.drawPath(p, fill=True, stroke=False)
+
+        c.setFont('Helvetica-Bold', 14)
+        c.setFillColor(NAVY_HEADING)
+        c.drawCentredString(width / 2.0, top_y - 18, 'SKILLSPHERE')
+
+        c.setFont('Helvetica-Bold', 7.5)
+        c.setFillColor(PRIMARY_BLUE)
+        c.drawCentredString(width / 2.0, top_y - 28, 'PROFESSIONAL LEARNING PLATFORM')
+
+        # Horizontal Divider Line with Gold Diamond
+        c.setStrokeColor(SKY_BLUE)
+        c.setLineWidth(0.8)
+        c.line(width / 2.0 - 180, top_y - 36, width / 2.0 + 180, top_y - 36)
+        p = c.beginPath()
+        p.moveTo(width / 2.0, top_y - 33)
+        p.lineTo(width / 2.0 + 4, top_y - 36)
+        p.lineTo(width / 2.0, top_y - 39)
+        p.lineTo(width / 2.0 - 4, top_y - 36)
+        p.close()
+        c.setFillColor(GOLD_ACCENT)
+        c.drawPath(p, fill=True, stroke=False)
+
+        # 7. Main Heading & Gold Laurels
+        c.setFont('Helvetica-Bold', 25)
+        c.setFillColor(NAVY_HEADING)
+        c.drawCentredString(width / 2.0, top_y - 68, 'CERTIFICATE OF COMPLETION')
+
+        # Gold Laurel Branches
+        c.saveState()
+        c.setStrokeColor(GOLD_ACCENT)
+        c.setFillColor(GOLD_ACCENT)
+        c.setLineWidth(1.2)
+        # Left Laurel
+        c.arc(width / 2.0 - 245, top_y - 82, width / 2.0 - 195, top_y - 52, 90, 180)
+        for lx, ly in [(width / 2.0 - 225, top_y - 65), (width / 2.0 - 235, top_y - 72), (width / 2.0 - 215, top_y - 60)]:
+            c.circle(lx, ly, 2.5, fill=True, stroke=False)
+        # Right Laurel
+        c.arc(width / 2.0 + 195, top_y - 82, width / 2.0 + 245, top_y - 52, 270, 180)
+        for rx, ry in [(width / 2.0 + 225, top_y - 65), (width / 2.0 + 235, top_y - 72), (width / 2.0 + 215, top_y - 60)]:
+            c.circle(rx, ry, 2.5, fill=True, stroke=False)
+        c.restoreState()
+
+        c.setFont('Helvetica', 9.5)
+        c.setFillColor(SECONDARY_TEXT)
+        c.drawCentredString(width / 2.0, top_y - 84, 'Platform-Issued Learning Achievement')
+
+        # 8. Recipient Section
+        c.setFont('Helvetica', 10)
+        c.setFillColor(SECONDARY_TEXT)
+        c.drawCentredString(width / 2.0, top_y - 110, 'This certificate is proudly presented to')
+
+        recipient = certificate.recipient_name or certificate.user.get_full_name() or certificate.user.username
+        font_size = 24 if len(recipient) <= 26 else (19 if len(recipient) <= 40 else 16)
+        c.setFont('Helvetica-Bold', font_size)
+        c.setFillColor(NAVY_HEADING)
+        c.drawCentredString(width / 2.0, top_y - 138, recipient)
+
+        # Gold Divider under name
+        c.setStrokeColor(GOLD_ACCENT)
+        c.setLineWidth(1.2)
+        c.line(width / 2.0 - 150, top_y - 150, width / 2.0 + 150, top_y - 150)
+        c.setFillColor(GOLD_ACCENT)
+        c.circle(width / 2.0, top_y - 150, 3, fill=True, stroke=False)
+
+        # 9. Course Achievement Section
+        c.setFont('Helvetica', 9.5)
+        c.setFillColor(SECONDARY_TEXT)
+        c.drawCentredString(width / 2.0, top_y - 172, 'For successfully completing the course')
+
         course_name = certificate.course.title if certificate.course else certificate.title
-        cert_statement_1 = f"This certificate is awarded to {recipient} for successfully completing"
-        cert_statement_2 = f"and meeting the comprehensive assessment requirements of SkillSphere."
+        title_font_size = 14 if len(course_name) <= 42 else (11 if len(course_name) <= 70 else 9.5)
+        title_w = c.stringWidth(course_name, 'Helvetica-Bold', title_font_size)
+        panel_w = min(560, max(400, title_w + 50))
+        panel_h = 32
+        panel_x = (width - panel_w) / 2.0
+        panel_y = top_y - 212
 
-        c.drawCentredString(width / 2.0, height - 215, cert_statement_1)
-        c.setFont("Helvetica-Bold", 16)
-        c.setFillColor(colors.HexColor('#0F172A'))
-        c.drawCentredString(width / 2.0, height - 240, f"\"{course_name}\"")
-        c.setFont("Helvetica", 11)
-        c.setFillColor(colors.HexColor('#475569'))
-        c.drawCentredString(width / 2.0, height - 262, cert_statement_2)
+        # Light-Blue Rounded Panel
+        c.setFillColor(BG_LIGHT_BLUE)
+        c.setStrokeColor(SKY_BLUE)
+        c.setLineWidth(1.0)
+        c.roundRect(panel_x, panel_y, panel_w, panel_h, 6, fill=True, stroke=True)
 
-        # 10. Decorative Achievement Seal (Center-Right Badge)
-        seal_x = width - 130
-        seal_y = height / 2.0 - 20
-        c.setStrokeColor(colors.HexColor('#D97706'))
-        c.setLineWidth(2)
-        c.circle(seal_x, seal_y, 36, fill=False, stroke=True)
-        c.setFillColor(colors.HexColor('#FEF3C7'))
-        c.circle(seal_x, seal_y, 34, fill=True, stroke=False)
-        c.setFont("Helvetica-Bold", 8)
-        c.setFillColor(colors.HexColor('#B45309'))
-        c.drawCentredString(seal_x, seal_y + 12, "★ VERIFIED ★")
-        c.setFont("Helvetica-Bold", 10)
-        c.drawCentredString(seal_x, seal_y, "VERIFIED")
-        c.setFont("Helvetica", 7)
-        c.drawCentredString(seal_x, seal_y - 12, "SKILLSPHERE")
+        c.setFont('Helvetica-Bold', title_font_size)
+        c.setFillColor(NAVY_HEADING)
+        c.drawCentredString(width / 2.0, panel_y + 10, course_name)
 
-        # 11. Metadata Box (Bottom Left)
-        c.setFont("Helvetica-Bold", 9)
-        c.setFillColor(colors.HexColor('#64748B'))
-        c.drawString(60, 85, "CERTIFICATE ID:")
-        c.setFont("Courier-Bold", 9)
-        c.setFillColor(colors.HexColor('#0F172A'))
-        c.drawString(160, 85, certificate.certificate_id)
+        # Metadata Badges
+        category_name = certificate.course.category.name if (certificate.course and certificate.course.category) else 'Computer Science'
+        difficulty_name = certificate.course.difficulty if certificate.course else 'All Levels'
+        c.setFont('Helvetica-Bold', 8)
+        c.setFillColor(PRIMARY_BLUE)
+        c.drawCentredString(width / 2.0, top_y - 228, f"{category_name.upper()}  •  {difficulty_name.upper()} LEVEL  •  CURRICULUM SPECIFICATION 2.0")
 
-        c.setFont("Helvetica-Bold", 9)
-        c.setFillColor(colors.HexColor('#64748B'))
-        c.drawString(60, 68, "DATE OF ISSUANCE:")
-        c.setFont("Helvetica", 9)
-        c.setFillColor(colors.HexColor('#0F172A'))
-        c.drawString(160, 68, certificate.issued_at.strftime('%B %d, %Y'))
+        # Completion Statement
+        c.setFont('Helvetica', 9)
+        c.setFillColor(MAIN_TEXT)
+        c.drawCentredString(
+            width / 2.0,
+            top_y - 248,
+            'and meeting all applicable course requirements, including lesson completion and successful performance in the final assessments.'
+        )
 
-        c.setFont("Helvetica-Bold", 9)
-        c.setFillColor(colors.HexColor('#64748B'))
-        c.drawString(60, 51, "PUBLIC VERIFY:")
-        c.setFont("Helvetica", 8)
-        c.setFillColor(colors.HexColor('#2563EB'))
-        c.drawString(160, 51, f"https://skillsphere-cyan.vercel.app/certificates/verify/{certificate.certificate_id}/")
+        # 10. Bottom Section: QR Code (Left), Seal (Center), Authority (Right)
+        verify_url = f"https://skillsphere-cyan.vercel.app/certificates/verify/{certificate.certificate_id}/"
 
-        # 12. Signature & Academic Authority (Bottom Right)
-        c.setStrokeColor(colors.HexColor('#94A3B8'))
-        c.setLineWidth(1)
-        c.line(width - 240, 75, width - 60, 75)
-        c.setFont("Helvetica-Bold", 10)
-        c.setFillColor(colors.HexColor('#0F172A'))
-        c.drawCentredString(width - 150, 60, "SkillSphere Academic Board")
-        c.setFont("Helvetica", 8)
-        c.setFillColor(colors.HexColor('#64748B'))
-        c.drawCentredString(width - 150, 48, "Authorized Institutional Issuer")
+        # Left: Real Vector QR Code
+        qr_widget = qr.QrCodeWidget(verify_url)
+        bounds = qr_widget.getBounds()
+        qw = bounds[2] - bounds[0]
+        qh = bounds[3] - bounds[1]
+        d = Drawing(52, 52, transform=[52.0 / qw, 0, 0, 52.0 / qh, 0, 0])
+        d.add(qr_widget)
+        renderPDF.draw(d, c, 52, 44)
+
+        # QR Metadata Details
+        c.setFont('Helvetica-Bold', 7)
+        c.setFillColor(SECONDARY_TEXT)
+        c.drawString(112, 88, 'CERTIFICATE ID:')
+        c.setFont('Courier-Bold', 8)
+        c.setFillColor(NAVY_HEADING)
+        c.drawString(178, 88, certificate.certificate_id)
+
+        c.setFont('Helvetica-Bold', 7)
+        c.setFillColor(SECONDARY_TEXT)
+        c.drawString(112, 74, 'DATE OF ISSUE:')
+        c.setFont('Helvetica', 8)
+        c.setFillColor(MAIN_TEXT)
+        c.drawString(178, 74, certificate.issued_at.strftime('%B %d, %Y'))
+
+        c.setFont('Helvetica-Bold', 6.5)
+        c.setFillColor(PRIMARY_BLUE)
+        c.drawString(112, 60, 'PUBLIC VERIFICATION:')
+        c.setFont('Helvetica', 6.5)
+        c.drawString(112, 50, verify_url)
+
+        # Center: Gold-and-Navy Official Verification Seal
+        seal_cx, seal_cy = width / 2.0, 68
+        c.saveState()
+        # 24-point Starburst
+        c.setFillColor(GOLD_ACCENT)
+        num_points = 24
+        outer_r = 28
+        inner_r = 24
+        star_pts = []
+        for i in range(num_points * 2):
+            angle = i * (math.pi / num_points)
+            r = outer_r if i % 2 == 0 else inner_r
+            star_pts.append((seal_cx + r * math.sin(angle), seal_cy + r * math.cos(angle)))
+        p = c.beginPath()
+        p.moveTo(star_pts[0][0], star_pts[0][1])
+        for pt in star_pts[1:]:
+            p.lineTo(pt[0], pt[1])
+        p.close()
+        c.drawPath(p, fill=True, stroke=False)
+
+        # Inner Navy Circle
+        c.setFillColor(NAVY_HEADING)
+        c.circle(seal_cx, seal_cy, 22, fill=True, stroke=False)
+        c.setStrokeColor(GOLD_ACCENT)
+        c.setLineWidth(1.2)
+        c.circle(seal_cx, seal_cy, 20, fill=False, stroke=True)
+
+        # Seal Typography
+        c.setFont('Helvetica-Bold', 5.5)
+        c.setFillColor(GOLD_LIGHT)
+        c.drawCentredString(seal_cx, seal_cy + 10, 'SKILLSPHERE')
+        c.setFont('Helvetica-Bold', 8)
+        c.setFillColor(WHITE)
+        c.drawCentredString(seal_cx, seal_cy, 'VERIFIED')
+        c.setFont('Helvetica-Bold', 5)
+        c.setFillColor(GOLD_ACCENT)
+        c.drawCentredString(seal_cx, seal_cy - 9, '★ OFFICIAL SEAL ★')
+        c.restoreState()
+
+        # Right: Issuer Authority Block
+        issuer_line_x1 = width - 215
+        issuer_line_x2 = width - 52
+        c.setStrokeColor(SKY_BLUE)
+        c.setLineWidth(0.8)
+        c.line(issuer_line_x1, 75, issuer_line_x2, 75)
+
+        c.setFont('Helvetica-Bold', 9.5)
+        c.setFillColor(NAVY_HEADING)
+        c.drawCentredString((issuer_line_x1 + issuer_line_x2) / 2.0, 60, 'SkillSphere Learning Team')
+
+        c.setFont('Helvetica', 8)
+        c.setFillColor(SECONDARY_TEXT)
+        c.drawCentredString((issuer_line_x1 + issuer_line_x2) / 2.0, 48, 'Authorized Platform Issuer')
+
+        c.setFont('Helvetica', 6.5)
+        c.setFillColor(PRIMARY_BLUE)
+        c.drawCentredString((issuer_line_x1 + issuer_line_x2) / 2.0, 38, 'Cryptographically Verifiable Credential')
 
         c.save()
         pdf_data = buffer.getvalue()

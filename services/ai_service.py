@@ -1349,19 +1349,36 @@ class AIService:
 
         if action == 'simplify':
             user_prompt = (
-                f"Explain the core concept of '{lesson_title}' in simple, intuitive terms suitable for a beginner "
-                f"with a clear real-world analogy.\n\nLesson Context:\n{context_text[:1400]}"
+                f"Explain the core concept of '{lesson_title}' in simple, intuitive terms suitable for an absolute beginner. "
+                f"Use a clear, relatable real-world analogy.\n\nLesson Context:\n{context_text[:1400]}"
+            )
+        elif action == 'real_world':
+            user_prompt = (
+                f"Provide 2 concrete, production real-world examples of how '{lesson_title}' is used by software engineers at modern tech companies. "
+                f"Explain why this concept matters in practical application.\n\nLesson Context:\n{context_text[:1400]}"
             )
         elif action == 'explain_code':
             user_prompt = (
-                f"Break down and explain the syntax, execution flow, best practices, and edge cases of the code in '{lesson_title}'.\n\n"
+                f"Break down the code and concepts in '{lesson_title}' line-by-line. "
+                f"Explain what each key statement does, common input/output behavior, and what to watch out for.\n\n"
                 f"Code/Notes Context:\n{context_text[:1400]}"
+            )
+        elif action == 'beginner_exercise':
+            user_prompt = (
+                f"Create a friendly, bite-sized beginner coding exercise for '{lesson_title}'. "
+                f"Provide: (1) Problem statement, (2) Starter code comment, (3) Expected output, and (4) A gentle hint. Do not reveal the full solution right away.\n\n"
+                f"Lesson Context:\n{context_text[:1400]}"
             )
         elif action == 'quiz_prep':
             user_prompt = (
-                f"Generate 3 rapid-fire self-check questions with answers and brief explanations for revision on '{lesson_title}'. "
-                "Include 1 conceptual, 1 code-analysis, and 1 trade-off question.\n\n"
+                f"Generate 3 rapid-fire self-check questions with multiple-choice options, correct answers, and brief explanations for revision on '{lesson_title}'. "
+                f"Include 1 conceptual, 1 code-analysis, and 1 practical question.\n\n"
                 f"Lesson Context:\n{context_text[:1400]}"
+            )
+        elif action == 'custom' or action == 'ask_question':
+            user_prompt = (
+                f"Answer the student's question regarding '{lesson_title}' concisely and clearly for a learner.\n\n"
+                f"Question / Context:\n{context_text[:1400]}"
             )
         else:  # summarize
             user_prompt = (
@@ -1378,11 +1395,17 @@ class AIService:
         if action == 'simplify':
             fallback = (
                 f"### Simplified Concept: {lesson_title}\n\n"
-                f"**The Big Idea:** Think of this concept like an everyday system where inputs reliably produce structured outcomes. "
+                f"**The Big Idea:** Think of this concept like an everyday automated recipe where inputs produce predictable, structured results. "
                 f"In software engineering, breaking difficult topics down into smaller steps is key.\n\n"
-                f"- **Step 1:** Understand the foundational data/operation.\n"
+                f"- **Step 1:** Understand the foundational data or state being handled.\n"
                 f"- **Step 2:** Observe how control flow or functions manipulate that state.\n"
-                f"- **Step 3:** Apply the pattern to your own code challenges."
+                f"- **Step 3:** Apply the pattern to your own practical challenges."
+            )
+        elif action == 'real_world':
+            fallback = (
+                f"### Real-World Engineering Applications: {lesson_title}\n\n"
+                f"1. **Backend API Data Validation:** Modern web frameworks use this construct to ensure incoming requests meet strict schema requirements before touching a database.\n"
+                f"2. **State Management & Pipelines:** Distributed systems rely on this logic to route messages, transform incoming payloads, and handle failure gracefully without crashing services."
             )
         elif action == 'explain_code':
             fallback = (
@@ -1390,6 +1413,13 @@ class AIService:
                 f"1. **Syntax Definition:** Functions and constructs declare clear parameters and return predictable values.\n"
                 f"2. **Execution Flow:** Code runs sequentially from top to bottom, evaluating conditions and expressions.\n"
                 f"3. **Best Practice:** Keep functions modular, write descriptive variable names, and handle boundary conditions gracefully."
+            )
+        elif action == 'beginner_exercise':
+            fallback = (
+                f"### Beginner Exercise: {lesson_title}\n\n"
+                f"**Challenge:** Write a short routine that takes sample inputs and formats them according to the rules of {lesson_title}.\n\n"
+                f"```python\n# Starter Code\ndef practice_task():\n    # TODO: Implement your logic here\n    pass\n```\n\n"
+                f"**Hint:** Start by writing out the logic in plain English comments first!"
             )
         elif action == 'quiz_prep':
             fallback = (
@@ -1412,3 +1442,4 @@ class AIService:
             'is_fallback': True,
             'latency_ms': 0.0,
         }
+

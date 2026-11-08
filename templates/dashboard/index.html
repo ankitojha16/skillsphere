@@ -35,6 +35,41 @@
         </div>
     </div>
 
+    <!-- Prominent "Your Next Step" Hero Banner -->
+    {% if primary_next_step %}
+    <div class="custom-card p-4 mb-4" style="background: linear-gradient(135deg, rgba(37, 99, 166, 0.16) 0%, rgba(21, 54, 91, 0.22) 100%); border: 1px solid rgba(139, 188, 235, 0.35);">
+        <div class="row align-items-center g-3">
+            <div class="col-lg-8">
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-monospace small px-2 py-0.5">YOUR NEXT STEP</span>
+                    <span class="text-secondary small">{{ primary_next_step.course.title }}</span>
+                </div>
+                <h3 class="fw-bold text-white mb-2 d-flex align-items-center gap-2">
+                    <span>Resume: {{ primary_next_step.lesson.title }}</span>
+                </h3>
+                <div class="d-flex flex-wrap align-items-center gap-3 text-secondary small">
+                    <span>Course Progress: <strong class="text-white">{{ primary_next_step.progress.percentage }}%</strong></span>
+                    <span>•</span>
+                    <span>{{ primary_next_step.progress.completed }}/{{ primary_next_step.progress.total }} Lessons Completed</span>
+                    {% if primary_next_step.progress.percentage >= 85 %}
+                    <span>•</span>
+                    <span class="badge bg-success-subtle text-success border border-success-subtle">Ready for Certificate Assessment</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="col-lg-4 text-lg-end d-flex flex-wrap justify-content-lg-end gap-2">
+                <a href="{% url 'learning:lesson_detail' course_slug=primary_next_step.course.slug lesson_id=primary_next_step.lesson.id %}" class="btn btn-primary-custom py-2.5 px-4 d-inline-flex align-items-center gap-2 shadow-sm">
+                    <i data-lucide="play" style="width: 16px; height: 16px;"></i>
+                    <span class="fw-bold">Resume Lesson</span>
+                </a>
+                <a href="{% url 'courses:detail' slug=primary_next_step.course.slug %}" class="btn btn-secondary-custom py-2.5 px-3">
+                    <span>Course Hub</span>
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- AI Learning Summary Callout -->
     {% if ai_summary_points %}
     <div class="custom-card p-4 mb-4" style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(6, 182, 212, 0.05) 100%); border-color: rgba(139, 92, 246, 0.3);">
@@ -129,75 +164,192 @@
             </div>
         </div>
 
-        <!-- Continue Learning Quick Access -->
+        <!-- Enrolled Courses (Separated by In Progress & Completed) -->
         <div class="col-lg-5">
             <div class="custom-card h-100 p-4 d-flex flex-column">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5 class="fw-bold text-white mb-0 d-flex align-items-center gap-2">
                         <i data-lucide="play-circle" class="text-secondary-accent" style="width: 20px; height: 20px;"></i>
-                        <span>Continue Learning</span>
+                        <span>My Courses</span>
                     </h5>
                     <a href="{% url 'courses:my_learning' %}" class="small text-secondary hover-white">View All</a>
                 </div>
 
-                <div class="d-flex flex-column gap-3 flex-grow-1">
-                    {% for item in enrolled_courses_data %}
-                        <div class="p-3 rounded-3" style="background-color: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color);">
-                            <div class="d-flex align-items-center gap-3 mb-2">
-                                <img src="{{ item.course.get_thumbnail_url }}" alt="{{ item.course.title }}" class="rounded-2" style="width: 48px; height: 48px; object-fit: cover;">
-                                <div class="overflow-hidden me-auto">
-                                    <div class="text-white fw-bold text-truncate" style="font-size: 0.95rem;">
-                                        <a href="{% url 'courses:detail' slug=item.course.slug %}" class="text-white text-decoration-none">
-                                            {{ item.course.title }}
+                <!-- Course Category Tabs -->
+                <ul class="nav nav-pills nav-fill mb-3 p-1 rounded-2" style="background-color: rgba(255,255,255,0.03); border: 1px solid var(--border-color);" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active py-1.5 px-2 small text-light fw-semibold" id="tab-in-prog-btn" data-bs-toggle="tab" data-bs-target="#tab-in-prog" type="button" role="tab">
+                            In Progress ({{ in_progress_courses|length }})
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link py-1.5 px-2 small text-secondary fw-semibold" id="tab-comp-btn" data-bs-toggle="tab" data-bs-target="#tab-comp" type="button" role="tab">
+                            Completed ({{ completed_courses|length }})
+                        </button>
+                    </li>
+                </ul>
+
+                <div class="tab-content flex-grow-1">
+                    <!-- Tab: In Progress -->
+                    <div class="tab-pane fade show active" id="tab-in-prog" role="tabpanel">
+                        <div class="d-flex flex-column gap-3">
+                            {% for item in in_progress_courses %}
+                                <div class="p-3 rounded-3" style="background-color: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color);">
+                                    <div class="d-flex align-items-center gap-3 mb-2">
+                                        <img src="{{ item.course.get_thumbnail_url }}" alt="{{ item.course.title }}" class="rounded-2" style="width: 44px; height: 44px; object-fit: cover;">
+                                        <div class="overflow-hidden me-auto">
+                                            <div class="text-white fw-bold text-truncate" style="font-size: 0.95rem;">
+                                                <a href="{% url 'courses:detail' slug=item.course.slug %}" class="text-white text-decoration-none">
+                                                    {{ item.course.title }}
+                                                </a>
+                                            </div>
+                                            <div class="text-muted small text-truncate">{{ item.course.instructor_name }}</div>
+                                        </div>
+                                        <div>
+                                            <span class="fw-bold text-white small">{{ item.progress.percentage }}%</span>
+                                            {% if item.progress.is_unlocked %}
+                                                <span class="badge bg-success-subtle text-success border border-success-subtle ms-1" style="font-size: 0.65rem;">Exam Unlocked</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+
+                                    <div class="custom-progress mb-2">
+                                        <div class="custom-progress-bar" style="width: {{ item.progress.percentage }}%;"></div>
+                                    </div>
+
+                                    <div class="d-flex justify-content-between align-items-center pt-1">
+                                        <span class="text-muted small">
+                                            {{ item.progress.completed }}/{{ item.progress.total|default:item.course.total_lessons_count }} lessons
+                                        </span>
+                                        {% if item.next_lesson %}
+                                            <a href="{% url 'learning:lesson_detail' course_slug=item.course.slug lesson_id=item.next_lesson.id %}" class="btn btn-primary-custom btn-sm py-1 px-3">
+                                                <span>Continue</span>
+                                                <i data-lucide="arrow-right" style="width: 14px; height: 14px;"></i>
+                                            </a>
+                                        {% else %}
+                                            <a href="{% url 'courses:detail' slug=item.course.slug %}" class="btn btn-secondary-custom btn-sm py-1 px-3">
+                                                <span>Course Page</span>
+                                            </a>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% empty %}
+                                <div class="text-center py-4 my-auto">
+                                    <i data-lucide="book-open" class="text-muted mx-auto mb-2" style="width: 32px; height: 32px;"></i>
+                                    <div class="text-white fw-medium mb-1">No active courses in progress</div>
+                                    <p class="text-secondary small mb-3">Enroll in a course to start your learning journey.</p>
+                                    <a href="{% url 'courses:list' %}" class="btn btn-primary-custom btn-sm">Explore Courses</a>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Tab: Completed -->
+                    <div class="tab-pane fade" id="tab-comp" role="tabpanel">
+                        <div class="d-flex flex-column gap-3">
+                            {% for item in completed_courses %}
+                                <div class="p-3 rounded-3" style="background-color: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color);">
+                                    <div class="d-flex align-items-center gap-3 mb-2">
+                                        <img src="{{ item.course.get_thumbnail_url }}" alt="{{ item.course.title }}" class="rounded-2" style="width: 44px; height: 44px; object-fit: cover;">
+                                        <div class="overflow-hidden me-auto">
+                                            <div class="text-white fw-bold text-truncate" style="font-size: 0.95rem;">
+                                                <a href="{% url 'courses:detail' slug=item.course.slug %}" class="text-white text-decoration-none">
+                                                    {{ item.course.title }}
+                                                </a>
+                                            </div>
+                                            <div class="text-muted small text-truncate">{{ item.course.instructor_name }}</div>
+                                        </div>
+                                        <div>
+                                            <span class="badge bg-warning text-dark font-monospace" style="font-size: 0.72rem;">🎓 Certified</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="d-flex justify-content-between align-items-center pt-1 border-top" style="border-color: rgba(255,255,255,0.05) !important;">
+                                        <span class="text-muted small">
+                                            {{ item.progress.completed }}/{{ item.progress.total }} lessons completed
+                                        </span>
+                                        <a href="{% url 'courses:detail' slug=item.course.slug %}" class="btn btn-secondary-custom btn-sm py-1 px-3">
+                                            <span>Review Syllabus</span>
+                                            <i data-lucide="check-circle" style="width: 13px; height: 13px;"></i>
                                         </a>
                                     </div>
-                                    <div class="text-muted small text-truncate">{{ item.course.instructor_name }}</div>
                                 </div>
-                                <div>
-                                    <span class="fw-bold text-white small">{{ item.progress.percentage }}%</span>
-                                    {% if item.progress.is_completed %}
-                                        <span class="badge bg-warning text-dark ms-1" style="font-size: 0.65rem;">🎓 Certified</span>
-                                    {% elif item.progress.is_unlocked %}
-                                        <span class="badge bg-success-subtle text-success border border-success-subtle ms-1" style="font-size: 0.65rem;">Unlocked</span>
-                                    {% endif %}
+                            {% empty %}
+                                <div class="text-center py-4 my-auto">
+                                    <i data-lucide="award" class="text-muted mx-auto mb-2" style="width: 32px; height: 32px;"></i>
+                                    <div class="text-white fw-medium mb-1">No completed courses yet</div>
+                                    <p class="text-secondary small mb-0">Reach 85% lessons progress and pass final exams to complete courses!</p>
                                 </div>
-                            </div>
-
-                            <div class="custom-progress mb-2">
-                                <div class="custom-progress-bar" style="width: {{ item.progress.percentage }}%;"></div>
-                            </div>
-
-                            <div class="d-flex justify-content-between align-items-center pt-1">
-                                <span class="text-muted small">
-                                    {{ item.progress.completed }}/{{ item.progress.total|default:item.course.total_lessons_count }} lessons
-                                    {% if item.progress.exercises_total > 0 %}
-                                        • {{ item.progress.exercises_completed }}/{{ item.progress.exercises_total }} challenges
-                                    {% endif %}
-                                </span>
-                                {% if item.progress.is_completed %}
-                                    <a href="{% url 'courses:detail' slug=item.course.slug %}" class="btn btn-secondary-custom btn-sm py-1 px-3" style="font-size: 0.8rem;">
-                                        <span>Review Course</span>
-                                        <i data-lucide="check-circle" style="width: 13px; height: 13px;"></i>
-                                    </a>
-                                {% elif item.next_lesson %}
-                                    <a href="{% url 'learning:lesson_detail' course_slug=item.course.slug lesson_id=item.next_lesson.id %}" class="btn btn-primary-custom btn-sm py-1 px-3">
-                                        <span>Continue Learning</span>
-                                        <i data-lucide="arrow-right" style="width: 14px; height: 14px;"></i>
-                                    </a>
-                                {% endif %}
-                            </div>
+                            {% endfor %}
                         </div>
-                    {% empty %}
-                        <div class="text-center py-4 my-auto">
-                            <i data-lucide="book-plus" class="text-muted mx-auto mb-2" style="width: 36px; height: 36px;"></i>
-                            <div class="text-white fw-medium mb-1">No enrolled courses yet</div>
-                            <p class="text-secondary small mb-3">Enroll in your first course to track progress.</p>
-                            <a href="{% url 'courses:list' %}" class="btn btn-primary-custom btn-sm">Explore Courses</a>
-                        </div>
-                    {% endfor %}
+                    </div>
                 </div>
             </div>
         </div>
+    </div>
+
+    <!-- Dedicated Earned Certificates Section -->
+    <div class="custom-card p-4 mb-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 pb-2 border-bottom" style="border-color: var(--border-color) !important;">
+            <div>
+                <h4 class="fw-bold text-white mb-0 d-flex align-items-center gap-2">
+                    <i data-lucide="award" class="text-warning" style="width: 22px; height: 22px;"></i>
+                    <span>Earned Certificates</span>
+                    <span class="badge bg-warning bg-opacity-10 text-warning border border-warning-subtle small font-monospace">{{ user_certificates_count }}</span>
+                </h4>
+                <p class="text-secondary small mb-0">Official verified SkillSphere credentials of completion with verifiable QR codes.</p>
+            </div>
+            <a href="{% url 'certificates:center' %}" class="btn btn-secondary-custom btn-sm py-1.5 px-3">
+                <span>Certificate Centre</span>
+                <i data-lucide="chevron-right" style="width: 14px; height: 14px;"></i>
+            </a>
+        </div>
+
+        {% if user_certificates %}
+            <div class="row g-3">
+                {% for cert in user_certificates %}
+                    <div class="col-md-6 col-xl-4">
+                        <div class="p-3 rounded-3 h-100 d-flex flex-column justify-content-between border" style="background: linear-gradient(135deg, rgba(21, 54, 91, 0.25) 0%, rgba(37, 99, 166, 0.12) 100%); border-color: rgba(139, 188, 235, 0.3) !important;">
+                            <div>
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle small">
+                                        <i data-lucide="check-circle" style="width: 12px; height: 12px;"></i> Verified
+                                    </span>
+                                    <span class="font-monospace text-muted small" style="font-size: 0.72rem;">{{ cert.certificate_id }}</span>
+                                </div>
+                                <h5 class="fw-bold text-white mb-1" style="font-size: 1.05rem;">{{ cert.title }}</h5>
+                                <div class="text-secondary small mb-3">
+                                    Issued to <strong>{{ cert.recipient_name }}</strong> on {{ cert.issued_at|date:"M d, Y" }}
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center gap-2 pt-2 border-top" style="border-color: rgba(255,255,255,0.06) !important;">
+                                <a href="{% url 'certificates:download' pk=cert.pk %}" class="btn btn-primary-custom btn-sm py-1.5 px-3 flex-grow-1 text-center d-inline-flex align-items-center justify-content-center gap-1.5">
+                                    <i data-lucide="download" style="width: 14px; height: 14px;"></i>
+                                    <span>Download PDF</span>
+                                </a>
+                                <a href="{% url 'certificates:verify' certificate_id=cert.certificate_id %}" target="_blank" class="btn btn-secondary-custom btn-sm py-1.5 px-2.5" title="Verify Certificate Publicly">
+                                    <i data-lucide="external-link" style="width: 14px; height: 14px;"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="p-4 rounded-3 text-center border" style="background-color: rgba(255,255,255,0.015); border-color: var(--border-color) !important;">
+                <div class="p-3 rounded-circle bg-dark d-inline-flex align-items-center justify-content-center text-warning mb-2 border border-secondary-subtle">
+                    <i data-lucide="award" style="width: 28px; height: 28px;"></i>
+                </div>
+                <h5 class="fw-bold text-white mb-1">No Certificates Earned Yet</h5>
+                <p class="text-secondary small mb-3" style="max-width: 520px; margin: 0 auto;">
+                    SkillSphere certificates are awarded when you reach <strong>85% mandatory lesson progress</strong> and pass the final examination with <strong>70%+</strong>. Practical coding exercises are 100% optional!
+                </p>
+                <a href="{% url 'courses:list' %}" class="btn btn-primary-custom btn-sm py-2 px-3">
+                    <i data-lucide="compass" style="width: 14px; height: 14px;"></i>
+                    <span>Browse Courses & Start Learning</span>
+                </a>
+            </div>
+        {% endif %}
     </div>
 
     <!-- Phase 2: Active Roadmap & Upcoming Learning Tasks -->

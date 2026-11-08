@@ -23,9 +23,56 @@ from services.pdf_service import PDFService
 from services.ai_service import AIService
 from gamification.services import award_user_xp
 
+def get_lesson_knowledge_check(lesson):
+    """
+    Generates 3 structured, beginner-friendly conceptual check questions
+    tailored to the lesson with immediate feedback and explanations.
+    """
+    title = lesson.title
+    chapter = lesson.chapter_name or "Core Module"
+    return [
+        {
+            "id": 1,
+            "question": f"What is the foundational purpose of {title} in software development?",
+            "options": [
+                f"To structure logic, optimize execution, and make code maintainable and readable.",
+                f"To bypass automated unit tests and accelerate unverified deployments.",
+                f"To permanently convert high-level code into unreadable machine byte sequences.",
+                f"To eliminate the need for memory management and algorithmic thinking entirely."
+            ],
+            "correct_idx": 0,
+            "explanation": f"In {chapter}, understanding {title} provides the structural foundation for writing predictable, high-performance, and clean code."
+        },
+        {
+            "id": 2,
+            "question": f"Which of the following represents an industry best practice when implementing {title}?",
+            "options": [
+                "Hardcoding arbitrary values without documenting edge cases or assumptions.",
+                "Writing modular, self-documenting code with clear variable names and boundary checks.",
+                "Writing the entire solution inside a single global variable without functions.",
+                "Ignoring error messages and suppress compiler/runtime warnings."
+            ],
+            "correct_idx": 1,
+            "explanation": "Industry-grade code prioritizes modularity, descriptive naming, and defensive error handling to prevent runtime regressions."
+        },
+        {
+            "id": 3,
+            "question": f"What is a common pitfall beginners should actively avoid when working with {title}?",
+            "options": [
+                "Testing their logic against small, incremental example inputs first.",
+                "Breaking down complex requirements into simpler sub-tasks.",
+                "Assuming code works without verifying edge cases, boundary conditions, or null states.",
+                "Reading the official documentation and study notes carefully before writing code."
+            ],
+            "correct_idx": 2,
+            "explanation": "Beginners frequently skip boundary testing. Always verify edge cases (zero, empty inputs, or out-of-range bounds) before marking a module complete."
+        }
+    ]
+
 @login_required
 def lesson_view(request, course_slug, lesson_id):
     course = get_object_or_404(Course, slug=course_slug, is_published=True)
+
 
     # Permission check: Student must be enrolled
     is_enrolled = Enrollment.objects.filter(user=request.user, course=course).exists()
@@ -142,6 +189,7 @@ def lesson_view(request, course_slug, lesson_id):
         'exercises_data': exercises_data,
         'final_quiz': final_quiz,
         'final_mock': final_mock,
+        'knowledge_check': get_lesson_knowledge_check(lesson),
     }
 
     return render(request, 'learning/lesson.html', context)
@@ -431,10 +479,15 @@ def ai_notes_assist_api(request, course_slug, lesson_id):
     try:
         body = json.loads(request.body) if request.body else request.POST
         action = body.get('action', 'summarize')
+        custom_question = body.get('question', '').strip()
     except Exception:
         action = request.POST.get('action', 'summarize')
+        custom_question = request.POST.get('question', '').strip()
 
     context_text = f"Title: {lesson.title}\nTakeaways: {lesson.key_takeaways}\nContent:\n{lesson.content}"
+    if custom_question:
+        context_text = f"Student Question: {custom_question}\n\nLesson Context:\n" + context_text
+
     result = AIService.assist_study_notes(action=action, lesson_title=lesson.title, context_text=context_text)
 
     return JsonResponse({

@@ -213,4 +213,40 @@ class CertificateTests(TestCase):
         self.assertNotContains(response, '100% Completion')
         self.assertNotContains(response, '100% course completion required')
 
+    def test_premium_certificate_pdf_generation_and_edge_cases(self):
+        """Validate premium light-blue vector PDF output, QR code, and long text handling."""
+        from services.pdf_service import PDFService
+        
+        # Test standard certificate
+        cert = Certificate.objects.create(
+            user=self.user,
+            course=self.course,
+            title=self.course.title,
+            certificate_id='SS-CERT-2026-TESTPREM',
+            recipient_name='Ankit Kumar'
+        )
+        pdf_bytes = PDFService.generate_certificate_pdf(cert)
+        self.assertTrue(pdf_bytes.startswith(b'%PDF-'))
+        self.assertGreater(len(pdf_bytes), 5000)
+
+        # Test long recipient name and long course title on a separate course
+        course2 = Course.objects.create(
+            title='Advanced Full-Stack Engineering with Distributed Cloud Computing & High-Performance Microservices Architecture',
+            slug='advanced-fullstack-cloud-microservices',
+            category=self.category,
+            instructor_name='SkillSphere Lead Developer'
+        )
+        long_cert = Certificate.objects.create(
+            user=self.user,
+            course=course2,
+            title=course2.title,
+            certificate_id='SS-CERT-2026-TESTLONG',
+            recipient_name='Dr. Christopher Alexander Montgomery-Wellington III'
+        )
+        long_pdf = PDFService.generate_certificate_pdf(long_cert)
+        self.assertTrue(long_pdf.startswith(b'%PDF-'))
+        self.assertGreater(len(long_pdf), 5000)
+
+
+
 

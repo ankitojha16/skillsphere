@@ -133,135 +133,116 @@
                 </div>
             </div>
 
-            <!-- Workspace Tabs: Video, Notes, Practice, AI Assistant -->
+            <!-- Workspace Tabs: Learn (Default), Study Notes, Practice (Optional), AI Assistant -->
             <ul class="nav nav-pills custom-nav-pills gap-2 mb-3" id="workspaceTabs" role="tablist">
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link {% if lesson.video_url %}active{% endif %} py-2 px-3 fw-bold small" id="video-tab" data-bs-toggle="pill" data-bs-target="#tab-video" type="button" role="tab">
-                        <i data-lucide="video" style="width: 15px; height: 15px; margin-right: 4px;"></i>
-                        <span>Video Lesson</span>
+                    <button class="nav-link active py-2 px-3 fw-bold small" id="learn-tab" data-bs-toggle="pill" data-bs-target="#tab-learn" type="button" role="tab">
+                        <i data-lucide="book-open-check" style="width: 15px; height: 15px; margin-right: 4px;"></i>
+                        <span>Learn</span>
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link {% if not lesson.video_url %}active{% endif %} py-2 px-3 fw-bold small" id="notes-tab" data-bs-toggle="pill" data-bs-target="#tab-notes" type="button" role="tab">
-                        <i data-lucide="book-open" style="width: 15px; height: 15px; margin-right: 4px;"></i>
+                    <button class="nav-link py-2 px-3 fw-bold small" id="notes-tab" data-bs-toggle="pill" data-bs-target="#tab-notes" type="button" role="tab">
+                        <i data-lucide="file-text" style="width: 15px; height: 15px; margin-right: 4px;"></i>
                         <span>Study Notes</span>
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
                     <button class="nav-link py-2 px-3 fw-bold small" id="practice-tab" data-bs-toggle="pill" data-bs-target="#tab-practice" type="button" role="tab">
                         <i data-lucide="terminal" style="width: 15px; height: 15px; margin-right: 4px;"></i>
-                        <span>Practice & Code</span>
-                        {% if exercises_data %}
-                        <span class="badge bg-primary-subtle text-primary ms-1" style="font-size: 0.7rem;">{{ exercises_data|length }}</span>
-                        {% endif %}
+                        <span>Practice</span>
+                        <span class="badge bg-secondary-subtle text-muted ms-1" style="font-size: 0.65rem;">Optional</span>
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
                     <button class="nav-link py-2 px-3 fw-bold small" id="ai-tab" data-bs-toggle="pill" data-bs-target="#tab-ai" type="button" role="tab">
                         <i data-lucide="sparkles" style="width: 15px; height: 15px; margin-right: 4px;"></i>
-                        <span>AI Notes Assistant</span>
+                        <span>AI Assistant</span>
                     </button>
                 </li>
             </ul>
 
             <div class="tab-content" id="workspaceTabContent">
-                <!-- TAB 1: Video Player -->
-                <div class="tab-pane fade {% if lesson.video_url %}show active{% endif %}" id="tab-video" role="tabpanel">
-                    <div class="custom-card p-3 p-md-4 mb-3">
+                <!-- TAB 1: Learn (Default) -->
+                <div class="tab-pane fade show active" id="tab-learn" role="tabpanel">
+                    <div class="custom-card p-4 p-md-5 mb-3">
+                        <!-- Learning Objectives Banner -->
+                        <div class="p-3 rounded-3 mb-4 d-flex align-items-center gap-3" style="background: rgba(37, 99, 166, 0.08); border: 1px solid rgba(139, 188, 235, 0.25);">
+                            <div class="p-2 rounded-circle bg-primary text-white flex-shrink-0">
+                                <i data-lucide="target" style="width: 18px; height: 18px;"></i>
+                            </div>
+                            <div>
+                                <div class="fw-bold text-white small mb-0.5">Lesson Focus & Objectives</div>
+                                <div class="text-secondary small" style="font-size: 0.82rem;">
+                                    Master foundational concepts of <strong>{{ lesson.title }}</strong> through clear explanations, guided examples, and a quick self-check.
+                                </div>
+                            </div>
+                        </div>
+
                         {% if lesson.video_url %}
-                            <!-- Video Header Bar with YouTube Direct Link -->
-                            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2 pb-2 border-bottom" style="border-color: rgba(255,255,255,0.06) !important;">
-                                <div class="d-flex align-items-center gap-2">
-                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle d-inline-flex align-items-center gap-1">
-                                        <i data-lucide="play" style="width: 11px; height: 11px;"></i> Video Lecture
-                                    </span>
-                                    <span class="text-white small fw-bold">Lesson {{ lesson.lesson_order }}: {{ lesson.title }}</span>
-                                </div>
-                                <div class="d-flex align-items-center gap-2">
-                                    <!-- Direct YouTube link (Guaranteed fallback) -->
-                                    <a href="{{ lesson.video_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-danger btn-sm py-1 px-2.5 d-inline-flex align-items-center gap-1.5" title="Watch directly on YouTube in new tab">
-                                        <i data-lucide="external-link" style="width: 13px; height: 13px;"></i>
-                                        <span>Open on YouTube</span>
-                                    </a>
-                                </div>
-                            </div>
-
-                            <!-- Responsive Video Player Frame -->
-                            <div class="ratio ratio-16x9 rounded-3 overflow-hidden border mb-3 shadow-lg" style="border-color: var(--border-color) !important; background: #000;">
-                                {% if "youtube.com" in lesson.video_url or "youtu.be" in lesson.video_url %}
-                                    <iframe id="videoIframe"
-                                            src="{{ lesson.embed_video_url }}"
-                                            title="{{ lesson.title }}"
-                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                                            allowfullscreen
-                                            loading="lazy">
-                                    </iframe>
-                                {% else %}
-                                    <video id="html5VideoPlayer" controls class="w-100 h-100">
-                                        <source src="{{ lesson.video_url }}" type="video/mp4">
-                                        Your browser does not support HTML5 video streaming.
-                                    </video>
-                                {% endif %}
-                            </div>
-
-                            <!-- Video Attendance & Progress Controls -->
-                            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 p-3 rounded-2" style="background-color: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color);">
-                                <div class="d-flex align-items-center gap-2" id="videoStatusContainer">
-                                    {% if video_prog and video_prog.is_completed %}
-                                        <span class="badge bg-success-subtle text-success border border-success-subtle d-inline-flex align-items-center gap-1 px-2.5 py-1.5" id="videoAttendanceBadge">
-                                            <i data-lucide="check-circle-2" style="width: 14px; height: 14px;"></i>
-                                            <span>Video Attendance Verified</span>
+                            <!-- Video Lecture Section -->
+                            <div class="mb-4 pb-3 border-bottom" style="border-color: rgba(255,255,255,0.06) !important;">
+                                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2 pb-2">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle d-inline-flex align-items-center gap-1">
+                                            <i data-lucide="play" style="width: 11px; height: 11px;"></i> Video Lecture
                                         </span>
+                                        <span class="text-white small fw-bold">{{ lesson.title }}</span>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <a href="{{ lesson.video_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-danger btn-sm py-1 px-2.5 d-inline-flex align-items-center gap-1.5" title="Watch directly on YouTube in new tab">
+                                            <i data-lucide="external-link" style="width: 13px; height: 13px;"></i>
+                                            <span>Open on YouTube</span>
+                                        </a>
+                                    </div>
+                                </div>
+
+                                <div class="ratio ratio-16x9 rounded-3 overflow-hidden border mb-3 shadow-lg" style="border-color: var(--border-color) !important; background: #000;">
+                                    {% if "youtube.com" in lesson.video_url or "youtu.be" in lesson.video_url %}
+                                        <iframe id="videoIframe"
+                                                src="{{ lesson.embed_video_url }}"
+                                                title="{{ lesson.title }}"
+                                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                                allowfullscreen
+                                                loading="lazy">
+                                        </iframe>
                                     {% else %}
-                                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle d-inline-flex align-items-center gap-1 px-2.5 py-1.5" id="videoAttendanceBadge">
-                                            <i data-lucide="clock" style="width: 14px; height: 14px;"></i>
-                                            <span>Video In Progress (Tracked Server-Side)</span>
-                                        </span>
+                                        <video id="html5VideoPlayer" controls class="w-100 h-100">
+                                            <source src="{{ lesson.video_url }}" type="video/mp4">
+                                            Your browser does not support HTML5 video streaming.
+                                        </video>
                                     {% endif %}
                                 </div>
-                                <div class="d-flex align-items-center gap-2">
+
+                                <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 p-3 rounded-2" style="background-color: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color);">
+                                    <div class="d-flex align-items-center gap-2" id="videoStatusContainer">
+                                        {% if video_prog and video_prog.is_completed %}
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle d-inline-flex align-items-center gap-1 px-2.5 py-1.5" id="videoAttendanceBadge">
+                                                <i data-lucide="check-circle-2" style="width: 14px; height: 14px;"></i>
+                                                <span>Video Attendance Verified</span>
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle d-inline-flex align-items-center gap-1 px-2.5 py-1.5" id="videoAttendanceBadge">
+                                                <i data-lucide="clock" style="width: 14px; height: 14px;"></i>
+                                                <span>Video In Progress</span>
+                                            </span>
+                                        {% endif %}
+                                    </div>
                                     <button type="button" id="markVideoWatchedBtn" class="btn btn-outline-success btn-sm py-1.5 px-3 d-inline-flex align-items-center gap-1.5" {% if video_prog and video_prog.is_completed %}disabled{% endif %}>
                                         <i data-lucide="check" style="width: 14px; height: 14px;"></i>
                                         <span id="markVideoWatchedText">{% if video_prog and video_prog.is_completed %}Watched{% else %}Mark Video as Watched{% endif %}</span>
                                     </button>
                                 </div>
                             </div>
-
-                            <div class="small text-muted mt-2 pt-2 border-top d-flex align-items-center gap-1.5" style="border-color: rgba(255,255,255,0.05) !important; font-size: 0.76rem;">
-                                <i data-lucide="shield-alert" class="text-warning flex-shrink-0" style="width: 13px; height: 13px;"></i>
-                                <span>If your browser extensions or ad-blockers prevent playback, click <strong>Open on YouTube</strong> above, then mark as watched.</span>
-                            </div>
-                        {% else %}
-                            <div class="text-center py-5">
-                                <i data-lucide="book-open" class="text-muted mx-auto mb-3" style="width: 48px; height: 48px;"></i>
-                                <h5 class="fw-bold text-white mb-2">Written Deep-Dive Lesson</h5>
-                                <p class="text-secondary small mb-3" style="max-width: 520px; margin: 0 auto;">
-                                    This lesson is designed as an in-depth reading, conceptual explanation, and code practice module. Explore the detailed notes below.
-                                </p>
-                                <button type="button" class="btn btn-primary-custom btn-sm py-1.5 px-3" onclick="document.getElementById('notes-tab').click();">
-                                    <span>Read Study Notes</span>
-                                    <i data-lucide="arrow-right" style="width: 14px; height: 14px;"></i>
-                                </button>
-                            </div>
                         {% endif %}
-                    </div>
-                </div>
 
-                <!-- TAB 2: Study Notes -->
-                <div class="tab-pane fade {% if not lesson.video_url %}show active{% endif %}" id="tab-notes" role="tabpanel">
-                    <div class="custom-card p-4 p-md-5 mb-3">
-                        <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom" style="border-color: var(--border-color) !important;">
-                            <h4 class="fw-bold text-white mb-0">Detailed Technical Notes</h4>
-                            <button type="button" class="btn btn-secondary-custom btn-sm py-1 px-3" onclick="copyAllNotes();" id="copyNotesBtn">
-                                <i data-lucide="copy" style="width: 14px; height: 14px;"></i>
-                                <span>Copy Notes</span>
-                            </button>
+                        <!-- Main Lesson Reading & Explanation Content -->
+                        <div class="mb-4">
+                            <h4 class="fw-bold text-white mb-3">Core Explanation & Concepts</h4>
+                            <article class="lesson-formatted-content text-light mb-4" id="mainNotesArticle" style="line-height: 1.8; font-size: 1.02rem;">
+                                {{ lesson.content|safe }}
+                            </article>
                         </div>
-
-                        <!-- Main Rich Text Content -->
-                        <article class="lesson-formatted-content text-light mb-4" id="mainNotesArticle" style="line-height: 1.8; font-size: 1.02rem;">
-                            {{ lesson.content|safe }}
-                        </article>
 
                         <!-- Key Takeaways Callout Box -->
                         {% if lesson.key_takeaways %}
@@ -289,29 +270,130 @@
                         </div>
                         {% endif %}
 
-                        <!-- Personal Student Scratchpad Notes -->
-                        <div class="mt-4 pt-3 border-top" style="border-color: var(--border-color) !important;">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="fw-bold text-white small d-flex align-items-center gap-2">
-                                    <i data-lucide="edit-3" class="text-warning" style="width: 16px; height: 16px;"></i>
-                                    <span>My Personal Study Notes</span>
-                                </span>
-                                <span class="text-muted small" id="noteSaveIndicator" style="font-size: 0.75rem;">Auto-saves on typing</span>
+                        <!-- Step 2: Interactive Knowledge Check -->
+                        <div class="p-4 rounded-3 mb-4 border" style="background: linear-gradient(135deg, rgba(37, 99, 166, 0.08) 0%, rgba(139, 188, 235, 0.04) 100%); border-color: rgba(139, 188, 235, 0.25) !important;">
+                            <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom" style="border-color: rgba(255,255,255,0.06) !important;">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i data-lucide="help-circle" class="text-info" style="width: 20px; height: 20px;"></i>
+                                    <h5 class="fw-bold text-white mb-0">Step 2: Quick Knowledge Check</h5>
+                                </div>
+                                <span class="badge bg-info-subtle text-info border border-info-subtle small">Instant Feedback</span>
                             </div>
-                            <textarea id="studentNoteArea" class="form-control text-light" rows="3" placeholder="Type personal key observations, questions, or code snippets here..." style="background-color: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); font-size: 0.9rem;">{{ student_note_content }}</textarea>
+                            <p class="text-secondary small mb-3">Answer these short conceptual questions to reinforce your understanding. Instant feedback and explanations will appear immediately.</p>
+
+                            <div class="d-flex flex-column gap-3">
+                                {% for q in knowledge_check %}
+                                    <div class="p-3 rounded-2 border" id="kc-question-{{ q.id }}" style="background-color: rgba(255,255,255,0.02); border-color: var(--border-color) !important;">
+                                        <div class="fw-semibold text-white small mb-2 d-flex align-items-start gap-2">
+                                            <span class="badge bg-secondary-subtle text-light">{{ forloop.counter }}</span>
+                                            <span>{{ q.question }}</span>
+                                        </div>
+                                        <div class="d-flex flex-column gap-2 ps-4">
+                                            {% for opt in q.options %}
+                                                <button type="button" class="btn btn-outline-secondary btn-sm text-start py-2 px-3 kc-option-btn transition-all"
+                                                        onclick="checkAnswer({{ q.id }}, {{ forloop.counter0 }}, {{ q.correct_idx }}, '{{ q.explanation|escapejs }}')">
+                                                    <span class="text-light small">{{ opt }}</span>
+                                                </button>
+                                            {% endfor %}
+                                        </div>
+                                        <div id="kc-explanation-{{ q.id }}" class="ps-4" style="display: none;"></div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <!-- Step 4: Primary Action Bar (Mark Lesson Complete) -->
+                        <div class="p-4 rounded-3 text-center border" style="background-color: rgba(255, 255, 255, 0.02); border-color: var(--border-color) !important;">
+                            <div class="fw-bold text-white mb-1">Ready for the Next Step?</div>
+                            <p class="text-secondary small mb-3" style="max-width: 480px; margin: 0 auto;">
+                                Mark this lesson complete to record your academic progress and advance your certificate eligibility.
+                            </p>
+                            <div class="d-flex justify-content-center gap-2">
+                                <form id="completeToggleFormTab" action="{% url 'learning:complete_toggle' course_slug=course.slug lesson_id=lesson.id %}" method="post" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="button" class="btn {% if current_is_completed %}btn-success-custom{% else %}btn-primary-custom{% endif %} py-2 px-4 d-inline-flex align-items-center gap-2" id="completeBtnTab" onclick="document.getElementById('completeBtn').click();">
+                                        <i data-lucide="{% if current_is_completed %}check-circle-2{% else %}circle{% endif %}" style="width: 18px; height: 18px;"></i>
+                                        <span id="completeBtnTabText">{% if current_is_completed %}Lesson Completed ✓{% else %}Mark Lesson Complete{% endif %}</span>
+                                    </button>
+                                </form>
+                                {% if next_lesson %}
+                                    <a href="{% url 'learning:lesson_detail' course_slug=course.slug lesson_id=next_lesson.id %}" class="btn btn-secondary-custom py-2 px-3 d-inline-flex align-items-center gap-1.5">
+                                        <span>Next Lesson</span>
+                                        <i data-lucide="arrow-right" style="width: 16px; height: 16px;"></i>
+                                    </a>
+                                {% endif %}
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- TAB 3: Practical Coding Exercises -->
+                <!-- TAB 2: Study Notes -->
+                <div class="tab-pane fade" id="tab-notes" role="tabpanel">
+                    <div class="custom-card p-4 p-md-5 mb-3">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4 pb-2 border-bottom" style="border-color: var(--border-color) !important;">
+                            <div>
+                                <h4 class="fw-bold text-white mb-0">Academic Study Guide & Notes</h4>
+                                <p class="text-secondary small mb-0">High-yield revision materials, cheat sheets, and downloadable academic PDF.</p>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <a href="{% url 'learning:download_notes_pdf' course_slug=course.slug lesson_id=lesson.id %}" class="btn btn-primary-custom btn-sm py-1.5 px-3 d-inline-flex align-items-center gap-1.5">
+                                    <i data-lucide="download" style="width: 14px; height: 14px;"></i>
+                                    <span>Download Academic PDF</span>
+                                </a>
+                                <button type="button" class="btn btn-secondary-custom btn-sm py-1.5 px-3" onclick="copyAllNotes();" id="copyNotesBtn">
+                                    <i data-lucide="copy" style="width: 14px; height: 14px;"></i>
+                                    <span>Copy Notes</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Technical Deep-Dive Notes -->
+                        <div class="p-3 rounded-3 mb-4" style="background-color: rgba(255,255,255,0.02); border: 1px solid var(--border-color);">
+                            <h5 class="fw-bold text-white small mb-2 d-flex align-items-center gap-2">
+                                <i data-lucide="file-text" class="text-primary-accent" style="width: 16px; height: 16px;"></i>
+                                <span>Academic Courseware Summary: {{ lesson.title }}</span>
+                            </h5>
+                            <div class="text-secondary small" style="line-height: 1.7;">
+                                This study guide compiles structured syntax rules, execution semantics, and production interview patterns. Use the button above to generate a verified, publication-grade academic PDF booklet complete with truth tables, flowcharts, and multi-tier challenges.
+                            </div>
+                        </div>
+
+                        <!-- Student Personal Scratchpad Notes -->
+                        <div class="mt-4 pt-3 border-top" style="border-color: var(--border-color) !important;">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="fw-bold text-white small d-flex align-items-center gap-2">
+                                    <i data-lucide="edit-3" class="text-warning" style="width: 16px; height: 16px;"></i>
+                                    <span>My Personal Study Scratchpad</span>
+                                </span>
+                                <span class="text-muted small" id="noteSaveIndicator" style="font-size: 0.75rem;">Auto-saves on typing</span>
+                            </div>
+                            <textarea id="studentNoteArea" class="form-control text-light" rows="4" placeholder="Type personal key observations, questions, or code snippets here..." style="background-color: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); font-size: 0.9rem;">{{ student_note_content }}</textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 3: Dedicated Practice & Code (Optional) -->
                 <div class="tab-pane fade" id="tab-practice" role="tabpanel">
                     <div class="custom-card p-4 p-md-5 mb-3">
-                        <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom" style="border-color: var(--border-color) !important;">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 pb-2 border-bottom" style="border-color: var(--border-color) !important;">
                             <div>
-                                <h4 class="fw-bold text-white mb-0">Practical Coding Challenges</h4>
-                                <p class="text-secondary small mb-0">Hands-on problems to verify your understanding before moving forward.</p>
+                                <h4 class="fw-bold text-white mb-0 d-flex align-items-center gap-2">
+                                    <span>Hands-On Practice Playground</span>
+                                    <span class="badge bg-secondary-subtle text-muted" style="font-size: 0.7rem;">Optional</span>
+                                </h4>
+                                <p class="text-secondary small mb-0">Build coding muscle memory with practical challenges. Never blocks certificate eligibility.</p>
                             </div>
-                            <span class="badge bg-dark border text-secondary font-monospace">{{ exercises_data|length }} Exercises</span>
+                            <span class="badge bg-dark border text-secondary font-monospace">{{ exercises_data|length }} Exercises Available</span>
+                        </div>
+
+                        <!-- Optional Clarification Banner -->
+                        <div class="p-3 rounded-3 mb-4 d-flex align-items-center gap-3" style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25);">
+                            <div class="p-2 rounded-circle bg-success text-white flex-shrink-0">
+                                <i data-lucide="info" style="width: 18px; height: 18px;"></i>
+                            </div>
+                            <div class="text-light small" style="font-size: 0.82rem;">
+                                <strong>Beginner Note:</strong> These coding exercises are 100% optional! You can solve as many as you wish to test your practical skills. They do not prevent you from unlocking assessments or earning your certificate.
+                            </div>
                         </div>
 
                         {% if exercises_data %}
@@ -319,7 +401,19 @@
                                 {% for ex_item in exercises_data %}
                                     <div class="p-4 rounded-3 border" style="border-color: var(--border-color) !important; background-color: rgba(255, 255, 255, 0.02);">
                                         <div class="d-flex justify-content-between align-items-start mb-2">
-                                            <h5 class="fw-bold text-white mb-1">#{{ ex_item.exercise.order }}: {{ ex_item.exercise.title }}</h5>
+                                            <div>
+                                                <div class="d-flex align-items-center gap-2 mb-1">
+                                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle small">Challenge #{{ ex_item.exercise.order }}</span>
+                                                    {% if forloop.first %}
+                                                        <span class="badge bg-success-subtle text-success small">Beginner</span>
+                                                    {% elif forloop.last %}
+                                                        <span class="badge bg-danger-subtle text-danger small">Advanced</span>
+                                                    {% else %}
+                                                        <span class="badge bg-warning-subtle text-warning small">Intermediate</span>
+                                                    {% endif %}
+                                                </div>
+                                                <h5 class="fw-bold text-white mb-0">{{ ex_item.exercise.title }}</h5>
+                                            </div>
                                             {% if ex_item.is_passed %}
                                                 <span class="badge bg-success-subtle text-success border border-success-subtle small"><i data-lucide="check-circle" style="width: 12px; height: 12px;"></i> Solved</span>
                                             {% else %}
@@ -332,11 +426,11 @@
 
                                         {% if ex_item.exercise.expected_output %}
                                         <div class="p-2.5 rounded-2 mb-3 small font-monospace" style="background-color: rgba(0,0,0,0.3); border: 1px solid var(--border-color);">
-                                            <span class="text-muted">Expected Key Output:</span> <span class="text-info">{{ ex_item.exercise.expected_output }}</span>
+                                            <span class="text-muted">Expected Output:</span> <span class="text-info">{{ ex_item.exercise.expected_output }}</span>
                                         </div>
                                         {% endif %}
 
-                                        <!-- Code Submission Form -->
+                                        <!-- Code Submission Form (Empty editor by default for unattempted challenges) -->
                                         <form class="exercise-form" data-exercise-id="{{ ex_item.exercise.id }}" action="{% url 'learning:exercise_submit' course_slug=course.slug lesson_id=lesson.id exercise_id=ex_item.exercise.id %}">
                                             {% csrf_token %}
                                             <div class="mb-3">
@@ -360,8 +454,8 @@
                                                         <span>Clear</span>
                                                     </button>
                                                     <button type="submit" class="btn btn-primary-custom btn-sm py-1.5 px-3">
-                                                        <i data-lucide="check" style="width: 14px; height: 14px;"></i>
-                                                        <span>Submit & Verify</span>
+                                                        <i data-lucide="play" style="width: 14px; height: 14px;"></i>
+                                                        <span>Run & Verify</span>
                                                     </button>
                                                 </div>
                                             </div>
@@ -373,47 +467,61 @@
                         {% else %}
                             <div class="text-center py-4 text-muted">
                                 <i data-lucide="code" class="mx-auto mb-2" style="width: 36px; height: 36px;"></i>
-                                <p class="small mb-0">Conceptual lesson. No interactive code submissions required for this topic.</p>
+                                <p class="small mb-0">No interactive coding challenge required for this foundational topic. Continue learning in the Learn tab.</p>
                             </div>
                         {% endif %}
                     </div>
                 </div>
 
-                <!-- TAB 4: AI Notes Assistant -->
+                <!-- TAB 4: AI Study Assistant -->
                 <div class="tab-pane fade" id="tab-ai" role="tabpanel">
                     <div class="custom-card p-4 p-md-5 mb-3">
                         <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom" style="border-color: var(--border-color) !important;">
                             <div>
                                 <h4 class="fw-bold text-white mb-0 d-flex align-items-center gap-2">
                                     <i data-lucide="sparkles" class="text-primary-accent" style="width: 20px; height: 20px;"></i>
-                                    <span>AI Study Notes Assistant</span>
+                                    <span>AI Study Assistant</span>
                                 </h4>
-                                <p class="text-secondary small mb-0">Ask AI to simplify concepts, explain code snippets, or generate rapid revision points.</p>
+                                <p class="text-secondary small mb-0">Ask questions, simplify concepts, or get real-world examples for <strong>{{ lesson.title }}</strong>.</p>
                             </div>
                             <span class="badge bg-secondary-subtle text-secondary border small">SkillSphere AI Engine</span>
                         </div>
 
-                        <!-- Prompt Action Chips -->
+                        <!-- 5 Quick Action Prompt Chips -->
                         <div class="d-flex flex-wrap gap-2 mb-4">
                             <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill text-light ai-action-btn" data-action="simplify">
-                                💡 Simplify Concept
+                                💡 Explain this topic simply
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill text-light ai-action-btn" data-action="real_world">
+                                🌐 Give me a real-world example
                             </button>
                             <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill text-light ai-action-btn" data-action="explain_code">
-                                🔍 Explain Code Step-by-Step
+                                🔍 Explain this code line by line
                             </button>
-                            <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill text-light ai-action-btn" data-action="summarize">
-                                📝 Generate Revision Summary
+                            <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill text-light ai-action-btn" data-action="beginner_exercise">
+                                💻 Give me a beginner exercise
                             </button>
                             <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill text-light ai-action-btn" data-action="quiz_prep">
-                                🎯 Rapid Self-Check Quiz
+                                🎯 Test my understanding
                             </button>
                         </div>
+
+                        <!-- Custom Free-form Question Form -->
+                        <form id="aiCustomQuestionForm" class="mb-4">
+                            <div class="input-group">
+                                <input type="text" id="aiCustomInput" class="form-control text-light" placeholder="Ask any custom question about this lesson..." style="background-color: rgba(255,255,255,0.03); border: 1px solid var(--border-color);">
+                                <button type="submit" class="btn btn-primary-custom px-4 d-inline-flex align-items-center gap-1.5">
+                                    <i data-lucide="send" style="width: 14px; height: 14px;"></i>
+                                    <span>Ask AI</span>
+                                </button>
+                            </div>
+                        </form>
 
                         <!-- AI Response Box -->
                         <div id="aiResponseContainer" class="p-4 rounded-3 border" style="border-color: var(--border-color) !important; background-color: rgba(255, 255, 255, 0.02); min-height: 200px;">
                             <div id="aiPlaceholder" class="text-center py-4 text-secondary small">
                                 <i data-lucide="bot" class="text-muted mx-auto mb-2" style="width: 36px; height: 36px;"></i>
-                                <p class="mb-0">Click any action above to generate customized pedagogical assistance for <strong>{{ lesson.title }}</strong>.</p>
+                                <p class="mb-0">Click any prompt above or type your question to receive targeted guidance for <strong>{{ lesson.title }}</strong>.</p>
                             </div>
                             <div id="aiLoading" class="text-center py-4 text-secondary small" style="display: none;">
                                 <div class="spinner-border text-primary spinner-border-sm mb-2" role="status"></div>
@@ -931,45 +1039,94 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // 5. AI Study Assistant Action Chips
+    // 5. AI Study Assistant Action Chips & Custom Question Form
+    async function requestAiAssistant(action, questionText = '') {
+        const placeholder = document.getElementById('aiPlaceholder');
+        const loading = document.getElementById('aiLoading');
+        const result = document.getElementById('aiResult');
+        const resultText = document.getElementById('aiResultText');
+        const badge = document.getElementById('aiProviderBadge');
+
+        placeholder.style.display = 'none';
+        result.style.display = 'none';
+        loading.style.display = 'block';
+
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        const url = "{% url 'learning:ai_notes_assist' course_slug=course.slug lesson_id=lesson.id %}";
+
+        try {
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ action: action, question: questionText })
+            });
+            const data = await res.json();
+            loading.style.display = 'none';
+            result.style.display = 'block';
+            resultText.innerHTML = (data.text || '').replace(/\n/g, '<br/>');
+            if (badge) badge.textContent = data.provider_label || 'SkillSphere AI Engine';
+            if (window.lucide) lucide.createIcons();
+        } catch (e) {
+            loading.style.display = 'none';
+            placeholder.style.display = 'block';
+        }
+    }
+
     document.querySelectorAll('.ai-action-btn').forEach(btn => {
-        btn.addEventListener('click', async () => {
-            const action = btn.dataset.action;
-            const placeholder = document.getElementById('aiPlaceholder');
-            const loading = document.getElementById('aiLoading');
-            const result = document.getElementById('aiResult');
-            const resultText = document.getElementById('aiResultText');
-            const badge = document.getElementById('aiProviderBadge');
-
-            placeholder.style.display = 'none';
-            result.style.display = 'none';
-            loading.style.display = 'block';
-
-            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-            const url = "{% url 'learning:ai_notes_assist' course_slug=course.slug lesson_id=lesson.id %}";
-
-            try {
-                const res = await fetch(url, {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRFToken': csrfToken,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ action: action })
-                });
-                const data = await res.json();
-                loading.style.display = 'none';
-                result.style.display = 'block';
-                resultText.innerHTML = data.text.replace(/\n/g, '<br/>');
-                badge.textContent = data.provider_label || 'SkillSphere AI Engine';
-                lucide.createIcons();
-            } catch (e) {
-                loading.style.display = 'none';
-                placeholder.style.display = 'block';
-            }
+        btn.addEventListener('click', () => {
+            requestAiAssistant(btn.dataset.action);
         });
     });
+
+    const aiCustomForm = document.getElementById('aiCustomQuestionForm');
+    if (aiCustomForm) {
+        aiCustomForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const input = document.getElementById('aiCustomInput');
+            const val = input ? input.value.trim() : '';
+            if (!val) return;
+            requestAiAssistant('custom', val);
+        });
+    }
 });
+
+// Interactive Knowledge Check Evaluator
+function checkAnswer(qId, selectedIdx, correctIdx, explanation) {
+    const qContainer = document.getElementById(`kc-question-${qId}`);
+    if (!qContainer) return;
+
+    const buttons = qContainer.querySelectorAll('.kc-option-btn');
+    buttons.forEach((btn, idx) => {
+        btn.disabled = true;
+        btn.classList.remove('btn-outline-secondary');
+        if (idx === correctIdx) {
+            btn.classList.add('btn-success', 'text-white', 'border-success');
+            btn.innerHTML = `<span class="small font-monospace me-1">✓</span> ` + btn.innerHTML;
+        } else if (idx === selectedIdx && selectedIdx !== correctIdx) {
+            btn.classList.add('btn-danger', 'text-white', 'border-danger');
+            btn.innerHTML = `<span class="small font-monospace me-1">✕</span> ` + btn.innerHTML;
+        } else {
+            btn.classList.add('opacity-50');
+        }
+    });
+
+    const expContainer = document.getElementById(`kc-explanation-${qId}`);
+    if (expContainer) {
+        const isCorrect = (selectedIdx === correctIdx);
+        expContainer.style.display = 'block';
+        expContainer.className = `mt-3 p-3 rounded-2 small ${isCorrect ? 'bg-success-subtle border border-success-subtle text-success' : 'bg-warning-subtle border border-warning-subtle text-warning'}`;
+        expContainer.innerHTML = `
+            <div class="d-flex align-items-start gap-2">
+                <span class="fw-bold">${isCorrect ? '✓ Correct!' : '💡 Explanation:'}</span>
+                <span>${explanation}</span>
+            </div>
+        `;
+    }
+    if (window.lucide) lucide.createIcons();
+}
 
 function copyAllNotes() {
     const article = document.getElementById('mainNotesArticle');
@@ -978,7 +1135,7 @@ function copyAllNotes() {
             const btn = document.getElementById('copyNotesBtn');
             const orig = btn.innerHTML;
             btn.innerHTML = '<span>Copied!</span>';
-            setTimeout(() => { btn.innerHTML = orig; lucide.createIcons(); }, 2000);
+            setTimeout(() => { btn.innerHTML = orig; if (window.lucide) lucide.createIcons(); }, 2000);
         });
     }
 }

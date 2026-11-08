@@ -11,6 +11,7 @@ from gamification.services import get_or_create_gamification
 from roadmaps.models import LearningRoadmap
 from assessments.models import SkillAssessment, AssessmentAttempt
 from projects.models import ProjectIdea
+from certificates.models import Certificate
 
 from django.db.models import Count, Avg, Q
 from django.db.models.functions import TruncDate
@@ -76,6 +77,19 @@ def dashboard_view(request):
                 'next_lesson': next_lesson,
                 'is_completed': prog['is_completed'],
             })
+
+    in_progress_courses = [c for c in enrolled_courses_data if not c['is_completed']]
+    completed_courses = [c for c in enrolled_courses_data if c['is_completed']]
+
+    primary_next_step = None
+    for item in in_progress_courses:
+        if item.get('next_lesson'):
+            primary_next_step = {
+                'course': item['course'],
+                'lesson': item['next_lesson'],
+                'progress': item['progress'],
+            }
+            break
 
     # 3. Completed Lessons total
     total_completed_lessons = LessonProgress.objects.filter(user=user, is_completed=True).count()
@@ -164,8 +178,12 @@ def dashboard_view(request):
     if total_completed_lessons > 0:
         ai_summary_points.append(f"📚 You have completed **{total_completed_lessons} lessons** across {total_enrolled} enrolled courses.")
     
-    if suggested_assessment:
-        ai_summary_points.append(f"🎯 Recommended next challenge: **{suggested_assessment.title}**.")
+    # 13. Earned Certificates
+    user_certificates = list(
+        Certificate.objects.filter(user=user, verification_status=True)
+        .select_related('course', 'course__category')
+        .order_by('-issued_at')
+    )
 
     context = {
         'student_profile': profile,
@@ -174,7 +192,12 @@ def dashboard_view(request):
         'completed_courses_count': completed_courses_count,
         'total_completed_lessons': total_completed_lessons,
         'overall_progress': overall_progress,
-        'enrolled_courses_data': enrolled_courses_data[:3],
+        'enrolled_courses_data': enrolled_courses_data,
+        'in_progress_courses': in_progress_courses,
+        'completed_courses': completed_courses,
+        'primary_next_step': primary_next_step,
+        'user_certificates': user_certificates,
+        'user_certificates_count': len(user_certificates),
         'active_goals': active_goals,
         'completed_goals_count': completed_goals_count,
         'total_goals_count': total_goals_count,
