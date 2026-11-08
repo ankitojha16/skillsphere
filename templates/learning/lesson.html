@@ -47,9 +47,9 @@
                     <div class="pt-1 mt-1 border-top" style="border-color: rgba(255,255,255,0.05) !important;">
                         <div id="sidebarExamBadge">
                             {% if progress_info.has_optional_assessments %}
-                                <span class="badge bg-info-subtle text-info border border-info-subtle w-100 py-1" style="font-size: 0.7rem;"><i data-lucide="help-circle" style="width: 11px; height: 11px;"></i> Optional Tests ({{ progress_info.optional_assessments_completed }}/{{ progress_info.optional_assessments_count }})</span>
+                                <span class="badge bg-info-subtle text-info border border-info-subtle w-100 py-1" style="font-size: 0.8rem;"><i data-lucide="help-circle" style="width: 13px; height: 13px;"></i> Optional Tests ({{ progress_info.optional_assessments_completed }}/{{ progress_info.optional_assessments_count }})</span>
                             {% else %}
-                                <span class="badge bg-secondary-subtle text-muted border border-secondary-subtle w-100 py-1" style="font-size: 0.7rem;"><i data-lucide="video" style="width: 11px; height: 11px;"></i> Video Curriculum</span>
+                                <span class="badge bg-secondary border border-secondary text-secondary w-100 py-1" style="font-size: 0.8rem;"><i data-lucide="video" style="width: 13px; height: 13px;"></i> Video Curriculum</span>
                             {% endif %}
                         </div>
                     </div>
@@ -151,7 +151,7 @@
                     <button class="nav-link py-2 px-3 fw-bold small" id="practice-tab" data-bs-toggle="pill" data-bs-target="#tab-practice" type="button" role="tab">
                         <i data-lucide="terminal" style="width: 15px; height: 15px; margin-right: 4px;"></i>
                         <span>Practice</span>
-                        <span class="badge bg-secondary-subtle text-muted ms-1" style="font-size: 0.65rem;">Optional</span>
+                        <span class="badge bg-secondary text-secondary ms-1" style="font-size: 0.78rem;">Optional</span>
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
@@ -164,7 +164,7 @@
                     <button class="nav-link py-2 px-3 fw-bold small" id="tests-tab" data-bs-toggle="pill" data-bs-target="#tab-tests" type="button" role="tab">
                         <i data-lucide="clipboard-check" style="width: 15px; height: 15px; margin-right: 4px;"></i>
                         <span>Optional Tests</span>
-                        <span class="badge bg-secondary-subtle text-muted ms-1" style="font-size: 0.65rem;">Optional</span>
+                        <span class="badge bg-secondary text-secondary ms-1" style="font-size: 0.78rem;">Optional</span>
                     </button>
                 </li>
             </ul>
@@ -563,7 +563,7 @@
                                 <h4 class="fw-bold text-white mb-0 d-flex align-items-center gap-2">
                                     <i data-lucide="clipboard-check" class="text-primary-accent" style="width: 20px; height: 20px;"></i>
                                     <span>Optional Tests & Quizzes</span>
-                                    <span class="badge bg-secondary-subtle text-muted" style="font-size: 0.7rem;">Optional +20%</span>
+                                    <span class="badge bg-secondary text-secondary" style="font-size: 0.78rem;">Optional +20%</span>
                                 </h4>
                                 <p class="text-secondary small mb-0">Evaluate your understanding, earn extra course progress, and reinforce concepts. Never required for certification.</p>
                             </div>
@@ -601,13 +601,13 @@
                                                             Best: {{ item.best_score }}% (Pass: {{ item.passing_percentage }}%)
                                                         </span>
                                                     {% else %}
-                                                        <span class="badge bg-secondary-subtle text-muted border border-secondary-subtle small">Not Attempted</span>
+                                                        <span class="badge bg-secondary border border-secondary text-secondary small">Not Attempted</span>
                                                     {% endif %}
                                                 </div>
                                                 <h5 class="fw-bold text-white mb-2">{{ item.title }}</h5>
                                                 <p class="text-secondary small mb-3">Optional knowledge check. Pass to boost your course progress by up to +20%.</p>
 
-                                                <div class="d-flex flex-wrap gap-3 text-muted small mb-3" style="font-size: 0.78rem;">
+                                                <div class="d-flex flex-wrap gap-3 text-secondary small mb-3" style="font-size: 0.82rem;">
                                                     <span><i data-lucide="clock" style="width: 13px; height: 13px; margin-right: 4px;"></i>{{ item.duration_minutes }} mins</span>
                                                     <span><i data-lucide="target" style="width: 13px; height: 13px; margin-right: 4px;"></i>Pass: {{ item.passing_percentage }}%</span>
                                                     <span><i data-lucide="rotate-ccw" style="width: 13px; height: 13px; margin-right: 4px;"></i>Attempts: {{ item.attempts_count }}</span>
@@ -825,9 +825,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.has_optional_assessments) {
                 const comp = data.optional_assessments_completed !== undefined ? data.optional_assessments_completed : 0;
                 const tot = data.optional_assessments_count !== undefined ? data.optional_assessments_count : 0;
-                examBadge.innerHTML = `<span class="badge bg-info-subtle text-info border border-info-subtle w-100 py-1" style="font-size: 0.7rem;"><i data-lucide="help-circle" style="width: 11px; height: 11px;"></i> Optional Tests (${comp}/${tot})</span>`;
+                examBadge.innerHTML = `<span class="badge bg-info-subtle text-info border border-info-subtle w-100 py-1" style="font-size: 0.8rem;"><i data-lucide="help-circle" style="width: 13px; height: 13px;"></i> Optional Tests (${comp}/${tot})</span>`;
             } else {
-                examBadge.innerHTML = '<span class="badge bg-secondary-subtle text-muted border border-secondary-subtle w-100 py-1" style="font-size: 0.7rem;"><i data-lucide="video" style="width: 11px; height: 11px;"></i> Video Curriculum</span>';
+                examBadge.innerHTML = '<span class="badge bg-secondary border border-secondary text-secondary w-100 py-1" style="font-size: 0.8rem;"><i data-lucide="video" style="width: 13px; height: 13px;"></i> Video Curriculum</span>';
             }
         }
 

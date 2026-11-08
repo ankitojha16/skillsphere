@@ -110,7 +110,7 @@
                     </div>
                     <div>
                         <h6 class="fw-bold text-white mb-0">{{ current_conv.title }}</h6>
-                        <span class="badge-category" style="font-size: 0.65rem;">Mode: {{ current_conv.get_mode_display }}</span>
+                        <span class="badge-category" style="font-size: 0.78rem;">Mode: {{ current_conv.get_mode_display }}</span>
                     </div>
                 </div>
 
@@ -196,18 +196,18 @@
                             <div class="p-3 rounded-3 {% if msg.role == 'user' %}bg-primary text-white{% else %}custom-card text-light{% endif %}" 
                                  style="max-width: 80%; {% if msg.role == 'user' %}background: var(--primary-gradient) !important;{% endif %}">
                                 <div class="d-flex justify-content-between align-items-center mb-1 gap-2">
-                                    <div class="small text-muted" style="font-size: 0.7rem; color: {% if msg.role == 'user' %}rgba(255,255,255,0.7){% else %}var(--text-muted){% endif %} !important;">
+                                    <div class="small text-secondary" style="font-size: 0.82rem; color: {% if msg.role == 'user' %}rgba(255,255,255,0.85){% else %}var(--text-secondary){% endif %} !important;">
                                         {{ msg.role|title }} • {{ msg.created_at|date:"H:i" }}
                                     </div>
                                     {% if msg.role == 'assistant' %}
                                     <div class="d-flex align-items-center gap-1">
                                         {% if not msg.is_fallback %}
-                                        <span class="badge bg-purple px-1.5 py-0.5" style="font-size: 0.65rem;"><i data-lucide="sparkles" style="width: 10px; height: 10px;" class="me-1"></i>{{ msg.provider|upper }}</span>
+                                        <span class="badge bg-purple px-1.5 py-0.5" style="font-size: 0.78rem;"><i data-lucide="sparkles" style="width: 12px; height: 12px;" class="me-1"></i>{{ msg.provider|upper }}</span>
                                         {% else %}
-                                        <span class="badge bg-secondary px-1.5 py-0.5" style="font-size: 0.65rem;"><i data-lucide="info" style="width: 10px; height: 10px;" class="me-1"></i>Offline Engine</span>
+                                        <span class="badge bg-secondary px-1.5 py-0.5" style="font-size: 0.78rem;"><i data-lucide="info" style="width: 12px; height: 12px;" class="me-1"></i>Offline Engine</span>
                                         {% endif %}
                                         <button type="button" class="btn btn-link text-secondary p-0 ms-1 copy-msg-btn" title="Copy response">
-                                            <i data-lucide="copy" style="width: 12px; height: 12px;"></i>
+                                            <i data-lucide="copy" style="width: 14px; height: 14px;"></i>
                                         </button>
                                     </div>
                                     {% endif %}
@@ -243,10 +243,10 @@
                     
                     <!-- Response Mode Radio Pills -->
                     <div class="d-flex align-items-center gap-2 mb-2 overflow-x-auto pb-1">
-                        <span class="text-muted small me-1" style="font-size: 0.75rem;">Mode:</span>
+                        <span class="text-secondary small me-1" style="font-size: 0.82rem;">Mode:</span>
                         {% for mode_val, mode_label in mode_choices %}
                             <input type="radio" class="btn-check" name="mode" id="mode_{{ mode_val }}" value="{{ mode_val }}" {% if current_conv.mode == mode_val %}checked{% endif %}>
-                            <label class="btn btn-outline-secondary btn-sm py-0 px-2 rounded-pill text-light border-secondary-subtle" for="mode_{{ mode_val }}" style="font-size: 0.75rem;">
+                            <label class="btn btn-outline-secondary btn-sm py-0.5 px-2.5 rounded-pill text-light border-secondary-subtle" for="mode_{{ mode_val }}" style="font-size: 0.82rem;">
                                 {{ mode_label }}
                             </label>
                         {% endfor %}
@@ -369,7 +369,7 @@ document.addEventListener('DOMContentLoaded', () => {
             userBubble.className = 'd-flex gap-3 justify-content-end';
             userBubble.innerHTML = `
                 <div class="p-3 rounded-3 bg-primary text-white" style="max-width: 80%; background: var(--primary-gradient) !important;">
-                    <div class="small text-muted mb-1" style="font-size: 0.7rem; color: rgba(255,255,255,0.7) !important;">You • Just now</div>
+                    <div class="small text-secondary mb-1" style="font-size: 0.82rem; color: rgba(255,255,255,0.85) !important;">You • Just now</div>
                     <div class="message-content" style="line-height: 1.7;">${question.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
                 </div>
             `;
@@ -400,8 +400,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     aiBubble.className = 'd-flex gap-3 assistant-bubble';
                     
                     const badgeHtml = !data.is_fallback
-                        ? `<span class="badge bg-purple px-1.5 py-0.5" style="font-size: 0.65rem;"><i data-lucide="sparkles" style="width: 10px; height: 10px;" class="me-1"></i>${(data.provider || 'GEMINI').toUpperCase()}</span>`
-                        : `<span class="badge bg-secondary px-1.5 py-0.5" style="font-size: 0.65rem;"><i data-lucide="info" style="width: 10px; height: 10px;" class="me-1"></i>Offline Engine</span>`;
+                        ? `<span class="badge bg-purple px-1.5 py-0.5" style="font-size: 0.78rem;"><i data-lucide="sparkles" style="width: 12px; height: 12px;" class="me-1"></i>${(data.provider || 'GEMINI').toUpperCase()}</span>`
+                        : `<span class="badge bg-secondary px-1.5 py-0.5" style="font-size: 0.78rem;"><i data-lucide="info" style="width: 12px; height: 12px;" class="me-1"></i>Offline Engine</span>`;
 
                     const sanitizedContent = renderSafeMarkdown(data.ai_message);
 
@@ -411,7 +411,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                         <div class="p-3 rounded-3 custom-card text-light" style="max-width: 80%;">
                             <div class="d-flex justify-content-between align-items-center mb-1 gap-2">
-                                <div class="small text-muted" style="font-size: 0.7rem; color: var(--text-muted) !important;">SkillSphere AI • ${data.created_at || 'Just now'}</div>
+                                <div class="small text-secondary" style="font-size: 0.82rem; color: var(--text-secondary) !important;">SkillSphere AI • ${data.created_at || 'Just now'}</div>
                                 <div class="d-flex align-items-center gap-1">
                                     ${badgeHtml}
                                     <button type="button" class="btn btn-link text-secondary p-0 ms-1 copy-msg-btn" title="Copy response">

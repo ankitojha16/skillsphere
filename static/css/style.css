@@ -3,57 +3,223 @@
    Theme: Dark Premium SaaS
    ======================================================== */
 
-:root {
+:root,
+[data-bs-theme="dark"] {
   --bg-primary: #0B1020;
   --bg-secondary: #10172A;
   --bg-card: #151F35;
   --bg-card-hover: #1E2B4A;
   --bg-card-secondary: #1B2942;
   --bg-input: #0E162B;
-  --border-color: #2D3D5A;
-  --border-light: #3E5278;
+  --border-color: #354663;
+  --border-light: #4A5E82;
   
-  --primary-accent: #8B5CF6;
-  --primary-accent-light: #A78BFA;
-  --primary-gradient: linear-gradient(135deg, #8B5CF6 0%, #6366F1 100%);
-  --secondary-accent: #06B6D4;
-  --secondary-gradient: linear-gradient(135deg, #06B6D4 0%, #3B82F6 100%);
-  --success: #22C55E;
-  --warning: #F59E0B;
-  --danger: #EF4444;
+  --primary-blue: #60A5FA;
+  --purple-accent: #A78BFA;
+  --primary-accent: #A78BFA;
+  --primary-accent-light: #C4B5FD;
+  --primary-gradient: linear-gradient(135deg, #60A5FA 0%, #A78BFA 100%);
+  --secondary-accent: #38BDF8;
+  --secondary-gradient: linear-gradient(135deg, #38BDF8 0%, #60A5FA 100%);
+  --success: #4ADE80;
+  --warning: #FBBF24;
+  --danger: #F87171;
+  --error: #F87171;
   
   --text-main: #F8FAFC;
   --text-secondary: #CBD5E1;
-  --text-muted: #94A3B8;
+  --text-muted: #A8B7CC;
   
+  /* Bootstrap 5 Native Theme Binding */
+  --bs-body-bg: #0B1020;
+  --bs-body-color: #F8FAFC;
+  --bs-secondary-color: #CBD5E1;
+  --bs-tertiary-color: #A8B7CC;
+  --bs-emphasis-color: #FFFFFF;
+  --bs-border-color: #354663;
+  --bs-border-color-translucent: rgba(53, 70, 99, 0.7);
+  --bs-card-bg: #151F35;
+  --bs-card-border-color: #354663;
+  --bs-card-color: #F8FAFC;
+  --bs-primary: #60A5FA;
+  --bs-primary-rgb: 96, 165, 250;
+  --bs-success: #4ADE80;
+  --bs-success-rgb: 74, 222, 128;
+  --bs-warning: #FBBF24;
+  --bs-warning-rgb: 251, 191, 36;
+  --bs-danger: #F87171;
+  --bs-danger-rgb: 248, 113, 113;
+  --bs-info: #38BDF8;
+  --bs-info-rgb: 56, 189, 248;
+  --bs-light: #F8FAFC;
+  --bs-light-rgb: 248, 250, 252;
+  --bs-dark: #151F35;
+  --bs-dark-rgb: 21, 31, 53;
+  --bs-link-color: #60A5FA;
+  --bs-link-hover-color: #93C5FD;
+
   --sidebar-width: 260px;
   --navbar-height: 70px;
   --transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* Accessible Text Selection Highlight */
+::selection {
+  background-color: rgba(96, 165, 250, 0.35) !important;
+  color: #F8FAFC !important;
+}
+::-moz-selection {
+  background-color: rgba(96, 165, 250, 0.35) !important;
+  color: #F8FAFC !important;
+}
+
 /* High Contrast & WCAG AA Accessibility Overrides */
+.text-main, .text-primary-text {
+  color: var(--text-main) !important;
+}
+
 .text-muted {
-  color: var(--text-muted) !important;
+  color: var(--text-muted) !important; /* #A8B7CC (8.1:1 AAA contrast) */
 }
 
 .text-secondary {
+  color: var(--text-secondary) !important; /* #CBD5E1 (11.2:1 AAA contrast) */
+}
+
+.text-body-secondary {
   color: var(--text-secondary) !important;
 }
 
-.badge.bg-dark {
-  background-color: #1E293B !important;
-  color: #E2E8F0 !important;
-  border-color: #334155 !important;
+.text-light {
+  color: var(--text-main) !important;
 }
 
+.text-white {
+  color: #FFFFFF !important;
+}
+
+/* Typography Scale Safeguards */
+small, .small {
+  font-size: 0.85rem !important; /* Minimum 13.6px for accessibility */
+  line-height: 1.5;
+}
+
+/* Accessible Badge Styles */
+.badge.bg-dark, .badge.text-bg-dark {
+  background-color: #1B2942 !important;
+  color: #F8FAFC !important;
+  border: 1px solid #354663 !important;
+}
+
+.badge.bg-secondary, .badge.text-bg-secondary {
+  background-color: #1B2942 !important;
+  color: #CBD5E1 !important;
+  border: 1px solid #354663 !important;
+}
+
+.badge.bg-success-subtle, .badge-subtle-success {
+  background-color: rgba(74, 222, 128, 0.16) !important;
+  color: #4ADE80 !important;
+  border: 1px solid rgba(74, 222, 128, 0.35) !important;
+}
+
+.badge.bg-warning-subtle, .badge-subtle-warning {
+  background-color: rgba(251, 191, 36, 0.16) !important;
+  color: #FBBF24 !important;
+  border: 1px solid rgba(251, 191, 36, 0.35) !important;
+}
+
+.badge.bg-danger-subtle, .badge-subtle-danger {
+  background-color: rgba(248, 113, 113, 0.16) !important;
+  color: #F87171 !important;
+  border: 1px solid rgba(248, 113, 113, 0.35) !important;
+}
+
+.badge.bg-info-subtle, .badge-subtle-info {
+  background-color: rgba(96, 165, 250, 0.16) !important;
+  color: #60A5FA !important;
+  border: 1px solid rgba(96, 165, 250, 0.35) !important;
+}
+
+.badge.bg-primary-subtle, .badge-subtle-primary {
+  background-color: rgba(167, 139, 250, 0.16) !important;
+  color: #A78BFA !important;
+  border: 1px solid rgba(167, 139, 250, 0.35) !important;
+}
+
+.badge.bg-warning.text-dark {
+  background-color: #FBBF24 !important;
+  color: #0B1020 !important;
+  font-weight: 700;
+}
+
+/* Form inputs & placeholders */
 textarea.form-control.font-monospace {
   background-color: #0A0F1D !important;
-  color: #F1F5F9 !important;
-  border-color: #2D3D5A !important;
+  color: #F8FAFC !important;
+  border-color: #354663 !important;
 }
-textarea.form-control.font-monospace::placeholder {
-  color: #64748B !important;
+textarea.form-control.font-monospace::placeholder,
+.form-control::placeholder {
+  color: #A8B7CC !important;
   opacity: 0.85;
+}
+
+/* Modals & Dropdowns */
+.dropdown-menu {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+.dropdown-item {
+  color: var(--text-secondary);
+}
+.dropdown-item:hover, .dropdown-item:focus {
+  background-color: var(--bg-card-secondary);
+  color: var(--text-main);
+}
+.modal-content {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+}
+.modal-header, .modal-footer {
+  border-color: var(--border-color) !important;
+}
+
+/* Tables & Accordions */
+.table {
+  color: var(--text-main);
+  border-color: var(--border-color);
+}
+.table th {
+  color: var(--text-secondary);
+  background-color: var(--bg-card-secondary);
+  border-bottom: 2px solid var(--border-color);
+}
+.table td {
+  color: var(--text-main);
+  border-color: var(--border-color);
+}
+.accordion-item {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+}
+.accordion-button {
+  background-color: var(--bg-card);
+  color: var(--text-main);
+  border-bottom: 1px solid var(--border-color);
+}
+.accordion-button:not(.collapsed) {
+  background-color: var(--bg-card-secondary);
+  color: var(--primary-accent-light);
+}
+
+/* Border utilities override */
+.border-secondary, .border-secondary-subtle {
+  border-color: var(--border-color) !important;
 }
 
 * {

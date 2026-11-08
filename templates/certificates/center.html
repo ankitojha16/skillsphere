@@ -153,8 +153,8 @@
                         <i data-lucide="award" style="width: 30px; height: 30px;"></i>
                     </div>
                     <h5 class="text-white mb-2">No Certificates Earned Yet</h5>
-                    <p class="text-secondary small mb-4" style="max-width: 480px; margin: 0 auto;">
-                        Complete at least 85% of mandatory course lessons and pass all applicable mandatory final assessments to earn your certificate.
+                    <p class="text-secondary small mb-4" style="max-width: 520px; margin: 0 auto; line-height: 1.6;">
+                        Complete 100% of mandatory video curriculum lessons for any course to instantly earn and claim your official verified certificate!
                     </p>
                     <a href="{% url 'courses:list' %}" class="btn btn-primary-custom py-2 px-4">
                         <i data-lucide="compass" style="width: 16px; height: 16px;"></i>
@@ -172,8 +172,8 @@
                 <i data-lucide="clock" style="width: 22px; height: 22px;" class="text-warning"></i>
                 Courses in Progress ({{ locked_courses|length }})
             </h4>
-            <p class="text-secondary small mb-4">
-                To unlock your certificate, each enrolled course requires: minimum 85% mandatory lesson progress, passing the Final Course Quiz (≥70%), and passing the Final Mock Test (≥70%). Optional exercises and assignments do not block certificate eligibility.
+            <p class="text-secondary small mb-4" style="line-height: 1.6;">
+                To unlock your certificate, complete 100% of the mandatory video curriculum lessons. Practice exercises and assessments are 100% optional extra credit and never block certificate eligibility!
             </p>
 
             <div class="row g-4">
@@ -219,7 +219,7 @@
                                             {% else %}
                                                 <i data-lucide="circle" class="text-muted" style="width: 16px; height: 16px;"></i>
                                             {% endif %}
-                                            <span>Practical Coding Exercises <span class="badge bg-secondary-subtle text-muted" style="font-size: 0.65rem;">Optional</span></span>
+                                            <span>Practical Coding Exercises <span class="badge bg-secondary text-secondary ms-1" style="font-size: 0.78rem;">Optional</span></span>
                                         </span>
                                         <span class="text-secondary">{{ item.progress.exercises_completed }}/{{ item.progress.exercises_total }} Solved</span>
                                     </div>
@@ -234,7 +234,7 @@
                                             {% else %}
                                                 <i data-lucide="circle" class="text-muted" style="width: 16px; height: 16px;"></i>
                                             {% endif %}
-                                            <span>Optional Tests & Quizzes <span class="badge bg-secondary-subtle text-muted" style="font-size: 0.65rem;">Optional</span></span>
+                                            <span>Optional Tests & Quizzes <span class="badge bg-secondary text-secondary ms-1" style="font-size: 0.78rem;">Optional</span></span>
                                         </span>
                                         <span class="text-secondary">{{ item.progress.optional_assessments_completed }}/{{ item.progress.optional_assessments_count }} Passed</span>
                                     </div>

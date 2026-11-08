@@ -72,23 +72,49 @@
                 <div class="row g-3">
                     {% for item in badges_data %}
                         <div class="col-sm-6">
-                            <div class="p-3 rounded-3 h-100 d-flex align-items-start gap-3 border"
-                                 style="background-color: {% if item.is_unlocked %}rgba(139, 92, 246, 0.08){% else %}rgba(255, 255, 255, 0.02){% endif %}; border-color: {% if item.is_unlocked %}rgba(139, 92, 246, 0.4){% else %}var(--border-color){% endif %} !important;">
-                                <div class="stat-icon {% if item.is_unlocked %}purple{% else %}bg-secondary bg-opacity-25 text-muted{% endif %}" style="width: 44px; height: 44px; flex-shrink: 0;">
-                                    <i data-lucide="{{ item.badge.icon }}" style="width: 22px; height: 22px;"></i>
-                                </div>
+                            <div class="p-3.5 rounded-3 h-100 d-flex flex-column justify-content-between border"
+                                 style="background-color: {% if item.is_unlocked %}rgba(167, 139, 250, 0.09){% else %}var(--bg-card-secondary){% endif %}; border-color: {% if item.is_unlocked %}rgba(167, 139, 250, 0.5){% else %}var(--border-color){% endif %} !important; box-shadow: {% if item.is_unlocked %}0 4px 20px rgba(167, 139, 250, 0.12){% else %}none{% endif %};">
                                 <div>
-                                    <div class="fw-bold {% if item.is_unlocked %}text-white{% else %}text-secondary{% endif %} small mb-1">
-                                        {{ item.badge.name }}
+                                    <div class="d-flex align-items-start gap-3 mb-2">
+                                        <div class="stat-icon flex-shrink-0" 
+                                             style="width: 46px; height: 46px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background-color: {% if item.is_unlocked %}rgba(167, 139, 250, 0.22){% else %}var(--bg-card){% endif %}; color: {% if item.is_unlocked %}#A78BFA{% else %}#A8B7CC{% endif %}; border: 1px solid {% if item.is_unlocked %}rgba(167, 139, 250, 0.45){% else %}var(--border-color){% endif %};">
+                                            <i data-lucide="{{ item.badge.icon }}" style="width: 22px; height: 22px;"></i>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                                <h6 class="fw-bold text-white mb-0" style="font-size: 1.02rem;">
+                                                    {{ item.badge.name }}
+                                                </h6>
+                                                {% if item.is_unlocked %}
+                                                    <span class="badge bg-success-subtle text-success px-2.5 py-1" style="font-size: 0.78rem; font-weight: 600;">
+                                                        <i data-lucide="check-circle-2" style="width: 12px; height: 12px;" class="me-1"></i>Unlocked
+                                                    </span>
+                                                {% else %}
+                                                    <span class="badge bg-dark border text-muted px-2.5 py-1" style="font-size: 0.78rem; font-weight: 600; border-color: var(--border-color) !important; color: #A8B7CC !important;">
+                                                        <i data-lucide="lock" style="width: 12px; height: 12px;" class="me-1"></i>Locked
+                                                    </span>
+                                                {% endif %}
+                                            </div>
+                                            <p class="{% if item.is_unlocked %}text-secondary{% else %}text-muted{% endif %} mb-0" style="font-size: 0.88rem; line-height: 1.5; color: {% if item.is_unlocked %}#CBD5E1{% else %}#A8B7CC{% endif %} !important;">
+                                                {{ item.badge.description }}
+                                            </p>
+                                        </div>
                                     </div>
-                                    <div class="text-muted small mb-2" style="font-size: 0.78rem;">
-                                        {{ item.badge.description }}
+                                </div>
+
+                                <!-- Progress Information -->
+                                <div class="mt-3 pt-2.5 border-top" style="border-color: {% if item.is_unlocked %}rgba(167, 139, 250, 0.25){% else %}var(--border-color){% endif %} !important;">
+                                    <div class="d-flex justify-content-between align-items-center mb-1.5">
+                                        <span class="text-secondary" style="font-size: 0.82rem; font-weight: 500;">
+                                            Progress: <strong class="text-white">{{ item.progress_label }}</strong>
+                                        </span>
+                                        <span class="{% if item.is_unlocked %}text-success fw-bold{% else %}text-muted{% endif %}" style="font-size: 0.82rem;">
+                                            {{ item.progress_pct }}%
+                                        </span>
                                     </div>
-                                    {% if item.is_unlocked %}
-                                        <span class="badge bg-success-subtle text-success small" style="font-size: 0.7rem;"><i data-lucide="check" style="width: 10px; height: 10px;"></i> Unlocked</span>
-                                    {% else %}
-                                        <span class="badge bg-dark border border-secondary-subtle text-muted small" style="font-size: 0.7rem;"><i data-lucide="lock" style="width: 10px; height: 10px;"></i> Locked</span>
-                                    {% endif %}
+                                    <div class="custom-progress" style="height: 6px; background-color: var(--bg-input);">
+                                        <div class="custom-progress-bar" style="width: {{ item.progress_pct }}%; background: {% if item.is_unlocked %}var(--primary-gradient){% else %}#60A5FA{% endif %};"></div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -101,33 +127,33 @@
         <div class="col-lg-4">
             <div class="custom-card p-4">
                 <h5 class="fw-bold text-white mb-3 d-flex align-items-center gap-2">
-                    <i data-lucide="zap" class="text-secondary-accent" style="width: 18px; height: 18px;"></i>
+                    <i data-lucide="zap" class="text-secondary-accent" style="width: 20px; height: 20px;"></i>
                     <span>How to Earn XP</span>
                 </h5>
                 <ul class="list-unstyled d-flex flex-column gap-3 mb-0">
-                    <li class="d-flex justify-content-between align-items-center text-secondary small pb-2 border-bottom" style="border-color: var(--border-color) !important;">
-                        <span>Complete a Lesson</span>
-                        <strong class="text-success">+25 XP</strong>
+                    <li class="d-flex justify-content-between align-items-center text-white pb-2.5 border-bottom" style="border-color: var(--border-color) !important; font-size: 0.925rem;">
+                        <span class="fw-medium">Complete a Lesson</span>
+                        <span class="badge font-monospace" style="background-color: rgba(74, 222, 128, 0.16); color: #4ADE80; border: 1px solid rgba(74, 222, 128, 0.35); font-size: 0.82rem; font-weight: 700;">+25 XP</span>
                     </li>
-                    <li class="d-flex justify-content-between align-items-center text-secondary small pb-2 border-bottom" style="border-color: var(--border-color) !important;">
-                        <span>Pass a Skill Assessment</span>
-                        <strong class="text-success">+50 XP</strong>
+                    <li class="d-flex justify-content-between align-items-center text-white pb-2.5 border-bottom" style="border-color: var(--border-color) !important; font-size: 0.925rem;">
+                        <span class="fw-medium">Pass a Skill Assessment</span>
+                        <span class="badge font-monospace" style="background-color: rgba(74, 222, 128, 0.16); color: #4ADE80; border: 1px solid rgba(74, 222, 128, 0.35); font-size: 0.82rem; font-weight: 700;">+50 XP</span>
                     </li>
-                    <li class="d-flex justify-content-between align-items-center text-secondary small pb-2 border-bottom" style="border-color: var(--border-color) !important;">
-                        <span>Complete Roadmap Milestone</span>
-                        <strong class="text-success">+40 XP</strong>
+                    <li class="d-flex justify-content-between align-items-center text-white pb-2.5 border-bottom" style="border-color: var(--border-color) !important; font-size: 0.925rem;">
+                        <span class="fw-medium">Complete Roadmap Milestone</span>
+                        <span class="badge font-monospace" style="background-color: rgba(74, 222, 128, 0.16); color: #4ADE80; border: 1px solid rgba(74, 222, 128, 0.35); font-size: 0.82rem; font-weight: 700;">+40 XP</span>
                     </li>
-                    <li class="d-flex justify-content-between align-items-center text-secondary small pb-2 border-bottom" style="border-color: var(--border-color) !important;">
-                        <span>Finish Technical Mock Interview</span>
-                        <strong class="text-success">+75 XP</strong>
+                    <li class="d-flex justify-content-between align-items-center text-white pb-2.5 border-bottom" style="border-color: var(--border-color) !important; font-size: 0.925rem;">
+                        <span class="fw-medium">Finish Technical Mock Interview</span>
+                        <span class="badge font-monospace" style="background-color: rgba(74, 222, 128, 0.16); color: #4ADE80; border: 1px solid rgba(74, 222, 128, 0.35); font-size: 0.82rem; font-weight: 700;">+75 XP</span>
                     </li>
-                    <li class="d-flex justify-content-between align-items-center text-secondary small pb-2 border-bottom" style="border-color: var(--border-color) !important;">
-                        <span>Complete Full Course</span>
-                        <strong class="text-success">+150 XP</strong>
+                    <li class="d-flex justify-content-between align-items-center text-white pb-2.5 border-bottom" style="border-color: var(--border-color) !important; font-size: 0.925rem;">
+                        <span class="fw-medium">Complete Full Course</span>
+                        <span class="badge font-monospace" style="background-color: rgba(74, 222, 128, 0.16); color: #4ADE80; border: 1px solid rgba(74, 222, 128, 0.35); font-size: 0.82rem; font-weight: 700;">+150 XP</span>
                     </li>
-                    <li class="d-flex justify-content-between align-items-center text-secondary small">
-                        <span>Save Practical Project Idea</span>
-                        <strong class="text-success">+20 XP</strong>
+                    <li class="d-flex justify-content-between align-items-center text-white" style="font-size: 0.925rem;">
+                        <span class="fw-medium">Save Practical Project Idea</span>
+                        <span class="badge font-monospace" style="background-color: rgba(74, 222, 128, 0.16); color: #4ADE80; border: 1px solid rgba(74, 222, 128, 0.35); font-size: 0.82rem; font-weight: 700;">+20 XP</span>
                     </li>
                 </ul>
             </div>

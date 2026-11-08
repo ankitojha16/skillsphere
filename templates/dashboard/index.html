@@ -208,9 +208,9 @@
                                         <div>
                                             <span class="fw-bold text-white small">{{ item.progress.percentage }}%</span>
                                             {% if item.progress.is_certificate_eligible %}
-                                                <span class="badge bg-success-subtle text-success border border-success-subtle ms-1" style="font-size: 0.65rem;">Certificate Ready</span>
+                                                <span class="badge bg-success-subtle text-success border border-success-subtle ms-1" style="font-size: 0.8rem; font-weight: 600;">Certificate Ready</span>
                                             {% elif item.progress.has_optional_assessments %}
-                                                <span class="badge bg-info-subtle text-info border border-info-subtle ms-1" style="font-size: 0.65rem;">Optional Tests</span>
+                                                <span class="badge bg-info-subtle text-info border border-info-subtle ms-1" style="font-size: 0.8rem; font-weight: 600;">Optional Tests</span>
                                             {% endif %}
                                         </div>
                                     </div>
@@ -220,7 +220,7 @@
                                     </div>
 
                                     <div class="d-flex justify-content-between align-items-center pt-1">
-                                        <span class="text-muted small">
+                                        <span class="text-secondary small">
                                             {{ item.progress.completed }}/{{ item.progress.total|default:item.course.total_lessons_count }} lessons
                                         </span>
                                         {% if item.next_lesson %}
@@ -237,7 +237,7 @@
                                 </div>
                             {% empty %}
                                 <div class="text-center py-4 my-auto">
-                                    <i data-lucide="book-open" class="text-muted mx-auto mb-2" style="width: 32px; height: 32px;"></i>
+                                    <i data-lucide="book-open" class="text-secondary mx-auto mb-2" style="width: 32px; height: 32px;"></i>
                                     <div class="text-white fw-medium mb-1">No active courses in progress</div>
                                     <p class="text-secondary small mb-3">Enroll in a course to start your learning journey.</p>
                                     <a href="{% url 'courses:list' %}" class="btn btn-primary-custom btn-sm">Explore Courses</a>
@@ -259,15 +259,15 @@
                                                     {{ item.course.title }}
                                                 </a>
                                             </div>
-                                            <div class="text-muted small text-truncate">{{ item.course.instructor_name }}</div>
+                                            <div class="text-secondary small text-truncate">{{ item.course.instructor_name }}</div>
                                         </div>
                                         <div>
-                                            <span class="badge bg-warning text-dark font-monospace" style="font-size: 0.72rem;">🎓 Certified</span>
+                                            <span class="badge bg-warning text-dark font-monospace" style="font-size: 0.82rem; font-weight: 700;">🎓 Certified</span>
                                         </div>
                                     </div>
 
                                     <div class="d-flex justify-content-between align-items-center pt-1 border-top" style="border-color: rgba(255,255,255,0.05) !important;">
-                                        <span class="text-muted small">
+                                        <span class="text-secondary small">
                                             {{ item.progress.completed }}/{{ item.progress.total }} lessons completed
                                         </span>
                                         <a href="{% url 'courses:detail' slug=item.course.slug %}" class="btn btn-secondary-custom btn-sm py-1 px-3">
@@ -278,9 +278,9 @@
                                 </div>
                             {% empty %}
                                 <div class="text-center py-4 my-auto">
-                                    <i data-lucide="award" class="text-muted mx-auto mb-2" style="width: 32px; height: 32px;"></i>
+                                    <i data-lucide="award" class="text-secondary mx-auto mb-2" style="width: 32px; height: 32px;"></i>
                                     <div class="text-white fw-medium mb-1">No completed courses yet</div>
-                                    <p class="text-secondary small mb-0">Reach 85% lessons progress and pass final exams to complete courses!</p>
+                                    <p class="text-secondary small mb-0">Complete all mandatory video lessons to finish courses and earn verified certificates!</p>
                                 </div>
                             {% endfor %}
                         </div>
@@ -314,14 +314,14 @@
                         <div class="p-3 rounded-3 h-100 d-flex flex-column justify-content-between border" style="background: linear-gradient(135deg, rgba(21, 54, 91, 0.25) 0%, rgba(37, 99, 166, 0.12) 100%); border-color: rgba(139, 188, 235, 0.3) !important;">
                             <div>
                                 <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <span class="badge bg-success-subtle text-success border border-success-subtle small">
-                                        <i data-lucide="check-circle" style="width: 12px; height: 12px;"></i> Verified
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle small px-2 py-1" style="font-size: 0.82rem; font-weight: 600;">
+                                        <i data-lucide="check-circle" style="width: 13px; height: 13px;"></i> Verified
                                     </span>
-                                    <span class="font-monospace text-muted small" style="font-size: 0.72rem;">{{ cert.certificate_id }}</span>
+                                    <span class="font-monospace text-secondary small" style="font-size: 0.82rem;">{{ cert.certificate_id }}</span>
                                 </div>
                                 <h5 class="fw-bold text-white mb-1" style="font-size: 1.05rem;">{{ cert.title }}</h5>
                                 <div class="text-secondary small mb-3">
-                                    Issued to <strong>{{ cert.recipient_name }}</strong> on {{ cert.issued_at|date:"M d, Y" }}
+                                    Issued to <strong class="text-white">{{ cert.recipient_name }}</strong> on {{ cert.issued_at|date:"M d, Y" }}
                                 </div>
                             </div>
                             <div class="d-flex align-items-center gap-2 pt-2 border-top" style="border-color: rgba(255,255,255,0.06) !important;">
@@ -333,25 +333,25 @@
                                     <i data-lucide="external-link" style="width: 14px; height: 14px;"></i>
                                 </a>
                             </div>
-                        </div>
-                    </div>
-                {% endfor %}
-            </div>
-        {% else %}
-            <div class="p-4 rounded-3 text-center border" style="background-color: rgba(255,255,255,0.015); border-color: var(--border-color) !important;">
-                <div class="p-3 rounded-circle bg-dark d-inline-flex align-items-center justify-content-center text-warning mb-2 border border-secondary-subtle">
-                    <i data-lucide="award" style="width: 28px; height: 28px;"></i>
-                </div>
-                <h5 class="fw-bold text-white mb-1">No Certificates Earned Yet</h5>
-                <p class="text-secondary small mb-3" style="max-width: 520px; margin: 0 auto;">
-                    SkillSphere certificates are awarded when you reach <strong>85% mandatory lesson progress</strong> and pass the final examination with <strong>70%+</strong>. Practical coding exercises are 100% optional!
-                </p>
-                <a href="{% url 'courses:list' %}" class="btn btn-primary-custom btn-sm py-2 px-3">
-                    <i data-lucide="compass" style="width: 14px; height: 14px;"></i>
-                    <span>Browse Courses & Start Learning</span>
-                </a>
-            </div>
-        {% endif %}
+                         </div>
+                     </div>
+                 {% endfor %}
+             </div>
+         {% else %}
+             <div class="p-4 rounded-3 text-center border" style="background-color: rgba(255,255,255,0.015); border-color: var(--border-color) !important;">
+                 <div class="p-3 rounded-circle bg-dark d-inline-flex align-items-center justify-content-center text-warning mb-2 border border-secondary-subtle">
+                     <i data-lucide="award" style="width: 28px; height: 28px;"></i>
+                 </div>
+                 <h5 class="fw-bold text-white mb-1">No Certificates Earned Yet</h5>
+                 <p class="text-secondary small mb-3" style="max-width: 540px; margin: 0 auto; line-height: 1.6;">
+                     SkillSphere certificates are awarded when you complete <strong>100% of mandatory video lessons</strong>. Optional assessments can boost your overall progress to 100%!
+                 </p>
+                 <a href="{% url 'courses:list' %}" class="btn btn-primary-custom btn-sm py-2 px-3">
+                     <i data-lucide="compass" style="width: 14px; height: 14px;"></i>
+                     <span>Browse Courses & Start Learning</span>
+                 </a>
+             </div>
+         {% endif %}
     </div>
 
     <!-- Phase 2: Active Roadmap & Upcoming Learning Tasks -->
@@ -381,11 +381,11 @@
                     </div>
 
                     <div class="d-flex flex-column gap-2">
-                        <div class="text-muted small fw-semibold text-uppercase" style="font-size: 0.7rem;">Upcoming Milestones</div>
+                        <div class="text-secondary small fw-semibold text-uppercase" style="font-size: 0.8rem; letter-spacing: 0.05em;">Upcoming Milestones</div>
                         {% for ms in pending_milestones %}
-                            <div class="p-2 px-3 rounded-2 d-flex justify-content-between align-items-center" style="background-color: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color);">
+                            <div class="p-2.5 px-3 rounded-2 d-flex justify-content-between align-items-center" style="background-color: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color);">
                                 <div class="text-white small fw-medium text-truncate me-2">{{ ms.title }}</div>
-                                <a href="{% url 'roadmaps:detail' roadmap_id=active_roadmap.id %}" class="btn btn-secondary-custom btn-sm py-0 px-2 small" style="font-size: 0.75rem;">
+                                <a href="{% url 'roadmaps:detail' roadmap_id=active_roadmap.id %}" class="btn btn-secondary-custom btn-sm py-1 px-2.5 small" style="font-size: 0.82rem;">
                                     View
                                 </a>
                             </div>
@@ -418,26 +418,26 @@
 
                 <div class="d-flex flex-column gap-2">
                     {% for course in recommended_courses %}
-                        <div class="p-2 px-3 rounded-2 d-flex justify-content-between align-items-center" style="background-color: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color);">
+                        <div class="p-2.5 px-3 rounded-2 d-flex justify-content-between align-items-center" style="background-color: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color);">
                             <div class="overflow-hidden me-2">
                                 <div class="text-white small fw-bold text-truncate">{{ course.title }}</div>
-                                <div class="text-muted small" style="font-size: 0.75rem;">{{ course.category.name }} • {{ course.estimated_duration }}</div>
+                                <div class="text-secondary small" style="font-size: 0.82rem;">{{ course.category.name }} • {{ course.estimated_duration }}</div>
                             </div>
-                            <a href="{% url 'courses:detail' slug=course.slug %}" class="btn btn-primary-custom btn-sm py-1 px-3 flex-shrink-0" style="font-size: 0.8rem;">
+                            <a href="{% url 'courses:detail' slug=course.slug %}" class="btn btn-primary-custom btn-sm py-1 px-3 flex-shrink-0" style="font-size: 0.82rem;">
                                 Enroll
                             </a>
                         </div>
                     {% empty %}
-                        <div class="text-center py-4 text-muted small">All current courses enrolled!</div>
+                        <div class="text-center py-4 text-secondary small">All current courses enrolled!</div>
                     {% endfor %}
 
                     {% if suggested_assessment %}
-                        <div class="p-2 px-3 rounded-2 mt-2 d-flex justify-content-between align-items-center" style="background-color: rgba(139, 92, 246, 0.08); border: 1px dashed rgba(139, 92, 246, 0.3);">
+                        <div class="p-2.5 px-3 rounded-2 mt-2 d-flex justify-content-between align-items-center" style="background-color: rgba(167, 139, 250, 0.08); border: 1px dashed rgba(167, 139, 250, 0.4);">
                             <div>
-                                <div class="text-muted small fw-bold text-uppercase" style="font-size: 0.68rem; color: var(--primary-accent-light) !important;">Skill Assessment Challenge</div>
+                                <div class="small fw-bold text-uppercase" style="font-size: 0.8rem; color: #A78BFA !important;">Skill Assessment Challenge</div>
                                 <div class="text-white small fw-bold">{{ suggested_assessment.title }}</div>
                             </div>
-                            <a href="{% url 'assessments:take' assessment_id=suggested_assessment.id %}" class="btn btn-secondary-custom btn-sm py-1 px-2 small">
+                            <a href="{% url 'assessments:take' assessment_id=suggested_assessment.id %}" class="btn btn-secondary-custom btn-sm py-1 px-2.5 small" style="font-size: 0.82rem;">
                                 Take Quiz
                             </a>
                         </div>
@@ -466,19 +466,19 @@
                             <div class="d-flex align-items-center gap-3">
                                 <form action="{% url 'goals:toggle' goal_id=goal.id %}" method="post" class="d-inline">
                                     {% csrf_token %}
-                                    <button type="submit" class="btn p-0 text-muted" title="Mark Done">
+                                    <button type="submit" class="btn p-0 text-secondary" title="Mark Done">
                                         <i data-lucide="circle" style="width: 18px; height: 18px;"></i>
                                     </button>
                                 </form>
                                 <div>
                                     <div class="text-white fw-medium">{{ goal.title }}</div>
-                                    <div class="text-muted small">Target: {{ goal.target_date|date:"M d, Y" }}</div>
+                                    <div class="text-secondary small">Target: {{ goal.target_date|date:"M d, Y" }}</div>
                                 </div>
                             </div>
                             {% if goal.is_overdue %}
-                                <span class="badge text-bg-danger small">Overdue</span>
+                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle small px-2 py-1" style="font-size: 0.8rem; font-weight: 600;">Overdue</span>
                             {% else %}
-                                <span class="badge text-bg-dark border border-secondary-subtle text-muted small">In Progress</span>
+                                <span class="badge bg-dark border text-secondary small px-2 py-1" style="font-size: 0.8rem; font-weight: 600; border-color: var(--border-color) !important;">In Progress</span>
                             {% endif %}
                         </div>
                     {% empty %}
@@ -507,11 +507,11 @@
                             </div>
                             <div class="flex-grow-1">
                                 <div class="text-white small fw-medium">{{ act.description }}</div>
-                                <div class="text-muted" style="font-size: 0.75rem;">{{ act.created_at|timesince }} ago</div>
+                                <div class="text-secondary" style="font-size: 0.82rem;">{{ act.created_at|timesince }} ago</div>
                             </div>
                         </div>
                     {% empty %}
-                        <div class="text-center py-4 text-muted small">
+                        <div class="text-center py-4 text-secondary small">
                             No recorded study activities yet. Complete lessons to build your timeline!
                         </div>
                     {% endfor %}

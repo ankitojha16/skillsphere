@@ -78,10 +78,10 @@
                         <!-- Topics Chips -->
                         {% if milestone.get_topics_list %}
                         <div class="mb-3">
-                            <div class="text-muted small fw-semibold text-uppercase mb-2" style="font-size: 0.7rem; letter-spacing: 0.05em;">Key Technical Topics</div>
+                            <div class="text-secondary small fw-semibold text-uppercase mb-2" style="font-size: 0.8rem; letter-spacing: 0.05em;">Key Technical Topics</div>
                             <div class="d-flex flex-wrap gap-2">
                                 {% for topic in milestone.get_topics_list %}
-                                    <span class="badge px-3 py-1 rounded-pill small" style="background-color: rgba(255, 255, 255, 0.05); color: #E2E8F0; border: 1px solid var(--border-color);">
+                                    <span class="badge px-3 py-1 rounded-pill small" style="background-color: var(--bg-card-secondary); color: var(--text-main); border: 1px solid var(--border-color); font-size: 0.82rem;">
                                         {{ topic }}
                                     </span>
                                 {% endfor %}
@@ -91,12 +91,12 @@
 
                         <!-- Mini Project Challenge -->
                         {% if milestone.mini_project %}
-                        <div class="p-3 rounded-3 d-flex align-items-center gap-3" style="background-color: rgba(139, 92, 246, 0.08); border: 1px dashed rgba(139, 92, 246, 0.3);">
+                        <div class="p-3 rounded-3 d-flex align-items-center gap-3" style="background-color: rgba(167, 139, 250, 0.08); border: 1px dashed rgba(167, 139, 250, 0.4);">
                             <div class="stat-icon purple" style="width: 36px; height: 36px; flex-shrink: 0;">
                                 <i data-lucide="code" style="width: 18px; height: 18px;"></i>
                             </div>
                             <div>
-                                <div class="text-muted small text-uppercase fw-bold" style="font-size: 0.68rem; color: var(--primary-accent-light) !important;">Practical Mini-Project Challenge</div>
+                                <div class="small text-uppercase fw-bold" style="font-size: 0.8rem; color: #A78BFA !important;">Practical Mini-Project Challenge</div>
                                 <div class="text-white fw-medium small">{{ milestone.mini_project }}</div>
                             </div>
                         </div>

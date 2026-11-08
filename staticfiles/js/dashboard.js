@@ -48,10 +48,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     display: false
                 },
                 tooltip: {
-                    backgroundColor: '#1E293B',
+                    backgroundColor: '#151F35',
                     titleColor: '#F8FAFC',
                     bodyColor: '#A78BFA',
-                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                    borderColor: '#354663',
                     borderWidth: 1,
                     padding: 12,
                     cornerRadius: 8,
@@ -69,10 +69,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         drawBorder: false,
                     },
                     ticks: {
-                        color: '#94A3B8',
+                        color: '#CBD5E1',
                         font: {
                             family: 'Inter',
-                            size: 12
+                            size: 12,
+                            weight: '500'
                         }
                     }
                 },
@@ -80,14 +81,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     beginAtZero: true,
                     ticks: {
                         stepSize: 1,
-                        color: '#64748B',
+                        color: '#A8B7CC',
                         font: {
                             family: 'Inter',
-                            size: 11
+                            size: 12,
+                            weight: '500'
                         }
                     },
                     grid: {
-                        color: 'rgba(255, 255, 255, 0.04)',
+                        color: 'rgba(53, 70, 99, 0.4)',
                         drawBorder: false,
                     }
                 }
