@@ -1,10 +1,10 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.db.models import Avg
+from django.db.models import Avg, Count
 
 from .models import CareerProfile
-from courses.models import Course, Enrollment
+from courses.models import Course, Enrollment, CourseCompletion
 from learning.models import LessonProgress
 from interviews.models import MockInterview
 from assessments.models import AssessmentAttempt
@@ -139,13 +139,8 @@ CAREER_PATHS = {
 
 def compute_career_stats(user):
     """Calculates factual career metrics using user data."""
-    # 1. Courses completed
-    courses_completed = 0
-    enrollments = Enrollment.objects.filter(user=user).select_related('course')
-    for enr in enrollments:
-        prog = enr.course.get_user_progress(user)
-        if prog.get('is_completed') or (prog.get('total', 0) > 0 and prog.get('completed', 0) >= prog.get('total', 0)):
-            courses_completed += 1
+    # 1. Courses completed directly from CourseCompletion (indexed single fast query)
+    courses_completed = CourseCompletion.objects.filter(user=user, is_completed=True).count()
 
     # 2. Total skills acquired
     completed_lessons_count = LessonProgress.objects.filter(user=user, is_completed=True).count()
@@ -159,9 +154,13 @@ def compute_career_stats(user):
     # 4. Certificates earned
     certificates_earned = Certificate.objects.filter(user=user).count()
 
-    # 5. Mock interviews completed
-    interviews_completed = MockInterview.objects.filter(user=user, is_completed=True).count()
-    avg_interview_score = MockInterview.objects.filter(user=user, is_completed=True).aggregate(Avg('overall_score'))['overall_score__avg'] or 0
+    # 5. Mock interviews completed (Combined count & average in 1 query)
+    interviews_agg = MockInterview.objects.filter(user=user, is_completed=True).aggregate(
+        cnt=Count('id'),
+        avg_score=Avg('overall_score')
+    )
+    interviews_completed = interviews_agg['cnt'] or 0
+    avg_interview_score = interviews_agg['avg_score'] or 0
 
     # 6. Resume completion percentage
     latest_resume = Resume.objects.filter(user=user).first()
@@ -173,13 +172,13 @@ def compute_career_stats(user):
         resume_completion = int((filled / len(fields)) * 100)
 
     # 7. Portfolio completion percentage
-    portfolio = Portfolio.objects.filter(user=user).first()
+    portfolio = Portfolio.objects.filter(user=user).prefetch_related('projects').first()
     portfolio_completion = 0
     if portfolio:
         checks = [
             bool(portfolio.about),
             bool(portfolio.username),
-            portfolio.projects.exists(),
+            len(portfolio.projects.all()) > 0,
             bool(portfolio.template),
             portfolio.is_public
         ]

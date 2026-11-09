@@ -32,6 +32,18 @@
                             <i data-lucide="layers" style="width: 14px; height: 14px;"></i> {{ modules|length }} Modules
                         </span>
                     {% endif %}
+                    {% if reviews_count > 0 %}
+                        <span class="text-warning small d-flex align-items-center gap-1">
+                            <i data-lucide="star" style="width: 14px; height: 14px; fill: currentColor;"></i>
+                            <strong>{{ avg_rating|floatformat:1 }}</strong>
+                            <span class="text-secondary">({{ reviews_count }} review{{ reviews_count|pluralize }})</span>
+                        </span>
+                    {% else %}
+                        <span class="text-muted small d-flex align-items-center gap-1">
+                            <i data-lucide="sparkles" style="width: 13px; height: 13px;" class="text-primary-accent"></i>
+                            <span>Not yet reviewed</span>
+                        </span>
+                    {% endif %}
                 </div>
 
                 <h1 class="fw-bold text-white mb-3">{{ course.title }}</h1>
@@ -96,6 +108,16 @@
                                 <span>Enroll</span>
                             </button>
                         </form>
+                    {% endif %}
+
+                    {% if user.is_authenticated %}
+                        <button type="button" class="btn btn-secondary-custom py-2 px-3"
+                                id="detailBookmarkBtn"
+                                onclick="toggleDetailBookmark('{{ course.slug }}', this)"
+                                title="{% if is_bookmarked %}Remove from bookmarks{% else %}Save course{% endif %}">
+                            <i data-lucide="bookmark" id="detailBookmarkIcon" style="width: 18px; height: 18px; {% if is_bookmarked %}color: #f59e0b; fill: #f59e0b;{% else %}color: #cbd5e1;{% endif %}"></i>
+                            <span id="detailBookmarkText">{% if is_bookmarked %}Saved{% else %}Save Course{% endif %}</span>
+                        </button>
                     {% endif %}
                 </div>
             </div>
@@ -304,6 +326,142 @@
                     </div>
                 {% endif %}
             </div>
+
+            <!-- Student Reviews & Ratings Section -->
+            <div class="custom-card p-4 mb-4" id="reviews-section">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                    <div>
+                        <h4 class="fw-bold text-white mb-1 d-flex align-items-center gap-2">
+                            <i data-lucide="star" class="text-warning" style="width: 22px; height: 22px; fill: currentColor;"></i>
+                            <span>Student Reviews & Course Rating</span>
+                        </h4>
+                        <p class="text-secondary small mb-0">Real feedback from verified students who enrolled and completed course lessons.</p>
+                    </div>
+                    {% if reviews_count > 0 %}
+                        <div class="d-flex align-items-center gap-2 bg-dark px-3 py-1.5 rounded-pill border" style="border-color: var(--border-color) !important;">
+                            <span class="fs-5 fw-bold text-warning">{{ avg_rating|floatformat:1 }}</span>
+                            <div class="text-warning d-flex">
+                                <i data-lucide="star" style="width: 14px; height: 14px; fill: currentColor;"></i>
+                            </div>
+                            <span class="text-secondary small">/ 5.0 ({{ reviews_count }} review{{ reviews_count|pluralize }})</span>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Review Form or Status Card -->
+                {% if user.is_authenticated %}
+                    {% if user_review %}
+                        <!-- Existing Review by Current User -->
+                        <div class="p-3 rounded-3 mb-4 border" style="background-color: rgba(37, 99, 166, 0.08); border-color: rgba(139, 188, 235, 0.3) !important;">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle small px-2 py-0.5 rounded-pill mb-1">Your Verified Review</span>
+                                    <div class="text-warning d-flex align-items-center gap-1 my-1">
+                                        {% for i in "12345"|make_list %}
+                                            <i data-lucide="star" style="width: 14px; height: 14px; {% if forloop.counter <= user_review.rating %}fill: currentColor; color: #f59e0b;{% else %}color: #64748b;{% endif %}"></i>
+                                        {% endfor %}
+                                        <span class="text-white small ms-1">{{ user_review.rating }}/5</span>
+                                    </div>
+                                </div>
+                                <form action="{% url 'courses:delete_review' slug=course.slug %}" method="post" onsubmit="return confirm('Remove your review?');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-outline-danger py-1 px-2 small">
+                                        <i data-lucide="trash-2" style="width: 13px; height: 13px;"></i> Delete
+                                    </button>
+                                </form>
+                            </div>
+                            {% if user_review.comment %}
+                                <p class="text-light small mb-1">{{ user_review.comment }}</p>
+                            {% endif %}
+                            <small class="text-secondary" style="font-size: 0.72rem;">Last updated {{ user_review.updated_at|date:"M d, Y" }}</small>
+                        </div>
+                    {% elif can_review %}
+                        <!-- Can Review Form -->
+                        <div class="p-3 rounded-3 mb-4 border" style="background-color: rgba(255, 255, 255, 0.02); border-color: var(--border-color) !important;">
+                            <h6 class="fw-bold text-white mb-2">Leave a Course Review</h6>
+                            <form action="{% url 'courses:submit_review' slug=course.slug %}" method="post">
+                                {% csrf_token %}
+                                <div class="mb-3">
+                                    <label class="form-label text-secondary small mb-1">Your Rating</label>
+                                    <div class="d-flex align-items-center gap-3">
+                                        <select name="rating" class="form-select form-select-sm w-auto" required>
+                                            <option value="5" selected>⭐⭐⭐⭐⭐ 5 - Excellent</option>
+                                            <option value="4">⭐⭐⭐⭐ 4 - Very Good</option>
+                                            <option value="3">⭐⭐⭐ 3 - Average</option>
+                                            <option value="2">⭐⭐ 2 - Below Average</option>
+                                            <option value="1">⭐ 1 - Poor</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label text-secondary small mb-1">Your Feedback (Optional, max 1000 characters)</label>
+                                    <textarea name="comment" rows="3" class="form-control form-control-sm" placeholder="What did you like about the curriculum, projects, and exercises?"></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-primary-custom btn-sm py-1.5 px-3">
+                                    <i data-lucide="send" style="width: 14px; height: 14px;"></i>
+                                    <span>Submit Review</span>
+                                </button>
+                            </form>
+                        </div>
+                    {% elif is_enrolled %}
+                        <!-- Enrolled but hasn't completed 1 lesson -->
+                        <div class="p-3 rounded-3 mb-4 border" style="background-color: rgba(255, 255, 255, 0.02); border-color: var(--border-color) !important;">
+                            <div class="d-flex align-items-center gap-2 text-secondary small">
+                                <i data-lucide="lock" style="width: 16px; height: 16px;"></i>
+                                <span>Complete at least <strong>1 lesson</strong> (currently completed {{ completed_lessons_count }}/{{ course.total_lessons_count }}) to unlock verified student reviews.</span>
+                            </div>
+                        </div>
+                    {% else %}
+                        <!-- Not enrolled -->
+                        <div class="p-3 rounded-3 mb-4 border" style="background-color: rgba(255, 255, 255, 0.02); border-color: var(--border-color) !important;">
+                            <div class="d-flex align-items-center gap-2 text-secondary small">
+                                <i data-lucide="info" style="width: 16px; height: 16px;"></i>
+                                <span>Enroll in this course to share your rating and review.</span>
+                            </div>
+                        </div>
+                    {% endif %}
+                {% else %}
+                    <!-- Logged out -->
+                    <div class="p-3 rounded-3 mb-4 border" style="background-color: rgba(255, 255, 255, 0.02); border-color: var(--border-color) !important;">
+                        <a href="{% url 'accounts:login' %}?next={{ request.path }}" class="text-primary-accent text-decoration-none small">
+                            Log in to view your eligibility and submit a course review.
+                        </a>
+                    </div>
+                {% endif %}
+
+                <!-- Approved Reviews List -->
+                {% if approved_reviews %}
+                    <div class="d-flex flex-column gap-3">
+                        {% for review in approved_reviews %}
+                            <div class="p-3 rounded-3 border" style="background-color: rgba(255, 255, 255, 0.02); border-color: var(--border-color) !important;">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="rounded-circle bg-secondary-subtle d-flex align-items-center justify-content-center text-white fw-bold small" style="width: 28px; height: 28px; font-size: 0.75rem;">
+                                            {{ review.user.username|slice:":1"|upper }}
+                                        </div>
+                                        <span class="text-white small fw-semibold">{{ review.user.username }}</span>
+                                        <span class="badge bg-success-subtle text-success py-0 px-1.5" style="font-size: 0.68rem;">Verified Student</span>
+                                    </div>
+                                    <span class="text-secondary small" style="font-size: 0.72rem;">{{ review.created_at|date:"M d, Y" }}</span>
+                                </div>
+                                <div class="text-warning d-flex align-items-center gap-1 mb-2">
+                                    {% for i in "12345"|make_list %}
+                                        <i data-lucide="star" style="width: 13px; height: 13px; {% if forloop.counter <= review.rating %}fill: currentColor; color: #f59e0b;{% else %}color: #64748b;{% endif %}"></i>
+                                    {% endfor %}
+                                </div>
+                                {% if review.comment %}
+                                    <p class="text-secondary small mb-0">{{ review.comment }}</p>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-4 text-secondary">
+                        <i data-lucide="message-square" class="text-muted mx-auto mb-2" style="width: 28px; height: 28px;"></i>
+                        <p class="small mb-0">No student reviews yet. Be the first to share your learning experience!</p>
+                    </div>
+                {% endif %}
+            </div>
         </div>
 
         <!-- Learning Objectives Sidebar -->
@@ -324,6 +482,26 @@
                     </ul>
                 {% else %}
                     <p class="text-secondary small mb-0">Practical hands-on exercises, industry coding standards, and project-based assignments.</p>
+                {% endif %}
+            </div>
+
+            <!-- Prerequisites Card -->
+            <div class="custom-card p-4 mb-4">
+                <h5 class="fw-bold text-white mb-3 d-flex align-items-center gap-2">
+                    <i data-lucide="check-square" class="text-primary-accent" style="width: 20px; height: 20px;"></i>
+                    <span>Prerequisites & Requirements</span>
+                </h5>
+                {% if prerequisites %}
+                    <ul class="list-unstyled d-flex flex-column gap-2 mb-0">
+                        {% for req in prerequisites %}
+                            <li class="d-flex align-items-start gap-2 small text-secondary">
+                                <i data-lucide="chevron-right" class="text-primary-accent mt-1 flex-shrink-0" style="width: 14px; height: 14px;"></i>
+                                <span class="text-white">{{ req }}</span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-secondary small mb-0">None. This course is beginner-friendly and starts from fundamental concepts.</p>
                 {% endif %}
             </div>
 
@@ -351,4 +529,41 @@
         </div>
     </div>
 </div>
+
+<script>
+function toggleDetailBookmark(slug, btn) {
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]') ? document.querySelector('[name=csrfmiddlewaretoken]').value : '{{ csrf_token }}';
+    fetch(`/courses/${slug}/bookmark/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrfToken,
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
+        }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            const icon = document.getElementById('detailBookmarkIcon');
+            const text = document.getElementById('detailBookmarkText');
+            if (data.is_bookmarked) {
+                btn.title = 'Remove from bookmarks';
+                if (icon) {
+                    icon.style.color = '#f59e0b';
+                    icon.style.fill = '#f59e0b';
+                }
+                if (text) text.innerText = 'Saved';
+            } else {
+                btn.title = 'Save course';
+                if (icon) {
+                    icon.style.color = '#cbd5e1';
+                    icon.style.fill = 'none';
+                }
+                if (text) text.innerText = 'Save Course';
+            }
+        }
+    })
+    .catch(err => console.error('Error toggling bookmark:', err));
+}
+</script>
 {% endblock %}

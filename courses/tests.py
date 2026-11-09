@@ -206,3 +206,84 @@ class CoursesTests(TestCase):
         self.assertEqual(resp_enrolled.status_code, 200)
         self.assertTrue(CourseAssessmentAttempt.objects.filter(user=self.user, assessment=self.final_quiz).exists())
 
+    def test_course_bookmarking(self):
+        from courses.models import CourseBookmark
+        self.client.force_login(self.user)
+        bookmark_url = reverse('courses:toggle_bookmark', kwargs={'slug': self.course.slug})
+
+        # AJAX toggle ON
+        res = self.client.post(bookmark_url, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertTrue(data['success'])
+        self.assertTrue(data['is_bookmarked'])
+        self.assertTrue(CourseBookmark.objects.filter(user=self.user, course=self.course).exists())
+
+        # AJAX toggle OFF
+        res = self.client.post(bookmark_url, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertTrue(data['success'])
+        self.assertFalse(data['is_bookmarked'])
+        self.assertFalse(CourseBookmark.objects.filter(user=self.user, course=self.course).exists())
+
+    def test_course_reviews_and_eligibility(self):
+        from courses.models import CourseReview
+        self.client.force_login(self.user)
+        review_url = reverse('courses:submit_review', kwargs={'slug': self.course.slug})
+
+        # 1. Unenrolled user cannot review
+        res = self.client.post(review_url, {'rating': 5, 'comment': 'Great course!'})
+        self.assertEqual(res.status_code, 302)
+        self.assertFalse(CourseReview.objects.filter(user=self.user, course=self.course).exists())
+
+        # 2. Enrolled with 0 completed lessons cannot review
+        Enrollment.objects.create(user=self.user, course=self.course)
+        res = self.client.post(review_url, {'rating': 5, 'comment': 'Great course!'})
+        self.assertEqual(res.status_code, 302)
+        self.assertFalse(CourseReview.objects.filter(user=self.user, course=self.course).exists())
+
+        # 3. Enrolled with >= 1 lesson completed CAN review
+        LessonProgress.objects.create(user=self.user, lesson=self.lesson1, is_completed=True)
+        res = self.client.post(review_url, {'rating': 5, 'comment': 'Excellent explanation of fundamentals.'})
+        self.assertEqual(res.status_code, 302)
+        self.assertTrue(CourseReview.objects.filter(user=self.user, course=self.course).exists())
+        review = CourseReview.objects.get(user=self.user, course=self.course)
+        self.assertEqual(review.rating, 5)
+
+        # 4. Rating summary verification
+        avg_r, count = self.course.get_rating_summary()
+        self.assertEqual(avg_r, 5.0)
+        self.assertEqual(count, 1)
+
+        # 5. Update review
+        res = self.client.post(review_url, {'rating': 4, 'comment': 'Updated review comment.'})
+        review.refresh_from_db()
+        self.assertEqual(review.rating, 4)
+        self.assertEqual(review.comment, 'Updated review comment.')
+
+        # 6. Delete review
+        delete_url = reverse('courses:delete_review', kwargs={'slug': self.course.slug})
+        res = self.client.post(delete_url)
+        self.assertEqual(res.status_code, 302)
+        self.assertFalse(CourseReview.objects.filter(user=self.user, course=self.course).exists())
+        avg_r, count = self.course.get_rating_summary()
+        self.assertIsNone(avg_r)
+        self.assertEqual(count, 0)
+
+    def test_my_learning_saved_tab(self):
+        from courses.models import CourseBookmark
+        from learning.models import LessonBookmark
+        self.client.force_login(self.user)
+
+        CourseBookmark.objects.create(user=self.user, course=self.course)
+        LessonBookmark.objects.create(user=self.user, lesson=self.lesson1)
+
+        saved_url = reverse('courses:my_learning') + '?tab=saved'
+        res = self.client.get(saved_url)
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, self.course.title)
+        self.assertContains(res, self.lesson1.title)
+        self.assertEqual(res.context['total_saved'], 2)
+
+

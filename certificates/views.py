@@ -13,32 +13,73 @@ from services.pdf_service import PDFService
 
 @login_required
 def certificate_center_view(request):
-    certificates = Certificate.objects.filter(user=request.user).select_related('course')
-    issued_course_ids = set(certificates.values_list('course_id', flat=True))
+    certificates = list(Certificate.objects.filter(user=request.user).select_related('course', 'course__category'))
+    issued_course_ids = set(c.course_id for c in certificates)
 
-    enrollments = Enrollment.objects.filter(user=request.user).select_related('course')
+    enrollments = list(Enrollment.objects.filter(user=request.user).select_related('course', 'course__category'))
     eligible_courses = []
     locked_courses = []
 
-    for enr in enrollments:
-        course = enr.course
-        if course.id in issued_course_ids:
-            continue
+    unissued_enrollments = [enr for enr in enrollments if enr.course_id not in issued_course_ids]
+    if unissued_enrollments:
+        course_ids = [enr.course_id for enr in unissued_enrollments]
+        completions = {
+            c.course_id: c
+            for c in CourseCompletion.objects.filter(user=request.user, course_id__in=course_ids)
+        }
+        from django.db.models import Count
+        from learning.models import Lesson
+        completed_counts = dict(
+            LessonProgress.objects.filter(
+                user=request.user,
+                is_completed=True,
+                lesson__course_id__in=course_ids
+            ).values('lesson__course_id').annotate(cnt=Count('id')).values_list('lesson__course_id', 'cnt')
+        )
+        lessons_counts = dict(
+            Lesson.objects.filter(course_id__in=course_ids)
+            .values('course_id').annotate(cnt=Count('id')).values_list('course_id', 'cnt')
+        )
 
-        prog = course.get_user_progress(request.user)
+        for enr in unissued_enrollments:
+            course = enr.course
+            comp = completions.get(course.id)
+            comp_cnt = completed_counts.get(course.id, 0)
+            tot_cnt = lessons_counts.get(course.id, 0)
 
-        # Check authoritative eligibility from course.get_user_progress (100% mandatory video curriculum completion)
-        if prog.get('is_certificate_eligible', False):
-            eligible_courses.append({
-                'course': course,
-                'progress': prog,
-            })
-        else:
-            locked_courses.append({
-                'course': course,
-                'progress': prog,
-                'remaining_reasons': prog.get('missing_requirements', []),
-            })
+            # If student has completed all lessons, fetch full progress for optional assessment bonuses
+            if comp_cnt >= tot_cnt and tot_cnt > 0:
+                prog = course.get_user_progress(request.user)
+            else:
+                video_ratio = (comp_cnt / tot_cnt) if tot_cnt > 0 else 0.0
+                video_pct = int(round(video_ratio * 100))
+                is_eligible = (comp and comp.is_completed)
+                base_weighted = int(round(video_ratio * 80.0))
+                weighted = max(base_weighted, comp.learning_progress) if comp else base_weighted
+                missing = [f"Complete all mandatory video lessons ({comp_cnt}/{tot_cnt} completed)."] if not is_eligible else []
+                prog = {
+                    'percentage': weighted,
+                    'weighted_course_progress': weighted,
+                    'video_completion_percentage': video_pct,
+                    'assessment_bonus_percentage': max(0, weighted - base_weighted),
+                    'completed': comp_cnt,
+                    'total': tot_cnt,
+                    'is_completed': is_eligible,
+                    'is_certificate_eligible': is_eligible,
+                    'missing_requirements': missing,
+                }
+
+            if prog.get('is_certificate_eligible', False):
+                eligible_courses.append({
+                    'course': course,
+                    'progress': prog,
+                })
+            else:
+                locked_courses.append({
+                    'course': course,
+                    'progress': prog,
+                    'remaining_reasons': prog.get('missing_requirements', []),
+                })
 
     # Handle claim request with custom chosen recipient name
     if request.method == 'POST' and 'claim_course_id' in request.POST:

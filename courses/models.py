@@ -45,6 +45,7 @@ class Course(models.Model):
     instructor_title = models.CharField(max_length=150, blank=True, default='Lead Curriculum Developer')
     estimated_duration = models.CharField(max_length=50, default='12 hours')
     learning_objectives = models.TextField(blank=True, help_text='Newline-separated list of objectives')
+    prerequisites = models.TextField(blank=True, help_text='Newline-separated list of prerequisites')
     curriculum_version = models.PositiveIntegerField(default=1, help_text='Current active curriculum version')
     legacy_total_lessons = models.PositiveIntegerField(default=0, help_text='Cached lesson count for version 1')
     is_published = models.BooleanField(default=True)
@@ -73,6 +74,25 @@ class Course(models.Model):
         if not self.learning_objectives:
             return []
         return [line.strip() for line in self.learning_objectives.split('\n') if line.strip()]
+
+    def get_prerequisites_list(self):
+        if not self.prerequisites:
+            return []
+        return [line.strip() for line in self.prerequisites.split('\n') if line.strip()]
+
+    def get_rating_summary(self):
+        """
+        Calculates average rating and total ratings exclusively from actual student reviews.
+        Returns (None, 0) if no reviews exist, ensuring zero fabricated ratings.
+        """
+        agg = self.reviews.filter(is_approved=True).aggregate(
+            avg_rating=models.Avg('rating'),
+            review_count=models.Count('id')
+        )
+        count = agg['review_count'] or 0
+        if count > 0:
+            return round(agg['avg_rating'], 1), count
+        return None, 0
 
     @property
     def total_lessons_count(self):
@@ -503,3 +523,34 @@ class Enrollment(models.Model):
             Course.invalidate_user_progress_cache(user_id, course_id)
         except Exception:
             pass
+
+
+class CourseBookmark(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='course_bookmarks')
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='bookmarked_by')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'course')
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.user.username} bookmarked {self.course.title}"
+
+
+class CourseReview(models.Model):
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='reviews')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='course_reviews')
+    rating = models.PositiveSmallIntegerField(help_text="Rating between 1 and 5 stars")
+    comment = models.TextField(blank=True, max_length=1000)
+    is_approved = models.BooleanField(default=True, help_text="Moderation approval flag")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('course', 'user')
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.user.username} - {self.course.title}: {self.rating}★"
+

@@ -13,6 +13,7 @@ from assessments.models import SkillAssessment, AssessmentAttempt
 from projects.models import ProjectIdea
 from certificates.models import Certificate
 
+from django.core.cache import cache
 from django.db.models import Count, Avg, Q
 from django.db.models.functions import TruncDate
 
@@ -20,6 +21,13 @@ from django.db.models.functions import TruncDate
 def dashboard_view(request):
     user = request.user
     profile = getattr(user, 'profile', None)
+
+    cache_key = f"user_dashboard_payload_{user.id}"
+    cached_context = cache.get(cache_key)
+    if cached_context is not None:
+        cached_context['student_profile'] = profile
+        cached_context['today_date'] = timezone.now().date()
+        return render(request, 'dashboard/index.html', cached_context)
 
     # 1. Total Enrolled Courses (evaluated as list for reuse)
     enrollments = list(
@@ -52,16 +60,54 @@ def dashboard_view(request):
         for l in Lesson.objects.filter(course_id__in=enrolled_course_ids).order_by('lesson_order', 'id'):
             lessons_by_course.setdefault(l.course_id, []).append(l)
 
+        from courses.models import CourseAssessment
+        course_ids_with_assessments = set(
+            CourseAssessment.objects.filter(course_id__in=enrolled_course_ids, is_active=True).values_list('course_id', flat=True)
+        )
+        cert_course_ids = set(
+            Certificate.objects.filter(user=user, course_id__in=enrolled_course_ids, verification_status=True).values_list('course_id', flat=True)
+        )
+
         for enrollment in enrollments:
             course = enrollment.course
             course_lessons = lessons_by_course.get(course.id, [])
-            prog = course.get_user_progress(user)
+            total_l = len(course_lessons)
+            course.total_lessons = total_l
+            comp = completions.get(course.id)
 
-            total_lessons_sum += prog['total']
-            completed_lessons_sum += prog['completed']
+            comp_lessons_count = sum(1 for l in course_lessons if l.id in completed_lesson_ids)
+            total_lessons_sum += total_l
+            completed_lessons_sum += comp_lessons_count
 
-            if prog['is_completed']:
+            video_ratio = (comp_lessons_count / total_l) if total_l > 0 else 0.0
+            video_pct = int(round(video_ratio * 100))
+            is_cert_eligible = (video_pct >= 100) or (course.id in cert_course_ids)
+
+            base_weighted = int(round(video_ratio * 80.0))
+            if comp:
+                weighted_prog = max(base_weighted, comp.learning_progress)
+                is_comp = comp.is_completed or is_cert_eligible
+            else:
+                weighted_prog = base_weighted
+                is_comp = is_cert_eligible
+
+            bonus_pct = max(0, weighted_prog - base_weighted)
+            if is_comp:
                 completed_courses_count += 1
+
+            prog = {
+                'percentage': weighted_prog,
+                'overall_progress': weighted_prog,
+                'weighted_course_progress': weighted_prog,
+                'video_completion_percentage': video_pct,
+                'assessment_bonus_percentage': bonus_pct,
+                'completed': comp_lessons_count,
+                'total': total_l,
+                'is_completed': is_comp,
+                'is_certificate_eligible': is_cert_eligible,
+                'is_unlocked': course.id in course_ids_with_assessments,
+                'has_optional_assessments': course.id in course_ids_with_assessments,
+            }
 
             next_lesson = None
             for l in course_lessons:
@@ -75,11 +121,22 @@ def dashboard_view(request):
                 'course': course,
                 'progress': prog,
                 'next_lesson': next_lesson,
-                'is_completed': prog['is_completed'],
+                'is_completed': is_comp,
             })
 
     in_progress_courses = [c for c in enrolled_courses_data if not c['is_completed']]
     completed_courses = [c for c in enrolled_courses_data if c['is_completed']]
+
+    # 3-Part Course Progress Breakdown for Dashboard Analytics
+    n_enrolled = len(enrolled_courses_data)
+    if n_enrolled > 0:
+        avg_video_completion = int(round(sum(c['progress']['video_completion_percentage'] for c in enrolled_courses_data) / n_enrolled))
+        avg_weighted_progress = int(round(sum(c['progress']['weighted_course_progress'] for c in enrolled_courses_data) / n_enrolled))
+        avg_assessment_bonus = int(round(sum(c['progress']['assessment_bonus_percentage'] for c in enrolled_courses_data) / n_enrolled))
+    else:
+        avg_video_completion = 0
+        avg_weighted_progress = 0
+        avg_assessment_bonus = 0
 
     primary_next_step = None
     for item in in_progress_courses:
@@ -115,6 +172,8 @@ def dashboard_view(request):
         chart_labels.append(day.strftime('%a'))
         chart_counts.append(activity_by_day.get(day, 0))
 
+    weekly_lessons_completed = sum(chart_counts)
+
     # 6. Active and Recent Learning Goals
     goals_qs = list(LearningGoal.objects.filter(user=user).order_by('target_date'))
     active_goals = [g for g in goals_qs if not g.is_completed][:4]
@@ -148,20 +207,22 @@ def dashboard_view(request):
         if matching_assessment:
             suggested_assessment = matching_assessment
 
-    # 11. Smart Course & Project Recommendations
-    recommended_courses = Course.objects.filter(is_published=True).select_related('category').exclude(id__in=enrolled_course_ids)
+    # 11. Smart Course & Project Recommendations (Evaluated without redundant exists checks)
+    recommended_courses_qs = Course.objects.filter(is_published=True).select_related('category').exclude(id__in=enrolled_course_ids)
     if profile and profile.get_interests_list():
         interest_names = [i.replace('_', ' ') for i in profile.get_interests_list()]
         q_interest = Q()
         for term in interest_names:
             q_interest |= Q(title__icontains=term)
-        if q_interest:
-            matched_rec = recommended_courses.filter(q_interest)
-            if matched_rec.exists():
-                recommended_courses = matched_rec
-    recommended_courses = list(recommended_courses[:3])
+        matched_rec = list(recommended_courses_qs.filter(q_interest)[:3])
+        if matched_rec:
+            recommended_courses = matched_rec
+        else:
+            recommended_courses = list(recommended_courses_qs[:3])
+    else:
+        recommended_courses = list(recommended_courses_qs[:3])
 
-    recommended_projects = ProjectIdea.objects.filter(user=user)[:2]
+    recommended_projects = list(ProjectIdea.objects.filter(user=user)[:2])
 
     # 12. Dynamic AI Learning Summary
     ai_summary_points = []
@@ -215,6 +276,20 @@ def dashboard_view(request):
         'recommended_courses': recommended_courses,
         'recommended_projects': recommended_projects,
         'ai_summary_points': ai_summary_points,
+
+        # Phase 13 Progress Breakdown & Weekly Analytics
+        'avg_video_completion': avg_video_completion,
+        'avg_weighted_progress': avg_weighted_progress,
+        'avg_assessment_bonus': avg_assessment_bonus,
+        'weekly_lessons_completed': weekly_lessons_completed,
+        'weekly_in_progress_count': len(in_progress_courses),
+        'weekly_goals_achieved': completed_goals_count,
+        'weekly_milestones_pending': len(pending_milestones),
     }
+
+    try:
+        cache.set(cache_key, context, 60)
+    except Exception:
+        pass
 
     return render(request, 'dashboard/index.html', context)

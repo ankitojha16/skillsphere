@@ -7,13 +7,22 @@ from django.http import JsonResponse
 from .models import CommunityPost, CommunityComment, CommunityLike, ContentReport
 from notifications.models import Notification
 
+from django.core.paginator import Paginator
+
 @login_required
 def community_feed_view(request):
     category = request.GET.get('category', '').strip()
     query = request.GET.get('q', '').strip()
     sort = request.GET.get('sort', 'latest')
 
-    posts = CommunityPost.objects.filter(is_approved=True)
+    posts = (
+        CommunityPost.objects.filter(is_approved=True)
+        .select_related('user', 'user__profile')
+        .annotate(
+            c_count=Count('comments', distinct=True),
+            l_count=Count('likes', distinct=True)
+        )
+    )
 
     if category:
         posts = posts.filter(category=category)
@@ -26,17 +35,26 @@ def community_feed_view(request):
         )
 
     if sort == 'most_discussed':
-        posts = posts.annotate(c_count=Count('comments')).order_by('-c_count', '-created_at')
+        posts = posts.order_by('-c_count', '-created_at')
     elif sort == 'most_liked':
-        posts = posts.annotate(l_count=Count('likes')).order_by('-l_count', '-created_at')
+        posts = posts.order_by('-l_count', '-created_at')
     else:
         posts = posts.order_by('-created_at')
 
-    # Collect liked posts for user
-    user_liked_post_ids = set(CommunityLike.objects.filter(user=request.user).values_list('post_id', flat=True))
+    # Paginate posts (15 per page)
+    paginator = Paginator(posts, 15)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+
+    # Collect liked posts for user for currently visible posts
+    post_ids = [p.id for p in page_obj]
+    user_liked_post_ids = set(
+        CommunityLike.objects.filter(user=request.user, post_id__in=post_ids).values_list('post_id', flat=True)
+    )
 
     context = {
-        'posts': posts,
+        'posts': page_obj,
+        'page_obj': page_obj,
         'categories': CommunityPost.CATEGORY_CHOICES,
         'selected_category': category,
         'query': query,

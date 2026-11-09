@@ -226,6 +226,11 @@ textarea.form-control.font-monospace::placeholder,
   box-sizing: border-box;
 }
 
+html {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background-color: var(--bg-primary);
@@ -234,6 +239,8 @@ body {
   margin: 0;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  max-width: 100%;
 }
 
 /* Custom Scrollbar */
@@ -861,24 +868,61 @@ a:hover {
   }
 }
 
+/* Mobile viewports (360px, 390px, 430px) safeguards */
 @media (max-width: 576px) {
   body {
     font-size: 14px;
   }
+  .container-fluid {
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+  }
+  h1, .h1 {
+    font-size: 1.65rem !important;
+  }
   h2, .h2 {
-    font-size: 1.45rem !important;
+    font-size: 1.35rem !important;
   }
   h3, .h3 {
-    font-size: 1.25rem !important;
+    font-size: 1.15rem !important;
   }
   h4, .h4 {
-    font-size: 1.1rem !important;
+    font-size: 1.05rem !important;
   }
-  .btn-primary-custom, .btn-secondary-custom {
-    padding: 0.45rem 0.85rem;
-    font-size: 0.88rem;
+  .custom-card {
+    padding: 1rem !important;
+    border-radius: 12px !important;
+  }
+  .stat-card {
+    padding: 1rem !important;
+  }
+  .stat-value {
+    font-size: 1.5rem !important;
+  }
+  /* Accessible touch targets (minimum 44px) */
+  .btn, .nav-link, .filter-pill, .btn-bookmark {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+  .btn-sm {
+    min-height: 38px;
   }
   .course-card-thumb img {
     height: 160px;
+  }
+}
+
+@media (max-width: 390px) {
+  .welcome-banner {
+    padding: 1rem !important;
+  }
+  .stat-card {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 0.5rem !important;
+  }
+  .custom-card {
+    padding: 0.85rem !important;
   }
 }

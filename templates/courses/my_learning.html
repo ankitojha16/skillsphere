@@ -18,7 +18,7 @@
     </div>
 
     <!-- Status Tabs -->
-    <div class="d-flex align-items-center gap-2 mb-4">
+    <div class="d-flex align-items-center gap-2 mb-4 overflow-x-auto pb-1">
         <a href="?tab=all" class="filter-pill {% if active_tab == 'all' %}active{% endif %}">
             All Enrolled ({{ total_enrolled }})
         </a>
@@ -28,10 +28,151 @@
         <a href="?tab=completed" class="filter-pill {% if active_tab == 'completed' %}active{% endif %}">
             Completed
         </a>
+        <a href="?tab=saved" class="filter-pill {% if active_tab == 'saved' %}active{% endif %} d-flex align-items-center gap-1.5">
+            <i data-lucide="bookmark" style="width: 14px; height: 14px;"></i>
+            <span>Saved Bookmarks ({{ total_saved }})</span>
+        </a>
     </div>
 
+    {% if active_tab == 'saved' %}
+        <!-- Unified Saved Content (Courses & Lessons) -->
+        <div class="mb-5">
+            <h4 class="fw-bold text-white mb-3 d-flex align-items-center gap-2">
+                <i data-lucide="book-mark" class="text-warning" style="width: 22px; height: 22px;"></i>
+                <span>Saved Courses ({{ saved_courses_data|length }})</span>
+            </h4>
+            {% if saved_courses_data %}
+                <div class="row g-4">
+                    {% for item in saved_courses_data %}
+                        <div class="col-md-6 col-lg-4">
+                            <div class="course-card">
+                                <div class="course-card-thumb position-relative">
+                                    <img src="{{ item.course.get_thumbnail_url }}" alt="{{ item.course.title }}" loading="lazy">
+                                    <span class="position-absolute top-0 end-0 m-2 badge-difficulty {{ item.course.difficulty|lower }}">
+                                        {{ item.course.difficulty }}
+                                    </span>
+                                    <form action="{% url 'courses:toggle_bookmark' slug=item.course.slug %}" method="post" class="position-absolute top-0 start-0 m-2">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="next" value="{% url 'courses:my_learning' %}?tab=saved">
+                                        <button type="submit" class="btn btn-sm rounded-circle p-0 border-0 shadow-sm" title="Remove from saved"
+                                                style="background: rgba(11, 16, 32, 0.85); width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
+                                            <i data-lucide="bookmark" style="width: 15px; height: 15px; color: #f59e0b; fill: #f59e0b;"></i>
+                                        </button>
+                                    </form>
+                                </div>
+
+                                <div class="course-card-body">
+                                    <div class="d-flex align-items-center justify-content-between mb-2">
+                                        <span class="badge-category">{{ item.course.category.name }}</span>
+                                        <span class="text-muted small">
+                                            <i data-lucide="clock" style="width: 13px; height: 13px;"></i> {{ item.course.estimated_duration }}
+                                        </span>
+                                    </div>
+
+                                    <h5 class="fw-bold text-white mb-2 line-clamp-2" style="font-size: 1.05rem;">
+                                        <a href="{% url 'courses:detail' slug=item.course.slug %}" class="text-white text-decoration-none">
+                                            {{ item.course.title }}
+                                        </a>
+                                    </h5>
+
+                                    <div class="text-muted small mb-3">
+                                        <i data-lucide="user" style="width: 13px; height: 13px;"></i> {{ item.course.instructor_name }}
+                                    </div>
+
+                                    <div class="mt-auto pt-2 border-top" style="border-color: var(--border-color) !important;">
+                                        {% if item.is_enrolled and item.progress %}
+                                            <div class="d-flex justify-content-between text-secondary small mb-1">
+                                                <span>Progress: <strong class="text-white">{{ item.progress.video_completion_percentage }}%</strong></span>
+                                                <span class="fw-bold text-white">{{ item.progress.weighted_course_progress }}%</span>
+                                            </div>
+                                            <div class="custom-progress mb-3">
+                                                <div class="custom-progress-bar" style="width: {{ item.progress.weighted_course_progress }}%;"></div>
+                                            </div>
+                                            <a href="{% url 'courses:detail' slug=item.course.slug %}" class="btn btn-primary-custom w-100 justify-content-center py-2">
+                                                <i data-lucide="play" style="width: 16px; height: 16px;"></i>
+                                                <span>Continue Learning</span>
+                                            </a>
+                                        {% else %}
+                                            <p class="text-secondary small mb-3">Saved to your learning list. Enroll whenever you're ready!</p>
+                                            <div class="d-flex gap-2">
+                                                <form action="{% url 'courses:enroll' slug=item.course.slug %}" method="post" class="flex-grow-1">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-primary-custom w-100 justify-content-center py-2">
+                                                        <i data-lucide="plus-circle" style="width: 16px; height: 16px;"></i>
+                                                        <span>Enroll</span>
+                                                    </button>
+                                                </form>
+                                                <a href="{% url 'courses:detail' slug=item.course.slug %}" class="btn btn-secondary-custom px-3" title="View Syllabus">
+                                                    <i data-lucide="info" style="width: 16px; height: 16px;"></i>
+                                                </a>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="custom-card text-center py-4">
+                    <i data-lucide="bookmark" class="text-muted mx-auto mb-2" style="width: 32px; height: 32px;"></i>
+                    <p class="text-secondary small mb-3">You haven't bookmarked any courses yet.</p>
+                    <a href="{% url 'courses:list' %}" class="btn btn-secondary-custom btn-sm">Explore Courses</a>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Bookmarked Lessons Section -->
+        <div>
+            <h4 class="fw-bold text-white mb-3 d-flex align-items-center gap-2">
+                <i data-lucide="play-circle" class="text-primary-accent" style="width: 22px; height: 22px;"></i>
+                <span>Bookmarked Lessons ({{ saved_lessons|length }})</span>
+            </h4>
+            {% if saved_lessons %}
+                <div class="d-flex flex-column gap-3">
+                    {% for bm in saved_lessons %}
+                        <div class="custom-card p-3 d-flex flex-wrap align-items-center justify-content-between gap-3">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="stat-icon purple" style="width: 40px; height: 40px;">
+                                    <i data-lucide="video" style="width: 20px; height: 20px;"></i>
+                                </div>
+                                <div>
+                                    <h6 class="text-white fw-bold mb-1">{{ bm.lesson.title }}</h6>
+                                    <div class="d-flex flex-wrap align-items-center gap-2 text-secondary small">
+                                        <span class="text-primary-accent fw-medium">{{ bm.lesson.course.title }}</span>
+                                        <span>•</span>
+                                        <span><i data-lucide="clock" style="width: 12px; height: 12px;"></i> {{ bm.lesson.estimated_minutes }} mins</span>
+                                        <span>•</span>
+                                        <span>Saved {{ bm.created_at|date:"M d, Y" }}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="d-flex align-items-center gap-2">
+                                <a href="{% url 'learning:lesson_detail' course_slug=bm.lesson.course.slug lesson_id=bm.lesson.id %}" class="btn btn-primary-custom btn-sm py-1.5 px-3">
+                                    <i data-lucide="play" style="width: 14px; height: 14px;"></i>
+                                    <span>Resume Lesson</span>
+                                </a>
+                                <form action="{% url 'learning:bookmark_toggle' course_slug=bm.lesson.course.slug lesson_id=bm.lesson.id %}" method="post">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-secondary-custom btn-sm text-danger py-1.5 px-2" title="Remove bookmark">
+                                        <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="custom-card text-center py-4">
+                    <i data-lucide="bookmark-x" class="text-muted mx-auto mb-2" style="width: 32px; height: 32px;"></i>
+                    <p class="text-secondary small mb-0">No individual lessons bookmarked yet. While watching lessons, click the bookmark icon to save key lessons for quick revision!</p>
+                </div>
+            {% endif %}
+        </div>
+
+    {% elif enrolled_items %}
     <!-- Enrolled Courses Grid -->
-    {% if enrolled_items %}
     <div class="row g-4">
         {% for item in enrolled_items %}
             <div class="col-md-6 col-lg-4">

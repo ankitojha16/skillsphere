@@ -175,6 +175,8 @@
                 <select name="sort" class="form-select" onchange="this.form.submit()">
                     <option value="newest" {% if sort_by == 'newest' %}selected{% endif %}>Newest First</option>
                     <option value="popularity" {% if sort_by == 'popularity' %}selected{% endif %}>Most Popular</option>
+                    <option value="duration" {% if sort_by == 'duration' %}selected{% endif %}>Duration (Shortest)</option>
+                    <option value="rating" {% if sort_by == 'rating' %}selected{% endif %}>Highest Rated</option>
                     <option value="title" {% if sort_by == 'title' %}selected{% endif %}>Alphabetical</option>
                 </select>
             </div>
@@ -196,11 +198,20 @@
         {% for item in courses_data %}
             <div class="col-md-6 col-lg-4 col-xl-3">
                 <div class="course-card">
-                    <div class="course-card-thumb">
+                    <div class="course-card-thumb position-relative">
                         <img src="{{ item.course.get_thumbnail_url }}" alt="{{ item.course.title }}" loading="lazy">
                         <span class="position-absolute top-0 end-0 m-2 badge-difficulty {{ item.course.difficulty|lower }}">
                             {{ item.course.difficulty }}
                         </span>
+                        {% if user.is_authenticated %}
+                            <button type="button" class="btn btn-sm btn-bookmark position-absolute top-0 start-0 m-2 rounded-circle p-0 border-0 shadow-sm"
+                                    data-slug="{{ item.course.slug }}"
+                                    onclick="toggleCourseBookmark('{{ item.course.slug }}', this)"
+                                    title="{% if item.is_bookmarked %}Remove bookmark{% else %}Save course{% endif %}"
+                                    style="background: rgba(11, 16, 32, 0.78); width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); z-index: 2;">
+                                <i data-lucide="bookmark" style="width: 15px; height: 15px; {% if item.is_bookmarked %}color: #f59e0b; fill: #f59e0b;{% else %}color: #cbd5e1;{% endif %}"></i>
+                            </button>
+                        {% endif %}
                     </div>
 
                     <div class="course-card-body">
@@ -219,6 +230,26 @@
                                 {{ item.course.title }}
                             </a>
                         </h5>
+
+                        <!-- Rating & Prerequisites Row -->
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <div class="d-flex align-items-center gap-1.5 small">
+                                {% if item.avg_rating %}
+                                    <span class="text-warning d-flex align-items-center gap-1">
+                                        <i data-lucide="star" style="width: 13px; height: 13px; fill: currentColor;"></i>
+                                        <strong>{{ item.avg_rating|floatformat:1 }}</strong>
+                                    </span>
+                                    <span class="text-muted" style="font-size: 0.75rem;">({{ item.reviews_count }})</span>
+                                {% else %}
+                                    <span class="text-muted" style="font-size: 0.75rem;"><i data-lucide="sparkles" style="width: 12px; height: 12px;" class="text-primary-accent"></i> New</span>
+                                {% endif %}
+                            </div>
+                            {% if item.course.prerequisites %}
+                                <span class="badge bg-secondary-subtle text-secondary small py-0.5 px-2" title="{{ item.course.prerequisites }}" style="font-size: 0.72rem;">
+                                    <i data-lucide="check-square" style="width: 11px; height: 11px;"></i> Prerequisites
+                                </span>
+                            {% endif %}
+                        </div>
 
                         <div class="d-flex align-items-center gap-1.5 mb-2 text-warning small" style="font-size: 0.72rem;">
                             <i data-lucide="award" style="width: 12px; height: 12px;"></i>
@@ -292,4 +323,40 @@
     </div>
     {% endif %}
 </div>
+
+<script>
+function toggleCourseBookmark(slug, btn) {
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]') ? document.querySelector('[name=csrfmiddlewaretoken]').value : '{{ csrf_token }}';
+    fetch(`/courses/${slug}/bookmark/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrfToken,
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
+        }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            const icon = btn.querySelector('svg') || btn.querySelector('i');
+            if (data.is_bookmarked) {
+                btn.title = 'Remove bookmark';
+                btn.style.color = '#f59e0b';
+                if (icon) {
+                    icon.style.color = '#f59e0b';
+                    icon.style.fill = '#f59e0b';
+                }
+            } else {
+                btn.title = 'Save course';
+                btn.style.color = '#cbd5e1';
+                if (icon) {
+                    icon.style.color = '#cbd5e1';
+                    icon.style.fill = 'none';
+                }
+            }
+        }
+    })
+    .catch(err => console.error('Error toggling course bookmark:', err));
+}
+</script>
 {% endblock %}

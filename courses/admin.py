@@ -3,7 +3,8 @@ from django.utils.html import format_html
 from .models import (
     Category, Course, Enrollment,
     CourseModule, CourseAssessment, CourseAssessmentQuestion,
-    CourseAssessmentAttempt, CourseCompletion
+    CourseAssessmentAttempt, CourseCompletion,
+    CourseBookmark, CourseReview
 )
 from learning.models import Lesson
 
@@ -115,3 +116,28 @@ class CourseCompletionAdmin(admin.ModelAdmin):
     list_display = ('user', 'course', 'learning_progress', 'is_assessment_unlocked', 'is_completed', 'quiz_passed', 'mock_passed', 'updated_at')
     list_filter = ('is_completed', 'is_assessment_unlocked', 'quiz_passed', 'mock_passed')
     search_fields = ('user__username', 'course__title')
+
+
+@admin.register(CourseBookmark)
+class CourseBookmarkAdmin(admin.ModelAdmin):
+    list_display = ('user', 'course', 'created_at')
+    list_filter = ('course', 'created_at')
+    search_fields = ('user__username', 'course__title')
+    readonly_fields = ('created_at',)
+
+
+@admin.register(CourseReview)
+class CourseReviewAdmin(admin.ModelAdmin):
+    list_display = ('user', 'course', 'rating', 'is_approved', 'created_at')
+    list_filter = ('rating', 'is_approved', 'created_at', 'course')
+    search_fields = ('user__username', 'course__title', 'comment')
+    actions = ['approve_reviews', 'disapprove_reviews']
+
+    def approve_reviews(self, request, queryset):
+        queryset.update(is_approved=True)
+    approve_reviews.short_description = "Approve selected reviews"
+
+    def disapprove_reviews(self, request, queryset):
+        queryset.update(is_approved=False)
+    disapprove_reviews.short_description = "Hide/Disapprove selected reviews"
+

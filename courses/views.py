@@ -3,17 +3,18 @@ import logging
 from django.utils import timezone
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
-from django.db.models import Count, Q
+from django.db.models import Count, Avg, Q
 from django.contrib import messages
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, JsonResponse
 from django.urls import reverse
 from django.core.cache import cache
 from .models import (
     Course, Category, Enrollment, CourseModule,
     CourseAssessment, CourseAssessmentQuestion,
-    CourseAssessmentAttempt, CourseCompletion
+    CourseAssessmentAttempt, CourseCompletion,
+    CourseBookmark, CourseReview
 )
-from learning.models import Lesson, LessonProgress, Exercise
+from learning.models import Lesson, LessonProgress, Exercise, LessonBookmark
 from goals.models import LearningActivity
 
 logger = logging.getLogger('skillsphere.courses')
@@ -29,19 +30,23 @@ def course_list_view(request):
         )
         cache.set('skillsphere_published_categories', categories, 900)
 
-    # Base courses queryset with annotated total_lessons and enrollment_count to eliminate N+1 queries
+    # Base courses queryset with annotated total_lessons, enrollment_count, and real rating metrics
     courses = Course.objects.filter(is_published=True).select_related('category').annotate(
         enrollment_count=Count('enrollments', distinct=True),
-        total_lessons=Count('lessons', distinct=True)
+        total_lessons=Count('lessons', distinct=True),
+        avg_rating=Avg('reviews__rating', filter=Q(reviews__is_approved=True)),
+        reviews_count=Count('reviews', filter=Q(reviews__is_approved=True), distinct=True)
     )
 
-    # Search filter
+    # Search filter (by title, description, instructor, category topic, objectives)
     q = request.GET.get('q', '').strip()
     if q:
         courses = courses.filter(
             Q(title__icontains=q) |
             Q(description__icontains=q) |
-            Q(instructor_name__icontains=q)
+            Q(instructor_name__icontains=q) |
+            Q(category__name__icontains=q) |
+            Q(learning_objectives__icontains=q)
         )
 
     # Category filter
@@ -54,12 +59,18 @@ def course_list_view(request):
     if selected_difficulty and selected_difficulty != 'all':
         courses = courses.filter(difficulty__iexact=selected_difficulty)
 
-    # Sorting
+    # Sorting (newest, popularity, duration, rating, title)
     sort_by = request.GET.get('sort', 'newest')
     if sort_by == 'popularity':
         courses = courses.order_by('-enrollment_count', '-created_at')
+    elif sort_by == 'duration':
+        courses = courses.order_by('estimated_duration', 'title')
+    elif sort_by == 'rating':
+        courses = courses.order_by('-avg_rating', '-reviews_count', '-created_at')
     elif sort_by == 'title':
         courses = courses.order_by('title')
+    else:
+        courses = courses.order_by('-created_at')
     # Check if this is the default unfiltered catalogue for anonymous visitors
     is_default_catalogue = (
         not request.user.is_authenticated and
@@ -82,10 +93,14 @@ def course_list_view(request):
 
     # Prepare enrolled course IDs and batch fetch progress for authenticated user
     user_enrolled_course_ids = set()
+    user_bookmarked_course_ids = set()
     user_progress_map = {}
     if request.user.is_authenticated:
         user_enrolled_course_ids = set(
             Enrollment.objects.filter(user=request.user).values_list('course_id', flat=True)
+        )
+        user_bookmarked_course_ids = set(
+            CourseBookmark.objects.filter(user=request.user).values_list('course_id', flat=True)
         )
         if user_enrolled_course_ids:
             # Batch fetch completions and lesson progress in 2 fast queries instead of 40+ per-course loops
@@ -122,6 +137,7 @@ def course_list_view(request):
     courses_data = []
     for course in courses_list:
         is_enrolled = course.id in user_enrolled_course_ids
+        is_bookmarked = course.id in user_bookmarked_course_ids
         total_lessons = getattr(course, 'total_lessons', None) or course.total_lessons_count
 
         if is_enrolled and course.id in user_progress_map:
@@ -166,8 +182,11 @@ def course_list_view(request):
         courses_data.append({
             'course': course,
             'is_enrolled': is_enrolled,
+            'is_bookmarked': is_bookmarked,
             'progress': prog,
             'enrollment_state': enrollment_state,
+            'avg_rating': getattr(course, 'avg_rating', None),
+            'reviews_count': getattr(course, 'reviews_count', 0),
         })
 
     return render(request, 'courses/list.html', {
@@ -230,9 +249,15 @@ def course_detail_view(request, slug):
     }
     first_incomplete_lesson = None
     completed_lesson_ids = set()
+    is_bookmarked = False
+    user_review = None
+    can_review = False
 
     if request.user.is_authenticated:
         is_enrolled = Enrollment.objects.filter(user=request.user, course=course).exists()
+        is_bookmarked = CourseBookmark.objects.filter(user=request.user, course=course).exists()
+        user_review = CourseReview.objects.filter(user=request.user, course=course).first()
+
         if is_enrolled:
             progress_info = course.get_user_progress(request.user)
             completed_lesson_ids = set(
@@ -242,6 +267,9 @@ def course_detail_view(request, slug):
                     is_completed=True
                 ).values_list('lesson_id', flat=True)
             )
+            # User can review if enrolled and has completed at least 1 lesson
+            can_review = len(completed_lesson_ids) >= 1
+
             # Find next incomplete lesson from prefetched list
             for lesson in lessons:
                 if lesson.id not in completed_lesson_ids:
@@ -262,6 +290,14 @@ def course_detail_view(request, slug):
 
     first_lesson = lessons[0] if lessons else None
 
+    # Ratings and reviews
+    approved_reviews = list(
+        course.reviews.filter(is_approved=True)
+        .select_related('user', 'user__profile')
+        .order_by('-created_at')[:30]
+    )
+    avg_rating, reviews_count = course.get_rating_summary()
+
     return render(request, 'courses/detail.html', {
         'course': course,
         'modules': modules,
@@ -269,12 +305,20 @@ def course_detail_view(request, slug):
         'first_lesson': first_lesson,
         'assessments': assessments,
         'completed_lesson_ids': completed_lesson_ids,
+        'completed_lessons_count': len(completed_lesson_ids),
         'lesson_ids_with_exercises': lesson_ids_with_exercises,
         'is_enrolled': is_enrolled,
+        'is_bookmarked': is_bookmarked,
         'enrollment_state': enrollment_state,
         'progress_info': progress_info,
         'first_incomplete_lesson': first_incomplete_lesson,
         'objectives': course.get_objectives_list(),
+        'prerequisites': course.get_prerequisites_list(),
+        'approved_reviews': approved_reviews,
+        'user_review': user_review,
+        'can_review': can_review,
+        'avg_rating': avg_rating,
+        'reviews_count': reviews_count,
     })
 
 
@@ -371,6 +415,8 @@ def unenroll_course_view(request, slug):
 
 @login_required
 def my_learning_view(request):
+    filter_tab = request.GET.get('tab', 'all')  # all, in_progress, completed, saved
+
     enrollments = list(
         Enrollment.objects.filter(user=request.user)
         .select_related('course', 'course__category')
@@ -378,10 +424,30 @@ def my_learning_view(request):
     )
     total_enrolled = len(enrollments)
     enrolled_items = []
-    filter_tab = request.GET.get('tab', 'all')  # all, in_progress, completed
 
-    if enrollments:
-        course_ids = [e.course_id for e in enrollments]
+    # Saved Bookmarks (Courses + Lessons)
+    saved_courses_qs = CourseBookmark.objects.filter(user=request.user).select_related('course', 'course__category').order_by('-created_at')
+    saved_lessons_qs = LessonBookmark.objects.filter(user=request.user).select_related('lesson', 'lesson__course').order_by('-created_at')
+    total_saved = saved_courses_qs.count() + saved_lessons_qs.count()
+    saved_courses_data = []
+    saved_lessons = []
+
+    course_ids = [e.course_id for e in enrollments]
+
+    if filter_tab == 'saved':
+        user_enrolled_set = set(course_ids)
+        saved_lessons = list(saved_lessons_qs)
+        for bm in saved_courses_qs:
+            c = bm.course
+            is_enr = c.id in user_enrolled_set
+            prog = c.get_user_progress(request.user) if is_enr else None
+            saved_courses_data.append({
+                'bookmark': bm,
+                'course': c,
+                'is_enrolled': is_enr,
+                'progress': prog,
+            })
+    elif enrollments:
         # Batch completions
         completions = {
             c.course_id: c
@@ -433,7 +499,102 @@ def my_learning_view(request):
         'enrolled_items': enrolled_items,
         'active_tab': filter_tab,
         'total_enrolled': total_enrolled,
+        'total_saved': total_saved,
+        'saved_courses_data': saved_courses_data,
+        'saved_lessons': saved_lessons,
     })
+
+
+@login_required
+def saved_courses_view(request):
+    return redirect(f"{reverse('courses:my_learning')}?tab=saved")
+
+
+@login_required
+def toggle_course_bookmark_api(request, slug):
+    course = get_object_or_404(Course, slug=slug, is_published=True)
+    bookmark, created = CourseBookmark.objects.get_or_create(user=request.user, course=course)
+    if not created:
+        bookmark.delete()
+        is_bookmarked = False
+        message = f"Removed '{course.title}' from your saved courses."
+    else:
+        is_bookmarked = True
+        message = f"Saved '{course.title}' to your bookmarks."
+
+    is_ajax = (
+        request.headers.get('x-requested-with') == 'XMLHttpRequest' or
+        request.content_type == 'application/json' or
+        'application/json' in request.headers.get('Accept', '')
+    )
+    if is_ajax:
+        return JsonResponse({
+            'success': True,
+            'is_bookmarked': is_bookmarked,
+            'message': message,
+            'course_id': course.id,
+            'course_slug': course.slug,
+        })
+
+    messages.success(request, message)
+    next_url = request.POST.get('next') or request.GET.get('next') or request.META.get('HTTP_REFERER')
+    return redirect(next_url or 'courses:detail', slug=course.slug)
+
+
+@login_required
+def submit_course_review_view(request, slug):
+    if request.method != 'POST':
+        return redirect('courses:detail', slug=slug)
+
+    course = get_object_or_404(Course, slug=slug, is_published=True)
+
+    # Strict Eligibility check: enrolled + completed >= 1 lesson
+    is_enrolled = Enrollment.objects.filter(user=request.user, course=course).exists()
+    completed_lessons_count = LessonProgress.objects.filter(
+        user=request.user, lesson__course=course, is_completed=True
+    ).count()
+
+    if not is_enrolled or completed_lessons_count < 1:
+        messages.error(request, "You must be enrolled and complete at least 1 lesson before submitting a review.")
+        return redirect('courses:detail', slug=slug)
+
+    try:
+        rating = int(request.POST.get('rating', 0))
+    except (ValueError, TypeError):
+        rating = 0
+
+    if rating < 1 or rating > 5:
+        messages.error(request, "Please select a valid rating between 1 and 5 stars.")
+        return redirect('courses:detail', slug=slug)
+
+    comment = request.POST.get('comment', '').strip()[:1000]
+
+    review, created = CourseReview.objects.update_or_create(
+        user=request.user,
+        course=course,
+        defaults={
+            'rating': rating,
+            'comment': comment,
+            'is_approved': True,
+        }
+    )
+    if created:
+        messages.success(request, "Thank you! Your verified student review has been published.")
+    else:
+        messages.success(request, "Your review has been updated.")
+
+    return redirect('courses:detail', slug=slug)
+
+
+@login_required
+def delete_course_review_view(request, slug):
+    if request.method != 'POST':
+        return redirect('courses:detail', slug=slug)
+    course = get_object_or_404(Course, slug=slug, is_published=True)
+    deleted, _ = CourseReview.objects.filter(user=request.user, course=course).delete()
+    if deleted:
+        messages.success(request, "Your review has been removed.")
+    return redirect('courses:detail', slug=slug)
 
 
 @login_required
