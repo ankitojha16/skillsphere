@@ -143,8 +143,8 @@ def compute_career_stats(user):
     courses_completed = 0
     enrollments = Enrollment.objects.filter(user=user).select_related('course')
     for enr in enrollments:
-        prog = enr.course.get_progress_for_user(user)
-        if prog['total'] > 0 and prog['completed'] >= prog['total']:
+        prog = enr.course.get_user_progress(user)
+        if prog.get('is_completed') or (prog.get('total', 0) > 0 and prog.get('completed', 0) >= prog.get('total', 0)):
             courses_completed += 1
 
     # 2. Total skills acquired

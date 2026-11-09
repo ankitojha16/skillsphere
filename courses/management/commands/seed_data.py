@@ -496,7 +496,7 @@ courses = Course.objects.filter(
                                 'key_takeaways': json.dumps(l_info.get('key_takeaways', [])),
                                 'common_mistakes': json.dumps(l_info.get('common_mistakes', [])),
                                 'external_resources': l_info.get('resources', '').strip(),
-                                'curriculum_version': 1 if l_info['order'] <= 4 else 2,
+                                'curriculum_version': 2,
                             }
                         )
 

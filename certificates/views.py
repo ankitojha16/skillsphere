@@ -27,7 +27,7 @@ def certificate_center_view(request):
 
         prog = course.get_user_progress(request.user)
 
-        # Check authoritative eligibility from course.get_user_progress (85% + mandatory assessments)
+        # Check authoritative eligibility from course.get_user_progress (100% mandatory video curriculum completion)
         if prog.get('is_certificate_eligible', False):
             eligible_courses.append({
                 'course': course,
@@ -128,7 +128,7 @@ def certificate_center_view(request):
 def claim_certificate_view(request, course_id):
     """
     Dedicated POST endpoint for claiming course completion certificates.
-    Enforces authentication, CSRF, curriculum progress (>= 85%), and assessment checks.
+    Enforces authentication, CSRF, and mandatory video curriculum completion checks.
     Idempotent: returns existing certificate if already issued.
     """
     if request.method != 'POST':

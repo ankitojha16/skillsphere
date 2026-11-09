@@ -145,10 +145,11 @@ class Course(models.Model):
                 enrollment.save(update_fields=['curriculum_version'])
 
         # Filter lessons applicable to student's curriculum version
-        applicable_lessons = self.lessons.filter(curriculum_version__lte=student_curriculum_version)
+        applicable_lessons = self.lessons.filter(curriculum_version__lte=student_curriculum_version).order_by('lesson_order', 'id')
         total_lessons = applicable_lessons.count()
         if total_lessons == 0:
-            total_lessons = self.lessons.count()
+            applicable_lessons = self.lessons.all().order_by('lesson_order', 'id')
+            total_lessons = applicable_lessons.count()
 
         if total_lessons == 0:
             return {
@@ -307,6 +308,7 @@ class Course(models.Model):
             'total_mandatory_lessons': total_lessons,
             'completed': completed_lessons,
             'total': total_lessons,
+            'required_percentage': 80,
             'exercises_completed': completed_exercises,
             'exercises_total': total_exercises,
             'assignments_completed': completed_assignments,
@@ -430,7 +432,7 @@ class CourseCompletion(models.Model):
 class Enrollment(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='enrollments')
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='enrollments')
-    curriculum_version = models.PositiveIntegerField(default=1, help_text='Curriculum version locked at enrollment')
+    curriculum_version = models.PositiveIntegerField(default=2, help_text='Curriculum version locked at enrollment')
     enrolled_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
