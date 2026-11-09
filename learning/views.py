@@ -1,10 +1,13 @@
 import json
+import logging
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponse
 from django.utils import timezone
 from django.utils.text import slugify
+
+logger = logging.getLogger('skillsphere.learning')
 
 from courses.models import Course, Enrollment, CourseModule
 from .models import (
@@ -71,129 +74,203 @@ def get_lesson_knowledge_check(lesson):
 
 @login_required
 def lesson_view(request, course_slug, lesson_id):
-    course = get_object_or_404(Course, slug=course_slug, is_published=True)
+    try:
+        course = get_object_or_404(Course, slug=course_slug, is_published=True)
 
+        # Permission check: Student must be enrolled
+        is_enrolled = Enrollment.objects.filter(user=request.user, course=course).exists()
+        if not is_enrolled:
+            messages.warning(request, f"Please enroll in '{course.title}' to access the lessons and materials.")
+            return redirect('courses:detail', slug=course.slug)
 
-    # Permission check: Student must be enrolled
-    is_enrolled = Enrollment.objects.filter(user=request.user, course=course).exists()
-    if not is_enrolled:
-        messages.warning(request, f"Please enroll in '{course.title}' to access the lessons and materials.")
-        return redirect('courses:detail', slug=course.slug)
+        lesson = get_object_or_404(Lesson, id=lesson_id, course=course)
+        all_lessons = list(course.lessons.all().order_by('lesson_order', 'id'))
 
-    lesson = get_object_or_404(Lesson, id=lesson_id, course=course)
-    all_lessons = list(course.lessons.all().order_by('lesson_order', 'id'))
+        # Build completion set for all lessons
+        try:
+            completed_lesson_ids = set(
+                LessonProgress.objects.filter(
+                    user=request.user,
+                    lesson__course=course,
+                    is_completed=True
+                ).values_list('lesson_id', flat=True)
+            )
+        except Exception as e:
+            logger.warning(f"Failed to fetch completed lessons for user {request.user.id}: {e}")
+            completed_lesson_ids = set()
 
-    # Build completion set for all lessons
-    completed_lesson_ids = set(
-        LessonProgress.objects.filter(
-            user=request.user,
-            lesson__course=course,
-            is_completed=True
-        ).values_list('lesson_id', flat=True)
-    )
+        current_is_completed = lesson.id in completed_lesson_ids
 
-    current_is_completed = lesson.id in completed_lesson_ids
+        # Find previous and next lessons
+        prev_lesson = None
+        next_lesson = None
+        for idx, l in enumerate(all_lessons):
+            if l.id == lesson.id:
+                if idx > 0:
+                    prev_lesson = all_lessons[idx - 1]
+                if idx < len(all_lessons) - 1:
+                    next_lesson = all_lessons[idx + 1]
+                break
 
-    # Find previous and next lessons
-    prev_lesson = None
-    next_lesson = None
-    for idx, l in enumerate(all_lessons):
-        if l.id == lesson.id:
-            if idx > 0:
-                prev_lesson = all_lessons[idx - 1]
-            if idx < len(all_lessons) - 1:
-                next_lesson = all_lessons[idx + 1]
-            break
+        # Authoritative progress lookup with fallback
+        try:
+            progress_info = course.get_user_progress(request.user)
+        except Exception as e:
+            logger.error(f"Error calculating course progress in lesson_view: {e}", exc_info=True)
+            total_cnt = len(all_lessons)
+            comp_cnt = len(completed_lesson_ids)
+            pct = int(round((comp_cnt / total_cnt) * 80)) if total_cnt > 0 else 0
+            progress_info = {
+                'percentage': pct,
+                'overall_progress': pct,
+                'weighted_course_progress': pct,
+                'video_progress': (comp_cnt / total_cnt) if total_cnt > 0 else 0.0,
+                'video_progress_percentage': int(round((comp_cnt / total_cnt) * 100)) if total_cnt > 0 else 0,
+                'video_completion_percentage': int(round((comp_cnt / total_cnt) * 100)) if total_cnt > 0 else 0,
+                'assessment_bonus_percentage': 0,
+                'optional_assessment_progress': 0.0,
+                'optional_assessment_progress_percentage': 0,
+                'completed_mandatory_lessons': comp_cnt,
+                'total_mandatory_lessons': total_cnt,
+                'mandatory_lessons_ratio_str': f"{comp_cnt}/{total_cnt}",
+                'completed': comp_cnt,
+                'total': total_cnt,
+                'required_percentage': 80,
+                'exercises_completed': 0,
+                'exercises_total': 0,
+                'assignments_completed': 0,
+                'assignments_total': 0,
+                'is_unlocked': False,
+                'has_optional_assessments': False,
+                'available_optional_assessments': [],
+                'optional_assessments_count': 0,
+                'optional_assessments_completed': 0,
+                'quiz_passed': False,
+                'mock_passed': False,
+                'has_quiz': False,
+                'has_mock': False,
+                'is_completed': comp_cnt >= total_cnt and total_cnt > 0,
+                'is_certificate_eligible': comp_cnt >= total_cnt and total_cnt > 0,
+                'certificate_issued': False,
+                'missing_requirements': [],
+                'optional_remaining_activities': [],
+            }
 
-    # Authoritative progress lookup using course.get_user_progress
-    progress_info = course.get_user_progress(request.user)
+        # Modules structure
+        try:
+            course_modules = list(course.modules.filter(is_published=True).prefetch_related('lessons'))
+        except Exception:
+            course_modules = []
+        modules_data = []
 
-    # Modules structure (if CourseModule exists, use modules, else fallback to chapter_name)
-    course_modules = list(course.modules.filter(is_published=True).prefetch_related('lessons'))
-    modules_data = []
+        if course_modules:
+            for mod in course_modules:
+                mod_lessons = list(mod.lessons.all().order_by('lesson_order', 'id'))
+                modules_data.append({
+                    'module': mod,
+                    'title': mod.title,
+                    'lessons': [
+                        {
+                            'lesson': ml,
+                            'is_completed': ml.id in completed_lesson_ids,
+                            'is_current': ml.id == lesson.id,
+                        }
+                        for ml in mod_lessons
+                    ]
+                })
+        else:
+            chapters = {}
+            for l in all_lessons:
+                ch = l.chapter_name or "Course Content"
+                if ch not in chapters:
+                    chapters[ch] = []
+                chapters[ch].append({
+                    'lesson': l,
+                    'is_completed': l.id in completed_lesson_ids,
+                    'is_current': l.id == lesson.id,
+                })
+            for ch_title, ch_items in chapters.items():
+                modules_data.append({
+                    'module': None,
+                    'title': ch_title,
+                    'lessons': ch_items,
+                })
 
-    if course_modules:
-        for mod in course_modules:
-            mod_lessons = list(mod.lessons.all().order_by('lesson_order', 'id'))
-            modules_data.append({
-                'module': mod,
-                'title': mod.title,
-                'lessons': [
-                    {
-                        'lesson': ml,
-                        'is_completed': ml.id in completed_lesson_ids,
-                        'is_current': ml.id == lesson.id,
-                    }
-                    for ml in mod_lessons
-                ]
-            })
-    else:
-        # Fallback grouping by chapter_name
-        chapters = {}
-        for l in all_lessons:
-            ch = l.chapter_name or "Course Content"
-            if ch not in chapters:
-                chapters[ch] = []
-            chapters[ch].append({
-                'lesson': l,
-                'is_completed': l.id in completed_lesson_ids,
-                'is_current': l.id == lesson.id,
-            })
-        for ch_title, ch_items in chapters.items():
-            modules_data.append({
-                'module': None,
-                'title': ch_title,
-                'lessons': ch_items,
-            })
+        # Video progress
+        try:
+            video_prog = VideoProgress.objects.filter(user=request.user, lesson=lesson).first()
+        except Exception:
+            video_prog = None
 
-    # Video progress
-    video_prog = VideoProgress.objects.filter(user=request.user, lesson=lesson).first()
+        # Bookmark state
+        try:
+            is_bookmarked = LessonBookmark.objects.filter(user=request.user, lesson=lesson).exists()
+        except Exception:
+            is_bookmarked = False
 
-    # Bookmark state
-    is_bookmarked = LessonBookmark.objects.filter(user=request.user, lesson=lesson).exists()
+        # Personal notes
+        try:
+            student_note_obj = StudentNote.objects.filter(user=request.user, lesson=lesson).first()
+            student_note_content = student_note_obj.content if student_note_obj else ""
+        except Exception:
+            student_note_content = ""
 
-    # Personal notes
-    student_note_obj = StudentNote.objects.filter(user=request.user, lesson=lesson).first()
-    student_note_content = student_note_obj.content if student_note_obj else ""
+        # Exercises
+        try:
+            exercises = list(lesson.exercises.all().order_by('order', 'id'))
+            submissions_map = {}
+            for sub in ExerciseSubmission.objects.filter(user=request.user, exercise__lesson=lesson).order_by('id'):
+                submissions_map[sub.exercise_id] = sub
 
-    # Exercises (Empty editor by default for unattempted challenges)
-    exercises = list(lesson.exercises.all().order_by('order', 'id'))
-    submissions_map = {}
-    for sub in ExerciseSubmission.objects.filter(user=request.user, exercise__lesson=lesson).order_by('id'):
-        submissions_map[sub.exercise_id] = sub
+            exercises_data = [
+                {
+                    'exercise': ex,
+                    'is_passed': submissions_map.get(ex.id).is_passed if ex.id in submissions_map else False,
+                    'user_code': submissions_map.get(ex.id).submitted_code if ex.id in submissions_map else "",
+                }
+                for ex in exercises
+            ]
+        except Exception as e:
+            logger.warning(f"Error loading exercises: {e}")
+            exercises_data = []
 
-    exercises_data = [
-        {
-            'exercise': ex,
-            'is_passed': submissions_map.get(ex.id).is_passed if ex.id in submissions_map else False,
-            'user_code': submissions_map.get(ex.id).submitted_code if ex.id in submissions_map else "",
+        # Course Assessments status
+        try:
+            final_quiz = course.course_assessments.filter(assessment_type='final_quiz', is_active=True).first()
+            final_mock = course.course_assessments.filter(assessment_type='final_mock', is_active=True).first()
+        except Exception:
+            final_quiz = None
+            final_mock = None
+
+        # Knowledge check
+        try:
+            knowledge_check = get_lesson_knowledge_check(lesson)
+        except Exception:
+            knowledge_check = []
+
+        context = {
+            'course': course,
+            'lesson': lesson,
+            'modules_data': modules_data,
+            'prev_lesson': prev_lesson,
+            'next_lesson': next_lesson,
+            'current_is_completed': current_is_completed,
+            'progress_info': progress_info,
+            'video_prog': video_prog,
+            'is_bookmarked': is_bookmarked,
+            'student_note_content': student_note_content,
+            'exercises_data': exercises_data,
+            'optional_assessments': progress_info.get('available_optional_assessments', []),
+            'final_quiz': final_quiz,
+            'final_mock': final_mock,
+            'knowledge_check': knowledge_check,
         }
-        for ex in exercises
-    ]
 
-    # Course Assessments status
-    final_quiz = course.course_assessments.filter(assessment_type='final_quiz', is_active=True).first()
-    final_mock = course.course_assessments.filter(assessment_type='final_mock', is_active=True).first()
-
-    context = {
-        'course': course,
-        'lesson': lesson,
-        'modules_data': modules_data,
-        'prev_lesson': prev_lesson,
-        'next_lesson': next_lesson,
-        'current_is_completed': current_is_completed,
-        'progress_info': progress_info,
-        'video_prog': video_prog,
-        'is_bookmarked': is_bookmarked,
-        'student_note_content': student_note_content,
-        'exercises_data': exercises_data,
-        'optional_assessments': progress_info.get('available_optional_assessments', []),
-        'final_quiz': final_quiz,
-        'final_mock': final_mock,
-        'knowledge_check': get_lesson_knowledge_check(lesson),
-    }
-
-    return render(request, 'learning/lesson.html', context)
+        return render(request, 'learning/lesson.html', context)
+    except Exception as e:
+        logger.error(f"Catastrophic error in lesson_view for course {course_slug}, lesson {lesson_id}: {e}", exc_info=True)
+        messages.error(request, "Unable to load the requested lesson right now. Redirecting to course outline.")
+        return redirect('courses:detail', slug=course_slug)
 
 
 @login_required

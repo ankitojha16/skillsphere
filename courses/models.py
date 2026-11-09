@@ -1,8 +1,11 @@
+import logging
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils.text import slugify
 from django.conf import settings
 from django.core.cache import cache
+
+logger = logging.getLogger('skillsphere.courses')
 
 class Category(models.Model):
     name = models.CharField(max_length=100, unique=True)
@@ -81,7 +84,10 @@ class Course(models.Model):
     @classmethod
     def invalidate_user_progress_cache(cls, user_id, course_id):
         if user_id and course_id:
-            cache.delete(f"user_course_progress_{user_id}_{course_id}")
+            try:
+                cache.delete(f"user_course_progress_{user_id}_{course_id}")
+            except Exception as e:
+                logger.warning(f"Failed to delete progress cache: {e}")
 
     def get_total_lessons(self):
         return self.total_lessons_count
@@ -291,20 +297,30 @@ class Course(models.Model):
             optional_remaining_activities.append(f"{total_assignments - completed_assignments} optional project assignment(s) available")
 
         # Auto-sync CourseCompletion record
-        completion, _ = CourseCompletion.objects.get_or_create(user=user, course=self)
-        has_tests = total_optional_assessments > 0
-        if (completion.learning_progress != overall_progress or
-            completion.is_assessment_unlocked != has_tests or
-            completion.is_completed != is_certificate_eligible):
-            completion.learning_progress = overall_progress
-            completion.is_assessment_unlocked = has_tests
-            if is_certificate_eligible and not completion.is_completed:
-                from django.utils import timezone
-                completion.is_completed = True
-                completion.completed_at = timezone.now()
-            elif not is_certificate_eligible and not certificate_issued:
-                completion.is_completed = False
-            completion.save()
+        try:
+            completion, _ = CourseCompletion.objects.get_or_create(user=user, course=self)
+            has_tests = total_optional_assessments > 0
+            if (completion.learning_progress != overall_progress or
+                completion.is_assessment_unlocked != has_tests or
+                completion.is_completed != is_certificate_eligible):
+                completion.learning_progress = overall_progress
+                completion.is_assessment_unlocked = has_tests
+                if is_certificate_eligible and not completion.is_completed:
+                    from django.utils import timezone
+                    completion.is_completed = True
+                    completion.completed_at = timezone.now()
+                elif not is_certificate_eligible and not certificate_issued:
+                    completion.is_completed = False
+                completion.save()
+        except CourseCompletion.MultipleObjectsReturned:
+            try:
+                completions = CourseCompletion.objects.filter(user=user, course=self).order_by('id')
+                c_first = completions.first()
+                completions.exclude(id=c_first.id).delete()
+            except Exception:
+                pass
+        except Exception as e:
+            logger.warning(f"Could not auto-sync CourseCompletion for user {user.id}, course {self.id}: {e}")
 
         quiz_obj = next((a for a in available_optional_assessments if a['assessment_type'] == 'final_quiz'), None)
         mock_obj = next((a for a in available_optional_assessments if a['assessment_type'] == 'final_mock'), None)
@@ -345,7 +361,10 @@ class Course(models.Model):
             'optional_remaining_activities': optional_remaining_activities,
         }
         if use_cache:
-            cache.set(cache_key, result, 120)
+            try:
+                cache.set(cache_key, result, 120)
+            except Exception as e:
+                logger.warning(f"Failed to cache course progress: {e}")
         return result
 
 
@@ -432,7 +451,10 @@ class CourseAssessmentAttempt(models.Model):
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
         if self.assessment and self.assessment.course_id:
-            Course.invalidate_user_progress_cache(self.user_id, self.assessment.course_id)
+            try:
+                Course.invalidate_user_progress_cache(self.user_id, self.assessment.course_id)
+            except Exception:
+                pass
 
 
 class CourseCompletion(models.Model):
@@ -468,10 +490,16 @@ class Enrollment(models.Model):
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
-        Course.invalidate_user_progress_cache(self.user_id, self.course_id)
+        try:
+            Course.invalidate_user_progress_cache(self.user_id, self.course_id)
+        except Exception:
+            pass
 
     def delete(self, *args, **kwargs):
         user_id = self.user_id
         course_id = self.course_id
         super().delete(*args, **kwargs)
-        Course.invalidate_user_progress_cache(user_id, course_id)
+        try:
+            Course.invalidate_user_progress_cache(user_id, course_id)
+        except Exception:
+            pass

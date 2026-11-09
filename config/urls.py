@@ -47,8 +47,30 @@ def custom_permission_denied_view(request, exception=None):
 def custom_page_not_found_view(request, exception=None):
     return render(request, 'errors/404.html', status=404)
 
+import sys
+import traceback
+import logging
+
+logger = logging.getLogger('skillsphere.errors')
+
 def custom_server_error_view(request):
-    return render(request, 'errors/500.html', status=500)
+    exc_type, exc_value, exc_tb = sys.exc_info()
+    if exc_value:
+        logger.error(
+            f"Unhandled 500 Server Error at {getattr(request, 'path', 'Unknown')}: {exc_type.__name__ if exc_type else 'Unknown'}: {exc_value}\n"
+            f"{''.join(traceback.format_exception(exc_type, exc_value, exc_tb))}"
+        )
+    error_details = None
+    user = getattr(request, 'user', None)
+    if user and user.is_authenticated and (user.is_staff or getattr(user, 'username', '') == 'ankit.ojha1666'):
+        if exc_value:
+            error_details = {
+                'type': exc_type.__name__ if exc_type else 'ServerError',
+                'message': str(exc_value),
+                'traceback': ''.join(traceback.format_exception(exc_type, exc_value, exc_tb)),
+                'path': getattr(request, 'path', 'Unknown'),
+            }
+    return render(request, 'errors/500.html', {'error_details': error_details}, status=500)
 
 handler400 = 'config.urls.custom_bad_request_view'
 handler403 = 'config.urls.custom_permission_denied_view'

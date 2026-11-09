@@ -1,4 +1,5 @@
 import json
+import logging
 from django.utils import timezone
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
@@ -14,6 +15,8 @@ from .models import (
 )
 from learning.models import Lesson, LessonProgress, Exercise
 from goals.models import LearningActivity
+
+logger = logging.getLogger('skillsphere.courses')
 
 def course_list_view(request):
     # Tier-1 In-memory cache for public category metadata (15 mins TTL)
@@ -279,26 +282,50 @@ def course_detail_view(request, slug):
 def enroll_course_view(request, slug):
     course = get_object_or_404(Course, slug=slug, is_published=True)
     if request.method == 'POST':
-        enrollment, created = Enrollment.objects.get_or_create(
-            user=request.user,
-            course=course,
-            defaults={'curriculum_version': course.curriculum_version}
-        )
-        if created:
-            LearningActivity.objects.create(
+        try:
+            enrollment, created = Enrollment.objects.get_or_create(
                 user=request.user,
-                activity_type='ENROLL',
-                reference_id=course.id,
-                description=f"Enrolled in {course.title}"
+                course=course,
+                defaults={'curriculum_version': course.curriculum_version}
             )
+        except Enrollment.MultipleObjectsReturned:
+            enrollments = Enrollment.objects.filter(user=request.user, course=course).order_by('id')
+            enrollment = enrollments.first()
+            enrollments.exclude(id=enrollment.id).delete()
+            created = False
+        except Exception as e:
+            logger.error(f"Error enrolling user {request.user.id} in course {slug}: {e}", exc_info=True)
+            messages.error(request, f"Unable to process enrollment right now. Please try again.")
+            return redirect('courses:detail', slug=course.slug)
+
+        if created:
+            try:
+                LearningActivity.objects.create(
+                    user=request.user,
+                    activity_type='ENROLL',
+                    reference_id=course.id,
+                    description=f"Enrolled in {course.title}"
+                )
+            except Exception as e:
+                logger.warning(f"Failed to record learning activity on enrollment: {e}")
             messages.success(request, f"Successfully enrolled in '{course.title}'! Let's get started.")
         else:
             messages.info(request, f"You are already enrolled in '{course.title}'.")
 
+        # Invalidate cache defensively
+        try:
+            Course.invalidate_user_progress_cache(request.user.id, course.id)
+        except Exception as e:
+            logger.warning(f"Cache invalidation failed: {e}")
+
         # Redirect to first lesson if available, otherwise course detail
-        first_lesson = course.lessons.order_by('lesson_order').first()
-        if first_lesson:
-            return redirect('learning:lesson_detail', course_slug=course.slug, lesson_id=first_lesson.id)
+        try:
+            first_lesson = course.lessons.order_by('lesson_order').first()
+            if first_lesson:
+                return redirect('learning:lesson_detail', course_slug=course.slug, lesson_id=first_lesson.id)
+        except Exception as e:
+            logger.error(f"Failed to resolve first lesson for {slug}: {e}", exc_info=True)
+
         return redirect('courses:detail', slug=course.slug)
 
     return redirect('courses:detail', slug=course.slug)
@@ -322,11 +349,22 @@ def upgrade_curriculum_view(request, slug):
 def unenroll_course_view(request, slug):
     course = get_object_or_404(Course, slug=slug)
     if request.method == 'POST':
-        deleted_count, _ = Enrollment.objects.filter(user=request.user, course=course).delete()
-        if deleted_count > 0:
-            # Also clean up lesson progress for this course
-            LessonProgress.objects.filter(user=request.user, lesson__course=course).delete()
-            messages.info(request, f"You have unenrolled from '{course.title}'.")
+        try:
+            deleted_count, _ = Enrollment.objects.filter(user=request.user, course=course).delete()
+            if deleted_count > 0:
+                # Also clean up lesson progress for this course
+                try:
+                    LessonProgress.objects.filter(user=request.user, lesson__course=course).delete()
+                except Exception as e:
+                    logger.warning(f"Error cleaning LessonProgress on unenroll: {e}")
+                messages.info(request, f"You have unenrolled from '{course.title}'.")
+            try:
+                Course.invalidate_user_progress_cache(request.user.id, course.id)
+            except Exception:
+                pass
+        except Exception as e:
+            logger.error(f"Error unenrolling user {request.user.id} from {slug}: {e}", exc_info=True)
+            messages.error(request, "Unable to unenroll right now. Please try again.")
         return redirect('courses:my_learning')
     return redirect('courses:detail', slug=course.slug)
 
