@@ -51,9 +51,9 @@
                     <span>Course Progress: <strong class="text-white">{{ primary_next_step.progress.percentage }}%</strong></span>
                     <span>•</span>
                     <span>{{ primary_next_step.progress.completed }}/{{ primary_next_step.progress.total }} Lessons Completed</span>
-                    {% if primary_next_step.progress.percentage >= 85 %}
+                    {% if primary_next_step.progress.is_certificate_eligible or primary_next_step.progress.percentage >= 80 %}
                     <span>•</span>
-                    <span class="badge bg-success-subtle text-success border border-success-subtle">Ready for Certificate Assessment</span>
+                    <span class="badge bg-success-subtle text-success border border-success-subtle">Certificate Ready to Claim 🎓</span>
                     {% endif %}
                 </div>
             </div>
