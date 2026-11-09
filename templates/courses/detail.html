@@ -516,6 +516,19 @@
                     <li><strong class="text-white">Optional Assessments (+20% Extra Credit):</strong> Final Quiz & Mock Examination help test your skills up to 100%</li>
                     <li><strong class="text-white">No Barriers:</strong> Optional tests, coding exercises, and projects never block certificate claiming or download</li>
                 </ul>
+
+                {% if progress_info.certificate_issued %}
+                    <a href="{% url 'certificates:download_by_course' course_id=course.id %}" class="btn btn-success-custom w-100 py-2 small fw-bold mb-2 d-inline-flex align-items-center justify-content-center gap-1.5">
+                        <i data-lucide="download" style="width: 16px; height: 16px;"></i>
+                        <span>Download Certificate PDF 🎓</span>
+                    </a>
+                {% elif progress_info.is_certificate_eligible or progress_info.completed >= progress_info.total and progress_info.total > 0 or progress_info.percentage >= 80 %}
+                    <button type="button" class="btn btn-success-custom w-100 py-2 small fw-bold mb-2 d-inline-flex align-items-center justify-content-center gap-1.5" data-bs-toggle="modal" data-bs-target="#claimCertDetailModal">
+                        <i data-lucide="award" style="width: 16px; height: 16px;"></i>
+                        <span>Claim Certificate (Ready!) 🎉</span>
+                    </button>
+                {% endif %}
+
                 <a href="{% url 'certificates:center' %}" class="btn btn-secondary-custom w-100 py-2 small">
                     <i data-lucide="award" style="width: 16px; height: 16px;"></i>
                     <span>View Certificate Center</span>
@@ -526,6 +539,59 @@
                 <h5 class="fw-bold text-white mb-2">Notice</h5>
                 <p class="text-muted small mb-0">All sample curriculum content is developed strictly for educational demonstration and student portfolio purposes.</p>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Claim Certificate Modal for Course Detail Page -->
+<div class="modal fade" id="claimCertDetailModal" tabindex="-1" aria-labelledby="claimCertDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content custom-card border-purple-glow" style="background-color: var(--card-bg, #0B1120); border: 1px solid var(--border-color, rgba(255,255,255,0.1));">
+            <div class="modal-header border-secondary border-opacity-25 pb-3">
+                <h5 class="modal-title fw-bold text-white d-flex align-items-center gap-2" id="claimCertDetailModalLabel">
+                    <i data-lucide="award" class="text-warning" style="width: 22px; height: 22px;"></i>
+                    Claim Your Verified Certificate
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="{% url 'certificates:claim_course_certificate' course_id=course.id %}" id="detailClaimCertForm">
+                {% csrf_token %}
+                <div class="modal-body py-3">
+                    <div class="alert alert-success border-success-subtle bg-success-subtle text-success small py-2 px-3 mb-3 d-flex align-items-center gap-2">
+                        <i data-lucide="check-circle" style="width: 16px; height: 16px; flex-shrink: 0;"></i>
+                        <span><strong>Milestone Achieved!</strong> You completed 100% of mandatory video lessons (80% course progress). Tests and practice code are optional extra credit.</span>
+                    </div>
+
+                    <p class="text-secondary small mb-3">
+                        Enter the full name you want engraved on your official SkillSphere Course Completion Certificate and public verification registry.
+                    </p>
+
+                    <div class="mb-3 text-start">
+                        <label for="detailCertRecipientName" class="form-label text-light small fw-bold">Full Student Name (Printed on Certificate)</label>
+                        <input type="text" class="form-control text-white" id="detailCertRecipientName" name="recipient_name" required maxlength="100"
+                               value="{{ request.user.profile.full_name|default:request.user.get_full_name|default:request.user.username }}"
+                               placeholder="e.g. Ankit Kumar"
+                               style="background-color: rgba(255, 255, 255, 0.05); border-color: var(--border-color); font-size: 0.95rem;">
+                        <div class="form-text text-muted small">This name will appear on your downloadable PDF and live QR verification link.</div>
+                    </div>
+
+                    <!-- Live Certificate Card Preview -->
+                    <div class="p-3 rounded-3 text-center my-3" style="background: #FAF9F5; color: #1E293B; border: 2px solid #D97706; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+                        <div style="font-size: 0.65rem; letter-spacing: 0.15em; color: #B45309; font-weight: bold; text-transform: uppercase;">SkillSphere Course Completion Credential</div>
+                        <h6 class="fw-bold my-1" style="font-family: serif; color: #0F172A;">{{ course.title }}</h6>
+                        <div style="font-size: 0.75rem; color: #64748B;">Awarded to</div>
+                        <h5 class="fw-bold text-primary my-1" style="font-family: serif; color: #0F172A;" id="detailPreviewStudentName">{{ request.user.profile.full_name|default:request.user.get_full_name|default:request.user.username }}</h5>
+                        <div style="font-size: 0.65rem; color: #94A3B8;">Verified Digital Credential • 80% Video Curriculum Passed</div>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary border-opacity-25 pt-3">
+                    <button type="button" class="btn btn-secondary-custom" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success-custom fw-bold px-4 d-inline-flex align-items-center gap-1.5" id="confirmDetailClaimBtn">
+                        <i data-lucide="award" style="width: 16px; height: 16px;"></i>
+                        <span>Confirm & Claim Certificate</span>
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -565,5 +631,15 @@ function toggleDetailBookmark(slug, btn) {
     })
     .catch(err => console.error('Error toggling bookmark:', err));
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    const detailNameInput = document.getElementById('detailCertRecipientName');
+    const detailPreviewName = document.getElementById('detailPreviewStudentName');
+    if (detailNameInput && detailPreviewName) {
+        detailNameInput.addEventListener('input', () => {
+            detailPreviewName.textContent = detailNameInput.value.trim() || 'Student Name';
+        });
+    }
+});
 </script>
 {% endblock %}

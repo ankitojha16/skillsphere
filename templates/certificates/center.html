@@ -288,6 +288,11 @@
                 {% csrf_token %}
                 <input type="hidden" name="claim_course_id" id="modalCourseId" value="">
                 <div class="modal-body">
+                    <div class="alert alert-success border-success-subtle bg-success-subtle text-success small py-2 px-3 mb-3 d-flex align-items-center gap-2">
+                        <i data-lucide="check-circle" style="width: 16px; height: 16px; flex-shrink: 0;"></i>
+                        <span><strong>Requirement Fulfilled!</strong> 100% video lessons completed (80% progress). Tests and coding exercises are 100% optional extra credit.</span>
+                    </div>
+
                     <p class="text-secondary small mb-3">
                         Confirm the exact display name to print on your SkillSphere Course Completion Certificate and public verification registry.
                     </p>

@@ -296,9 +296,9 @@ class Course(models.Model):
         # Optional assessments NEVER compensate for incomplete video lessons.
         # --------------------------------------------------------------------
         all_mandatory_completed = (completed_lessons >= total_lessons and total_lessons > 0)
-        is_certificate_eligible = certificate_issued or all_mandatory_completed
+        is_certificate_eligible = bool(certificate_issued or all_mandatory_completed or (video_ratio >= 1.0) or (overall_progress >= 80 and total_lessons > 0 and completed_lessons >= total_lessons))
 
-        # Missing requirements list (Only mandatory video lessons)
+        # Missing requirements list (Only mandatory video lessons; tests/exercises are strictly optional)
         missing_requirements = []
         if not is_certificate_eligible:
             remaining_lessons = max(0, total_lessons - completed_lessons)

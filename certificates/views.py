@@ -128,6 +128,7 @@ def certificate_center_view(request):
             recipient_name=custom_name,
             criteria_met=f"Successfully completed all mandatory video lessons and curriculum for {course_to_claim.title}."
         )
+        Course.invalidate_user_progress_cache(request.user.id, course_to_claim.id)
 
         Notification.objects.create(
             user=request.user,
@@ -226,6 +227,7 @@ def claim_certificate_view(request, course_id):
         recipient_name=custom_name,
         criteria_met=f"Successfully completed all mandatory video lessons and curriculum for {course.title}."
     )
+    Course.invalidate_user_progress_cache(request.user.id, course.id)
 
     Notification.objects.create(
         user=request.user,
@@ -266,7 +268,7 @@ def download_course_certificate_view(request, course_id):
             return redirect('certificates:center')
         else:
             missing_text = '; '.join(prog.get('missing_requirements', ['Course requirements not met.']))
-            messages.error(request, f"Certificate locked: {missing_text}")
+            messages.error(request, f"Certificate in progress: {missing_text}")
             return redirect('courses:detail', slug=course.slug)
 
     if not cert.verification_status:
