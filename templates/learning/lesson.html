@@ -748,7 +748,12 @@
                         <a href="{% url 'certificates:download_by_course' course_id=course.id %}" class="btn btn-success btn-sm py-1.5 px-3 w-100 mb-2 d-inline-flex align-items-center justify-content-center gap-1.5">
                             <i data-lucide="download" style="width: 14px; height: 14px;"></i> Download PDF
                         </a>
-                        <a href="{% url 'certificates:center' %}" class="btn btn-outline-secondary btn-sm py-1 px-3 w-100">View Certificate Details</a>
+                        <div class="d-flex gap-1.5 w-100">
+                            <button type="button" class="btn btn-outline-warning btn-sm py-1 px-2 flex-grow-1" data-bs-toggle="modal" data-bs-target="#claimCertModal">
+                                <i data-lucide="edit-3" style="width: 12px; height: 12px;"></i> Edit Name
+                            </button>
+                            <a href="{% url 'certificates:center' %}" class="btn btn-outline-secondary btn-sm py-1 px-2 flex-grow-1">Certificate Details</a>
+                        </div>
                     {% elif progress_info.is_certificate_eligible or progress_info.completed >= progress_info.total and progress_info.total > 0 or progress_info.percentage >= 80 %}
                         <i data-lucide="award" class="text-warning mx-auto mb-2" style="width: 28px; height: 28px;"></i>
                         <div class="fw-bold text-white small mb-1">Certificate Ready! 🎉</div>
@@ -919,7 +924,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     <a href="/certificates/course/${courseId}/download/" class="btn btn-success btn-sm py-1.5 px-3 w-100 mb-2 d-inline-flex align-items-center justify-content-center gap-1.5">
                         <i data-lucide="download" style="width: 14px; height: 14px;"></i> Download PDF
                     </a>
-                    <a href="/certificates/" class="btn btn-outline-secondary btn-sm py-1 px-3 w-100">View Certificate Details</a>
+                    <div class="d-flex gap-1.5 w-100">
+                        <button type="button" class="btn btn-outline-warning btn-sm py-1 px-2 flex-grow-1" data-bs-toggle="modal" data-bs-target="#claimCertModal">
+                            <i data-lucide="edit-3" style="width: 12px; height: 12px;"></i> Edit Name
+                        </button>
+                        <a href="/certificates/" class="btn btn-outline-secondary btn-sm py-1 px-2 flex-grow-1">Certificate Details</a>
+                    </div>
                 `;
             } else if (isCertEligible) {
                 certCard.innerHTML = `

@@ -81,23 +81,33 @@ def certificate_center_view(request):
                     'remaining_reasons': prog.get('missing_requirements', []),
                 })
 
-    # Handle claim request with custom chosen recipient name
+    # Handle claim request or name update with custom chosen recipient name
     if request.method == 'POST' and 'claim_course_id' in request.POST:
         course_id = request.POST.get('claim_course_id')
         course_to_claim = get_object_or_404(Course, id=course_id)
+        custom_name = request.POST.get('recipient_name', '').strip()
+        custom_name = re.sub(r'[\r\n\t]', ' ', custom_name)[:100] if custom_name else ""
 
-        # Check for existing certificate (idempotent, return existing certificate)
+        # Check for existing certificate (idempotent, allows updating recipient name)
         existing_cert = Certificate.objects.filter(user=request.user, course=course_to_claim).first()
         if existing_cert:
+            if custom_name and existing_cert.recipient_name != custom_name:
+                existing_cert.recipient_name = custom_name
+                existing_cert.save(update_fields=['recipient_name'])
+                Course.invalidate_user_progress_cache(request.user.id, course_to_claim.id)
+                msg = f"Certificate recipient name successfully updated to '{custom_name}'."
+            else:
+                msg = f"SkillSphere Course Completion Certificate ready for '{course_to_claim.title}'."
+
             if request.headers.get('x-requested-with') == 'XMLHttpRequest':
                 return JsonResponse({
                     'success': True,
                     'already_issued': True,
                     'certificate_id': existing_cert.certificate_id,
                     'download_url': f"/certificates/{existing_cert.id}/download/",
-                    'message': f"You already hold a certificate for '{course_to_claim.title}'."
+                    'message': msg
                 })
-            messages.info(request, f"You already hold a SkillSphere Course Completion Certificate for '{course_to_claim.title}'.")
+            messages.success(request, msg)
             return redirect('certificates:center')
 
         prog = course_to_claim.get_user_progress(request.user)
@@ -185,19 +195,30 @@ def claim_certificate_view(request, course_id):
         request.content_type == 'application/json'
     )
 
-    # Check for existing certificate (idempotent, return existing certificate)
+    custom_name = request.POST.get('recipient_name', '').strip()
+    custom_name = re.sub(r'[\r\n\t]', ' ', custom_name)[:100] if custom_name else ""
+
+    # Check for existing certificate (idempotent, allow name update)
     existing_cert = Certificate.objects.filter(user=request.user, course=course).first()
     if existing_cert:
         download_url = f"/certificates/{existing_cert.id}/download/"
+        if custom_name and existing_cert.recipient_name != custom_name:
+            existing_cert.recipient_name = custom_name
+            existing_cert.save(update_fields=['recipient_name'])
+            Course.invalidate_user_progress_cache(request.user.id, course.id)
+            msg = f"SkillSphere Course Completion Certificate updated for {custom_name}!"
+        else:
+            msg = f"SkillSphere Course Completion Certificate ready for '{course.title}'."
+
         if is_json:
             return JsonResponse({
                 'success': True,
                 'already_issued': True,
                 'certificate_id': existing_cert.certificate_id,
                 'download_url': download_url,
-                'message': f"You already hold a certificate for '{course.title}'."
+                'message': msg
             })
-        messages.info(request, f"You already hold a SkillSphere Course Completion Certificate for '{course.title}'.")
+        messages.success(request, msg)
         return redirect(download_url)
 
     prog = course.get_user_progress(request.user)

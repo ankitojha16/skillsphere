@@ -156,6 +156,12 @@ def lesson_view(request, course_slug, lesson_id):
                 'optional_remaining_activities': [],
             }
 
+        # Check if certificate is already issued
+        if progress_info.get('is_certificate_eligible') and not progress_info.get('certificate_issued'):
+            from certificates.models import Certificate
+            if Certificate.objects.filter(user=request.user, course=course).exists():
+                progress_info['certificate_issued'] = True
+
         # Modules structure
         try:
             course_modules = list(course.modules.filter(is_published=True).prefetch_related('lessons'))
@@ -310,6 +316,29 @@ def complete_lesson_toggle(request, course_slug, lesson_id):
         messages.info(request, f"Marked '{lesson.title}' as incomplete.")
 
     course_progress = course.get_user_progress(request.user)
+    if course_progress.get('is_certificate_eligible') and not course_progress.get('certificate_issued'):
+        from certificates.models import Certificate
+        profile = getattr(request.user, 'profile', None)
+        default_name = profile.full_name if (profile and profile.full_name) else (request.user.get_full_name() or request.user.username)
+        cert, created = Certificate.objects.get_or_create(
+            user=request.user,
+            course=course,
+            defaults={
+                'title': f"Course Completion: {course.title}",
+                'recipient_name': default_name,
+                'criteria_met': f"Successfully completed all mandatory video lessons and curriculum for {course.title}."
+            }
+        )
+        course_progress['certificate_issued'] = True
+        if created:
+            Course.invalidate_user_progress_cache(request.user.id, course.id)
+            Notification.objects.create(
+                user=request.user,
+                title="Certificate Issued! 🎓",
+                message=f"Congratulations, {default_name}! Your SkillSphere Course Completion Certificate for '{course.title}' has been generated.",
+                notification_type='certificate_issued',
+                link="/certificates/"
+            )
 
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
         return JsonResponse({

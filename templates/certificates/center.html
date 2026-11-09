@@ -95,11 +95,11 @@
         </div>
     {% endif %}
 
-    <!-- Earned Certificates Grid -->
+    <!-- Earned & Eligible Certificates Grid -->
     <div class="mb-5">
         <h4 class="text-white fw-bold mb-3 d-flex align-items-center gap-2">
             <i data-lucide="check-circle-2" style="width: 22px; height: 22px;" class="text-primary-accent"></i>
-            Earned Certificates ({{ certificates.count }})
+            Earned Certificates ({{ certificates|length|add:eligible_courses|length }})
         </h4>
 
         <div class="row g-4">
@@ -140,6 +140,9 @@
                                 <a href="{{ cert.get_verify_url }}" target="_blank" class="btn btn-sm btn-outline-light" title="Public Verification Page">
                                     <i data-lucide="shield-check" style="width: 14px; height: 14px;"></i> Verify
                                 </a>
+                                <button type="button" class="btn btn-sm btn-outline-warning" onclick="openClaimModal({{ cert.course.id }}, '{{ cert.course.title|escapejs }}', '{{ cert.recipient_name|escapejs }}');" title="Customize name on this certificate">
+                                    <i data-lucide="edit-3" style="width: 14px; height: 14px;"></i> Edit Name
+                                </button>
                             </div>
                             <a href="{% url 'certificates:download' pk=cert.pk %}" class="btn btn-sm btn-primary-custom">
                                 <i data-lucide="download" style="width: 14px; height: 14px;"></i> Download PDF
@@ -147,7 +150,42 @@
                         </div>
                     </div>
                 </div>
-            {% empty %}
+            {% endfor %}
+
+            {% for item in eligible_courses %}
+                <div class="col-md-6 col-xl-4">
+                    <div class="custom-card p-4 h-100 d-flex flex-column justify-content-between position-relative" style="background: linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(34,197,94,0.06) 100%); border: 1px solid rgba(34,197,94,0.4);">
+                        <div>
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <span class="badge-category mb-0"><i data-lucide="award" style="width: 12px; height: 12px;"></i> Ready to Claim</span>
+                                <span class="badge bg-success text-white rounded-pill px-2 py-1 small">
+                                    <i data-lucide="check-circle" style="width: 12px; height: 12px;"></i> Certificate Earned 🎓
+                                </span>
+                            </div>
+
+                            <h5 class="fw-bold text-white mb-1">{{ item.course.title }}</h5>
+                            <div class="text-success small mb-3">
+                                <strong>100% Video Lessons Completed!</strong> ({{ item.progress.percentage }}% Progress)
+                            </div>
+
+                            <div class="p-3 rounded-3 mb-3" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(34,197,94,0.2);">
+                                <div class="text-secondary small mb-1">Status:</div>
+                                <div class="text-light fw-bold small mb-1">Requirements Fully Verified</div>
+                                <div class="text-muted small" style="font-size: 0.72rem;">Click below to confirm the name to print on your verified PDF credential.</div>
+                            </div>
+                        </div>
+
+                        <div class="pt-3 border-top border-secondary border-opacity-25">
+                            <button type="button" class="btn btn-success-custom w-100 py-2 fw-bold small d-inline-flex align-items-center justify-content-center gap-1.5" onclick="openClaimModal({{ item.course.id }}, '{{ item.course.title|escapejs }}');">
+                                <i data-lucide="award" style="width: 16px; height: 16px;"></i>
+                                <span>Claim & Download Certificate</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+
+            {% if not certificates and not eligible_courses %}
                 <div class="col-12 text-center py-5">
                     <div class="stat-icon purple mx-auto mb-3" style="width: 60px; height: 60px;">
                         <i data-lucide="award" style="width: 30px; height: 30px;"></i>
@@ -161,7 +199,7 @@
                         <span>Explore All Courses</span>
                     </a>
                 </div>
-            {% endfor %}
+            {% endif %}
         </div>
     </div>
 
@@ -342,9 +380,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-function openClaimModal(courseId, courseTitle) {
+function openClaimModal(courseId, courseTitle, currentName) {
     document.getElementById('modalCourseId').value = courseId;
     document.getElementById('previewCourseTitle').textContent = courseTitle;
+    if (currentName) {
+        const nameInput = document.getElementById('recipientNameInput');
+        if (nameInput) {
+            nameInput.value = currentName;
+            document.getElementById('previewStudentName').textContent = currentName;
+        }
+    }
     claimModal.show();
 }
 </script>
