@@ -87,6 +87,20 @@ class LessonProgress(models.Model):
         status = "Completed" if self.is_completed else "In Progress"
         return f"{self.user.username} - {self.lesson.title}: {status}"
 
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        if self.lesson and self.lesson.course_id:
+            from courses.models import Course
+            Course.invalidate_user_progress_cache(self.user_id, self.lesson.course_id)
+
+    def delete(self, *args, **kwargs):
+        course_id = self.lesson.course_id if self.lesson else None
+        user_id = self.user_id
+        super().delete(*args, **kwargs)
+        if course_id:
+            from courses.models import Course
+            Course.invalidate_user_progress_cache(user_id, course_id)
+
 
 class VideoProgress(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='video_progress')

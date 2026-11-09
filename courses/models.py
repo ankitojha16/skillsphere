@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils.text import slugify
 from django.conf import settings
+from django.core.cache import cache
 
 class Category(models.Model):
     name = models.CharField(max_length=100, unique=True)
@@ -77,10 +78,15 @@ class Course(models.Model):
             return self.total_lessons
         return self.lessons.count()
 
+    @classmethod
+    def invalidate_user_progress_cache(cls, user_id, course_id):
+        if user_id and course_id:
+            cache.delete(f"user_course_progress_{user_id}_{course_id}")
+
     def get_total_lessons(self):
         return self.total_lessons_count
 
-    def get_user_progress(self, user):
+    def get_user_progress(self, user, use_cache=True):
         """
         Authoritative single-source-of-truth progress calculation for SkillSphere.
         Implements Video-First Learning System:
@@ -119,6 +125,12 @@ class Course(models.Model):
                 'missing_requirements': ['Log in to track progress and unlock certificates.'],
                 'optional_remaining_activities': [],
             }
+
+        cache_key = f"user_course_progress_{user.id}_{self.id}"
+        if use_cache:
+            cached_data = cache.get(cache_key)
+            if cached_data is not None:
+                return cached_data
 
         # Check existing certificate status
         from certificates.models import Certificate
@@ -297,15 +309,19 @@ class Course(models.Model):
         quiz_obj = next((a for a in available_optional_assessments if a['assessment_type'] == 'final_quiz'), None)
         mock_obj = next((a for a in available_optional_assessments if a['assessment_type'] == 'final_mock'), None)
 
-        return {
+        result = {
             'percentage': overall_progress,
             'overall_progress': overall_progress,
+            'weighted_course_progress': overall_progress,
             'video_progress': video_ratio,
             'video_progress_percentage': int(round(video_ratio * 100)),
+            'video_completion_percentage': int(round(video_ratio * 100)),
+            'assessment_bonus_percentage': int(round(assessment_component)),
             'optional_assessment_progress': assessment_ratio,
             'optional_assessment_progress_percentage': int(round(assessment_ratio * 100)),
             'completed_mandatory_lessons': completed_lessons,
             'total_mandatory_lessons': total_lessons,
+            'mandatory_lessons_ratio_str': f"{completed_lessons}/{total_lessons}",
             'completed': completed_lessons,
             'total': total_lessons,
             'required_percentage': 80,
@@ -328,6 +344,9 @@ class Course(models.Model):
             'missing_requirements': missing_requirements,
             'optional_remaining_activities': optional_remaining_activities,
         }
+        if use_cache:
+            cache.set(cache_key, result, 120)
+        return result
 
 
 class CourseModule(models.Model):
@@ -410,6 +429,11 @@ class CourseAssessmentAttempt(models.Model):
         status = "PASSED" if self.is_passed else "FAILED"
         return f"{self.user.username} - {self.assessment.title} Attempt #{self.attempt_number}: {self.percentage}% ({status})"
 
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        if self.assessment and self.assessment.course_id:
+            Course.invalidate_user_progress_cache(self.user_id, self.assessment.course_id)
+
 
 class CourseCompletion(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='course_completions')
@@ -441,3 +465,13 @@ class Enrollment(models.Model):
 
     def __str__(self):
         return f"{self.user.username} enrolled in {self.course.title}"
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        Course.invalidate_user_progress_cache(self.user_id, self.course_id)
+
+    def delete(self, *args, **kwargs):
+        user_id = self.user_id
+        course_id = self.course_id
+        super().delete(*args, **kwargs)
+        Course.invalidate_user_progress_cache(user_id, course_id)

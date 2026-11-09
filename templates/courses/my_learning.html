@@ -67,14 +67,24 @@
                             <i data-lucide="user" style="width: 13px; height: 13px;"></i> {{ item.course.instructor_name }}
                         </div>
 
-                        <!-- Progress Bar -->
+                        <!-- Progress Breakdown -->
                         <div class="mt-auto pt-2 border-top" style="border-color: var(--border-color) !important;">
                             <div class="d-flex justify-content-between text-secondary small mb-1">
-                                <span>{{ item.progress.completed }} of {{ item.course.total_lessons_count }} lessons</span>
-                                <span class="fw-bold text-white">{{ item.progress.percentage }}%</span>
+                                <span>Video Completion: <strong class="text-white">{{ item.progress.video_completion_percentage }}%</strong> ({{ item.progress.completed }}/{{ item.course.total_lessons_count }})</span>
+                                <span class="fw-bold text-white">{{ item.progress.weighted_course_progress }}% Progress</span>
                             </div>
-                            <div class="custom-progress mb-3">
-                                <div class="custom-progress-bar" style="width: {{ item.progress.percentage }}%;"></div>
+                            <div class="custom-progress mb-2">
+                                <div class="custom-progress-bar" style="width: {{ item.progress.weighted_course_progress }}%;"></div>
+                            </div>
+                            <div class="d-flex align-items-center justify-content-between text-muted small mb-3" style="font-size: 0.78rem;">
+                                <span>Exam Bonus: <strong class="text-info">+{{ item.progress.assessment_bonus_percentage }}%</strong></span>
+                                {% if item.progress.is_certificate_eligible %}
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-0.5 rounded-pill">
+                                        <i data-lucide="award" style="width: 11px; height: 11px;"></i> Certificate Eligible
+                                    </span>
+                                {% else %}
+                                    <span class="text-muted">{{ item.progress.missing_requirements.0|truncatechars:38 }}</span>
+                                {% endif %}
                             </div>
 
                             <div class="d-flex gap-2">

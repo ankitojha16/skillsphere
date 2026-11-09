@@ -109,16 +109,16 @@
                 {% if is_enrolled %}
                 <div class="custom-card mt-3 p-3 text-start">
                     <div class="d-flex justify-content-between text-secondary small mb-1">
-                        <span>Your Progress</span>
-                        <span class="fw-bold text-white">{{ progress_info.percentage }}%</span>
+                        <span>Video Completion: <strong class="text-white">{{ progress_info.video_completion_percentage }}%</strong> ({{ progress_info.completed }}/{{ progress_info.total }})</span>
+                        <span class="fw-bold text-white">{{ progress_info.weighted_course_progress }}% Progress</span>
                     </div>
                     <div class="custom-progress mb-2">
-                        <div class="custom-progress-bar" style="width: {{ progress_info.percentage }}%;"></div>
+                        <div class="custom-progress-bar" style="width: {{ progress_info.weighted_course_progress }}%;"></div>
                     </div>
-                    <div class="d-flex justify-content-between text-muted small">
-                        <span>{{ progress_info.completed }} of {{ progress_info.total }} Lessons</span>
+                    <div class="d-flex justify-content-between text-muted small align-items-center">
+                        <span>Exam Bonus: <strong class="text-info">+{{ progress_info.assessment_bonus_percentage }}%</strong></span>
                         {% if progress_info.is_certificate_eligible %}
-                            <span class="text-success fw-bold"><i data-lucide="award" style="width: 12px; height: 12px;"></i> Certificate Ready</span>
+                            <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-0.5 rounded-pill"><i data-lucide="award" style="width: 12px; height: 12px;"></i> Certificate Eligible 🎓</span>
                         {% elif progress_info.has_optional_assessments %}
                             <span class="text-info"><i data-lucide="help-circle" style="width: 12px; height: 12px;"></i> Optional Tests ({{ progress_info.optional_assessments_completed }}/{{ progress_info.optional_assessments_count }})</span>
                         {% else %}

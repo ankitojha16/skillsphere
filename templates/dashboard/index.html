@@ -47,10 +47,12 @@
                 <h3 class="fw-bold text-white mb-2 d-flex align-items-center gap-2">
                     <span>Resume: {{ primary_next_step.lesson.title }}</span>
                 </h3>
-                <div class="d-flex flex-wrap align-items-center gap-3 text-secondary small">
-                    <span>Course Progress: <strong class="text-white">{{ primary_next_step.progress.percentage }}%</strong></span>
+                <div class="d-flex flex-wrap align-items-center gap-2 text-secondary small">
+                    <span>Video Completion: <strong class="text-white">{{ primary_next_step.progress.video_completion_percentage }}%</strong> ({{ primary_next_step.progress.completed }}/{{ primary_next_step.progress.total }} Lessons)</span>
                     <span>•</span>
-                    <span>{{ primary_next_step.progress.completed }}/{{ primary_next_step.progress.total }} Lessons Completed</span>
+                    <span>Weighted Course Progress: <strong class="text-white">{{ primary_next_step.progress.weighted_course_progress }}%</strong></span>
+                    <span>•</span>
+                    <span>Exam Bonus: <strong class="text-info">+{{ primary_next_step.progress.assessment_bonus_percentage }}%</strong></span>
                     {% if primary_next_step.progress.is_certificate_eligible or primary_next_step.progress.percentage >= 80 %}
                     <span>•</span>
                     <span class="badge bg-success-subtle text-success border border-success-subtle">Certificate Ready to Claim 🎓</span>
@@ -206,9 +208,9 @@
                                             <div class="text-muted small text-truncate">{{ item.course.instructor_name }}</div>
                                         </div>
                                         <div>
-                                            <span class="fw-bold text-white small">{{ item.progress.percentage }}%</span>
+                                            <span class="fw-bold text-white small">{{ item.progress.weighted_course_progress }}% Progress</span>
                                             {% if item.progress.is_certificate_eligible %}
-                                                <span class="badge bg-success-subtle text-success border border-success-subtle ms-1" style="font-size: 0.8rem; font-weight: 600;">Certificate Ready</span>
+                                                <span class="badge bg-success-subtle text-success border border-success-subtle ms-1" style="font-size: 0.8rem; font-weight: 600;">Certificate Ready 🎓</span>
                                             {% elif item.progress.has_optional_assessments %}
                                                 <span class="badge bg-info-subtle text-info border border-info-subtle ms-1" style="font-size: 0.8rem; font-weight: 600;">Optional Tests</span>
                                             {% endif %}
@@ -216,12 +218,12 @@
                                     </div>
 
                                     <div class="custom-progress mb-2">
-                                        <div class="custom-progress-bar" style="width: {{ item.progress.percentage }}%;"></div>
+                                        <div class="custom-progress-bar" style="width: {{ item.progress.weighted_course_progress }}%;"></div>
                                     </div>
 
                                     <div class="d-flex justify-content-between align-items-center pt-1">
                                         <span class="text-secondary small">
-                                            {{ item.progress.completed }}/{{ item.progress.total|default:item.course.total_lessons_count }} lessons
+                                            Video: <strong class="text-white">{{ item.progress.video_completion_percentage }}%</strong> ({{ item.progress.completed }}/{{ item.progress.total|default:item.course.total_lessons_count }}) • Bonus: <strong class="text-info">+{{ item.progress.assessment_bonus_percentage }}%</strong>
                                         </span>
                                         {% if item.next_lesson %}
                                             <a href="{% url 'learning:lesson_detail' course_slug=item.course.slug lesson_id=item.next_lesson.id %}" class="btn btn-primary-custom btn-sm py-1 px-3">

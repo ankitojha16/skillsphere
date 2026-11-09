@@ -1,6 +1,7 @@
 from django.test import TestCase, Client
 from django.contrib.auth.models import User
 from django.urls import reverse
+from django.core.cache import cache
 from courses.models import (
     Category, Course, Enrollment, CourseModule,
     CourseAssessment, CourseAssessmentQuestion, CourseAssessmentAttempt
@@ -9,6 +10,7 @@ from learning.models import Lesson, LessonProgress
 
 class CoursesTests(TestCase):
     def setUp(self):
+        cache.clear()
         self.client = Client()
         self.user = User.objects.create_user(username='coursetester', email='coursetester@test.com', password='Password123!')
         self.category = Category.objects.create(name='Programming', slug='programming', icon='code')

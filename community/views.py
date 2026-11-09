@@ -72,6 +72,51 @@ def create_post_view(request):
 
 
 @login_required
+def edit_post_view(request, pk):
+    post = get_object_or_404(CommunityPost, pk=pk)
+    if post.user != request.user:
+        from django.core.exceptions import PermissionDenied
+        raise PermissionDenied("You are not authorized to edit this post.")
+
+    if request.method == 'POST':
+        title = request.POST.get('title', '').strip()
+        category = request.POST.get('category', '').strip()
+        content = request.POST.get('content', '').strip()
+
+        if title and content and category:
+            post.title = title
+            post.category = category
+            post.content = content
+            post.save()
+            messages.success(request, "Discussion post updated successfully!")
+            return redirect('community:post_detail', pk=post.pk)
+        else:
+            messages.error(request, "Please fill in all post fields.")
+
+    context = {
+        'post': post,
+        'categories': CommunityPost.CATEGORY_CHOICES,
+        'is_edit': True,
+    }
+    return render(request, 'community/create_post.html', context)
+
+
+@login_required
+def delete_post_view(request, pk):
+    post = get_object_or_404(CommunityPost, pk=pk)
+    if post.user != request.user:
+        from django.core.exceptions import PermissionDenied
+        raise PermissionDenied("You are not authorized to delete this post.")
+
+    if request.method == 'POST':
+        post.delete()
+        messages.success(request, "Post deleted successfully.")
+        return redirect('community:feed')
+
+    return redirect('community:post_detail', pk=post.pk)
+
+
+@login_required
 def post_detail_view(request, pk):
     post = get_object_or_404(CommunityPost, pk=pk, is_approved=True)
 
