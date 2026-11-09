@@ -21,25 +21,25 @@
                 <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
                     <span class="badge-category">{{ course.category.name }}</span>
                     <span class="badge-difficulty {{ course.difficulty|lower }}">{{ course.difficulty }}</span>
-                    <span class="text-muted small d-flex align-items-center gap-1">
-                        <i data-lucide="clock" style="width: 14px; height: 14px;"></i> {{ course.estimated_duration }}
+                    <span class="text-white small d-flex align-items-center gap-1">
+                        <i data-lucide="clock" class="text-white" style="width: 14px; height: 14px;"></i> {{ course.estimated_duration }}
                     </span>
-                    <span class="text-muted small d-flex align-items-center gap-1">
-                        <i data-lucide="book-open" style="width: 14px; height: 14px;"></i> {{ course.total_lessons_count }} Lessons
+                    <span class="text-white small d-flex align-items-center gap-1">
+                        <i data-lucide="book-open" class="text-white" style="width: 14px; height: 14px;"></i> {{ course.total_lessons_count }} Lessons
                     </span>
                     {% if modules %}
-                        <span class="text-muted small d-flex align-items-center gap-1">
-                            <i data-lucide="layers" style="width: 14px; height: 14px;"></i> {{ modules|length }} Modules
+                        <span class="text-white small d-flex align-items-center gap-1">
+                            <i data-lucide="layers" class="text-white" style="width: 14px; height: 14px;"></i> {{ modules|length }} Modules
                         </span>
                     {% endif %}
                     {% if reviews_count > 0 %}
                         <span class="text-warning small d-flex align-items-center gap-1">
                             <i data-lucide="star" style="width: 14px; height: 14px; fill: currentColor;"></i>
                             <strong>{{ avg_rating|floatformat:1 }}</strong>
-                            <span class="text-secondary">({{ reviews_count }} review{{ reviews_count|pluralize }})</span>
+                            <span class="text-white">({{ reviews_count }} review{{ reviews_count|pluralize }})</span>
                         </span>
                     {% else %}
-                        <span class="text-muted small d-flex align-items-center gap-1">
+                        <span class="text-white small d-flex align-items-center gap-1">
                             <i data-lucide="sparkles" style="width: 13px; height: 13px;" class="text-primary-accent"></i>
                             <span>Not yet reviewed</span>
                         </span>

@@ -26,21 +26,21 @@
   --danger: #F87171;
   --error: #F87171;
   
-  --text-main: #F8FAFC;
-  --text-secondary: #CBD5E1;
-  --text-muted: #A8B7CC;
+  --text-main: #FFFFFF;
+  --text-secondary: #FFFFFF;
+  --text-muted: #F1F5F9;
   
   /* Bootstrap 5 Native Theme Binding */
   --bs-body-bg: #0B1020;
-  --bs-body-color: #F8FAFC;
-  --bs-secondary-color: #CBD5E1;
-  --bs-tertiary-color: #A8B7CC;
+  --bs-body-color: #FFFFFF;
+  --bs-secondary-color: #FFFFFF;
+  --bs-tertiary-color: #F1F5F9;
   --bs-emphasis-color: #FFFFFF;
   --bs-border-color: #354663;
   --bs-border-color-translucent: rgba(53, 70, 99, 0.7);
   --bs-card-bg: #151F35;
   --bs-card-border-color: #354663;
-  --bs-card-color: #F8FAFC;
+  --bs-card-color: #FFFFFF;
   --bs-primary: #60A5FA;
   --bs-primary-rgb: 96, 165, 250;
   --bs-success: #4ADE80;
@@ -51,8 +51,8 @@
   --bs-danger-rgb: 248, 113, 113;
   --bs-info: #38BDF8;
   --bs-info-rgb: 56, 189, 248;
-  --bs-light: #F8FAFC;
-  --bs-light-rgb: 248, 250, 252;
+  --bs-light: #FFFFFF;
+  --bs-light-rgb: 255, 255, 255;
   --bs-dark: #151F35;
   --bs-dark-rgb: 21, 31, 53;
   --bs-link-color: #60A5FA;
@@ -66,32 +66,32 @@
 /* Accessible Text Selection Highlight */
 ::selection {
   background-color: rgba(96, 165, 250, 0.35) !important;
-  color: #F8FAFC !important;
+  color: #FFFFFF !important;
 }
 ::-moz-selection {
   background-color: rgba(96, 165, 250, 0.35) !important;
-  color: #F8FAFC !important;
+  color: #FFFFFF !important;
 }
 
 /* High Contrast & WCAG AA Accessibility Overrides */
 .text-main, .text-primary-text {
-  color: var(--text-main) !important;
+  color: #FFFFFF !important;
 }
 
 .text-muted {
-  color: var(--text-muted) !important; /* #A8B7CC (8.1:1 AAA contrast) */
+  color: #F1F5F9 !important; /* Crisp light contrast */
 }
 
 .text-secondary {
-  color: var(--text-secondary) !important; /* #CBD5E1 (11.2:1 AAA contrast) */
+  color: #FFFFFF !important; /* Pure white for labels and metadata */
 }
 
 .text-body-secondary {
-  color: var(--text-secondary) !important;
+  color: #FFFFFF !important;
 }
 
 .text-light {
-  color: var(--text-main) !important;
+  color: #FFFFFF !important;
 }
 
 .text-white {
@@ -107,14 +107,20 @@ small, .small {
 /* Accessible Badge Styles */
 .badge.bg-dark, .badge.text-bg-dark {
   background-color: #1B2942 !important;
-  color: #F8FAFC !important;
+  color: #FFFFFF !important;
   border: 1px solid #354663 !important;
 }
 
 .badge.bg-secondary, .badge.text-bg-secondary {
   background-color: #1B2942 !important;
-  color: #CBD5E1 !important;
+  color: #FFFFFF !important;
   border: 1px solid #354663 !important;
+}
+
+.badge.bg-secondary-subtle, .badge-subtle-secondary {
+  background-color: rgba(255, 255, 255, 0.12) !important;
+  color: #FFFFFF !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
 }
 
 .badge.bg-success-subtle, .badge-subtle-success {
@@ -639,7 +645,7 @@ a:hover {
   border-radius: 999px;
   font-size: 0.875rem;
   font-weight: 500;
-  color: var(--text-secondary);
+  color: #FFFFFF;
   background-color: var(--bg-card);
   border: 1px solid var(--border-color);
   transition: var(--transition);

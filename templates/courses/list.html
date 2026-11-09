@@ -218,9 +218,9 @@
                         <div class="d-flex align-items-center justify-content-between mb-2">
                             <span class="badge-category">{{ item.course.category.name }}</span>
                             <div class="d-flex align-items-center gap-1.5">
-                                <span class="badge bg-dark border text-secondary small py-0.5 px-1.5 font-monospace" style="font-size: 0.68rem;">v{{ item.course.curriculum_version }}</span>
-                                <span class="text-muted small d-flex align-items-center gap-1">
-                                    <i data-lucide="clock" style="width: 13px; height: 13px;"></i> {{ item.course.estimated_duration }}
+                                <span class="badge bg-dark border text-white small py-0.5 px-1.5 font-monospace" style="font-size: 0.68rem;">v{{ item.course.curriculum_version }}</span>
+                                <span class="text-white small d-flex align-items-center gap-1">
+                                    <i data-lucide="clock" class="text-white" style="width: 13px; height: 13px;"></i> {{ item.course.estimated_duration }}
                                 </span>
                             </div>
                         </div>
@@ -239,14 +239,14 @@
                                         <i data-lucide="star" style="width: 13px; height: 13px; fill: currentColor;"></i>
                                         <strong>{{ item.avg_rating|floatformat:1 }}</strong>
                                     </span>
-                                    <span class="text-muted" style="font-size: 0.75rem;">({{ item.reviews_count }})</span>
+                                    <span class="text-white small" style="font-size: 0.75rem;">({{ item.reviews_count }})</span>
                                 {% else %}
-                                    <span class="text-muted" style="font-size: 0.75rem;"><i data-lucide="sparkles" style="width: 12px; height: 12px;" class="text-primary-accent"></i> New</span>
+                                    <span class="text-white small" style="font-size: 0.75rem;"><i data-lucide="sparkles" style="width: 12px; height: 12px;" class="text-primary-accent"></i> New</span>
                                 {% endif %}
                             </div>
                             {% if item.course.prerequisites %}
-                                <span class="badge bg-secondary-subtle text-secondary small py-0.5 px-2" title="{{ item.course.prerequisites }}" style="font-size: 0.72rem;">
-                                    <i data-lucide="check-square" style="width: 11px; height: 11px;"></i> Prerequisites
+                                <span class="badge bg-secondary-subtle text-white small py-0.5 px-2" title="{{ item.course.prerequisites }}" style="font-size: 0.72rem;">
+                                    <i data-lucide="check-square" class="text-white" style="width: 11px; height: 11px;"></i> Prerequisites
                                 </span>
                             {% endif %}
                         </div>
