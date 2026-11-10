@@ -34,7 +34,7 @@
 
         <div class="row g-3">
             <!-- Path 1: Python Specialist -->
-            <div class="col-lg-4">
+            <div class="col-md-6 col-xl-4">
                 <div class="p-3 rounded-3 h-100 border d-flex flex-column justify-content-between" style="background-color: rgba(255, 255, 255, 0.02); border-color: var(--border-color) !important;">
                     <div>
                         <div class="d-flex align-items-center gap-2 mb-2">
@@ -67,7 +67,7 @@
             </div>
 
             <!-- Path 2: Modern Frontend Engineer -->
-            <div class="col-lg-4">
+            <div class="col-md-6 col-xl-4">
                 <div class="p-3 rounded-3 h-100 border d-flex flex-column justify-content-between" style="background-color: rgba(255, 255, 255, 0.02); border-color: var(--border-color) !important;">
                     <div>
                         <div class="d-flex align-items-center gap-2 mb-2">
@@ -100,7 +100,7 @@
             </div>
 
             <!-- Path 3: Systems & Career Accelerator -->
-            <div class="col-lg-4">
+            <div class="col-md-12 col-xl-4">
                 <div class="p-3 rounded-3 h-100 border d-flex flex-column justify-content-between" style="background-color: rgba(255, 255, 255, 0.02); border-color: var(--border-color) !important;">
                     <div>
                         <div class="d-flex align-items-center gap-2 mb-2">
@@ -135,7 +135,7 @@
     </div>
 
     <!-- Category Pills Navigation -->
-    <div class="d-flex align-items-center gap-2 overflow-x-auto pb-2 mb-4">
+    <div class="d-flex align-items-center gap-2 overflow-x-auto pb-2 mb-4" style="max-width: 100%; width: 100%; scrollbar-width: thin;">
         <a href="?category=all{% if q %}&q={{ q }}{% endif %}{% if selected_difficulty %}&difficulty={{ selected_difficulty }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}" 
            class="filter-pill {% if not selected_category or selected_category == 'all' %}active{% endif %}">
            All Topics
