@@ -94,8 +94,8 @@ class AssistantTests(TestCase):
         data = response.json()
         self.assertIn('error', data)
 
-    def test_gadget_query_answers_with_specs_and_architecture(self):
-        """Phone and hardware queries answer with actual models, specs, and SoC architecture."""
+    def test_gadget_query_returns_scope_notice(self):
+        """Shopping/phone queries return polite scope notice directing to academic curriculum."""
         conv = AIConversation.objects.create(user=self.user, title='Phone Advice', mode='detailed')
         url = reverse('assistant:chat_detail', kwargs={'conversation_id': conv.id})
         response = self.client.post(url, {
@@ -107,11 +107,10 @@ class AssistantTests(TestCase):
         data = response.json()
         self.assertTrue(data.get('success'))
         ai_text = data.get('ai_message', '')
-        self.assertIn('Redmi', ai_text)
-        self.assertIn('Moto', ai_text)
-        self.assertIn('SoC', ai_text)
-        # Verify it does NOT return the empty generic template
-        self.assertNotIn('deterministic input-output steps and verify preconditions', ai_text)
+        self.assertIn('Domain Scope Notice', ai_text)
+        self.assertIn('outside our academic coursework', ai_text)
+        self.assertIn('Computer Science & IT', ai_text)
+        self.assertNotIn('Redmi', ai_text)
 
     def test_off_topic_query_returns_scope_notice(self):
         """Off-topic queries (e.g. movies) return a polite scope notice explaining what to ask."""
@@ -126,12 +125,12 @@ class AssistantTests(TestCase):
         data = response.json()
         self.assertTrue(data.get('success'))
         ai_text = data.get('ai_message', '')
-        self.assertIn('Scope Notice', ai_text)
-        self.assertIn('academic curriculum and career learning scope', ai_text)
-        self.assertIn('Try asking questions like', ai_text)
+        self.assertIn('Domain Scope Notice', ai_text)
+        self.assertIn('outside our academic coursework', ai_text)
+        self.assertIn('Computer Science & IT', ai_text)
 
-    def test_fitness_leg_workout_query(self):
-        """Queries for 'for healthy legs' return a complete science-based leg workout routine."""
+    def test_fitness_query_returns_scope_notice(self):
+        """Queries for 'for healthy legs' return a polite scope notice directing to learning disciplines."""
         conv = AIConversation.objects.create(user=self.user, title='Fitness Chat', mode='detailed')
         url = reverse('assistant:chat_detail', kwargs={'conversation_id': conv.id})
         response = self.client.post(url, {
@@ -143,12 +142,11 @@ class AssistantTests(TestCase):
         data = response.json()
         self.assertTrue(data.get('success'))
         ai_text = data.get('ai_message', '')
-        self.assertIn('Leg Workout', ai_text)
-        self.assertIn('Squats', ai_text)
-        self.assertIn('Quadriceps', ai_text)
-        # Guarantee it NEVER returns the embarrassing computational template
+        self.assertIn('Domain Scope Notice', ai_text)
+        self.assertIn('outside our academic coursework', ai_text)
+        self.assertIn('Business Administration & Management', ai_text)
+        self.assertNotIn('Squats', ai_text)
         self.assertNotIn('underlying computational mechanics', ai_text)
-        self.assertNotIn('case study for for healthy legs', ai_text)
 
 
 

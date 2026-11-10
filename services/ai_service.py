@@ -811,7 +811,11 @@ class AIService:
         }
         instruction = mode_instructions.get(mode, mode_instructions['detailed'])
         system_prompt = (
-            "You are SkillSphere AI, an elite technical tutor, computer science professor, and software engineering mentor. "
+            "You are SkillSphere AI, the dedicated academic tutor and university course mentor for students "
+            "enrolled in B.Tech, M.Tech, BCA, B.Sc, BBA, MBA, and B.Com degree programs.\n"
+            "Domain Scope Policy:\n"
+            "- Only answer questions directly related to academic coursework, computer science, programming, software engineering, business management, mathematics, science, exam preparation, and career development.\n"
+            "- If the user asks an off-topic question outside these academic domains (e.g. consumer shopping, phones, workout/fitness routines, entertainment, movies, personal life advice), DO NOT answer the off-topic query. State politely: 'I am the SkillSphere AI Study Assistant, designed exclusively to help students with academic coursework, programming, business management, and career preparation. Please ask questions related to our educational domain!' and suggest 3 academic topics from our coursework.\n"
             f"Mode: {mode.upper()}. {instruction}\n"
             "Formatting Rules:\n"
             "- Structure responses cleanly with Markdown headers (###), bullet points, and code blocks with syntax highlighting.\n"
@@ -952,46 +956,6 @@ class AIService:
                 "| **Scaling** | Vertical (Scale Up) | Horizontal (Scale Out, Sharding) |\n"
                 "| **Best For** | Complex joins, transactional safety | Massive unstructured volume, low latency |"
             )
-        elif any(term in q_lower for term in ('phone', 'mobile', 'smartphone', 'under 10k', 'under 15k', 'under 20k', 'budget phone')):
-            fallback_text = (
-                "### 📱 Smartphone Architecture & Best Options Under ₹10,000\n\n"
-                "Here are the top smartphone choices in the sub-₹10,000 category, along with the technical hardware specifications to evaluate:\n\n"
-                "#### 🏆 Top Recommended Devices (Sub-₹10,000):\n"
-                "1. **Redmi 13C 5G / POCO M6 5G:**\n"
-                "   - **Processor:** MediaTek Dimensity 6100+ (6nm Octa-core up to 2.2 GHz, 5G ready)\n"
-                "   - **Display:** 6.74\" 90Hz HD+ IPS LCD with Corning Gorilla Glass\n"
-                "   - **Battery & Charging:** 5,000 mAh battery with 18W fast charging\n"
-                "   - **Best For:** High-speed 5G connectivity, streaming, and student multitasking.\n\n"
-                "2. **Moto G24 Power:**\n"
-                "   - **Processor:** MediaTek Helio G85 (12nm, Octa-core)\n"
-                "   - **Memory & Storage:** 4GB / 8GB RAM + 128GB internal storage\n"
-                "   - **Battery & Charger:** Massive 6,000 mAh battery with 33W TurboPower charger in box\n"
-                "   - **Software:** Clean, near-stock Android with zero ads or heavy bloatware.\n\n"
-                "3. **Realme C53 / Narzo N53:**\n"
-                "   - **Design:** Ultra-slim profile with 90Hz high refresh rate screen\n"
-                "   - **Camera:** 108MP / 50MP primary sensor for entry-level photography\n"
-                "   - **Charging:** 33W SuperVOOC rapid charging.\n\n"
-                "---\n\n"
-                "#### 🔬 Computer Engineering & Hardware Architecture Breakdown:\n"
-                "- **SoC (System on Chip):** Integrates the ARM Cortex CPU, Mali/Adreno GPU, and modem onto a single silicon die.\n"
-                "- **Storage Architecture:** Look for **UFS 2.2** rather than **eMMC 5.1** — UFS offers 2x faster read/write speeds, cutting app launch latency in half.\n"
-                "- **RAM & Multitasking:** Prefer minimum 4GB/6GB LPDDR4X memory for smooth background multitasking.\n\n"
-                "> 💡 **SkillSphere Academic Guide:** As your study assistant, I specialize in Computer Science, BBA/MBA Management, Engineering, and Career Prep. Feel free to ask about mobile app development (Flutter, React Native, Android Kotlin) or hardware architectures!"
-            )
-        elif any(term in q_lower for term in ('laptop', 'pc for coding', 'specs for coding', 'computer for student', 'macbook')):
-            fallback_text = (
-                "### 💻 Best Laptop Specifications for Engineering & Coding Students\n\n"
-                "Choosing the right laptop for college, software development, and data science requires balancing processor cores, RAM, and battery efficiency:\n\n"
-                "#### 🛠️ Minimum Recommended Specs for Developers:\n"
-                "- **Processor (CPU):** Intel Core i5 (12th/13th Gen) or AMD Ryzen 5 (5000/7000 series) or Apple M-series (M1/M2/M3).\n"
-                "- **Memory (RAM):** **Minimum 16GB RAM** (8GB struggles when running Docker, VS Code, and browser tabs concurrently).\n"
-                "- **Storage:** Minimum **512GB NVMe PCIe SSD** (avoid mechanical HDDs).\n"
-                "- **Display & Battery:** 14\"-15.6\" Full HD (1920x1080) IPS display with 6+ hours of battery life.\n\n"
-                "#### 🚀 Recommended Student Laptops by Budget:\n"
-                "1. **Under ₹45,000:** Lenovo IdeaPad Slim 3 / Acer Aspire Lite (Ryzen 5 5500U, 16GB RAM, 512GB SSD).\n"
-                "2. **Under ₹60,000:** ASUS Vivobook 15 / HP Pavilion 14 (Intel Core i5-1335U, 16GB RAM, backlit keyboard).\n"
-                "3. **Premium / Long Battery:** Apple MacBook Air M1 / M2 (exceptional build quality, 15+ hr battery, great for Unix terminal & web dev)."
-            )
         elif any(term in q_lower for term in ('exam', 'how to study', 'prepare for exam', 'study plan', 'timetable', 'exam tips')):
             fallback_text = (
                 "### 🎯 High-Performance Academic Study & Exam Preparation Strategy\n\n"
@@ -1019,50 +983,13 @@ class AIService:
                 "- Solve 100+ standard LeetCode problems (Array, String, Two-Pointer, Trees, Hash Maps).\n"
                 "- Document your technical architecture in clean README files."
             )
-        elif any(term in q_lower for term in ('workout', 'exercise', 'gym', 'fitness', 'leg', 'health', 'muscle', 'diet', 'weight loss', 'squat')):
-            fallback_text = (
-                "### 🏋️ Complete Science-Based Leg Workout & Lower Body Health Routine\n\n"
-                "For building strong, functional, and healthy legs, exercise physiology and biomechanics recommend targeting all 4 major lower-body muscle groups: **Quadriceps, Hamstrings, Glutes, and Calves**.\n\n"
-                "#### 📋 Complete Evidence-Based Leg Routine:\n"
-                "1. **Compound Movements (Core Strength & Joint Health):**\n"
-                "   - **Barbell Back Squats or Goblet Squats:** 3 sets of 8–10 reps *(targets Quadriceps, Glutes, and core spinal stability)*.\n"
-                "   - **Romanian Deadlifts (RDLs):** 3 sets of 10–12 reps *(strengthens the posterior chain: Hamstrings & Glutes while protecting lower back)*.\n"
-                "2. **Unilateral Movements (Balance & Knee Stability):**\n"
-                "   - **Bulgarian Split Squats or Walking Lunges:** 3 sets of 10 reps per leg *(fixes bilateral muscle imbalances and reinforces knee stabilizers)*.\n"
-                "   - **Leg Press:** 3 sets of 12 reps *(quadriceps hypertrophy with reduced spinal loading)*.\n"
-                "3. **Isolation & Tendon Health:**\n"
-                "   - **Hamstring Lying/Seated Curls:** 3 sets of 12–15 reps *(knee flexion strength)*.\n"
-                "   - **Standing or Seated Calf Raises:** 4 sets of 15–20 reps *(improves ankle mobility, Achilles tendon elasticity, and venous blood return)*.\n\n"
-                "---\n\n"
-                "#### 🔬 Exercise Physiology & Biomechanics Insights:\n"
-                "- **Progressive Overload:** Increase resistance or repetitions by 2–5% weekly to stimulate myofibrillar adaptation and bone density.\n"
-                "- **Joint Warm-up:** Spend 5–10 minutes on dynamic hip openers, bodyweight squats, and ankle mobility to lubricate synovial joints.\n"
-                "- **Recovery:** Lower body muscle fibers require 48 to 72 hours of rest between heavy sessions with adequate protein (1.6–2.0g per kg of body weight) and hydration.\n\n"
-                "> 💡 **SkillSphere Academic Guide:** As your study assistant, I also cover Sports Science, Kinesiology, Biological Systems, and Engineering Biomechanics! What coursework topic would you like to explore next?"
-            )
-        elif any(term in q_lower for term in ('movie', 'song', 'weather', 'cricket', 'football', 'ipl', 'gossip', 'joke', 'recipe', 'food')):
-            fallback_text = (
-                "### 🎓 SkillSphere Study Assistant Scope Notice\n\n"
-                "I noticed your question seems outside our academic curriculum and career learning scope.\n\n"
-                "I am specialized as your **24/7 academic tutor, coding mentor, and career guide** across:\n"
-                "- 💻 **Computer Science & Coding (B.Tech / BCA / M.Tech):** Python, Java, C++, DSA, Web Dev, and System Design.\n"
-                "- 📊 **Business Administration & Management (BBA / MBA):** Marketing 4Ps, Financial Accounting, Operations, and Analytics.\n"
-                "- 🔬 **Science & Engineering (B.Sc / Engineering):** Databases (SQL/NoSQL), Operating Systems, and Machine Learning.\n"
-                "- 🎯 **Career Preparation:** Resume building, mock interviews, and project architecture blueprints.\n\n"
-                "---\n\n"
-                "#### 💡 Try asking questions like:\n"
-                "- *\"Explain the difference between TCP and UDP with examples\"*\n"
-                "- *\"What are the 4 Ps of marketing in business strategy?\"*\n"
-                "- *\"How to implement a binary search algorithm in Python?\"*\n"
-                "- *\"Explain ACID database properties with practical examples\"*\n\n"
-                "What academic topic or coding problem can I help you with today?"
-            )
         else:
             academic_keywords = (
                 'code', 'function', 'class', 'method', 'variable', 'algorithm', 'system', 'database', 'sql',
                 'network', 'tcp', 'ip', 'marketing', 'finance', 'accounting', 'math', 'equation', 'formula', 'physics',
                 'chemistry', 'biology', 'data', 'model', 'software', 'hardware', 'operating system', 'linux',
-                'git', 'test', 'security', 'cloud', 'architecture', 'engineering', 'science', 'logic', 'theory'
+                'git', 'test', 'security', 'cloud', 'architecture', 'engineering', 'science', 'logic', 'theory',
+                'btech', 'mtech', 'bca', 'bsc', 'bba', 'mba', 'bcom', 'syllabus', 'course', 'degree', 'semester'
             )
             is_academic = any(k in q_lower for k in academic_keywords)
 
@@ -1083,19 +1010,21 @@ class AIService:
                 )
             else:
                 fallback_text = (
-                    "### 🎓 SkillSphere Study Assistant Scope Notice\n\n"
-                    f"I noticed your question (*\"{clean_q[:50]}\"*) appears outside our academic curriculum and technical career scope.\n\n"
-                    "I am specialized as your **24/7 academic tutor, coding mentor, and career guide** across:\n"
-                    "- 💻 **Computer Science & Coding (B.Tech / BCA / M.Tech):** Python, Java, C++, Data Structures, Algorithms, Web Development, and System Architecture.\n"
-                    "- 📊 **Business Administration & Management (BBA / MBA):** Marketing 4Ps, Financial Accounting, Operations, and Business Analytics.\n"
-                    "- 🔬 **Science & Engineering (B.Sc / Engineering):** Databases (SQL/NoSQL), Operating Systems, Computer Networks, and Machine Learning.\n"
-                    "- 🎯 **Career Preparation:** Resume building, mock interviews, and technical portfolio blueprints.\n\n"
+                    "### 🎓 SkillSphere Study Assistant — Domain Scope Notice\n\n"
+                    f"I noticed your question (*\"{clean_q[:50]}\"*) is outside our academic coursework and career learning scope.\n\n"
+                    "I am designed exclusively to help students master **academic coursework, programming, business management, and career preparation**.\n\n"
+                    "Please ask questions related to our learning disciplines:\n"
+                    "- 💻 **Computer Science & IT (B.Tech / BCA / M.Tech):** Programming languages (Python, Java, C++, JavaScript), Data Structures & Algorithms, Full-Stack Web Development, System Design, and Code Debugging.\n"
+                    "- 📊 **Business Administration & Management (BBA / MBA / B.Com):** Marketing 4Ps, Financial Accounting & Ratios, Corporate Finance, Strategic Management, and Business Analytics.\n"
+                    "- 🔬 **Science & Engineering (B.Sc / Engineering):** Database Management (SQL/NoSQL), Operating Systems, Computer Networks, and Machine Learning.\n"
+                    "- 🎯 **Career & Exam Preparation:** Technical interview preparation, rapid revision cheat sheets, and course project specs.\n\n"
                     "---\n\n"
-                    "#### 💡 Try asking questions like:\n"
+                    "#### 💡 Examples of questions you can ask:\n"
                     "- *\"Explain the difference between TCP and UDP with examples\"*\n"
                     "- *\"What are the 4 Ps of marketing in business strategy?\"*\n"
-                    "- *\"How to implement a binary search algorithm in Python?\"*\n"
-                    "- *\"Explain ACID database properties with practical examples\"*\n\n"
+                    "- *\"How does a binary search tree work and what is its time complexity?\"*\n"
+                    "- *\"Explain the ACID properties of relational databases\"*\n"
+                    "- *\"Provide a rapid revision cheat sheet for Python OOP\"*\n\n"
                     "What academic topic, syllabus question, or programming concept can I help you learn today?"
                 )
 
