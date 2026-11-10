@@ -1291,11 +1291,29 @@ class PDFService:
         elements.append(Spacer(1, 4))
         elements.append(HRFlowable(width="100%", thickness=1.5 if template_name == 'modern' else 1, color=hr_color, spaceAfter=6))
 
-        # 2. Summary
-        summary = data.get('summary', '')
-        if summary:
-            elements.append(Paragraph("PROFESSIONAL SUMMARY", section_style))
-            elements.append(Paragraph(summary, body_style))
+        # 2. Career Objective & Goals / Professional Summary
+        career_goal = str(data.get('career_goal') or '').strip()
+        target_industry = str(data.get('target_industry') or '').strip()
+        summary = str(data.get('career_objective') or data.get('summary') or '').strip()
+        short_term_goals = data.get('short_term_goals', [])
+
+        if summary or career_goal:
+            section_title = "CAREER OBJECTIVE & PROFESSIONAL GOALS" if (career_goal or data.get('career_objective') or template_name in ('fresher', 'modern')) else "PROFESSIONAL SUMMARY"
+            elements.append(Paragraph(section_title, section_style))
+            if career_goal:
+                target_parts = [f"<b>Target Role:</b> {career_goal}"]
+                if target_industry:
+                    target_parts.append(f"<b>Industry:</b> {target_industry}")
+                elements.append(Paragraph(" &nbsp;|&nbsp; ".join(target_parts), item_title_style))
+                elements.append(Spacer(1, 2))
+            if summary:
+                elements.append(Paragraph(summary, body_style))
+            if isinstance(short_term_goals, list):
+                valid_goals = [str(g).strip() for g in short_term_goals if str(g).strip()]
+                if valid_goals:
+                    elements.append(Spacer(1, 2))
+                    for g in valid_goals[:3]:
+                        elements.append(Paragraph(f"• {g}", body_style))
             elements.append(Spacer(1, 4))
 
         # 3. Technical Skills

@@ -1629,6 +1629,82 @@ class AIService:
         )
 
     @classmethod
+    def generate_career_goal_and_objective(
+        cls,
+        target_role: str,
+        target_industry: str = "",
+        skills: Optional[List[str]] = None,
+        education: str = "",
+        user_id: Optional[int] = None
+    ) -> dict:
+        """
+        Generates a tailored career objective statement, target alignment, and 3 high-impact short-term milestones.
+        Returns a structured dictionary:
+        {
+            'target_role': str,
+            'target_industry': str,
+            'career_objective': str,
+            'short_term_goals': list[str]
+        }
+        """
+        skills_list = skills or []
+        skills_joined = ','.join(skills_list) if isinstance(skills_list, list) else str(skills_list)
+        role = target_role.strip() if target_role else "Software Engineer"
+        industry = target_industry.strip() if target_industry else "Technology & Software Engineering"
+
+        scope = f"user_{user_id}" if user_id else "anonymous"
+        cache_key = cls._build_cache_key("res_career_goal", scope, f"{role}:{industry}:{skills_joined}:{education}")
+        cached = cls._cache_get(cache_key)
+        if cached and isinstance(cached, dict):
+            return cached
+
+        system_prompt = (
+            "You are an executive Tech Career Mentor. Return a JSON object with keys: "
+            "'target_role', 'target_industry', 'career_objective', 'short_term_goals'.\n"
+            "- 'career_objective': A compelling 2-3 sentence career objective tailored to the target role, industry, and skills. Do NOT fabricate companies or degrees.\n"
+            "- 'short_term_goals': An array of 3 actionable, specific, 6-12 month milestones (e.g. mastering architecture, deploying production projects, contributing to open-source).\n"
+            "Return valid JSON only."
+        )
+        user_prompt = f"Target Role: {role}\nTarget Industry: {industry}\nSkills: {skills_joined}\nEducation: {education}"
+
+        def fallback_goals():
+            skills_str = ", ".join(skills_list[:3]) if skills_list else "modern software architecture"
+            return {
+                'target_role': role,
+                'target_industry': industry,
+                'career_objective': (
+                    f"Driven {role} targeting growth in {industry}. Equipped with a strong foundation in "
+                    f"{skills_str}, dedicated to engineering resilient systems, writing readable code, and driving "
+                    f"measurable impact within a collaborative, product-oriented team."
+                ),
+                'short_term_goals': [
+                    f"Deepen proficiency in {skills_str} and system design principles",
+                    f"Architect and deploy end-to-end full-stack projects solving real-world domain challenges",
+                    f"Contribute actively to production codebases and agile development practices"
+                ]
+            }
+
+        data, meta = cls.generate_structured_json(
+            prompt=user_prompt,
+            system_instruction=system_prompt,
+            validator_fn=lambda d: isinstance(d, dict) and 'career_objective' in d and 'short_term_goals' in d,
+            fallback_fn=fallback_goals
+        )
+
+        res = {
+            'target_role': data.get('target_role') or role,
+            'target_industry': data.get('target_industry') or industry,
+            'career_objective': str(data.get('career_objective') or '').strip(),
+            'short_term_goals': [str(g).strip() for g in data.get('short_term_goals', []) if str(g).strip()][:4]
+        }
+        if not res['short_term_goals']:
+            res['short_term_goals'] = fallback_goals()['short_term_goals']
+
+        cls._cache_set(cache_key, res, timeout=3600)
+        return res
+
+
+    @classmethod
     def improve_project_description(cls, title: str, description: str, technologies: str, user_id: Optional[int] = None) -> str:
         """Polishes a project description into high-impact, STAR-aligned resume bullet points."""
         system_prompt = (

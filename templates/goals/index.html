@@ -56,6 +56,37 @@
         </div>
     </div>
 
+    <!-- Career Goal & Milestone Quick-Launch Bar -->
+    <div class="custom-card p-3 mb-4 d-flex flex-wrap align-items-center justify-content-between gap-3" style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(16, 185, 129, 0.06) 100%); border-left: 3px solid #6366f1;">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <i data-lucide="compass" class="text-primary-custom" style="width: 18px; height: 18px;"></i>
+                <span class="fw-bold text-white small">Target Career Track:</span>
+                <span class="badge bg-purple-subtle text-purple border border-purple-subtle rounded-pill small">
+                    {{ career_goal|default:"Software Engineering" }}
+                </span>
+            </div>
+            <div class="text-secondary small">
+                One-click goal presets aligned with your resume & portfolio milestones:
+            </div>
+        </div>
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+            <button type="button" class="btn btn-sm btn-outline-secondary quick-goal-btn" data-title="Master Data Structures & Algorithms" data-desc="Solve 50 curated LeetCode/DSA problems in Python/C++ to build strong interview fundamentals.">
+                + DSA Practice
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary quick-goal-btn" data-title="Build & Deploy Full-Stack Production App" data-desc="Architect an end-to-end web system with database migrations, authentication, and cloud deployment.">
+                + Portfolio Project
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary quick-goal-btn" data-title="Polish ATS Resume & Apply to Target Roles" data-desc="Review resume keywords with AI ATS auditor and submit applications for 10 engineering opportunities.">
+                + ATS Resume Apply
+            </button>
+            <a href="{% url 'resumes:builder' %}" class="btn btn-sm btn-outline-purple d-inline-flex align-items-center gap-1">
+                <i data-lucide="file-text" style="width: 14px; height: 14px;"></i>
+                <span>Resume Builder</span>
+            </a>
+        </div>
+    </div>
+
     <!-- Filter Tabs -->
     <div class="d-flex align-items-center gap-2 mb-4">
         <a href="?status=all" class="filter-pill {% if status_filter == 'all' %}active{% endif %}">
@@ -168,4 +199,34 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const modalEl = document.getElementById('addGoalModal');
+    const modal = modalEl ? new bootstrap.Modal(modalEl) : null;
+    const titleInput = document.getElementById('{{ form.title.id_for_label }}');
+    const descInput = document.getElementById('{{ form.description.id_for_label }}');
+    const dateInput = document.getElementById('{{ form.target_date.id_for_label }}');
+
+    document.querySelectorAll('.quick-goal-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const title = this.getAttribute('data-title');
+            const desc = this.getAttribute('data-desc');
+            if (titleInput) titleInput.value = title;
+            if (descInput) descInput.value = desc;
+
+            // Set default target date to 30 days from now if not set
+            if (dateInput && !dateInput.value) {
+                const target = new Date();
+                target.setDate(target.getDate() + 30);
+                dateInput.value = target.toISOString().split('T')[0];
+            }
+
+            if (modal) modal.show();
+        });
+    });
+});
+</script>
 {% endblock %}

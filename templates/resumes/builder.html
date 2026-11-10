@@ -106,22 +106,60 @@
                         </div>
                     </div>
 
-                    <!-- 2. Summary -->
+                    <!-- 2. Career Objective & Professional Goals -->
                     <div class="accordion-item bg-dark border-secondary border-opacity-25 mb-2 rounded-3 overflow-hidden">
                         <h2 class="accordion-header" id="headingSummary">
                             <button class="accordion-button bg-dark text-white shadow-none collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSummary">
-                                <i data-lucide="file-text" style="width: 16px; height: 16px;" class="me-2 text-purple"></i> Professional Summary
+                                <i data-lucide="target" style="width: 16px; height: 16px;" class="me-2 text-purple"></i> Career Objective & Goals
                             </button>
                         </h2>
                         <div id="collapseSummary" class="accordion-collapse collapse">
                             <div class="accordion-body text-light">
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <label class="form-label text-secondary small mb-0">Summary Text</label>
-                                    <button type="button" class="btn btn-sm btn-outline-purple py-0" id="aiSummaryBtn">
-                                        <i data-lucide="sparkles" style="width: 12px; height: 12px;"></i> AI Polish Summary
-                                    </button>
+                                <div class="row g-2 mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label text-secondary small mb-1">Target Role / Career Goal</label>
+                                        <input type="text" id="input_career_goal" class="form-control form-control-sm bg-dark text-white border-secondary" value="{{ resume_data.career_goal|default:resume_data.contact.headline|default:'Software Developer' }}" placeholder="e.g. Full-Stack Engineer">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label text-secondary small mb-1">Target Industry / Domain</label>
+                                        <input type="text" id="input_target_industry" class="form-control form-control-sm bg-dark text-white border-secondary" value="{{ resume_data.target_industry|default:'Technology & Software Engineering' }}" placeholder="e.g. Cloud & AI Systems">
+                                    </div>
                                 </div>
-                                <textarea id="input_summary" rows="4" class="form-control form-control-sm bg-dark text-white border-secondary">{{ resume_data.summary }}</textarea>
+
+                                <!-- 1-Click Track Presets -->
+                                <div class="mb-3">
+                                    <label class="form-label text-secondary small mb-1 d-block">Quick Track Presets</label>
+                                    <div class="d-flex flex-wrap gap-1">
+                                        <button type="button" class="btn btn-xs btn-outline-secondary py-1 px-2 goal-track-preset" data-role="Full-Stack Developer" data-industry="Web & Cloud Platforms" style="font-size: 0.75rem;">Full-Stack</button>
+                                        <button type="button" class="btn btn-xs btn-outline-secondary py-1 px-2 goal-track-preset" data-role="AI / ML Engineer" data-industry="Artificial Intelligence & Data" style="font-size: 0.75rem;">AI / Data</button>
+                                        <button type="button" class="btn btn-xs btn-outline-secondary py-1 px-2 goal-track-preset" data-role="DevOps & Cloud Engineer" data-industry="Infrastructure & SRE" style="font-size: 0.75rem;">DevOps / SRE</button>
+                                        <button type="button" class="btn btn-xs btn-outline-secondary py-1 px-2 goal-track-preset" data-role="Product & Engineering Manager" data-industry="Software Products" style="font-size: 0.75rem;">Product / PM</button>
+                                        <button type="button" class="btn btn-xs btn-outline-secondary py-1 px-2 goal-track-preset" data-role="Cybersecurity Analyst" data-industry="Information Security" style="font-size: 0.75rem;">Cybersecurity</button>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <label class="form-label text-secondary small mb-0">Career Objective Statement</label>
+                                    <div class="d-flex gap-1">
+                                        <button type="button" class="btn btn-sm btn-outline-info py-0" id="aiGoalBtn" title="Generate tailored goal statement & milestones">
+                                            <i data-lucide="sparkles" style="width: 12px; height: 12px;"></i> AI Auto-Target
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-purple py-0" id="aiSummaryBtn" title="Polish current objective statement">
+                                            <i data-lucide="feather" style="width: 12px; height: 12px;"></i> AI Polish
+                                        </button>
+                                    </div>
+                                </div>
+                                <textarea id="input_summary" rows="3" class="form-control form-control-sm bg-dark text-white border-secondary mb-3">{{ resume_data.career_objective|default:resume_data.summary }}</textarea>
+
+                                <div>
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <label class="form-label text-secondary small mb-0">Key Focus Milestones (One per line)</label>
+                                        <a href="{% url 'goals:index' %}" target="_blank" class="text-info text-decoration-none small" style="font-size: 0.75rem;">
+                                            <i data-lucide="external-link" style="width: 11px; height: 11px;"></i> Goal Tracker
+                                        </a>
+                                    </div>
+                                    <textarea id="input_goals" rows="3" class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="Master data structures and system design&#10;Deploy end-to-end full stack application&#10;Contribute to open-source systems">{% if resume_data.short_term_goals %}{{ resume_data.short_term_goals|join:'&#10;' }}{% endif %}</textarea>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -232,8 +270,17 @@
                     </div>
 
                     <div class="mb-3">
-                        <div class="fw-bold text-dark text-uppercase small tracking-wide border-bottom pb-1 mb-1" style="letter-spacing: 0.05em;">Professional Summary</div>
-                        <p class="small text-secondary mb-0" id="preview_summary">{{ resume_data.summary }}</p>
+                        <div class="fw-bold text-dark text-uppercase small tracking-wide border-bottom pb-1 mb-1" style="letter-spacing: 0.05em;" id="preview_section_title">Career Objective & Goals</div>
+                        <div id="preview_target_wrap" class="small fw-bold text-dark mb-1">
+                            <span id="preview_career_goal">{{ resume_data.career_goal|default:resume_data.contact.headline|default:'Software Developer' }}</span>
+                            <span id="preview_target_industry_wrap" class="text-muted fw-normal"> | <span id="preview_target_industry">{{ resume_data.target_industry|default:'Technology & Software Engineering' }}</span></span>
+                        </div>
+                        <p class="small text-secondary mb-1" id="preview_summary">{{ resume_data.career_objective|default:resume_data.summary }}</p>
+                        <div id="preview_goals" class="small text-secondary">
+                            {% for g in resume_data.short_term_goals %}
+                            <div>• {{ g }}</div>
+                            {% endfor %}
+                        </div>
                     </div>
 
                     <div class="mb-3">
@@ -296,6 +343,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const skillsRaw = document.getElementById('input_skills').value;
         const skillsList = skillsRaw.split(',').map(s => s.trim()).filter(s => s);
 
+        const goalsRaw = document.getElementById('input_goals')?.value || '';
+        const shortTermGoals = goalsRaw.split('\n').map(g => g.trim().replace(/^[•\-\*]\s*/, '')).filter(g => g);
+
         const projects = [];
         document.querySelectorAll('.project-item').forEach(item => {
             projects.push({
@@ -315,6 +365,10 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
 
+        const careerGoal = document.getElementById('input_career_goal')?.value.trim() || '';
+        const targetIndustry = document.getElementById('input_target_industry')?.value.trim() || '';
+        const summaryText = document.getElementById('input_summary')?.value.trim() || '';
+
         return {
             contact: {
                 full_name: document.getElementById('input_full_name').value,
@@ -324,7 +378,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 location: document.getElementById('input_location').value,
                 links: document.getElementById('input_links').value,
             },
-            summary: document.getElementById('input_summary').value,
+            career_goal: careerGoal,
+            target_industry: targetIndustry,
+            career_objective: summaryText,
+            short_term_goals: shortTermGoals,
+            summary: summaryText,
             skills: skillsList,
             projects: projects,
             experience: experience,
@@ -340,7 +398,23 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('preview_name').innerText = data.contact.full_name || 'Student Developer';
         document.getElementById('preview_headline').innerText = data.contact.headline || '';
         document.getElementById('preview_contact_line').innerText = [data.contact.email, data.contact.phone, data.contact.location, data.contact.links].filter(Boolean).join(' • ');
-        document.getElementById('preview_summary').innerText = data.summary || '';
+
+        // Update Career Objective & Goals in Live Document Preview
+        const previewCareerGoal = document.getElementById('preview_career_goal');
+        if (previewCareerGoal) previewCareerGoal.innerText = data.career_goal || data.contact.headline || 'Software Developer';
+
+        const previewTargetInd = document.getElementById('preview_target_industry');
+        const previewTargetWrap = document.getElementById('preview_target_wrap');
+        if (previewTargetInd) previewTargetInd.innerText = data.target_industry || 'Technology';
+        if (previewTargetWrap) previewTargetWrap.style.display = (data.career_goal || data.target_industry) ? 'block' : 'none';
+
+        document.getElementById('preview_summary').innerText = data.career_objective || data.summary || '';
+
+        const previewGoalsEl = document.getElementById('preview_goals');
+        if (previewGoalsEl) {
+            previewGoalsEl.innerHTML = data.short_term_goals.map(g => `<div>• ${g}</div>`).join('');
+        }
+
         document.getElementById('preview_skills').innerText = data.skills.join(', ');
     }
 
@@ -348,6 +422,59 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('#resumeAccordion input, #resumeAccordion textarea').forEach(el => {
         el.addEventListener('input', updatePreview);
     });
+
+    // 1-Click Track Presets
+    document.querySelectorAll('.goal-track-preset').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const role = this.getAttribute('data-role');
+            const industry = this.getAttribute('data-industry');
+            if (role) document.getElementById('input_career_goal').value = role;
+            if (industry) document.getElementById('input_target_industry').value = industry;
+            updatePreview();
+            document.getElementById('aiGoalBtn')?.click();
+        });
+    });
+
+    // AI Auto-Target Career Goal & Milestones Button
+    const aiGoalBtn = document.getElementById('aiGoalBtn');
+    if (aiGoalBtn) {
+        aiGoalBtn.addEventListener('click', async function() {
+            aiGoalBtn.disabled = true;
+            aiGoalBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Generating...';
+            try {
+                const data = getResumeJSON();
+                const resp = await fetch('{% url "resumes:ai_improve" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: JSON.stringify({
+                        type: 'career_goal',
+                        target_role: data.career_goal,
+                        target_industry: data.target_industry,
+                        skills: data.skills,
+                    })
+                });
+                const res = await resp.json();
+                if (res.success && res.data) {
+                    if (res.data.career_objective) {
+                        document.getElementById('input_summary').value = res.data.career_objective;
+                    }
+                    if (res.data.short_term_goals && res.data.short_term_goals.length) {
+                        document.getElementById('input_goals').value = res.data.short_term_goals.join('\n');
+                    }
+                    updatePreview();
+                }
+            } catch (err) {
+                console.error(err);
+            } finally {
+                aiGoalBtn.disabled = false;
+                aiGoalBtn.innerHTML = '<i data-lucide="sparkles" style="width: 12px; height: 12px;"></i> AI Auto-Target';
+                lucide.createIcons();
+            }
+        });
+    }
 
     // AI Polish Summary Button
     const aiSummaryBtn = document.getElementById('aiSummaryBtn');
@@ -365,7 +492,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     },
                     body: JSON.stringify({
                         type: 'summary',
-                        headline: data.contact.headline,
+                        headline: data.career_goal || data.contact.headline,
                         skills: data.skills,
                     })
                 });
@@ -378,7 +505,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.error(err);
             } finally {
                 aiSummaryBtn.disabled = false;
-                aiSummaryBtn.innerHTML = '<i data-lucide="sparkles" style="width: 12px; height: 12px;"></i> AI Polish Summary';
+                aiSummaryBtn.innerHTML = '<i data-lucide="feather" style="width: 12px; height: 12px;"></i> AI Polish';
                 lucide.createIcons();
             }
         });

@@ -23,6 +23,17 @@ def goals_list_view(request):
     active_goals = total_goals - completed_goals
     completion_rate = int(round((completed_goals / total_goals) * 100)) if total_goals > 0 else 0
 
+    profile = getattr(request.user, 'profile', None)
+    career_goal = profile.career_goal if profile else ''
+    resume_goals = []
+    primary_res = getattr(request.user, 'resumes', None)
+    if primary_res:
+        active_res = primary_res.filter(is_primary=True).first() or primary_res.first()
+        if active_res and isinstance(active_res.resume_data, dict):
+            resume_goals = active_res.resume_data.get('short_term_goals', [])
+            if not career_goal:
+                career_goal = active_res.resume_data.get('career_goal', '')
+
     return render(request, 'goals/index.html', {
         'goals': goals,
         'form': form,
@@ -31,6 +42,8 @@ def goals_list_view(request):
         'completed_goals': completed_goals,
         'completion_rate': completion_rate,
         'status_filter': status_filter,
+        'career_goal': career_goal,
+        'resume_goals': resume_goals,
     })
 
 

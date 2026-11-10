@@ -73,6 +73,9 @@ def resume_builder_view(request, pk=None):
             for cert in Certificate.objects.filter(user=request.user)[:3]:
                 user_certifications.append(f"{cert.title} - SkillSphere Verified")
 
+            career_goal_initial = (profile.career_goal if (profile and profile.career_goal) else headline) or "Software Developer"
+            target_industry_initial = "Technology & Software Engineering"
+
             prefilled_data = {
                 'contact': {
                     'full_name': full_name,
@@ -82,6 +85,14 @@ def resume_builder_view(request, pk=None):
                     'location': '',
                     'links': f"github.com/{request.user.username}"
                 },
+                'career_goal': career_goal_initial,
+                'target_industry': target_industry_initial,
+                'career_objective': f"Dedicated {headline.lower()} with hands-on practice in modern software engineering principles, eager to contribute and build impactful applications.",
+                'short_term_goals': [
+                    "Master core algorithms, data structures, and system design patterns",
+                    "Build and deploy scalable full-stack applications with test automation",
+                    "Contribute to open-source systems and collaborate in agile development workflows"
+                ],
                 'summary': f"Dedicated {headline.lower()} with hands-on practice in modern software engineering principles, eager to contribute and build impactful applications.",
                 'education': user_education,
                 'skills': user_skills,
@@ -157,7 +168,21 @@ def ai_improve_view(request):
         body = json.loads(request.body.decode('utf-8'))
         action_type = body.get('type')
         
-        if action_type == 'summary':
+        if action_type in ('career_goal', 'objective'):
+            target_role = body.get('target_role', '') or body.get('career_goal', '') or body.get('headline', '')
+            target_industry = body.get('target_industry', '')
+            skills = body.get('skills', [])
+            education = body.get('education', '')
+            result = AIService.generate_career_goal_and_objective(
+                target_role=target_role,
+                target_industry=target_industry,
+                skills=skills,
+                education=education,
+                user_id=request.user.id
+            )
+            return JsonResponse({'success': True, 'content': result['career_objective'], 'data': result})
+
+        elif action_type == 'summary':
             headline = body.get('headline', '')
             skills = body.get('skills', [])
             education = body.get('education', '')
