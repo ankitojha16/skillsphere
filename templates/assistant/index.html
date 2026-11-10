@@ -95,6 +95,21 @@
     transform: translateY(-1px);
 }
 
+#voiceInputBtn {
+    transition: all 0.2s ease;
+}
+#voiceInputBtn.recording {
+    background: rgba(239, 68, 68, 0.2) !important;
+    border-color: #ef4444 !important;
+    color: #ef4444 !important;
+    animation: voicePulse 1.2s infinite ease-in-out;
+}
+@keyframes voicePulse {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+    50% { transform: scale(1.06); box-shadow: 0 0 12px 3px rgba(239, 68, 68, 0.4); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
 .markdown-rendered ul, 
 .markdown-rendered ol {
     padding-left: 1.4rem;
@@ -464,6 +479,11 @@
                     </span>
                     {% endif %}
 
+                    <button type="button" id="exportNotesBtn" class="btn btn-outline-secondary btn-sm py-1 px-2.5 rounded-pill text-light border-secondary border-opacity-40 d-flex align-items-center gap-1.5" title="Export session notes as Markdown (.md)">
+                        <i data-lucide="download" style="width: 13px; height: 13px;"></i>
+                        <span class="d-none d-sm-inline" style="font-size: 0.76rem;">Export Notes</span>
+                    </button>
+
                     <a href="{% url 'assistant:new_chat' %}" class="btn btn-secondary-custom btn-sm py-1 px-2 d-md-none rounded-pill" title="New Session">
                         <i data-lucide="plus" style="width: 14px; height: 14px;"></i>
                     </a>
@@ -646,6 +666,9 @@
                         <div class="position-relative flex-grow-1" style="min-width: 0;">
                             <textarea name="question" id="questionInput" class="form-control chat-textarea py-2 px-3" rows="1" placeholder="Ask a question, paste code, or request a cheat sheet..." required autocomplete="off"></textarea>
                         </div>
+                        <button type="button" id="voiceInputBtn" class="btn btn-outline-secondary flex-shrink-0 d-flex align-items-center justify-content-center rounded-3 text-secondary border-secondary border-opacity-40" style="height: 42px; width: 42px;" title="Voice Dictation (Speech to Text)">
+                            <i data-lucide="mic" style="width: 17px; height: 17px;"></i>
+                        </button>
                         <button type="submit" id="submitBtn" class="btn btn-primary-custom flex-shrink-0 d-flex align-items-center justify-content-center gap-2 py-2 px-3 rounded-3" style="height: 42px; min-width: 44px;">
                             <i data-lucide="send" style="width: 16px; height: 16px;"></i>
                             <span class="d-none d-sm-inline font-semibold">Send</span>
@@ -1059,6 +1082,107 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (typeof lucide !== 'undefined') lucide.createIcons();
                 }
             }
+        });
+    }
+
+    // Voice Input Speech-to-Text Support (Web Speech API)
+    const voiceInputBtn = document.getElementById('voiceInputBtn');
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (voiceInputBtn) {
+        if (!SpeechRecognition) {
+            voiceInputBtn.classList.add('d-none');
+        } else {
+            const recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+            let isRecording = false;
+
+            voiceInputBtn.addEventListener('click', () => {
+                if (!isRecording) {
+                    try {
+                        recognition.start();
+                        isRecording = true;
+                        voiceInputBtn.classList.add('recording');
+                        voiceInputBtn.innerHTML = '<i data-lucide="mic-off" style="width: 17px; height: 17px;"></i>';
+                        if (typeof lucide !== 'undefined') lucide.createIcons();
+                        if (questionInput) questionInput.placeholder = 'Listening... Speak your question now...';
+                    } catch(e) {
+                        console.error('Speech recognition error:', e);
+                    }
+                } else {
+                    recognition.stop();
+                }
+            });
+
+            recognition.onresult = (event) => {
+                let transcript = '';
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    transcript += event.results[i][0].transcript;
+                }
+                if (questionInput) {
+                    questionInput.value = transcript;
+                    questionInput.style.height = 'auto';
+                    questionInput.style.height = Math.min(questionInput.scrollHeight, 180) + 'px';
+                }
+            };
+
+            recognition.onerror = (event) => {
+                console.warn('Speech recognition error:', event.error);
+                recognition.stop();
+            };
+
+            recognition.onend = () => {
+                isRecording = false;
+                voiceInputBtn.classList.remove('recording');
+                voiceInputBtn.innerHTML = '<i data-lucide="mic" style="width: 17px; height: 17px;"></i>';
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+                if (questionInput) {
+                    questionInput.placeholder = 'Ask a question, paste code, or request a cheat sheet...';
+                    if (questionInput.value.trim()) questionInput.focus();
+                }
+            };
+        }
+    }
+
+    // Export Study Session to Markdown (.md)
+    const exportNotesBtn = document.getElementById('exportNotesBtn');
+    if (exportNotesBtn) {
+        exportNotesBtn.addEventListener('click', () => {
+            const rows = document.querySelectorAll('#chatStream .message-row');
+            if (!rows.length) {
+                alert('No study messages in this session to export yet.');
+                return;
+            }
+            let mdContent = `# SkillSphere AI Study Session Notes: {{ current_conv.title|escapejs }}\n`;
+            mdContent += `Generated: ${new Date().toLocaleString()} | Mode: {{ current_conv.get_mode_display }}\n\n---\n\n`;
+
+            rows.forEach((row, idx) => {
+                const isUser = row.classList.contains('user-bubble');
+                const role = isUser ? 'Student' : 'SkillSphere AI';
+                let content = '';
+                if (isUser) {
+                    content = row.querySelector('.user-text')?.innerText || '';
+                } else {
+                    const tmpl = row.querySelector('template.raw-markdown');
+                    content = tmpl ? tmpl.textContent : (row.querySelector('.markdown-rendered')?.innerText || '');
+                }
+                if (content.trim()) {
+                    mdContent += `### ${idx + 1}. ${role}\n\n${content.trim()}\n\n---\n\n`;
+                }
+            });
+
+            const blob = new Blob([mdContent], { type: 'text/markdown;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const safeTitle = "{{ current_conv.title|slugify|default:'study-notes' }}";
+            a.download = `SkillSphere_Notes_${safeTitle}.md`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
         });
     }
 
