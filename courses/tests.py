@@ -286,4 +286,22 @@ class CoursesTests(TestCase):
         self.assertContains(res, self.lesson1.title)
         self.assertEqual(res.context['total_saved'], 2)
 
+    def test_course_list_degree_filter(self):
+        bba_cat = Category.objects.create(name='Management', slug='management-business')
+        bba_course = Course.objects.create(
+            title='Strategic Management & Leadership (MBA/BBA)',
+            slug='strategic-management-mba-bba',
+            category=bba_cat,
+            difficulty='Intermediate',
+            instructor_name='Prof. Smith',
+            description='Executive leadership and corporate strategy',
+            is_published=True
+        )
+
+        res = self.client.get(reverse('courses:list') + '?degree=BBA')
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, 'Strategic Management &amp; Leadership')
+        self.assertEqual(res.context['selected_degree'], 'BBA')
+
+
 

@@ -134,14 +134,41 @@
         </div>
     </div>
 
+    <!-- Academic Degree & Stream Pills Navigation -->
+    <div class="mb-3">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+            <span class="text-white small fw-bold text-uppercase d-flex align-items-center gap-1.5" style="letter-spacing: 0.05em; font-size: 0.78rem;">
+                <i data-lucide="graduation-cap" class="text-primary-accent" style="width: 15px; height: 15px;"></i>
+                <span>Academic Degree & Curriculum Tracks</span>
+            </span>
+            {% if selected_degree and selected_degree != 'all' %}
+            <a href="?{% if selected_category %}&category={{ selected_category }}{% endif %}{% if q %}&q={{ q }}{% endif %}{% if selected_difficulty %}&difficulty={{ selected_difficulty }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}" class="badge bg-secondary text-white text-decoration-none small px-2 py-1">
+                Clear Degree &times;
+            </a>
+            {% endif %}
+        </div>
+        <div class="d-flex align-items-center gap-2 overflow-x-auto pb-2" style="max-width: 100%; width: 100%; scrollbar-width: thin;">
+            <a href="?degree=all{% if selected_category %}&category={{ selected_category }}{% endif %}{% if q %}&q={{ q }}{% endif %}{% if selected_difficulty %}&difficulty={{ selected_difficulty }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}" 
+               class="filter-pill {% if not selected_degree or selected_degree == 'all' %}active{% endif %}">
+               🎓 All Degrees
+            </a>
+            {% for deg in available_degrees %}
+            <a href="?degree={{ deg.code }}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if q %}&q={{ q }}{% endif %}{% if selected_difficulty %}&difficulty={{ selected_difficulty }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}" 
+               class="filter-pill {% if selected_degree == deg.code %}active{% endif %}">
+               {{ deg.label }}
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+
     <!-- Category Pills Navigation -->
     <div class="d-flex align-items-center gap-2 overflow-x-auto pb-2 mb-4" style="max-width: 100%; width: 100%; scrollbar-width: thin;">
-        <a href="?category=all{% if q %}&q={{ q }}{% endif %}{% if selected_difficulty %}&difficulty={{ selected_difficulty }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}" 
+        <a href="?category=all{% if selected_degree %}&degree={{ selected_degree }}{% endif %}{% if q %}&q={{ q }}{% endif %}{% if selected_difficulty %}&difficulty={{ selected_difficulty }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}" 
            class="filter-pill {% if not selected_category or selected_category == 'all' %}active{% endif %}">
            All Topics
         </a>
         {% for cat in categories %}
-        <a href="?category={{ cat.slug }}{% if q %}&q={{ q }}{% endif %}{% if selected_difficulty %}&difficulty={{ selected_difficulty }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}" 
+        <a href="?category={{ cat.slug }}{% if selected_degree %}&degree={{ selected_degree }}{% endif %}{% if q %}&q={{ q }}{% endif %}{% if selected_difficulty %}&difficulty={{ selected_difficulty }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}" 
            class="filter-pill {% if selected_category == cat.slug %}active{% endif %}">
            {{ cat.name }} ({{ cat.course_count }})
         </a>
@@ -153,6 +180,9 @@
         <form method="get" class="row g-3 align-items-center">
             {% if selected_category %}
                 <input type="hidden" name="category" value="{{ selected_category }}">
+            {% endif %}
+            {% if selected_degree %}
+                <input type="hidden" name="degree" value="{{ selected_degree }}">
             {% endif %}
 
             <div class="col-md-5">
@@ -183,7 +213,7 @@
 
             <div class="col-md-2 d-flex gap-2">
                 <button type="submit" class="btn btn-primary-custom w-100 justify-content-center">Filter</button>
-                {% if q or selected_category or selected_difficulty != 'all' %}
+                {% if q or selected_category or selected_degree and selected_degree != 'all' or selected_difficulty != 'all' %}
                 <a href="{% url 'courses:list' %}" class="btn btn-secondary-custom px-2" title="Clear Filters">
                     <i data-lucide="x" style="width: 16px; height: 16px;"></i>
                 </a>

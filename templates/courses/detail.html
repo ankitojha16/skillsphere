@@ -543,6 +543,7 @@
     </div>
 </div>
 
+{% if user.is_authenticated %}
 <!-- Claim Certificate Modal for Course Detail Page -->
 <div class="modal fade" id="claimCertDetailModal" tabindex="-1" aria-labelledby="claimCertDetailModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -569,7 +570,7 @@
                     <div class="mb-3 text-start">
                         <label for="detailCertRecipientName" class="form-label text-light small fw-bold">Full Student Name (Printed on Certificate)</label>
                         <input type="text" class="form-control text-white" id="detailCertRecipientName" name="recipient_name" required maxlength="100"
-                               value="{{ request.user.profile.full_name|default:request.user.get_full_name|default:request.user.username }}"
+                               value="{{ user.profile.full_name|default:user.get_full_name|default:user.username }}"
                                placeholder="e.g. Ankit Kumar"
                                style="background-color: rgba(255, 255, 255, 0.05); border-color: var(--border-color); font-size: 0.95rem;">
                         <div class="form-text text-muted small">This name will appear on your downloadable PDF and live QR verification link.</div>
@@ -585,7 +586,7 @@
                                 CERTIFICATE OF COMPLETION
                             </div>
                             <div style="font-size: 0.72rem; color: #425466;">This certificate is proudly presented to</div>
-                            <h5 class="fw-bold my-1" style="font-family: 'Playfair Display', Georgia, serif; color: #142B4D; font-size: 1.25rem;" id="detailPreviewStudentName">{{ request.user.profile.full_name|default:request.user.get_full_name|default:request.user.username }}</h5>
+                            <h5 class="fw-bold my-1" style="font-family: 'Playfair Display', Georgia, serif; color: #142B4D; font-size: 1.25rem;" id="detailPreviewStudentName">{{ user.profile.full_name|default:user.get_full_name|default:user.username }}</h5>
                             <div style="font-size: 0.72rem; color: #425466;">for successfully completing</div>
                             <h6 class="fw-bold my-1" style="font-family: 'Montserrat', sans-serif; color: #2457A7; font-size: 0.95rem;">{{ course.title }}</h6>
                             <div class="mt-2 pt-2 border-top border-light-subtle d-flex justify-content-between align-items-center" style="font-size: 0.65rem; color: #64748B;">
@@ -606,6 +607,7 @@
         </div>
     </div>
 </div>
+{% endif %}
 
 <script>
 function toggleDetailBookmark(slug, btn) {

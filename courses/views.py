@@ -54,6 +54,43 @@ def course_list_view(request):
     if selected_category and selected_category != 'all':
         courses = courses.filter(category__slug=selected_category)
 
+    # Degree filter (BBA, MBA, BTech, MTech, BCA, BSc, BA, BCom)
+    selected_degree = request.GET.get('degree', '').strip()
+    available_degrees = [
+        {'code': 'BBA', 'label': 'BBA'},
+        {'code': 'MBA', 'label': 'MBA'},
+        {'code': 'BTech', 'label': 'B.Tech'},
+        {'code': 'MTech', 'label': 'M.Tech'},
+        {'code': 'BCA', 'label': 'BCA'},
+        {'code': 'BSc', 'label': 'B.Sc'},
+        {'code': 'BCom', 'label': 'B.Com'},
+        {'code': 'BA', 'label': 'BA'},
+    ]
+    if selected_degree and selected_degree.lower() != 'all':
+        deg_upper = selected_degree.upper()
+        if deg_upper == 'BBA':
+            courses = courses.filter(Q(title__icontains='BBA') | Q(description__icontains='BBA') | Q(category__slug='management-business'))
+        elif deg_upper == 'MBA':
+            courses = courses.filter(Q(title__icontains='MBA') | Q(description__icontains='MBA') | Q(category__slug='management-business'))
+        elif deg_upper in ['BTECH', 'B.TECH']:
+            courses = courses.filter(Q(title__icontains='BTech') | Q(description__icontains='BTech') | Q(category__slug='engineering-tech'))
+        elif deg_upper in ['MTECH', 'M.TECH']:
+            courses = courses.filter(Q(title__icontains='MTech') | Q(description__icontains='MTech') | Q(category__slug='engineering-tech'))
+        elif deg_upper == 'BCA':
+            courses = courses.filter(Q(title__icontains='BCA') | Q(description__icontains='BCA') | Q(category__slug='computer-applications'))
+        elif deg_upper in ['BSC', 'B.SC']:
+            courses = courses.filter(Q(title__icontains='BSc') | Q(description__icontains='BSc') | Q(category__slug='applied-sciences'))
+        elif deg_upper in ['BCOM', 'B.COM']:
+            courses = courses.filter(Q(title__icontains='BCom') | Q(description__icontains='BCom') | Q(category__slug='commerce-finance'))
+        elif deg_upper == 'BA':
+            courses = courses.filter(Q(title__icontains='(BA)') | Q(description__icontains='(BA)') | Q(category__slug='humanities-arts'))
+        else:
+            courses = courses.filter(
+                Q(title__icontains=selected_degree) |
+                Q(description__icontains=selected_degree) |
+                Q(learning_objectives__icontains=selected_degree)
+            )
+
     # Difficulty filter
     selected_difficulty = request.GET.get('difficulty', '').strip()
     if selected_difficulty and selected_difficulty != 'all':
@@ -76,6 +113,7 @@ def course_list_view(request):
         not request.user.is_authenticated and
         not q and
         (not selected_category or selected_category == 'all') and
+        (not selected_degree or selected_degree.lower() == 'all') and
         (not selected_difficulty or selected_difficulty == 'all') and
         sort_by == 'newest'
     )
@@ -193,6 +231,8 @@ def course_list_view(request):
         'courses_data': courses_data,
         'categories': categories,
         'selected_category': selected_category,
+        'selected_degree': selected_degree,
+        'available_degrees': available_degrees,
         'selected_difficulty': selected_difficulty,
         'sort_by': sort_by,
         'q': q,
