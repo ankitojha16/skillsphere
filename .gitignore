@@ -31,3 +31,5 @@ media/
 .env*
 !.env.example
 supabase/.temp/
+scratch/
+

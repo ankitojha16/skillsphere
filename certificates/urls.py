@@ -14,5 +14,8 @@ urlpatterns = [
     path('certificates/<int:pk>/pdf/', views.download_certificate_pdf_view, name='download_pdf'),
     path('certificates/<int:pk>/preview/', views.preview_certificate_pdf_view, name='preview_pdf'),
     path('certificates/verify/<str:certificate_id>/', views.verify_certificate_view, name='verify_full'),
+    path('certificates/verify/<str:certificate_id>/pdf/', views.public_verify_pdf_view, name='verify_pdf'),
     path('verify/<str:certificate_id>/', views.verify_certificate_view, name='verify'),
+    path('verify/<str:certificate_id>/pdf/', views.public_verify_pdf_view, name='verify_pdf_short'),
 ]
+

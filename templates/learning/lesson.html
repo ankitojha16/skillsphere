@@ -810,12 +810,23 @@
                     </div>
 
                     <!-- Live Certificate Card Preview -->
-                    <div class="p-3 rounded-3 text-center my-3" style="background: #FAF9F5; color: #1E293B; border: 2px solid #D97706; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
-                        <div style="font-size: 0.65rem; letter-spacing: 0.15em; color: #B45309; font-weight: bold; text-transform: uppercase;">SkillSphere Course Completion Credential</div>
-                        <h6 class="fw-bold my-1" style="font-family: serif; color: #0F172A;">{{ course.title }}</h6>
-                        <div style="font-size: 0.75rem; color: #64748B;">Awarded to</div>
-                        <h5 class="fw-bold text-primary my-1" style="font-family: serif; color: #0F172A;" id="lessonPreviewStudentName">{{ request.user.profile.full_name|default:request.user.get_full_name|default:request.user.username }}</h5>
-                        <div style="font-size: 0.65rem; color: #94A3B8;">Verified Digital Credential • 80% Video Curriculum Passed</div>
+                    <div class="rounded-3 my-3 p-2" style="background: #EAF4FF; border: 2px solid #B9D4F2; box-shadow: 0 8px 24px rgba(36, 87, 167, 0.15);">
+                        <div class="rounded-2 p-3 text-center position-relative" style="background: #FFFFFF; border: 1px solid #6D9FE8;">
+                            <div class="d-flex align-items-center justify-content-center gap-1 mb-1">
+                                <span style="font-family: 'Montserrat', sans-serif; font-size: 0.95rem; font-weight: 700; color: #2457A7;">SkillSphere</span>
+                            </div>
+                            <div style="font-family: 'Playfair Display', Georgia, serif; font-size: 0.85rem; font-weight: 700; color: #2457A7; letter-spacing: 0.05em;" class="mb-2">
+                                CERTIFICATE OF COMPLETION
+                            </div>
+                            <div style="font-size: 0.72rem; color: #425466;">This certificate is proudly presented to</div>
+                            <h5 class="fw-bold my-1" style="font-family: 'Playfair Display', Georgia, serif; color: #142B4D; font-size: 1.25rem;" id="lessonPreviewStudentName">{{ request.user.profile.full_name|default:request.user.get_full_name|default:request.user.username }}</h5>
+                            <div style="font-size: 0.72rem; color: #425466;">for successfully completing</div>
+                            <h6 class="fw-bold my-1" style="font-family: 'Montserrat', sans-serif; color: #2457A7; font-size: 0.95rem;">{{ course.title }}</h6>
+                            <div class="mt-2 pt-2 border-top border-light-subtle d-flex justify-content-between align-items-center" style="font-size: 0.65rem; color: #64748B;">
+                                <span>Verified Digital Credential</span>
+                                <span class="fw-bold" style="color: #2457A7;">Authorized Signature</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer border-secondary border-opacity-25 pt-3">

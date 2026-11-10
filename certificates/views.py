@@ -370,3 +370,20 @@ def verify_certificate_view(request, certificate_id):
         'criteria': cert.criteria_met,
     }
     return render(request, 'certificates/verify.html', context)
+
+
+def public_verify_pdf_view(request, certificate_id):
+    """
+    Public download endpoint for a verified certificate PDF.
+    Enforces that certificate is valid and not revoked.
+    """
+    cert = Certificate.objects.filter(certificate_id__iexact=certificate_id, verification_status=True).select_related('course').first()
+    if not cert:
+        raise Http404("Certificate not found or revoked.")
+    pdf_bytes = PDFService.generate_certificate_pdf(cert)
+    response = HttpResponse(pdf_bytes, content_type='application/pdf')
+    filename = f"SkillSphere_Certificate_{cert.certificate_id}.pdf"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"; filename*=UTF-8\'\'{filename}'
+    response['Content-Length'] = str(len(pdf_bytes))
+    return response
+
