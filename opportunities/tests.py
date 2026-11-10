@@ -45,3 +45,11 @@ class OpportunityTests(TestCase):
         saved.refresh_from_db()
         self.assertEqual(saved.application_status, 'interview')
         self.assertEqual(saved.application_notes, 'Interview scheduled with hiring director.')
+
+    def test_opportunity_detail_prep_deck(self):
+        response = self.client.get(reverse('opportunities:detail', kwargs={'pk': self.opp.pk}))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Candidate Prep Deck')
+        self.assertContains(response, 'Practice Mock Interview')
+        self.assertContains(response, 'Optimize ATS Resume')
+        self.assertContains(response, 'Track as 30-Day Goal')

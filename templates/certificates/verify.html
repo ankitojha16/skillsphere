@@ -292,7 +292,15 @@
             <i data-lucide="download" style="width: 18px; height: 18px;"></i>
             <span>Download Official PDF</span>
         </a>
-        <button type="button" onclick="window.print()" class="btn btn-outline-light d-inline-flex align-items-center gap-2 px-4 py-2">
+        <a href="https://www.linkedin.com/profile/add?startTask=CERTIFICATION_NAME&name={{ course_name|urlencode }}&organizationName=SkillSphere&issueYear={{ issued_date|date:'Y' }}&issueMonth={{ issued_date|date:'n' }}&certUrl={{ request.build_absolute_uri|urlencode }}&certId={{ verify_id }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-info d-inline-flex align-items-center gap-2 px-4 py-2 fw-semibold" id="addToLinkedInBtn" title="Add this credential to your LinkedIn profile">
+            <i data-lucide="linkedin" style="width: 18px; height: 18px;"></i>
+            <span>Add to LinkedIn</span>
+        </a>
+        <button type="button" id="copyVerifyLinkBtn" class="btn btn-outline-light d-inline-flex align-items-center gap-2 px-4 py-2" title="Copy public verification link">
+            <i data-lucide="share-2" style="width: 18px; height: 18px;"></i>
+            <span id="copyVerifyLinkText">Share / Copy Link</span>
+        </button>
+        <button type="button" onclick="window.print()" class="btn btn-outline-secondary d-inline-flex align-items-center gap-2 px-4 py-2 text-white">
             <i data-lucide="printer" style="width: 18px; height: 18px;"></i>
             <span>Print Certificate</span>
         </button>
@@ -304,6 +312,20 @@
 
     <script>
         lucide.createIcons();
+        const copyBtn = document.getElementById('copyVerifyLinkBtn');
+        const copyText = document.getElementById('copyVerifyLinkText');
+        if (copyBtn) {
+            copyBtn.addEventListener('click', function() {
+                const url = window.location.href;
+                if (navigator.share) {
+                    navigator.share({ title: 'SkillSphere Verified Certificate - {{ course_name|escapejs }}', url: url }).catch(() => {});
+                } else if (navigator.clipboard) {
+                    navigator.clipboard.writeText(url);
+                    copyText.innerText = 'Link Copied!';
+                    setTimeout(() => { copyText.innerText = 'Share / Copy Link'; }, 2000);
+                }
+            });
+        }
     </script>
 </body>
 </html>

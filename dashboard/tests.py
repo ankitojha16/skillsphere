@@ -24,3 +24,14 @@ class DashboardTests(TestCase):
         response = self.client.get(reverse('dashboard:index'))
         self.assertEqual(response.status_code, 302)
         self.assertTrue(response.url.startswith(reverse('accounts:login')))
+
+    def test_dashboard_has_career_suite_launchpad(self):
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('dashboard:index'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'careerSuiteLaunchpad')
+        self.assertContains(response, 'Career & Engineering Launchpad')
+        self.assertContains(response, 'Mock Interview')
+        self.assertContains(response, 'ATS Resume Studio')
+        self.assertContains(response, 'Developer Portfolio')
+        self.assertContains(response, 'Certificates Center')

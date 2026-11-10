@@ -108,3 +108,25 @@
     </div>
 </div>
 {% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const presetCategory = urlParams.get('category');
+        if (presetCategory) {
+            const catSelect = document.getElementById('category');
+            if (catSelect) {
+                const norm = presetCategory.toLowerCase();
+                for (let i = 0; i < catSelect.options.length; i++) {
+                    if (catSelect.options[i].value.toLowerCase().includes(norm) ||
+                        norm.includes(catSelect.options[i].value.toLowerCase().split(' ')[0])) {
+                        catSelect.selectedIndex = i;
+                        break;
+                    }
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

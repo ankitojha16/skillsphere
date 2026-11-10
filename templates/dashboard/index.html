@@ -140,6 +140,184 @@
         </div>
     </div>
 
+    <!-- Executive Career & Engineering Suite Launchpad -->
+    <div class="custom-card p-4 mb-4" id="careerSuiteLaunchpad" style="background: linear-gradient(135deg, rgba(20, 27, 45, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%); border: 1px solid rgba(139, 92, 246, 0.25);">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+            <div>
+                <h5 class="fw-bold text-white mb-1 d-flex align-items-center gap-2">
+                    <i data-lucide="sparkles" class="text-primary-accent" style="width: 20px; height: 20px;"></i>
+                    <span>Career & Engineering Launchpad</span>
+                </h5>
+                <p class="text-secondary small mb-0">Unified direct access to your AI interview coach, ATS resume studio, public portfolio, and verified credentials.</p>
+            </div>
+            <span class="badge bg-purple bg-opacity-25 text-purple border border-purple-subtle px-2.5 py-1 small">
+                Enterprise Career Suite
+            </span>
+        </div>
+
+        <div class="row g-3">
+            <!-- 1. Voice Mock Interviews -->
+            <div class="col-6 col-md-3">
+                <a href="{% url 'interviews:setup' %}" class="custom-card p-3 h-100 d-flex flex-column justify-content-between text-decoration-none hover-lift border-hover-purple" style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.08);">
+                    <div>
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <div class="p-2 rounded-2" style="background: rgba(139, 92, 246, 0.15); color: #A78BFA;">
+                                <i data-lucide="mic" style="width: 18px; height: 18px;"></i>
+                            </div>
+                            <span class="badge bg-success bg-opacity-25 text-success small">Voice TTS</span>
+                        </div>
+                        <div class="fw-bold text-white small mb-1">Mock Interview</div>
+                        <div class="text-secondary" style="font-size: 0.78rem;">Voice screening, 2-min timer & STAR feedback</div>
+                    </div>
+                    <div class="mt-2 text-info small fw-semibold d-flex align-items-center gap-1">
+                        <span>Start Practice</span>
+                        <i data-lucide="arrow-right" style="width: 12px; height: 12px;"></i>
+                    </div>
+                </a>
+            </div>
+
+            <!-- 2. ATS Resume Studio -->
+            <div class="col-6 col-md-3">
+                <a href="{% url 'resumes:builder' %}" class="custom-card p-3 h-100 d-flex flex-column justify-content-between text-decoration-none hover-lift border-hover-purple" style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.08);">
+                    <div>
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <div class="p-2 rounded-2" style="background: rgba(6, 182, 212, 0.15); color: #67E8F9;">
+                                <i data-lucide="file-text" style="width: 18px; height: 18px;"></i>
+                            </div>
+                            <span class="badge bg-info bg-opacity-25 text-info small">AI Scored</span>
+                        </div>
+                        <div class="fw-bold text-white small mb-1">ATS Resume Studio</div>
+                        <div class="text-secondary" style="font-size: 0.78rem;">Target goals, AI polish & PDF export</div>
+                    </div>
+                    <div class="mt-2 text-info small fw-semibold d-flex align-items-center gap-1">
+                        <span>Build Resume</span>
+                        <i data-lucide="arrow-right" style="width: 12px; height: 12px;"></i>
+                    </div>
+                </a>
+            </div>
+
+            <!-- 3. Public Developer Portfolio -->
+            <div class="col-6 col-md-3">
+                <a href="{% url 'portfolios:builder' %}" class="custom-card p-3 h-100 d-flex flex-column justify-content-between text-decoration-none hover-lift border-hover-purple" style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.08);">
+                    <div>
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <div class="p-2 rounded-2" style="background: rgba(236, 72, 153, 0.15); color: #F472B6;">
+                                <i data-lucide="globe" style="width: 18px; height: 18px;"></i>
+                            </div>
+                            <span class="badge bg-purple bg-opacity-25 text-purple small">Public URL</span>
+                        </div>
+                        <div class="fw-bold text-white small mb-1">Developer Portfolio</div>
+                        <div class="text-secondary" style="font-size: 0.78rem;">Showcase projects, verified skills & share</div>
+                    </div>
+                    <div class="mt-2 text-info small fw-semibold d-flex align-items-center gap-1">
+                        <span>Edit Showcase</span>
+                        <i data-lucide="arrow-right" style="width: 12px; height: 12px;"></i>
+                    </div>
+                </a>
+            </div>
+
+            <!-- 4. Interactive Learning Roadmaps -->
+            <div class="col-6 col-md-3">
+                <a href="{% url 'roadmaps:list' %}" class="custom-card p-3 h-100 d-flex flex-column justify-content-between text-decoration-none hover-lift border-hover-purple" style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.08);">
+                    <div>
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <div class="p-2 rounded-2" style="background: rgba(34, 197, 94, 0.15); color: #4ADE80;">
+                                <i data-lucide="map" style="width: 18px; height: 18px;"></i>
+                            </div>
+                            <span class="badge bg-success bg-opacity-25 text-success small">Goal Sync</span>
+                        </div>
+                        <div class="fw-bold text-white small mb-1">Career Roadmaps</div>
+                        <div class="text-secondary" style="font-size: 0.78rem;">Step-by-step milestones & 30-day goals</div>
+                    </div>
+                    <div class="mt-2 text-info small fw-semibold d-flex align-items-center gap-1">
+                        <span>View Milestones</span>
+                        <i data-lucide="arrow-right" style="width: 12px; height: 12px;"></i>
+                    </div>
+                </a>
+            </div>
+
+            <!-- 5. Skill Assessments -->
+            <div class="col-6 col-md-3">
+                <a href="{% url 'assessments:list' %}" class="custom-card p-3 h-100 d-flex flex-column justify-content-between text-decoration-none hover-lift border-hover-purple" style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.08);">
+                    <div>
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <div class="p-2 rounded-2" style="background: rgba(234, 179, 8, 0.15); color: #FACC15;">
+                                <i data-lucide="zap" style="width: 18px; height: 18px;"></i>
+                            </div>
+                            <span class="badge bg-warning bg-opacity-25 text-warning small">Badges</span>
+                        </div>
+                        <div class="fw-bold text-white small mb-1">Skill Assessments</div>
+                        <div class="text-secondary" style="font-size: 0.78rem;">Validated technical exams with confetti</div>
+                    </div>
+                    <div class="mt-2 text-info small fw-semibold d-flex align-items-center gap-1">
+                        <span>Take Challenge</span>
+                        <i data-lucide="arrow-right" style="width: 12px; height: 12px;"></i>
+                    </div>
+                </a>
+            </div>
+
+            <!-- 6. AI Project Generator -->
+            <div class="col-6 col-md-3">
+                <a href="{% url 'projects:generator' %}" class="custom-card p-3 h-100 d-flex flex-column justify-content-between text-decoration-none hover-lift border-hover-purple" style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.08);">
+                    <div>
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <div class="p-2 rounded-2" style="background: rgba(59, 130, 246, 0.15); color: #60A5FA;">
+                                <i data-lucide="code-2" style="width: 18px; height: 18px;"></i>
+                            </div>
+                            <span class="badge bg-primary bg-opacity-25 text-primary small">README.md</span>
+                        </div>
+                        <div class="fw-bold text-white small mb-1">AI Project Studio</div>
+                        <div class="text-secondary" style="font-size: 0.78rem;">Full-stack specs, architectures & scaffolds</div>
+                    </div>
+                    <div class="mt-2 text-info small fw-semibold d-flex align-items-center gap-1">
+                        <span>Generate Spec</span>
+                        <i data-lucide="arrow-right" style="width: 12px; height: 12px;"></i>
+                    </div>
+                </a>
+            </div>
+
+            <!-- 7. Career Opportunities -->
+            <div class="col-6 col-md-3">
+                <a href="{% url 'opportunities:list' %}" class="custom-card p-3 h-100 d-flex flex-column justify-content-between text-decoration-none hover-lift border-hover-purple" style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.08);">
+                    <div>
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <div class="p-2 rounded-2" style="background: rgba(168, 85, 247, 0.15); color: #C084FC;">
+                                <i data-lucide="briefcase" style="width: 18px; height: 18px;"></i>
+                            </div>
+                            <span class="badge bg-secondary-subtle text-secondary small">Verified</span>
+                        </div>
+                        <div class="fw-bold text-white small mb-1">Opportunities Board</div>
+                        <div class="text-secondary" style="font-size: 0.78rem;">Curated internships, jobs & application tracker</div>
+                    </div>
+                    <div class="mt-2 text-info small fw-semibold d-flex align-items-center gap-1">
+                        <span>Browse Roles</span>
+                        <i data-lucide="arrow-right" style="width: 12px; height: 12px;"></i>
+                    </div>
+                </a>
+            </div>
+
+            <!-- 8. Certificates Center -->
+            <div class="col-6 col-md-3">
+                <a href="{% url 'certificates:center' %}" class="custom-card p-3 h-100 d-flex flex-column justify-content-between text-decoration-none hover-lift border-hover-purple" style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.08);">
+                    <div>
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <div class="p-2 rounded-2" style="background: rgba(16, 185, 129, 0.15); color: #34D399;">
+                                <i data-lucide="award" style="width: 18px; height: 18px;"></i>
+                            </div>
+                            <span class="badge bg-success bg-opacity-25 text-success small">LinkedIn Sync</span>
+                        </div>
+                        <div class="fw-bold text-white small mb-1">Certificates Center</div>
+                        <div class="text-secondary" style="font-size: 0.78rem;">Official PDF credentials, QR verify & LinkedIn</div>
+                    </div>
+                    <div class="mt-2 text-info small fw-semibold d-flex align-items-center gap-1">
+                        <span>View Credentials</span>
+                        <i data-lucide="arrow-right" style="width: 12px; height: 12px;"></i>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </div>
+
     <!-- Student Learning Progress Breakdown & Weekly Summary Row -->
     <div class="row g-4 mb-4">
         <!-- 3 Authoritative Progress Definitions Card -->

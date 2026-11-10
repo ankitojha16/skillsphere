@@ -84,6 +84,41 @@
                         <div class="text-info small">Official corporate portal / career page</div>
                     </div>
                 </div>
+
+                <!-- Candidate Prep & Application Deck -->
+                <div class="p-4 rounded-4 mt-3" style="background: rgba(139, 92, 246, 0.05); border: 1px solid rgba(139, 92, 246, 0.25);">
+                    <h5 class="fw-bold text-white mb-2 d-flex align-items-center gap-2">
+                        <i data-lucide="sparkles" class="text-primary-accent" style="width: 18px; height: 18px;"></i>
+                        <span>Candidate Prep Deck</span>
+                    </h5>
+                    <p class="text-secondary small mb-3">Accelerate your application readiness with SkillSphere tools:</p>
+
+                    <div class="d-flex flex-column gap-2">
+                        <a href="{% url 'interviews:setup' %}?category={{ opportunity.title|urlencode }}" class="btn btn-sm btn-outline-info text-start d-flex align-items-center justify-content-between p-2">
+                            <span class="d-flex align-items-center gap-2">
+                                <i data-lucide="mic" style="width: 15px; height: 15px;"></i>
+                                <span>Practice Mock Interview</span>
+                            </span>
+                            <i data-lucide="arrow-right" style="width: 14px; height: 14px;"></i>
+                        </a>
+
+                        <a href="{% url 'resumes:builder' %}?target_role={{ opportunity.title|urlencode }}" class="btn btn-sm btn-outline-light text-start d-flex align-items-center justify-content-between p-2">
+                            <span class="d-flex align-items-center gap-2">
+                                <i data-lucide="file-text" style="width: 15px; height: 15px;"></i>
+                                <span>Optimize ATS Resume</span>
+                            </span>
+                            <i data-lucide="arrow-right" style="width: 14px; height: 14px;"></i>
+                        </a>
+
+                        <a href="{% url 'goals:index' %}?preset_title=Apply%20to%20{{ opportunity.title|urlencode }}&preset_desc=Targeting%20{{ opportunity.title|urlencode }}%20at%20{{ opportunity.organization|urlencode }}" class="btn btn-sm btn-outline-success text-start d-flex align-items-center justify-content-between p-2">
+                            <span class="d-flex align-items-center gap-2">
+                                <i data-lucide="target" style="width: 15px; height: 15px;"></i>
+                                <span>Track as 30-Day Goal</span>
+                            </span>
+                            <i data-lucide="arrow-right" style="width: 14px; height: 14px;"></i>
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

@@ -245,6 +245,28 @@ class CertificateTests(TestCase):
         self.assertTrue(long_pdf.startswith(b'%PDF-'))
         self.assertGreater(len(long_pdf), 5000)
 
+    def test_certificate_linkedin_and_share_controls(self):
+        """Verify LinkedIn profile sync and share link controls are rendered."""
+        cert = Certificate.objects.create(
+            user=self.user,
+            course=self.course,
+            title=self.course.title,
+            certificate_id='SS-CERT-2026-LINKEDIN1',
+            recipient_name='Ankit Kumar'
+        )
+
+        # 1. Test public verification portal
+        verify_resp = self.client.get(reverse('certificates:verify', kwargs={'certificate_id': cert.certificate_id}))
+        self.assertEqual(verify_resp.status_code, 200)
+        self.assertContains(verify_resp, 'addToLinkedInBtn')
+        self.assertContains(verify_resp, 'copyVerifyLinkBtn')
+        self.assertContains(verify_resp, 'linkedin.com/profile/add')
+
+        # 2. Test certificate center
+        center_resp = self.client.get(reverse('certificates:center'))
+        self.assertEqual(center_resp.status_code, 200)
+        self.assertContains(center_resp, 'linkedin.com/profile/add')
+
 
 
 
