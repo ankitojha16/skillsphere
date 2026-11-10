@@ -130,4 +130,25 @@ class AssistantTests(TestCase):
         self.assertIn('academic curriculum and career learning scope', ai_text)
         self.assertIn('Try asking questions like', ai_text)
 
+    def test_fitness_leg_workout_query(self):
+        """Queries for 'for healthy legs' return a complete science-based leg workout routine."""
+        conv = AIConversation.objects.create(user=self.user, title='Fitness Chat', mode='detailed')
+        url = reverse('assistant:chat_detail', kwargs={'conversation_id': conv.id})
+        response = self.client.post(url, {
+            'question': 'for healthy legs',
+            'mode': 'detailed'
+        }, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data.get('success'))
+        ai_text = data.get('ai_message', '')
+        self.assertIn('Leg Workout', ai_text)
+        self.assertIn('Squats', ai_text)
+        self.assertIn('Quadriceps', ai_text)
+        # Guarantee it NEVER returns the embarrassing computational template
+        self.assertNotIn('underlying computational mechanics', ai_text)
+        self.assertNotIn('case study for for healthy legs', ai_text)
+
+
 

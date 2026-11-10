@@ -1019,6 +1019,27 @@ class AIService:
                 "- Solve 100+ standard LeetCode problems (Array, String, Two-Pointer, Trees, Hash Maps).\n"
                 "- Document your technical architecture in clean README files."
             )
+        elif any(term in q_lower for term in ('workout', 'exercise', 'gym', 'fitness', 'leg', 'health', 'muscle', 'diet', 'weight loss', 'squat')):
+            fallback_text = (
+                "### 🏋️ Complete Science-Based Leg Workout & Lower Body Health Routine\n\n"
+                "For building strong, functional, and healthy legs, exercise physiology and biomechanics recommend targeting all 4 major lower-body muscle groups: **Quadriceps, Hamstrings, Glutes, and Calves**.\n\n"
+                "#### 📋 Complete Evidence-Based Leg Routine:\n"
+                "1. **Compound Movements (Core Strength & Joint Health):**\n"
+                "   - **Barbell Back Squats or Goblet Squats:** 3 sets of 8–10 reps *(targets Quadriceps, Glutes, and core spinal stability)*.\n"
+                "   - **Romanian Deadlifts (RDLs):** 3 sets of 10–12 reps *(strengthens the posterior chain: Hamstrings & Glutes while protecting lower back)*.\n"
+                "2. **Unilateral Movements (Balance & Knee Stability):**\n"
+                "   - **Bulgarian Split Squats or Walking Lunges:** 3 sets of 10 reps per leg *(fixes bilateral muscle imbalances and reinforces knee stabilizers)*.\n"
+                "   - **Leg Press:** 3 sets of 12 reps *(quadriceps hypertrophy with reduced spinal loading)*.\n"
+                "3. **Isolation & Tendon Health:**\n"
+                "   - **Hamstring Lying/Seated Curls:** 3 sets of 12–15 reps *(knee flexion strength)*.\n"
+                "   - **Standing or Seated Calf Raises:** 4 sets of 15–20 reps *(improves ankle mobility, Achilles tendon elasticity, and venous blood return)*.\n\n"
+                "---\n\n"
+                "#### 🔬 Exercise Physiology & Biomechanics Insights:\n"
+                "- **Progressive Overload:** Increase resistance or repetitions by 2–5% weekly to stimulate myofibrillar adaptation and bone density.\n"
+                "- **Joint Warm-up:** Spend 5–10 minutes on dynamic hip openers, bodyweight squats, and ankle mobility to lubricate synovial joints.\n"
+                "- **Recovery:** Lower body muscle fibers require 48 to 72 hours of rest between heavy sessions with adequate protein (1.6–2.0g per kg of body weight) and hydration.\n\n"
+                "> 💡 **SkillSphere Academic Guide:** As your study assistant, I also cover Sports Science, Kinesiology, Biological Systems, and Engineering Biomechanics! What coursework topic would you like to explore next?"
+            )
         elif any(term in q_lower for term in ('movie', 'song', 'weather', 'cricket', 'football', 'ipl', 'gossip', 'joke', 'recipe', 'food')):
             fallback_text = (
                 "### 🎓 SkillSphere Study Assistant Scope Notice\n\n"
@@ -1037,21 +1058,46 @@ class AIService:
                 "What academic topic or coding problem can I help you with today?"
             )
         else:
-            fallback_text = (
-                f"### 📚 Concept Overview: {clean_q[:60]}\n\n"
-                f"Here is a structured academic breakdown to help you master **{clean_q[:50]}**:\n\n"
-                "#### 1. Foundational Principles & Core Theory\n"
-                f"- **Core Idea:** Analyzing `{clean_q[:40]}` requires identifying foundational principles, underlying computational mechanics, or business rules.\n"
-                "- **Key Concept:** Break down complex systems into modular, testable components with deterministic inputs and outputs.\n\n"
-                "#### 2. Practical Framework & Real-World Application\n"
-                "- **Step 1:** Establish system constraints, architectural requirements, or business goals.\n"
-                "- **Step 2:** Apply proven design patterns, industry best practices, or analytical frameworks.\n"
-                "- **Step 3:** Validate performance trade-offs, edge cases, and scaling requirements.\n\n"
-                "#### 💡 Recommended Next Questions to Explore:\n"
-                f"- *\"Show me a practical code implementation or case study for {clean_q[:30]}\"*\n"
-                f"- *\"What are common exam questions and pitfalls regarding {clean_q[:30]}?\"*\n"
-                f"- *\"Give me a quick revision cheat sheet for {clean_q[:30]}\"*"
+            academic_keywords = (
+                'code', 'function', 'class', 'method', 'variable', 'algorithm', 'system', 'database', 'sql',
+                'network', 'tcp', 'ip', 'marketing', 'finance', 'accounting', 'math', 'equation', 'formula', 'physics',
+                'chemistry', 'biology', 'data', 'model', 'software', 'hardware', 'operating system', 'linux',
+                'git', 'test', 'security', 'cloud', 'architecture', 'engineering', 'science', 'logic', 'theory'
             )
+            is_academic = any(k in q_lower for k in academic_keywords)
+
+            if is_academic:
+                fallback_text = (
+                    f"### 📚 Academic Concept Breakdown: {clean_q[:60]}\n\n"
+                    f"Here is an educational walkthrough to help you master **{clean_q[:50]}**:\n\n"
+                    "#### 1. Theoretical Foundations & Principles\n"
+                    f"- **Core Concept:** Examining `{clean_q[:40]}` requires understanding the fundamental definitions, state models, and constraints of the domain.\n"
+                    "- **Key Mechanism:** Break down the system into structured, modular components and trace how inputs map to predictable outputs.\n\n"
+                    "#### 2. Practical Application & Best Practices\n"
+                    "- **Implementation:** Define clear preconditions, validate boundary cases, and adhere to industry architectural standards.\n"
+                    "- **Trade-offs:** Analyze performance implications, memory overhead, and computational efficiency.\n\n"
+                    "#### 💡 Recommended Next Questions to Explore:\n"
+                    f"- *\"Show me a practical example or case study for {clean_q[:30]}\"*\n"
+                    f"- *\"What are common exam questions and pitfalls regarding {clean_q[:30]}?\"*\n"
+                    f"- *\"Give me a quick revision cheat sheet for {clean_q[:30]}\"*"
+                )
+            else:
+                fallback_text = (
+                    "### 🎓 SkillSphere Study Assistant Scope Notice\n\n"
+                    f"I noticed your question (*\"{clean_q[:50]}\"*) appears outside our academic curriculum and technical career scope.\n\n"
+                    "I am specialized as your **24/7 academic tutor, coding mentor, and career guide** across:\n"
+                    "- 💻 **Computer Science & Coding (B.Tech / BCA / M.Tech):** Python, Java, C++, Data Structures, Algorithms, Web Development, and System Architecture.\n"
+                    "- 📊 **Business Administration & Management (BBA / MBA):** Marketing 4Ps, Financial Accounting, Operations, and Business Analytics.\n"
+                    "- 🔬 **Science & Engineering (B.Sc / Engineering):** Databases (SQL/NoSQL), Operating Systems, Computer Networks, and Machine Learning.\n"
+                    "- 🎯 **Career Preparation:** Resume building, mock interviews, and technical portfolio blueprints.\n\n"
+                    "---\n\n"
+                    "#### 💡 Try asking questions like:\n"
+                    "- *\"Explain the difference between TCP and UDP with examples\"*\n"
+                    "- *\"What are the 4 Ps of marketing in business strategy?\"*\n"
+                    "- *\"How to implement a binary search algorithm in Python?\"*\n"
+                    "- *\"Explain ACID database properties with practical examples\"*\n\n"
+                    "What academic topic, syllabus question, or programming concept can I help you learn today?"
+                )
 
         return {
             'text': fallback_text,
