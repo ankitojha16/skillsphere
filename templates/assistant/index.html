@@ -4,65 +4,313 @@
 {% block title %}AI Study Assistant - SkillSphere{% endblock %}
 
 {% block extra_css %}
+<!-- Highlight.js Dark Theme for Syntax Highlighting -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
 <style>
-.message-content h1, .message-content h2, .message-content h3, .message-content h4 {
-    color: #f8fafc;
-    margin-top: 1rem;
-    margin-bottom: 0.5rem;
-    font-weight: 600;
+/* Modern Chat Typography & Layout */
+.chat-container {
+    background-color: var(--bg-primary, #0b0f19);
+    position: relative;
 }
-.message-content h3 { font-size: 1.1rem; }
-.message-content h4 { font-size: 1.0rem; }
-.message-content pre {
-    background: #090d16;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 8px;
-    padding: 12px 14px;
-    overflow-x: auto;
-    margin: 10px 0;
+
+.assistant-card {
+    background: rgba(17, 24, 39, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #f1f5f9;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
 }
-.message-content code {
-    color: #38bdf8;
-    font-family: 'Fira Code', 'Courier New', monospace;
-    font-size: 0.88rem;
+
+.user-card {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
+    color: #ffffff !important;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 4px 18px rgba(37, 99, 235, 0.25);
 }
-.message-content pre code {
+
+/* Markdown Rendering Inside Message Cards */
+.markdown-rendered {
+    color: #f1f5f9;
+}
+.markdown-rendered h1, 
+.markdown-rendered h2, 
+.markdown-rendered h3, 
+.markdown-rendered h4 {
+    color: #ffffff;
+    font-weight: 700;
+    margin-top: 1.25rem;
+    margin-bottom: 0.6rem;
+    letter-spacing: -0.01em;
+}
+.markdown-rendered h1 { font-size: 1.35rem; border-bottom: 1px solid rgba(255, 255, 255, 0.1); padding-bottom: 0.4rem; }
+.markdown-rendered h2 { font-size: 1.2rem; }
+.markdown-rendered h3 { font-size: 1.08rem; }
+.markdown-rendered h4 { font-size: 0.98rem; }
+
+.markdown-rendered p {
+    margin-bottom: 0.85rem;
+    line-height: 1.7;
     color: #e2e8f0;
 }
-.message-content table {
+
+.markdown-rendered strong {
+    color: #ffffff;
+    font-weight: 600;
+}
+
+.markdown-rendered ul, 
+.markdown-rendered ol {
+    padding-left: 1.4rem;
+    margin-bottom: 0.85rem;
+}
+.markdown-rendered li {
+    margin-bottom: 0.35rem;
+    line-height: 1.65;
+    color: #e2e8f0;
+}
+
+.markdown-rendered blockquote {
+    border-left: 3px solid #3b82f6;
+    background: rgba(59, 130, 246, 0.08);
+    padding: 10px 14px;
+    margin: 12px 0;
+    border-radius: 0 8px 8px 0;
+    color: #93c5fd;
+    font-style: normal;
+}
+
+.markdown-rendered table {
     width: 100%;
-    margin: 10px 0;
-    border-collapse: collapse;
-    font-size: 0.85rem;
+    margin: 14px 0;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 0.88rem;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.12);
 }
-.message-content th, .message-content td {
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    padding: 6px 10px;
+.markdown-rendered th, 
+.markdown-rendered td {
+    padding: 8px 12px;
     text-align: left;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
-.message-content th {
-    background: rgba(255, 255, 255, 0.05);
+.markdown-rendered th {
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+    font-weight: 600;
 }
-.message-content ul, .message-content ol {
-    padding-left: 20px;
-    margin-bottom: 8px;
+.markdown-rendered tr:last-child td {
+    border-bottom: none;
 }
-.message-content p {
-    margin-bottom: 8px;
+.markdown-rendered tr:hover td {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+/* Code Highlighting & Header Bars */
+.code-block-wrapper {
+    background: #0d1117;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 14px 0;
+}
+.code-header {
+    background: #161b22;
+    padding: 6px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.code-header .lang-tag {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #94a3b8;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+.code-header .copy-code-btn {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    font-size: 0.75rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+.code-header .copy-code-btn:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.08);
+}
+.markdown-rendered pre {
+    margin: 0 !important;
+    padding: 12px 14px !important;
+    background: #0d1117 !important;
+    border-radius: 0 !important;
+    overflow-x: auto;
+}
+.markdown-rendered code {
+    font-family: 'Fira Code', 'JetBrains Mono', 'Courier New', monospace;
+    font-size: 0.88rem;
+    color: #38bdf8;
+}
+.markdown-rendered :not(pre) > code {
+    background: rgba(56, 189, 248, 0.12);
+    color: #38bdf8;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.85em;
+    border: 1px solid rgba(56, 189, 248, 0.2);
+}
+
+/* Pulse Live Indicator */
+.pulse-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    position: relative;
+}
+.pulse-indicator::after {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    border-radius: 50%;
+    background: inherit;
+    animation: pulse 1.8s infinite;
+    opacity: 0.6;
+}
+@keyframes pulse {
+    0% { transform: scale(1); opacity: 0.7; }
+    70% { transform: scale(2.2); opacity: 0; }
+    100% { transform: scale(2.2); opacity: 0; }
+}
+
+/* Typing Indicator Animation */
+.typing-dots {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 4px;
+}
+.typing-dots span {
+    width: 7px;
+    height: 7px;
+    background-color: #60a5fa;
+    border-radius: 50%;
+    animation: typingBounce 1.4s infinite ease-in-out both;
+}
+.typing-dots span:nth-child(1) { animation-delay: -0.32s; }
+.typing-dots span:nth-child(2) { animation-delay: -0.16s; }
+@keyframes typingBounce {
+    0%, 80%, 100% { transform: scale(0); opacity: 0.4; }
+    40% { transform: scale(1); opacity: 1; }
+}
+
+/* Autosizing textarea */
+.chat-textarea {
+    resize: none;
+    max-height: 180px;
+    min-height: 44px;
+    border-radius: 12px;
+    line-height: 1.5;
+    background: rgba(17, 24, 39, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+    font-size: 0.95rem;
+}
+.chat-textarea:focus {
+    background: rgba(17, 24, 39, 0.95);
+    border-color: #3b82f6;
+    color: #ffffff;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+.chat-textarea::placeholder {
+    color: #94a3b8;
+}
+
+/* Quick prompt pills */
+.prompt-chip {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    color: #cbd5e1;
+    transition: all 0.2s ease;
+    text-align: left;
+    border-radius: 10px;
+}
+.prompt-chip:hover {
+    background: rgba(59, 130, 246, 0.12);
+    border-color: rgba(59, 130, 246, 0.4);
+    color: #ffffff;
+    transform: translateY(-1px);
+}
+
+/* Response Mode Pills */
+.mode-pill-radio:checked + label {
+    background-color: #3b82f6 !important;
+    border-color: #3b82f6 !important;
+    color: #ffffff !important;
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.4);
+}
+
+/* Mobile Sidebar Drawer */
+@media (max-width: 767.98px) {
+    #conversationsSidebar {
+        position: fixed;
+        top: var(--navbar-height, 60px);
+        left: -300px;
+        bottom: 0;
+        width: 280px;
+        z-index: 1045;
+        transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        background: #0f172a !important;
+        box-shadow: 4px 0 24px rgba(0,0,0,0.5);
+    }
+    #conversationsSidebar.open {
+        left: 0;
+    }
+    #sidebarBackdrop {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 1040;
+        backdrop-filter: blur(4px);
+    }
+    #sidebarBackdrop.open {
+        display: block;
+    }
 }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid p-0">
-    <div class="d-flex" style="height: calc(100vh - var(--navbar-height)); overflow: hidden;">
+<div class="container-fluid p-0 chat-container">
+    <!-- Backdrop for mobile sidebar -->
+    <div id="sidebarBackdrop"></div>
+
+    <div class="d-flex" style="height: calc(100vh - var(--navbar-height, 64px)); overflow: hidden;">
         <!-- Left Conversations Sidebar -->
-        <div class="d-none d-md-flex flex-column border-end p-3" style="width: 280px; background-color: var(--bg-secondary); border-color: var(--border-color) !important; flex-shrink: 0;">
+        <div id="conversationsSidebar" class="d-flex flex-column border-end p-3 flex-shrink-0" style="width: 280px; background-color: var(--bg-secondary, #111827); border-color: rgba(255, 255, 255, 0.08) !important;">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <span class="text-secondary small fw-bold text-uppercase" style="letter-spacing: 0.05em;">Sessions</span>
-                <a href="{% url 'assistant:new_chat' %}" class="btn btn-primary-custom btn-sm py-1 px-2" title="New Session">
+                <div class="d-flex align-items-center gap-2">
+                    <i data-lucide="messages-square" style="width: 16px; height: 16px; color: #60a5fa;"></i>
+                    <span class="text-secondary small fw-bold text-uppercase" style="letter-spacing: 0.05em; font-size: 0.78rem;">Study Sessions</span>
+                </div>
+                <a href="{% url 'assistant:new_chat' %}" class="btn btn-primary-custom btn-sm py-1 px-2.5 d-flex align-items-center gap-1 rounded-pill" title="New Session">
                     <i data-lucide="plus" style="width: 14px; height: 14px;"></i>
-                    <span>New</span>
+                    <span style="font-size: 0.8rem;">New</span>
                 </a>
             </div>
 
@@ -70,29 +318,32 @@
             <div class="d-flex flex-column gap-1 flex-grow-1 overflow-y-auto pe-1">
                 {% for conv in user_conversations %}
                     <a href="{% url 'assistant:chat_detail' conversation_id=conv.id %}" 
-                       class="d-flex align-items-center justify-content-between p-2 rounded-2 text-decoration-none {% if conv.id == current_conv.id %}text-white bg-primary bg-opacity-25 border border-primary border-opacity-50{% else %}text-secondary hover-white hover-bg{% endif %}"
-                       style="font-size: 0.85rem;">
+                       class="d-flex align-items-center justify-content-between p-2.5 rounded-3 text-decoration-none transition-all {% if conv.id == current_conv.id %}text-white bg-primary bg-opacity-25 border border-primary border-opacity-50{% else %}text-secondary hover-white hover-bg{% endif %}"
+                       style="font-size: 0.86rem;">
                         <div class="d-flex align-items-center gap-2 text-truncate me-2">
-                            <i data-lucide="message-square" style="width: 14px; height: 14px; flex-shrink: 0;"></i>
+                            <i data-lucide="message-square" style="width: 15px; height: 15px; flex-shrink: 0; color: {% if conv.id == current_conv.id %}#60a5fa{% else %}#64748b{% endif %};"></i>
                             <span class="text-truncate">{{ conv.title }}</span>
                         </div>
                         <form action="{% url 'assistant:delete_chat' conversation_id=conv.id %}" method="post" class="d-inline" onsubmit="event.stopPropagation();">
                             {% csrf_token %}
-                            <button type="submit" class="btn p-0 text-muted hover-danger border-0 bg-transparent" title="Delete">
+                            <button type="submit" class="btn p-1 text-muted hover-danger border-0 bg-transparent rounded-circle" title="Delete session">
                                 <i data-lucide="trash-2" style="width: 13px; height: 13px;"></i>
                             </button>
                         </form>
                     </a>
                 {% empty %}
-                    <div class="text-muted small py-3 text-center">No past study sessions</div>
+                    <div class="text-muted small py-4 text-center">
+                        <i data-lucide="sparkles" style="width: 24px; height: 24px;" class="mb-2 opacity-50"></i>
+                        <p class="mb-0">No past study sessions</p>
+                    </div>
                 {% endfor %}
             </div>
 
             {% if user_conversations %}
-            <div class="pt-3 border-top" style="border-color: var(--border-color) !important;">
+            <div class="pt-3 border-top" style="border-color: rgba(255, 255, 255, 0.08) !important;">
                 <form action="{% url 'assistant:clear_all' %}" method="post" onsubmit="return confirm('Clear all study conversation history?');">
                     {% csrf_token %}
-                    <button type="submit" class="btn btn-outline-danger btn-sm w-100 py-1 text-danger border-danger-subtle small">
+                    <button type="submit" class="btn btn-outline-danger btn-sm w-100 py-1.5 text-danger border-danger-subtle small d-flex align-items-center justify-content-center gap-1.5 rounded-3">
                         <i data-lucide="trash" style="width: 14px; height: 14px;"></i> Clear All History
                     </button>
                 </form>
@@ -101,30 +352,40 @@
         </div>
 
         <!-- Main Chat Area -->
-        <div class="d-flex flex-column flex-grow-1" style="background-color: var(--bg-primary);">
+        <div class="d-flex flex-column flex-grow-1" style="background-color: var(--bg-primary, #0b0f19); min-width: 0;">
             <!-- Chat Header -->
-            <div class="d-flex justify-content-between align-items-center p-3 border-bottom px-4" style="border-color: var(--border-color) !important; background-color: rgba(17, 24, 43, 0.5);">
-                <div class="d-flex align-items-center gap-2">
-                    <div class="stat-icon purple p-1" style="width: 36px; height: 36px;">
-                        <i data-lucide="bot" style="width: 20px; height: 20px;"></i>
+            <div class="d-flex justify-content-between align-items-center p-3 border-bottom px-4" style="border-color: rgba(255, 255, 255, 0.08) !important; background-color: rgba(17, 24, 39, 0.75); backdrop-filter: blur(8px);">
+                <div class="d-flex align-items-center gap-2 text-truncate">
+                    <!-- Mobile Hamburger Toggle -->
+                    <button type="button" class="btn btn-sm btn-outline-secondary d-md-none p-1.5 me-1 text-light border-secondary" id="sidebarToggle" title="Open Sessions">
+                        <i data-lucide="menu" style="width: 16px; height: 16px;"></i>
+                    </button>
+
+                    <div class="d-flex align-items-center justify-content-center rounded-3 shadow-sm flex-shrink-0" style="width: 36px; height: 36px; background: linear-gradient(135deg, #6366f1 0%, #3b82f6 100%);">
+                        <i data-lucide="bot" style="width: 20px; height: 20px; color: #ffffff;"></i>
                     </div>
-                    <div>
-                        <h6 class="fw-bold text-white mb-0">{{ current_conv.title }}</h6>
-                        <span class="badge-category" style="font-size: 0.78rem;">Mode: {{ current_conv.get_mode_display }}</span>
+                    <div class="text-truncate">
+                        <h6 class="fw-bold text-white mb-0 text-truncate" style="font-size: 0.95rem;">{{ current_conv.title }}</h6>
+                        <span class="text-secondary" style="font-size: 0.76rem;">Mode: <strong class="text-light">{{ current_conv.get_mode_display }}</strong></span>
                     </div>
                 </div>
 
-                <div class="d-flex align-items-center gap-2">
+                <div class="d-flex align-items-center gap-2 flex-shrink-0">
                     {% if ai_status.is_live %}
-                    <span class="badge bg-success-subtle text-success border border-success px-2 py-1 small">
-                        <i data-lucide="check-circle-2" style="width: 12px; height: 12px;" class="me-1"></i>{{ ai_status.active_provider }} Connected
+                    <span class="badge bg-success bg-opacity-15 text-success border border-success border-opacity-50 px-2.5 py-1.5 small rounded-pill d-flex align-items-center gap-1.5" title="Google Generative AI Active">
+                        <span class="pulse-indicator bg-success"></span>
+                        <span class="d-none d-sm-inline">{{ ai_status.active_provider }}</span>
+                        <span class="d-sm-none">Live AI</span>
                     </span>
                     {% else %}
-                    <span class="badge bg-warning-subtle text-warning border border-warning px-2 py-1 small" title="Configure GEMINI_API_KEY or OPENAI_API_KEY in environment for generative cloud models">
-                        <i data-lucide="info" style="width: 12px; height: 12px;" class="me-1"></i>Offline Knowledge Engine
+                    <span class="badge bg-primary bg-opacity-15 text-primary border border-primary border-opacity-50 px-2.5 py-1.5 small rounded-pill d-flex align-items-center gap-1.5" title="Operating with SkillSphere Curated Academic Knowledge Engine">
+                        <i data-lucide="brain-circuit" style="width: 12px; height: 12px;"></i>
+                        <span class="d-none d-sm-inline">Knowledge Engine</span>
+                        <span class="d-sm-none">Engine</span>
                     </span>
                     {% endif %}
-                    <a href="{% url 'assistant:new_chat' %}" class="btn btn-secondary-custom btn-sm py-1 px-2 d-md-none">
+
+                    <a href="{% url 'assistant:new_chat' %}" class="btn btn-secondary-custom btn-sm py-1 px-2.5 d-md-none rounded-pill">
                         <i data-lucide="plus" style="width: 14px; height: 14px;"></i>
                     </a>
                 </div>
@@ -134,129 +395,157 @@
             <div class="flex-grow-1 overflow-y-auto p-4 d-flex flex-column gap-3" id="chatStream">
                 {% if not chat_messages %}
                     <!-- Welcome Initial State -->
-                    <div class="my-auto text-center py-5" style="max-width: 620px; margin: 0 auto;">
-                        <div class="stat-icon purple mx-auto mb-3" style="width: 56px; height: 56px;">
-                            <i data-lucide="sparkles" style="width: 28px; height: 28px;"></i>
+                    <div class="my-auto text-center py-4 px-2" style="max-width: 680px; margin: 0 auto;">
+                        <div class="d-inline-flex align-items-center justify-content-center p-3 rounded-4 shadow-lg mb-3" style="background: linear-gradient(135deg, #6366f1 0%, #3b82f6 100%);">
+                            <i data-lucide="sparkles" style="width: 32px; height: 32px; color: #ffffff;"></i>
                         </div>
-                        <h3 class="fw-bold text-white mb-2">SkillSphere AI Study Assistant</h3>
-                        <p class="text-secondary small mb-3">
-                            Ask any computer science concept, debug code errors, request real-world examples, or generate rapid revision cheat sheets.
+                        <h3 class="fw-bold text-white mb-2" style="letter-spacing: -0.02em;">SkillSphere AI Study Partner</h3>
+                        <p class="text-secondary small mb-3" style="max-width: 540px; margin: 0 auto; line-height: 1.6;">
+                            Master academic concepts across Computer Science, BBA/MBA Management, Engineering & Science, debug code snippets, or prepare rapid exam revision sheets.
                         </p>
-                        <div class="mb-4">
-                            {% if ai_status.is_live %}
-                            <span class="badge bg-success px-3 py-1.5"><i data-lucide="zap" style="width: 14px; height: 14px;" class="me-1"></i>Live Cloud AI Active ({{ ai_status.active_provider }})</span>
-                            {% else %}
-                            <span class="badge bg-secondary px-3 py-1.5"><i data-lucide="database" style="width: 14px; height: 14px;" class="me-1"></i>Offline Curated Knowledge Mode Active</span>
-                            {% endif %}
-                        </div>
 
-                        <!-- Quick Prompts Grid -->
-                        <div class="row g-2 text-start">
+                        <!-- Quick Prompts Categorized Grid -->
+                        <div class="row g-2 text-start mt-2">
                             <div class="col-sm-6">
-                                <button type="button" class="btn btn-secondary-custom w-100 text-start p-2 text-truncate small quick-prompt" data-text="Explain Python OOP with practical real-world examples">
-                                    💡 Python OOP Architecture
+                                <button type="button" class="btn prompt-chip w-100 p-2.5 quick-prompt" data-text="Explain Python Object-Oriented Programming (OOP) with clean real-world code examples">
+                                    <div class="fw-semibold text-white small mb-0.5">💡 Python OOP Architecture</div>
+                                    <div class="text-secondary" style="font-size: 0.74rem;">Encapsulation, inheritance, polymorphism</div>
                                 </button>
                             </div>
                             <div class="col-sm-6">
-                                <button type="button" class="btn btn-secondary-custom w-100 text-start p-2 text-truncate small quick-prompt" data-text="Explain Big-O Notation and Time Complexity with examples">
-                                    ⚡ Big-O Complexity Breakdown
+                                <button type="button" class="btn prompt-chip w-100 p-2.5 quick-prompt" data-text="Explain the 4 Ps of Marketing with real-world business case studies for BBA/MBA">
+                                    <div class="fw-semibold text-white small mb-0.5">📊 Marketing 4 Ps & Strategy</div>
+                                    <div class="text-secondary" style="font-size: 0.74rem;">Product, Price, Place, Promotion analysis</div>
                                 </button>
                             </div>
                             <div class="col-sm-6">
-                                <button type="button" class="btn btn-secondary-custom w-100 text-start p-2 text-truncate small quick-prompt" data-text="How does database indexing work and what are B-Trees?">
-                                    📊 Database Indexing & B-Trees
+                                <button type="button" class="btn prompt-chip w-100 p-2.5 quick-prompt" data-text="Explain Big-O Algorithm Complexity and Time Complexity bounds with examples">
+                                    <div class="fw-semibold text-white small mb-0.5">⚡ Big-O Notation Breakdown</div>
+                                    <div class="text-secondary" style="font-size: 0.74rem;">O(1), O(log N), O(N), O(N²) complexities</div>
                                 </button>
                             </div>
                             <div class="col-sm-6">
-                                <button type="button" class="btn btn-secondary-custom w-100 text-start p-2 text-truncate small quick-prompt" data-text="Explain JWT token authentication vs Session authentication">
-                                    🛡️ JWT vs Session Auth
+                                <button type="button" class="btn prompt-chip w-100 p-2.5 quick-prompt" data-text="Explain ACID transactions and SQL vs NoSQL database architecture">
+                                    <div class="fw-semibold text-white small mb-0.5">🗄️ SQL vs NoSQL & ACID</div>
+                                    <div class="text-secondary" style="font-size: 0.74rem;">Atomicity, consistency, indexing, scaling</div>
                                 </button>
                             </div>
                             <div class="col-sm-6">
-                                <button type="button" class="btn btn-secondary-custom w-100 text-start p-2 text-truncate small quick-prompt" data-text="How do async/await and event loops work under the hood?">
-                                    🔄 Async/Await & Event Loop
+                                <button type="button" class="btn prompt-chip w-100 p-2.5 quick-prompt" data-text="Break down Financial Accounting: Balance Sheet equation and working capital">
+                                    <div class="fw-semibold text-white small mb-0.5">📈 Financial Accounting Core</div>
+                                    <div class="text-secondary" style="font-size: 0.74rem;">Balance sheets, P&L, golden rules of accounting</div>
                                 </button>
                             </div>
                             <div class="col-sm-6">
-                                <button type="button" class="btn btn-secondary-custom w-100 text-start p-2 text-truncate small quick-prompt" data-text="How to design a scalable LRU Cache in Python with O(1) operations?">
-                                    🚀 Design an LRU Cache
+                                <button type="button" class="btn prompt-chip w-100 p-2.5 quick-prompt" data-text="Explain Machine Learning supervised vs unsupervised paradigms and neural networks">
+                                    <div class="fw-semibold text-white small mb-0.5">🤖 Machine Learning & AI</div>
+                                    <div class="text-secondary" style="font-size: 0.74rem;">Supervised learning, regularization, neural nets</div>
                                 </button>
                             </div>
                         </div>
                     </div>
                 {% else %}
                     {% for msg in chat_messages %}
-                        <div class="d-flex gap-3 {% if msg.role == 'user' %}justify-content-end{% else %}assistant-bubble{% endif %}">
+                        <div class="message-row d-flex gap-3 {% if msg.role == 'user' %}justify-content-end user-bubble{% else %}assistant-bubble{% endif %}">
                             {% if msg.role == 'assistant' %}
-                            <div class="stat-icon purple flex-shrink-0" style="width: 36px; height: 36px;">
-                                <i data-lucide="bot" style="width: 18px; height: 18px;"></i>
+                            <div class="d-flex align-items-center justify-content-center rounded-3 shadow-sm flex-shrink-0" style="width: 36px; height: 36px; background: linear-gradient(135deg, #6366f1 0%, #3b82f6 100%);">
+                                <i data-lucide="bot" style="width: 19px; height: 19px; color: #ffffff;"></i>
                             </div>
                             {% endif %}
 
-                            <div class="p-3 rounded-3 {% if msg.role == 'user' %}bg-primary text-white{% else %}custom-card text-light{% endif %}" 
-                                 style="max-width: 80%; {% if msg.role == 'user' %}background: var(--primary-gradient) !important;{% endif %}">
-                                <div class="d-flex justify-content-between align-items-center mb-1 gap-2">
-                                    <div class="small text-secondary" style="font-size: 0.82rem; color: {% if msg.role == 'user' %}rgba(255,255,255,0.85){% else %}var(--text-secondary){% endif %} !important;">
-                                        {{ msg.role|title }} • {{ msg.created_at|date:"H:i" }}
+                            <div class="p-3 rounded-4 shadow-sm {% if msg.role == 'user' %}user-card{% else %}assistant-card{% endif %}" 
+                                 style="max-width: 82%;">
+                                <div class="d-flex justify-content-between align-items-center mb-1.5 gap-2 border-bottom pb-1.5" style="border-color: rgba(255, 255, 255, 0.08) !important;">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="fw-semibold small" style="color: {% if msg.role == 'user' %}#ffffff{% else %}#f8fafc{% endif %}; font-size: 0.84rem;">
+                                            {% if msg.role == 'user' %}You{% else %}SkillSphere AI{% endif %}
+                                        </span>
+                                        <span class="small font-monospace" style="font-size: 0.74rem; color: {% if msg.role == 'user' %}rgba(255,255,255,0.75){% else %}#94a3b8{% endif %};">
+                                            {{ msg.created_at|date:"H:i" }}
+                                        </span>
                                     </div>
+
                                     {% if msg.role == 'assistant' %}
-                                    <div class="d-flex align-items-center gap-1">
+                                    <div class="d-flex align-items-center gap-1.5">
                                         {% if not msg.is_fallback %}
-                                        <span class="badge bg-purple px-1.5 py-0.5" style="font-size: 0.78rem;"><i data-lucide="sparkles" style="width: 12px; height: 12px;" class="me-1"></i>{{ msg.provider|upper }}</span>
+                                        <span class="badge bg-primary bg-opacity-20 text-primary border border-primary border-opacity-40 px-2 py-0.5 rounded-pill" style="font-size: 0.72rem;">
+                                            <i data-lucide="zap" style="width: 11px; height: 11px;" class="me-1"></i>{{ msg.provider|upper }}
+                                        </span>
                                         {% else %}
-                                        <span class="badge bg-secondary px-1.5 py-0.5" style="font-size: 0.78rem;"><i data-lucide="info" style="width: 12px; height: 12px;" class="me-1"></i>Offline Engine</span>
+                                        <span class="badge bg-secondary bg-opacity-25 text-secondary border border-secondary border-opacity-40 px-2 py-0.5 rounded-pill" style="font-size: 0.72rem;">
+                                            <i data-lucide="database" style="width: 11px; height: 11px;" class="me-1"></i>Knowledge Engine
+                                        </span>
                                         {% endif %}
                                         <button type="button" class="btn btn-link text-secondary p-0 ms-1 copy-msg-btn" title="Copy response">
-                                            <i data-lucide="copy" style="width: 14px; height: 14px;"></i>
+                                            <i data-lucide="copy" style="width: 13px; height: 13px;"></i>
                                         </button>
                                     </div>
                                     {% endif %}
                                 </div>
-                                <div class="message-content" style="line-height: 1.7;" {% if msg.role == 'assistant' %}data-raw="{{ msg.content|escapejs }}"{% endif %}>
-                                    {{ msg.content|linebreaksbr }}
+
+                                <div class="message-content">
+                                    {% if msg.role == 'assistant' %}
+                                    <!-- Safe Template Storage for Raw Markdown: Never corrupted by escapejs -->
+                                    <template class="raw-markdown">{{ msg.content }}</template>
+                                    <div class="markdown-rendered">
+                                        {{ msg.content|linebreaksbr }}
+                                    </div>
+                                    {% else %}
+                                    <div class="text-white user-text" style="white-space: pre-wrap; word-break: break-word; line-height: 1.6;">{{ msg.content }}</div>
+                                    {% endif %}
                                 </div>
                             </div>
 
                             {% if msg.role == 'user' %}
-                            <img src="{{ student_profile.avatar_url }}" alt="Avatar" class="user-avatar flex-shrink-0" style="width: 36px; height: 36px;">
+                                {% if student_profile and student_profile.avatar_url %}
+                                <img src="{{ student_profile.avatar_url }}" alt="Avatar" class="rounded-circle user-avatar flex-shrink-0" style="width: 36px; height: 36px; object-fit: cover;">
+                                {% else %}
+                                <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center text-white fw-bold flex-shrink-0 shadow-sm" style="width: 36px; height: 36px; font-size: 0.85rem;">
+                                    {{ user.username|slice:":1"|upper }}
+                                </div>
+                                {% endif %}
                             {% endif %}
                         </div>
                     {% endfor %}
                 {% endif %}
 
-                <!-- Dynamic Loading Indicator -->
-                <div id="loadingIndicator" class="d-none d-flex gap-3 align-items-center">
-                    <div class="stat-icon purple flex-shrink-0" style="width: 36px; height: 36px;">
-                        <i data-lucide="bot" style="width: 18px; height: 18px;"></i>
+                <!-- Dynamic Loading / Typing Indicator -->
+                <div id="loadingIndicator" class="d-none message-row d-flex gap-3 align-items-start">
+                    <div class="d-flex align-items-center justify-content-center rounded-3 shadow-sm flex-shrink-0" style="width: 36px; height: 36px; background: linear-gradient(135deg, #6366f1 0%, #3b82f6 100%);">
+                        <i data-lucide="bot" style="width: 19px; height: 19px; color: #ffffff;"></i>
                     </div>
-                    <div class="custom-card p-3 d-flex align-items-center gap-2">
-                        <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
-                        <span class="text-secondary small">SkillSphere AI is analyzing and preparing your response...</span>
+                    <div class="assistant-card p-3 rounded-4 shadow-sm d-flex align-items-center gap-2.5">
+                        <div class="typing-dots">
+                            <span></span><span></span><span></span>
+                        </div>
+                        <span class="text-secondary small font-monospace" style="font-size: 0.84rem;">SkillSphere AI is researching and preparing your response...</span>
                     </div>
                 </div>
             </div>
 
             <!-- Bottom Question Bar -->
-            <div class="p-3 border-top px-4" style="border-color: var(--border-color) !important; background-color: var(--bg-secondary);">
+            <div class="p-3 border-top px-4" style="border-color: rgba(255, 255, 255, 0.08) !important; background-color: var(--bg-secondary, #111827);">
                 <form id="chatForm" method="post" action="{% url 'assistant:chat_detail' conversation_id=current_conv.id %}">
                     {% csrf_token %}
                     
                     <!-- Response Mode Radio Pills -->
-                    <div class="d-flex align-items-center gap-2 mb-2 overflow-x-auto pb-1">
-                        <span class="text-secondary small me-1" style="font-size: 0.82rem;">Mode:</span>
+                    <div class="d-flex align-items-center gap-1.5 mb-2.5 overflow-x-auto pb-1" style="scrollbar-width: none;">
+                        <span class="text-secondary small me-1 flex-shrink-0" style="font-size: 0.8rem; font-weight: 500;">Mode:</span>
                         {% for mode_val, mode_label in mode_choices %}
-                            <input type="radio" class="btn-check" name="mode" id="mode_{{ mode_val }}" value="{{ mode_val }}" {% if current_conv.mode == mode_val %}checked{% endif %}>
-                            <label class="btn btn-outline-secondary btn-sm py-0.5 px-2.5 rounded-pill text-light border-secondary-subtle" for="mode_{{ mode_val }}" style="font-size: 0.82rem;">
+                            <input type="radio" class="btn-check mode-pill-radio" name="mode" id="mode_{{ mode_val }}" value="{{ mode_val }}" {% if current_conv.mode == mode_val %}checked{% endif %}>
+                            <label class="btn btn-outline-secondary btn-sm py-1 px-2.5 rounded-pill text-light border-secondary border-opacity-40 flex-shrink-0" for="mode_{{ mode_val }}" style="font-size: 0.78rem;">
                                 {{ mode_label }}
                             </label>
                         {% endfor %}
                     </div>
 
-                    <div class="d-flex gap-2">
-                        <input type="text" name="question" id="questionInput" class="form-control" placeholder="Ask an academic question or paste code to explain..." required autocomplete="off">
-                        <button type="submit" id="submitBtn" class="btn btn-primary-custom flex-shrink-0">
+                    <div class="d-flex gap-2 align-items-end">
+                        <div class="position-relative flex-grow-1">
+                            <textarea name="question" id="questionInput" class="form-control chat-textarea py-2.5 px-3" rows="1" placeholder="Ask any question, paste code, or request a cheat sheet... (Enter to send, Shift+Enter for new line)" required autocomplete="off"></textarea>
+                        </div>
+                        <button type="submit" id="submitBtn" class="btn btn-primary-custom flex-shrink-0 d-flex align-items-center justify-content-center gap-2 py-2.5 px-3.5 rounded-3" style="height: 44px;">
                             <i data-lucide="send" style="width: 16px; height: 16px;"></i>
-                            <span class="d-none d-sm-inline">Ask AI</span>
+                            <span class="d-none d-sm-inline font-semibold">Send</span>
                         </button>
                     </div>
                 </form>
@@ -267,8 +556,13 @@
 {% endblock %}
 
 {% block extra_js %}
+<!-- Marked.js for GitHub Flavored Markdown -->
 <script src="https://cdn.jsdelivr.net/npm/marked@12.0.0/marked.min.js"></script>
+<!-- DOMPurify for strict XSS sanitization -->
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.9/dist/purify.min.js"></script>
+<!-- Highlight.js for Syntax Highlighting -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const chatStream = document.getElementById('chatStream');
@@ -276,6 +570,40 @@ document.addEventListener('DOMContentLoaded', () => {
     const questionInput = document.getElementById('questionInput');
     const submitBtn = document.getElementById('submitBtn');
     const loadingIndicator = document.getElementById('loadingIndicator');
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const conversationsSidebar = document.getElementById('conversationsSidebar');
+    const sidebarBackdrop = document.getElementById('sidebarBackdrop');
+
+    // Mobile sidebar drawer handlers
+    if (sidebarToggle && conversationsSidebar) {
+        sidebarToggle.addEventListener('click', () => {
+            conversationsSidebar.classList.toggle('open');
+            if (sidebarBackdrop) sidebarBackdrop.classList.toggle('open');
+        });
+    }
+    if (sidebarBackdrop && conversationsSidebar) {
+        sidebarBackdrop.addEventListener('click', () => {
+            conversationsSidebar.classList.remove('open');
+            sidebarBackdrop.classList.remove('open');
+        });
+    }
+
+    // Configure marked with syntax highlighting
+    if (typeof marked !== 'undefined') {
+        marked.setOptions({
+            gfm: true,
+            breaks: true,
+            highlight: function(code, lang) {
+                if (typeof hljs !== 'undefined') {
+                    const validLang = hljs.getLanguage(lang) ? lang : 'plaintext';
+                    try {
+                        return hljs.highlight(code, { language: validLang }).value;
+                    } catch(e) {}
+                }
+                return code;
+            }
+        });
+    }
 
     // Secure DOMPurify hook for external link safety
     if (typeof DOMPurify !== 'undefined') {
@@ -287,41 +615,127 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Safe Markdown parser with hardened DOMPurify XSS protection
+    // Robust Unicode unescaper helper: restores \u000A to \n, \u0060 to `, etc.
+    function decodeUnicodeEscapes(str) {
+        if (!str) return '';
+        try {
+            return str.replace(/\\u([0-9a-fA-F]{4})/g, (match, hex) => {
+                return String.fromCharCode(parseInt(hex, 16));
+            });
+        } catch(e) {
+            return str;
+        }
+    }
+
+    // Safe Markdown parser with DOMPurify XSS protection
     function renderSafeMarkdown(rawText) {
         if (!rawText) return '';
+        const unescaped = decodeUnicodeEscapes(rawText);
         let parsed = '';
         if (typeof marked !== 'undefined') {
             try {
-                parsed = marked.parse(rawText);
+                parsed = marked.parse(unescaped);
             } catch(e) {
-                parsed = rawText.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+                parsed = unescaped.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
             }
         } else {
-            parsed = rawText.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+            parsed = unescaped.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
         }
 
         if (typeof DOMPurify !== 'undefined') {
             return DOMPurify.sanitize(parsed, {
-                ALLOWED_TAGS: ['p', 'br', 'strong', 'b', 'em', 'i', 'u', 's', 'code', 'pre', 'blockquote', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'a', 'span', 'hr'],
+                ALLOWED_TAGS: [
+                    'p', 'br', 'strong', 'b', 'em', 'i', 'u', 's', 'code', 'pre', 'blockquote',
+                    'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'table', 'thead',
+                    'tbody', 'tr', 'th', 'td', 'a', 'span', 'hr'
+                ],
                 ALLOWED_ATTR: ['href', 'title', 'target', 'rel', 'class'],
                 ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
                 USE_PROFILES: { html: true, svg: false, mathMl: false }
             });
         }
-        // Minimal emergency fallback if DOMPurify CDN is unavailable
-        const div = document.createElement('div');
-        div.textContent = parsed;
-        return div.innerHTML;
+        return parsed;
     }
 
-    // Parse existing markdown messages on page load securely
-    document.querySelectorAll('.assistant-bubble .message-content').forEach(el => {
-        const raw = el.getAttribute('data-raw');
-        if (raw) {
-            el.innerHTML = renderSafeMarkdown(raw);
+    // Enhance code blocks with modern header and 1-click copy button
+    function enhanceCodeBlocks(container) {
+        if (!container) return;
+        container.querySelectorAll('pre code').forEach((codeBlock) => {
+            const pre = codeBlock.parentElement;
+            if (!pre || pre.parentElement.classList.contains('code-block-wrapper')) return;
+
+            let lang = 'CODE';
+            codeBlock.classList.forEach(cls => {
+                if (cls.startsWith('language-')) {
+                    lang = cls.replace('language-', '').toUpperCase();
+                }
+            });
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'code-block-wrapper my-3';
+
+            const header = document.createElement('div');
+            header.className = 'code-header';
+            header.innerHTML = `
+                <span class="lang-tag font-monospace">${lang}</span>
+                <button type="button" class="copy-code-btn" title="Copy code snippet">
+                    <i data-lucide="copy" style="width: 12px; height: 12px;"></i>
+                    <span>Copy</span>
+                </button>
+            `;
+
+            pre.parentNode.insertBefore(wrapper, pre);
+            wrapper.appendChild(header);
+            wrapper.appendChild(pre);
+
+            const copyBtn = header.querySelector('.copy-code-btn');
+            if (copyBtn) {
+                copyBtn.addEventListener('click', () => {
+                    navigator.clipboard.writeText(codeBlock.innerText);
+                    copyBtn.innerHTML = '<i data-lucide="check" style="width: 12px; height: 12px; color: #22c55e;"></i><span style="color: #22c55e;">Copied!</span>';
+                    if (typeof lucide !== 'undefined') lucide.createIcons();
+                    setTimeout(() => {
+                        copyBtn.innerHTML = '<i data-lucide="copy" style="width: 12px; height: 12px;"></i><span>Copy</span>';
+                        if (typeof lucide !== 'undefined') lucide.createIcons();
+                    }, 2000);
+                });
+            }
+        });
+    }
+
+    // Attach copy button handlers to full assistant message cards
+    function attachCardCopyButtons(parent) {
+        const root = parent || document;
+        root.querySelectorAll('.copy-msg-btn').forEach(btn => {
+            if (btn.hasAttribute('data-has-copy-listener')) return;
+            btn.setAttribute('data-has-copy-listener', 'true');
+            btn.addEventListener('click', () => {
+                const card = btn.closest('.assistant-card');
+                if (!card) return;
+                const tmpl = card.querySelector('template.raw-markdown');
+                const textToCopy = tmpl ? tmpl.textContent : card.querySelector('.markdown-rendered')?.innerText || '';
+                navigator.clipboard.writeText(textToCopy);
+                btn.innerHTML = '<i data-lucide="check" style="width:13px;height:13px;color:#22C55E;"></i>';
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+                setTimeout(() => {
+                    btn.innerHTML = '<i data-lucide="copy" style="width:13px;height:13px;"></i>';
+                    if (typeof lucide !== 'undefined') lucide.createIcons();
+                }, 1800);
+            });
+        });
+    }
+
+    // Initial render of existing database messages on page load
+    document.querySelectorAll('.assistant-bubble').forEach(bubble => {
+        const tmpl = bubble.querySelector('template.raw-markdown');
+        const container = bubble.querySelector('.markdown-rendered');
+        if (tmpl && container) {
+            const rawContent = tmpl.textContent || tmpl.innerHTML;
+            container.innerHTML = renderSafeMarkdown(rawContent);
+            enhanceCodeBlocks(container);
         }
     });
+    attachCardCopyButtons();
 
     const scrollToBottom = () => {
         if (chatStream) {
@@ -330,21 +744,40 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     scrollToBottom();
 
+    // Auto-resize textarea as user types
+    if (questionInput) {
+        questionInput.addEventListener('input', () => {
+            questionInput.style.height = 'auto';
+            questionInput.style.height = Math.min(questionInput.scrollHeight, 180) + 'px';
+        });
+
+        // Submit on Enter (unless Shift is held)
+        questionInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                chatForm.requestSubmit();
+            }
+        });
+    }
+
     // Quick prompt buttons
     document.querySelectorAll('.quick-prompt').forEach(btn => {
         btn.addEventListener('click', () => {
             if (questionInput) {
                 questionInput.value = btn.getAttribute('data-text');
+                questionInput.style.height = 'auto';
+                questionInput.style.height = Math.min(questionInput.scrollHeight, 180) + 'px';
                 questionInput.focus();
             }
         });
     });
 
+    // Form submission with AJAX & validation safety
     if (chatForm) {
         let isSubmitting = false;
 
         chatForm.addEventListener('submit', async (e) => {
-            const question = questionInput.value.trim();
+            const question = (questionInput.value || '').trim();
             if (!question || isSubmitting) {
                 e.preventDefault();
                 return;
@@ -353,34 +786,46 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             isSubmitting = true;
 
-            // Disable input and show loading
+            // 1. Capture Form Data BEFORE disabling any controls
+            const formData = new FormData(chatForm);
+            // Ensure question and mode are explicitly populated
+            formData.set('question', question);
+            const activeMode = document.querySelector('input[name="mode"]:checked')?.value || 'detailed';
+            formData.set('mode', activeMode);
+
+            // 2. Update UI: Disable button and show spinner
             if (submitBtn) {
                 submitBtn.disabled = true;
-                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Thinking...';
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span><span class="d-none d-sm-inline">Thinking...</span>';
             }
             if (questionInput) questionInput.disabled = true;
 
-            // Remove welcome placeholder if active
+            // 3. Remove welcome card if active
             const welcomeCard = chatStream.querySelector('.my-auto.text-center');
             if (welcomeCard) welcomeCard.remove();
 
-            // Append user bubble immediately (safely escaped)
-            const userBubble = document.createElement('div');
-            userBubble.className = 'd-flex gap-3 justify-content-end';
-            userBubble.innerHTML = `
-                <div class="p-3 rounded-3 bg-primary text-white" style="max-width: 80%; background: var(--primary-gradient) !important;">
-                    <div class="small text-secondary mb-1" style="font-size: 0.82rem; color: rgba(255,255,255,0.85) !important;">You • Just now</div>
-                    <div class="message-content" style="line-height: 1.7;">${question.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+            // 4. Render User Message immediately
+            const userRow = document.createElement('div');
+            userRow.className = 'message-row d-flex gap-3 justify-content-end user-bubble';
+            const escapedUserText = question.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            userRow.innerHTML = `
+                <div class="p-3 rounded-4 shadow-sm user-card" style="max-width: 82%;">
+                    <div class="d-flex justify-content-between align-items-center mb-1.5 gap-2 border-bottom pb-1.5" style="border-color: rgba(255, 255, 255, 0.15) !important;">
+                        <span class="fw-semibold small text-white" style="font-size: 0.84rem;">You</span>
+                        <span class="small font-monospace" style="font-size: 0.74rem; color: rgba(255,255,255,0.75);">Just now</span>
+                    </div>
+                    <div class="message-content text-white user-text" style="white-space: pre-wrap; word-break: break-word; line-height: 1.6;">${escapedUserText}</div>
+                </div>
+                <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center text-white fw-bold flex-shrink-0 shadow-sm" style="width: 36px; height: 36px; font-size: 0.85rem;">
+                    {{ user.username|slice:":1"|upper }}
                 </div>
             `;
-            chatStream.appendChild(userBubble);
+            chatStream.appendChild(userRow);
 
-            // Move loading indicator to bottom and show
+            // 5. Move loading indicator to bottom and reveal
             chatStream.appendChild(loadingIndicator);
             loadingIndicator.classList.remove('d-none');
             scrollToBottom();
-
-            const formData = new FormData(chatForm);
 
             try {
                 const response = await fetch(chatForm.action, {
@@ -396,48 +841,48 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (response.ok) {
                     const data = await response.json();
 
-                    const aiBubble = document.createElement('div');
-                    aiBubble.className = 'd-flex gap-3 assistant-bubble';
-                    
+                    const aiRow = document.createElement('div');
+                    aiRow.className = 'message-row d-flex gap-3 assistant-bubble';
+
                     const badgeHtml = !data.is_fallback
-                        ? `<span class="badge bg-purple px-1.5 py-0.5" style="font-size: 0.78rem;"><i data-lucide="sparkles" style="width: 12px; height: 12px;" class="me-1"></i>${(data.provider || 'GEMINI').toUpperCase()}</span>`
-                        : `<span class="badge bg-secondary px-1.5 py-0.5" style="font-size: 0.78rem;"><i data-lucide="info" style="width: 12px; height: 12px;" class="me-1"></i>Offline Engine</span>`;
+                        ? `<span class="badge bg-primary bg-opacity-20 text-primary border border-primary border-opacity-40 px-2 py-0.5 rounded-pill" style="font-size: 0.72rem;"><i data-lucide="zap" style="width: 11px; height: 11px;" class="me-1"></i>${(data.provider || 'GEMINI').toUpperCase()}</span>`
+                        : `<span class="badge bg-secondary bg-opacity-25 text-secondary border border-secondary border-opacity-40 px-2 py-0.5 rounded-pill" style="font-size: 0.72rem;"><i data-lucide="database" style="width: 11px; height: 11px;" class="me-1"></i>Knowledge Engine</span>`;
 
                     const sanitizedContent = renderSafeMarkdown(data.ai_message);
 
-                    aiBubble.innerHTML = `
-                        <div class="stat-icon purple flex-shrink-0" style="width: 36px; height: 36px;">
-                            <i data-lucide="bot" style="width: 18px; height: 18px;"></i>
+                    aiRow.innerHTML = `
+                        <div class="d-flex align-items-center justify-content-center rounded-3 shadow-sm flex-shrink-0" style="width: 36px; height: 36px; background: linear-gradient(135deg, #6366f1 0%, #3b82f6 100%);">
+                            <i data-lucide="bot" style="width: 19px; height: 19px; color: #ffffff;"></i>
                         </div>
-                        <div class="p-3 rounded-3 custom-card text-light" style="max-width: 80%;">
-                            <div class="d-flex justify-content-between align-items-center mb-1 gap-2">
-                                <div class="small text-secondary" style="font-size: 0.82rem; color: var(--text-secondary) !important;">SkillSphere AI • ${data.created_at || 'Just now'}</div>
-                                <div class="d-flex align-items-center gap-1">
+                        <div class="p-3 rounded-4 shadow-sm assistant-card" style="max-width: 82%;">
+                            <div class="d-flex justify-content-between align-items-center mb-1.5 gap-2 border-bottom pb-1.5" style="border-color: rgba(255, 255, 255, 0.08) !important;">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="fw-semibold small text-white" style="font-size: 0.84rem;">SkillSphere AI</span>
+                                    <span class="small font-monospace text-secondary" style="font-size: 0.74rem;">${data.created_at || 'Just now'}</span>
+                                </div>
+                                <div class="d-flex align-items-center gap-1.5">
                                     ${badgeHtml}
                                     <button type="button" class="btn btn-link text-secondary p-0 ms-1 copy-msg-btn" title="Copy response">
-                                        <i data-lucide="copy" style="width: 12px; height: 12px;"></i>
+                                        <i data-lucide="copy" style="width: 13px; height: 13px;"></i>
                                     </button>
                                 </div>
                             </div>
-                            <div class="message-content" style="line-height: 1.7;">${sanitizedContent}</div>
+                            <div class="message-content">
+                                <template class="raw-markdown"></template>
+                                <div class="markdown-rendered">${sanitizedContent}</div>
+                            </div>
                         </div>
                     `;
 
-                    chatStream.appendChild(aiBubble);
+                    // Store raw markdown text in template element
+                    aiRow.querySelector('template.raw-markdown').textContent = data.ai_message;
 
-                    // Add copy handler to new bubble
-                    const copyBtn = aiBubble.querySelector('.copy-msg-btn');
-                    if (copyBtn) {
-                        copyBtn.addEventListener('click', () => {
-                            navigator.clipboard.writeText(data.ai_message);
-                            copyBtn.innerHTML = '<i data-lucide="check" style="width:12px;height:12px;color:#22C55E;"></i>';
-                            if (typeof lucide !== 'undefined') lucide.createIcons();
-                            setTimeout(() => {
-                                copyBtn.innerHTML = '<i data-lucide="copy" style="width:12px;height:12px;"></i>';
-                                if (typeof lucide !== 'undefined') lucide.createIcons();
-                            }, 1500);
-                        });
-                    }
+                    chatStream.appendChild(aiRow);
+
+                    // Enhance code blocks and copy button
+                    const renderedBox = aiRow.querySelector('.markdown-rendered');
+                    enhanceCodeBlocks(renderedBox);
+                    attachCardCopyButtons(aiRow);
 
                     if (typeof lucide !== 'undefined') {
                         lucide.createIcons();
@@ -451,13 +896,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     } catch(parseErr) {}
 
                     const errorBubble = document.createElement('div');
-                    errorBubble.className = 'd-flex gap-3 assistant-bubble';
+                    errorBubble.className = 'message-row d-flex gap-3 assistant-bubble';
                     errorBubble.innerHTML = `
-                        <div class="stat-icon purple flex-shrink-0" style="width: 36px; height: 36px; background: rgba(239, 68, 68, 0.15); color: #EF4444;">
-                            <i data-lucide="alert-circle" style="width: 18px; height: 18px;"></i>
+                        <div class="d-flex align-items-center justify-content-center rounded-3 shadow-sm flex-shrink-0" style="width: 36px; height: 36px; background: rgba(239, 68, 68, 0.15); color: #ef4444;">
+                            <i data-lucide="alert-circle" style="width: 19px; height: 19px;"></i>
                         </div>
-                        <div class="p-3 rounded-3 custom-card text-light border border-danger-subtle" style="max-width: 80%;">
-                            <div class="small text-danger mb-1 font-monospace">System Notification</div>
+                        <div class="p-3 rounded-4 shadow-sm assistant-card border border-danger-subtle" style="max-width: 82%;">
+                            <div class="small text-danger mb-1 font-monospace fw-semibold">Notice</div>
                             <div class="message-content text-danger-emphasis">${errorMsg.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
                         </div>
                     `;
@@ -468,13 +913,13 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (err) {
                 console.error(err);
                 const errorBubble = document.createElement('div');
-                errorBubble.className = 'd-flex gap-3 assistant-bubble';
+                errorBubble.className = 'message-row d-flex gap-3 assistant-bubble';
                 errorBubble.innerHTML = `
-                    <div class="stat-icon purple flex-shrink-0" style="width: 36px; height: 36px; background: rgba(239, 68, 68, 0.15); color: #EF4444;">
-                        <i data-lucide="alert-circle" style="width: 18px; height: 18px;"></i>
+                    <div class="d-flex align-items-center justify-content-center rounded-3 shadow-sm flex-shrink-0" style="width: 36px; height: 36px; background: rgba(239, 68, 68, 0.15); color: #ef4444;">
+                        <i data-lucide="wifi-off" style="width: 19px; height: 19px;"></i>
                     </div>
-                    <div class="p-3 rounded-3 custom-card text-light border border-danger-subtle" style="max-width: 80%;">
-                        <div class="small text-danger mb-1 font-monospace">Connection Notice</div>
+                    <div class="p-3 rounded-4 shadow-sm assistant-card border border-danger-subtle" style="max-width: 82%;">
+                        <div class="small text-danger mb-1 font-monospace fw-semibold">Connection Notice</div>
                         <div class="message-content text-secondary">Network request could not be completed. Please check your connection and retry.</div>
                     </div>
                 `;
@@ -486,15 +931,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (questionInput) {
                     questionInput.disabled = false;
                     questionInput.value = '';
+                    questionInput.style.height = 'auto';
                     questionInput.focus();
                 }
                 if (submitBtn) {
                     submitBtn.disabled = false;
-                    submitBtn.innerHTML = '<i data-lucide="send" style="width: 16px; height: 16px;"></i><span class="d-none d-sm-inline">Ask AI</span>';
+                    submitBtn.innerHTML = '<i data-lucide="send" style="width: 16px; height: 16px;"></i><span class="d-none d-sm-inline font-semibold">Send</span>';
                     if (typeof lucide !== 'undefined') lucide.createIcons();
                 }
             }
         });
+    }
+
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
     }
 });
 </script>
