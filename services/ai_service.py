@@ -816,6 +816,7 @@ class AIService:
             "Domain Scope Policy:\n"
             "- Only answer questions directly related to academic coursework, computer science, programming, software engineering, business management, mathematics, science, exam preparation, and career development.\n"
             "- If the user asks an off-topic question outside these academic domains (e.g. consumer shopping, phones, workout/fitness routines, entertainment, movies, personal life advice), DO NOT answer the off-topic query. State politely: 'I am the SkillSphere AI Study Assistant, designed exclusively to help students with academic coursework, programming, business management, and career preparation. Please ask questions related to our educational domain!' and suggest 3 academic topics from our coursework.\n"
+            "- If the user asks for course recommendations, study paths, or how to open/choose a course (even with typos like 'ooen a best couse for me'), recommend relevant SkillSphere courses across B.Tech, BCA, BBA, MBA, B.Sc, and B.Com, explain how to enroll at /courses/, and guide them to start learning.\n"
             f"Mode: {mode.upper()}. {instruction}\n"
             "Formatting Rules:\n"
             "- Structure responses cleanly with Markdown headers (###), bullet points, and code blocks with syntax highlighting.\n"
@@ -844,7 +845,41 @@ class AIService:
 
         # Educational knowledge engine for common student inquiries & conversational support
         q_lower = clean_q.lower()
-        is_greeting = bool(re.search(r'^(hi+|hey+|hello+|howdy|hola|greetings|namaste|good\s*(morning|afternoon|evening))\b', q_lower)) or q_lower in (
+
+        # Student typo normalization for common educational queries & misspellings
+        normalized_q = q_lower
+        typo_patterns = [
+            (r'\booen\b', 'open'),
+            (r'\bopn\b', 'open'),
+            (r'\bcouse\b', 'course'),
+            (r'\bcouses\b', 'courses'),
+            (r'\bcorse\b', 'course'),
+            (r'\bcorses\b', 'courses'),
+            (r'\bcours\b', 'course'),
+            (r'\bcourss\b', 'courses'),
+            (r'\brecommed\b', 'recommend'),
+            (r'\brecomnd\b', 'recommend'),
+            (r'\brecomend\b', 'recommend'),
+            (r'\bsugest\b', 'suggest'),
+            (r'\bsuggset\b', 'suggest'),
+            (r'\blearing\b', 'learning'),
+            (r'\blerning\b', 'learning'),
+            (r'\bstuding\b', 'studying'),
+            (r'\bstuddy\b', 'study'),
+            (r'\bcertifcate\b', 'certificate'),
+            (r'\bcertifcat\b', 'certificate'),
+            (r'\bsyllbus\b', 'syllabus'),
+            (r'\bsemster\b', 'semester'),
+            (r'\bpythn\b', 'python'),
+            (r'\bjva\b', 'java'),
+            (r'\bbussiness\b', 'business'),
+            (r'\bacounting\b', 'accounting'),
+            (r'\benginering\b', 'engineering'),
+        ]
+        for pattern, repl in typo_patterns:
+            normalized_q = re.sub(pattern, repl, normalized_q)
+
+        is_greeting = bool(re.search(r'^(hi+|hey+|hello+|howdy|hola|greetings|namaste|good\s*(morning|afternoon|evening))\b', normalized_q)) or normalized_q in (
             'hi', 'hii', 'hiii', 'hello', 'hey', 'who are you', 'what can you do', 'help', 'start', 'menu'
         )
 
@@ -868,6 +903,50 @@ class AIService:
                 "- 🎯 **Exams & Career Acceleration:**\n"
                 "  - High-yield rapid revision cheat sheets, mock interview practice, and portfolio specs.\n\n"
                 "**How can I assist your learning today?** Ask any question, paste code to debug, or choose a response mode below!"
+            )
+            return {
+                'text': fallback_text,
+                'provider': 'skillsphere-engine',
+                'provider_label': 'SkillSphere AI Assistant',
+                'is_fallback': True,
+                'latency_ms': 5.0,
+            }
+
+        # Check for Course Recommendation & Exploration Inquiries
+        is_course_inquiry = (
+            bool(re.search(r'\b(open|recommend|suggest|choose|find|show|take|select|enroll|view|explore|start|best|top|good|which|what)\b.*\b(course|courses|track|tracks|subject|subjects|curriculum)\b', normalized_q))
+            or bool(re.search(r'\b(course|courses)\b.*\b(for me|to learn|to take|recommend|suggest|best|open|good|start|list)\b', normalized_q))
+            or 'best course' in normalized_q
+            or 'open course' in normalized_q
+            or 'courses for' in normalized_q
+            or 'course for me' in normalized_q
+            or 'suggest a course' in normalized_q
+            or 'recommend a course' in normalized_q
+            or normalized_q in ('courses', 'course', 'couse', 'best courses', 'best course', 'courses list')
+        )
+
+        if is_course_inquiry:
+            fallback_text = (
+                "### 🎓 Top Recommended Courses for You on SkillSphere\n\n"
+                "SkillSphere offers structured, career-aligned curriculum tracks with hands-on practice, "
+                "projects, and verifiable certificates. Here are our top recommendations tailored by field:\n\n"
+                "#### 💻 1. Computer Science & Software Engineering (B.Tech / BCA / M.Tech)\n"
+                "- **Full-Stack Web Development (Python & Django):** Build scalable web applications, REST APIs, and database-backed platforms from scratch.\n"
+                "- **Data Structures & Algorithms (DSA Mastery):** Master Big-O analysis, binary trees, dynamic programming, and interview patterns.\n"
+                "- **Cloud Computing & Modern DevOps:** Docker containers, CI/CD pipelines, and cloud architecture deployment.\n\n"
+                "#### 📊 2. Business Administration & Management (BBA / MBA / B.Com)\n"
+                "- **Strategic Marketing Management:** Master the 4 Ps, SWOT analysis, consumer behavior, and brand positioning.\n"
+                "- **Corporate Financial Accounting & Analysis:** Balance sheets, cash flow models, financial ratios, and valuation techniques.\n"
+                "- **Business Analytics & Data-Driven Decision Making:** Excel, SQL for business intelligence, and KPI dashboarding.\n\n"
+                "#### 🔬 3. Science, AI & Engineering (B.Sc / Engineering)\n"
+                "- **Applied Machine Learning & Neural Networks:** Supervised and unsupervised algorithms, scikit-learn, and predictive modeling.\n"
+                "- **Enterprise Database Systems (SQL & NoSQL):** PostgreSQL schema design, indexing, ACID transactions, and Redis caching.\n\n"
+                "---\n\n"
+                "#### 🚀 How to Open and Start a Course:\n"
+                "1. Go to the **[Explore Courses Catalog](/courses/)** in the left navigation.\n"
+                "2. Filter by your target degree (**B.Tech, BCA, BBA, MBA, B.Sc, B.Com**) or skill level.\n"
+                "3. Click **\"Enroll Now\"** or **\"Start Course\"** to begin lessons, track your progress, and earn an authenticated certificate!\n\n"
+                "💡 *Which degree program or topic interests you most (e.g. Python, Marketing, DSA, or Finance)? Tell me, and I will tailor the exact course path for you!*"
             )
             return {
                 'text': fallback_text,
@@ -989,9 +1068,16 @@ class AIService:
                 'network', 'tcp', 'ip', 'marketing', 'finance', 'accounting', 'math', 'equation', 'formula', 'physics',
                 'chemistry', 'biology', 'data', 'model', 'software', 'hardware', 'operating system', 'linux',
                 'git', 'test', 'security', 'cloud', 'architecture', 'engineering', 'science', 'logic', 'theory',
-                'btech', 'mtech', 'bca', 'bsc', 'bba', 'mba', 'bcom', 'syllabus', 'course', 'degree', 'semester'
+                'btech', 'mtech', 'bca', 'mca', 'bsc', 'msc', 'bba', 'mba', 'bcom', 'mcom', 'syllabus', 'course',
+                'courses', 'couse', 'corse', 'degree', 'semester', 'learn', 'learning', 'study', 'studying',
+                'subject', 'curriculum', 'exam', 'quiz', 'certificate', 'certification', 'roadmap', 'career',
+                'placement', 'internship', 'interview', 'portfolio', 'project', 'resume', 'skillsphere', 'enroll'
             )
-            is_academic = any(k in q_lower for k in academic_keywords)
+            is_academic = (
+                any(k in normalized_q for k in academic_keywords)
+                or bool(re.search(r'\bc[ou]{1,2}rs[es]*\b', normalized_q))
+                or bool(re.search(r'\b(b\.?tech|m\.?tech|bca|mca|b\.?sc|m\.?sc|bba|mba|b\.?com|m\.?com)\b', normalized_q))
+            )
 
             if is_academic:
                 fallback_text = (

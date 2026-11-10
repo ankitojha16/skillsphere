@@ -148,5 +148,44 @@ class AssistantTests(TestCase):
         self.assertNotIn('Squats', ai_text)
         self.assertNotIn('underlying computational mechanics', ai_text)
 
+    def test_user_query_with_typo_ooen_best_couse_recommends_courses(self):
+        """User query 'ooen a best couse for me' (with typos) correctly returns course recommendations, not scope notice."""
+        conv = AIConversation.objects.create(user=self.user, title='Course Advice', mode='detailed')
+        url = reverse('assistant:chat_detail', kwargs={'conversation_id': conv.id})
+        response = self.client.post(url, {
+            'question': 'ooen a best couse for me',
+            'mode': 'detailed'
+        }, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data.get('success'))
+        ai_text = data.get('ai_message', '')
+        # Must NOT be flagged as out-of-domain scope notice
+        self.assertNotIn('Domain Scope Notice', ai_text)
+        self.assertNotIn('outside our academic coursework', ai_text)
+        # Must provide course recommendations and navigation instructions
+        self.assertIn('Recommended Courses', ai_text)
+        self.assertIn('/courses/', ai_text)
+        self.assertIn('B.Tech', ai_text)
+
+    def test_open_best_course_for_me_in_domain(self):
+        """User query 'open a best course for me' returns course guidance and catalog link."""
+        conv = AIConversation.objects.create(user=self.user, title='Course Inquiry', mode='detailed')
+        url = reverse('assistant:chat_detail', kwargs={'conversation_id': conv.id})
+        response = self.client.post(url, {
+            'question': 'open a best course for me',
+            'mode': 'detailed'
+        }, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data.get('success'))
+        ai_text = data.get('ai_message', '')
+        self.assertNotIn('Domain Scope Notice', ai_text)
+        self.assertIn('Recommended Courses', ai_text)
+        self.assertIn('/courses/', ai_text)
+
+
 
 
