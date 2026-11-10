@@ -227,6 +227,21 @@ document.addEventListener('DOMContentLoaded', function() {
             if (modal) modal.show();
         });
     });
+
+    // Check URL parameters (e.g. from Roadmap or Project blueprint)
+    const urlParams = new URLSearchParams(window.location.search);
+    const pTitle = urlParams.get('preset_title');
+    const pDesc = urlParams.get('preset_desc');
+    if (pTitle && modal) {
+        if (titleInput) titleInput.value = pTitle;
+        if (descInput && pDesc) descInput.value = pDesc;
+        if (dateInput && !dateInput.value) {
+            const target = new Date();
+            target.setDate(target.getDate() + 30);
+            dateInput.value = target.toISOString().split('T')[0];
+        }
+        modal.show();
+    }
 });
 </script>
 {% endblock %}

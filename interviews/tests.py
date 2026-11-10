@@ -60,3 +60,50 @@ class InterviewsTests(TestCase):
         interview.refresh_from_db()
         self.assertTrue(interview.is_completed)
         self.assertGreater(interview.overall_score, 0)
+
+    def test_interview_session_audio_and_timer_controls(self):
+        interview = MockInterview.objects.create(
+            user=self.user,
+            category='Python Developer',
+            difficulty='Junior',
+            total_questions=1
+        )
+        InterviewResponse.objects.create(
+            interview=interview,
+            question_order=1,
+            question_text='Explain Python memory management.'
+        )
+        url = reverse('interviews:session', kwargs={'interview_id': interview.id})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'speakPromptBtn')
+        self.assertContains(response, 'voiceAnswerBtn')
+        self.assertContains(response, 'timerBadge')
+        self.assertContains(response, 'starGuideCollapse')
+
+    def test_interview_report_export_controls(self):
+        interview = MockInterview.objects.create(
+            user=self.user,
+            category='Python Developer',
+            difficulty='Junior',
+            total_questions=1,
+            is_completed=True,
+            overall_score=85,
+            overall_feedback='Strong technical performance.',
+            strong_areas='Memory allocation',
+            improvement_areas='Thread safety'
+        )
+        InterviewResponse.objects.create(
+            interview=interview,
+            question_order=1,
+            question_text='Explain Python memory management.',
+            user_answer='Python uses reference counting and GC.',
+            technical_rating=9,
+            ai_feedback='Solid explanation.'
+        )
+        url = reverse('interviews:report', kwargs={'interview_id': interview.id})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'exportDebriefBtn')
+        self.assertContains(response, 'Interview_Debrief')
+

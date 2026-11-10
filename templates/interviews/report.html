@@ -22,9 +22,21 @@
             {{ interview.overall_score }}/100
         </div>
 
-        <p class="text-secondary mb-4">
+        <p class="text-secondary mb-3">
             Completed all <strong class="text-white">{{ interview.total_questions }} questions</strong> for the {{ interview.difficulty }} level benchmark.
         </p>
+
+        <!-- Export & Action Buttons -->
+        <div class="d-flex flex-wrap justify-content-center gap-2 mb-4">
+            <button type="button" class="btn btn-sm btn-outline-purple d-inline-flex align-items-center gap-1" id="exportDebriefBtn">
+                <i data-lucide="download" style="width: 14px; height: 14px;"></i>
+                <span>Export Debrief (.md)</span>
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1" onclick="window.print();">
+                <i data-lucide="printer" style="width: 14px; height: 14px;"></i>
+                <span>Print / Save PDF</span>
+            </button>
+        </div>
 
         <!-- Executive Summary -->
         <div class="p-4 rounded-3 text-start mb-4" style="background-color: rgba(139, 92, 246, 0.08); border: 1px solid rgba(139, 92, 246, 0.3);">
@@ -84,11 +96,51 @@
         </div>
     </div>
 
-    <div class="text-center">
+    <div class="text-center d-flex flex-wrap justify-content-center gap-2">
         <a href="{% url 'interviews:setup' %}" class="btn btn-primary-custom py-2 px-4">
             <span>Start Another Mock Interview</span>
             <i data-lucide="arrow-right" style="width: 16px; height: 16px;"></i>
         </a>
+        <a href="{% url 'roadmaps:list' %}" class="btn btn-secondary-custom py-2 px-3">
+            <span>View Learning Roadmaps</span>
+        </a>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const exportBtn = document.getElementById('exportDebriefBtn');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', function() {
+            let md = `# SkillSphere Mock Interview Debrief: {{ interview.category }}\n\n`;
+            md += `**Date:** ${new Date().toLocaleDateString()}\n`;
+            md += `**Difficulty:** {{ interview.difficulty }}\n`;
+            md += `**Overall Score:** {{ interview.overall_score }} / 100\n\n`;
+            md += `## Executive Summary\n{{ interview.overall_feedback }}\n\n`;
+            md += `### Strong Areas\n{{ interview.strong_areas }}\n\n`;
+            md += `### Improvement Areas\n{{ interview.improvement_areas }}\n\n`;
+            md += `---\n\n## Question Breakdown & Transcripts\n\n`;
+
+            {% for resp in responses %}
+            md += `### Question {{ resp.question_order }}: {{ resp.question_text|escapejs }}\n`;
+            md += `**Rating:** {{ resp.technical_rating }}/10\n\n`;
+            md += `**Your Answer:**\n> {{ resp.user_answer|escapejs }}\n\n`;
+            md += `**AI Mentor Evaluation:**\n{{ resp.ai_feedback|escapejs }}\n\n---\n\n`;
+            {% endfor %}
+
+            const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Interview_Debrief_{{ interview.category|slugify }}.md`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+    }
+});
+</script>
 {% endblock %}

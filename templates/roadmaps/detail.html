@@ -68,9 +68,15 @@
                             <h4 class="fw-bold mb-0 {% if milestone.is_completed %}text-decoration-line-through text-muted{% else %}text-white{% endif %}">
                                 {{ milestone.title }}
                             </h4>
-                            <span class="badge text-bg-dark border border-secondary-subtle text-muted small">
-                                ~{{ milestone.estimated_weeks }} Weeks
-                            </span>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge text-bg-dark border border-secondary-subtle text-muted small">
+                                    ~{{ milestone.estimated_weeks }} Weeks
+                                </span>
+                                <a href="{% url 'goals:index' %}?preset_title={{ milestone.title|urlencode }}&preset_desc={{ milestone.description|urlencode }}" class="btn btn-xs btn-outline-purple py-0 px-2 small d-inline-flex align-items-center gap-1" title="Add this milestone to your personal goals" style="font-size: 0.75rem;">
+                                    <i data-lucide="target" style="width: 12px; height: 12px;"></i>
+                                    <span>Track Goal</span>
+                                </a>
+                            </div>
                         </div>
 
                         <p class="text-secondary small mb-3">{{ milestone.description }}</p>

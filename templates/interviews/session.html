@@ -17,23 +17,66 @@
     </div>
 
     <!-- Active Question Card -->
+    <!-- Active Question Card -->
     <div class="custom-card card-glowing p-4 p-md-5 mb-4">
-        <div class="d-flex align-items-center gap-2 mb-3 text-primary-accent-light small fw-bold text-uppercase">
-            <i data-lucide="help-circle" style="width: 16px; height: 16px;"></i>
-            <span>Interviewer Prompt</span>
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+            <div class="d-flex align-items-center gap-2 text-primary-accent-light small fw-bold text-uppercase">
+                <i data-lucide="help-circle" style="width: 16px; height: 16px;"></i>
+                <span>Interviewer Prompt</span>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <!-- Listen to Interviewer (TTS) -->
+                <button type="button" class="btn btn-sm btn-outline-info py-0 px-2 d-inline-flex align-items-center gap-1" id="speakPromptBtn">
+                    <i data-lucide="volume-2" id="speakIcon" style="width: 14px; height: 14px;"></i>
+                    <span id="speakBtnText" class="small">Listen</span>
+                </button>
+                <!-- Answering Stopwatch / Timer -->
+                <div class="badge bg-dark border border-secondary border-opacity-50 text-secondary font-monospace px-2 py-1 small" id="timerBadge">
+                    <i data-lucide="timer" style="width: 12px; height: 12px;" class="me-1"></i>
+                    <span id="timerText">00:00</span> <span class="text-muted">/ 02:00</span>
+                </div>
+            </div>
         </div>
 
-        <h3 class="fw-bold text-white mb-4" style="line-height: 1.5;">
+        <h3 class="fw-bold text-white mb-4" id="promptText" style="line-height: 1.5;">
             "{{ current_q.question_text }}"
         </h3>
+
+        <!-- Collapsible STAR Coaching Helper -->
+        <div class="mb-3">
+            <button class="btn btn-sm btn-outline-secondary py-0 px-2 text-decoration-none small collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#starGuideCollapse" aria-expanded="false" style="font-size: 0.78rem;">
+                <i data-lucide="lightbulb" style="width: 12px; height: 12px;" class="text-warning me-1"></i> Interview Strategy: STAR Method Tips <i data-lucide="chevron-down" style="width: 12px; height: 12px;"></i>
+            </button>
+            <div class="collapse mt-2" id="starGuideCollapse">
+                <div class="p-3 rounded-3 small" style="background-color: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); line-height: 1.6;">
+                    <div class="row g-2">
+                        <div class="col-sm-6"><strong class="text-info">S (Situation):</strong> Context, project scope & domain.</div>
+                        <div class="col-sm-6"><strong class="text-info">T (Task):</strong> Engineering challenge or objective.</div>
+                        <div class="col-sm-6"><strong class="text-warning">A (Action):</strong> Your code, algorithms, architectural decisions.</div>
+                        <div class="col-sm-6"><strong class="text-success">R (Result):</strong> Measurable impact, latency win, lessons learned.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <form id="answerForm" action="{% url 'interviews:submit_answer' interview_id=interview.id %}" method="post">
             {% csrf_token %}
 
             <div class="mb-3">
-                <label class="form-label" for="user_answer">Your Technical Response</label>
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <label class="form-label mb-0" for="user_answer">Your Technical Response</label>
+                    <div class="d-flex align-items-center gap-2">
+                        <!-- Live Word Count & Quality Badge -->
+                        <span class="badge bg-secondary-subtle text-secondary small" id="qualityBadge">0 words</span>
+                        <!-- Voice Dictation (STT) -->
+                        <button type="button" class="btn btn-sm btn-outline-purple py-0 px-2 d-inline-flex align-items-center gap-1" id="voiceAnswerBtn" title="Answer using microphone speech-to-text">
+                            <i data-lucide="mic" id="voiceMicIcon" style="width: 14px; height: 14px;"></i>
+                            <span id="voiceBtnText" class="small">Voice Answer</span>
+                        </button>
+                    </div>
+                </div>
                 <textarea name="user_answer" id="user_answer" class="form-control" rows="6" placeholder="Structure your answer clearly: state the definition, provide an example, and discuss trade-offs or edge cases..." required></textarea>
-                <small class="text-muted d-block mt-1">Take your time. Answers are evaluated for technical correctness, clarity, and completeness.</small>
+                <small class="text-muted d-block mt-1">Take your time. Answers are evaluated for technical correctness, depth, and clarity.</small>
             </div>
 
             <div class="d-flex justify-content-between align-items-center pt-2">
@@ -71,10 +114,156 @@
 
 {% block extra_js %}
 <script>
-document.getElementById('answerForm').addEventListener('submit', () => {
-    const btn = document.getElementById('submitBtn');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Evaluating Response...';
+document.addEventListener('DOMContentLoaded', function() {
+    const answerTextarea = document.getElementById('user_answer');
+    const qualityBadge = document.getElementById('qualityBadge');
+    const timerText = document.getElementById('timerText');
+    const timerBadge = document.getElementById('timerBadge');
+
+    // 1. Live Word Count & Depth Assessment Meter
+    function updateWordMeter() {
+        const text = answerTextarea.value.trim();
+        const wordCount = text ? text.split(/\s+/).length : 0;
+        if (wordCount < 25) {
+            qualityBadge.className = 'badge bg-secondary-subtle text-secondary small';
+            qualityBadge.innerText = `${wordCount} words (Brief)`;
+        } else if (wordCount < 75) {
+            qualityBadge.className = 'badge bg-info-subtle text-info small';
+            qualityBadge.innerText = `${wordCount} words (Good Outline)`;
+        } else {
+            qualityBadge.className = 'badge bg-success-subtle text-success small';
+            qualityBadge.innerText = `${wordCount} words (Thorough Response)`;
+        }
+    }
+    answerTextarea.addEventListener('input', updateWordMeter);
+
+    // 2. Answering Stopwatch / Timer (2:00 target pacing)
+    let elapsedSeconds = 0;
+    const timerInterval = setInterval(() => {
+        elapsedSeconds++;
+        const mins = String(Math.floor(elapsedSeconds / 60)).padStart(2, '0');
+        const secs = String(elapsedSeconds % 60).padStart(2, '0');
+        timerText.innerText = `${mins}:${secs}`;
+
+        if (elapsedSeconds >= 120) {
+            timerBadge.className = 'badge bg-danger-subtle text-danger font-monospace px-2 py-1 small border border-danger-subtle';
+        } else if (elapsedSeconds >= 90) {
+            timerBadge.className = 'badge bg-warning-subtle text-warning font-monospace px-2 py-1 small border border-warning-subtle';
+        }
+    }, 1000);
+
+    // 3. Text-to-Speech (Interviewer Voice Prompt)
+    const speakPromptBtn = document.getElementById('speakPromptBtn');
+    const speakBtnText = document.getElementById('speakBtnText');
+    const promptText = document.getElementById('promptText').innerText.replace(/^"|"$/g, '');
+    let isSpeaking = false;
+
+    if (speakPromptBtn && 'speechSynthesis' in window) {
+        speakPromptBtn.addEventListener('click', function() {
+            if (isSpeaking) {
+                window.speechSynthesis.cancel();
+                isSpeaking = false;
+                speakBtnText.innerText = 'Listen';
+                speakPromptBtn.className = 'btn btn-sm btn-outline-info py-0 px-2 d-inline-flex align-items-center gap-1';
+            } else {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(promptText);
+                utterance.rate = 0.95;
+                utterance.pitch = 1.0;
+                utterance.onend = () => {
+                    isSpeaking = false;
+                    speakBtnText.innerText = 'Listen';
+                    speakPromptBtn.className = 'btn btn-sm btn-outline-info py-0 px-2 d-inline-flex align-items-center gap-1';
+                };
+                utterance.onerror = () => {
+                    isSpeaking = false;
+                    speakBtnText.innerText = 'Listen';
+                };
+                window.speechSynthesis.speak(utterance);
+                isSpeaking = true;
+                speakBtnText.innerText = 'Stop';
+                speakPromptBtn.className = 'btn btn-sm btn-info py-0 px-2 d-inline-flex align-items-center gap-1 text-white';
+            }
+        });
+    } else if (speakPromptBtn) {
+        speakPromptBtn.style.display = 'none';
+    }
+
+    // 4. Voice Dictation (Speech-to-Text Answer Input)
+    const voiceAnswerBtn = document.getElementById('voiceAnswerBtn');
+    const voiceBtnText = document.getElementById('voiceBtnText');
+    let recognition = null;
+    let isRecording = false;
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition && voiceAnswerBtn) {
+        recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = 'en-US';
+
+        recognition.onresult = function(event) {
+            let transcript = '';
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                if (event.results[i].isFinal) {
+                    transcript += event.results[i][0].transcript + ' ';
+                }
+            }
+            if (transcript) {
+                answerTextarea.value = (answerTextarea.value + ' ' + transcript).trim();
+                updateWordMeter();
+            }
+        };
+
+        recognition.onerror = function() {
+            stopVoice();
+        };
+
+        recognition.onend = function() {
+            if (isRecording) stopVoice();
+        };
+
+        function startVoice() {
+            try {
+                recognition.start();
+                isRecording = true;
+                voiceBtnText.innerText = 'Listening...';
+                voiceAnswerBtn.className = 'btn btn-sm btn-danger py-0 px-2 d-inline-flex align-items-center gap-1 text-white';
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function stopVoice() {
+            try {
+                recognition.stop();
+            } catch (e) {}
+            isRecording = false;
+            voiceBtnText.innerText = 'Voice Answer';
+            voiceAnswerBtn.className = 'btn btn-sm btn-outline-purple py-0 px-2 d-inline-flex align-items-center gap-1';
+        }
+
+        voiceAnswerBtn.addEventListener('click', function() {
+            if (isRecording) {
+                stopVoice();
+            } else {
+                startVoice();
+            }
+        });
+    } else if (voiceAnswerBtn) {
+        voiceAnswerBtn.style.display = 'none';
+    }
+
+    // 5. Submit Form Spinner
+    document.getElementById('answerForm').addEventListener('submit', () => {
+        clearInterval(timerInterval);
+        if (window.speechSynthesis) window.speechSynthesis.cancel();
+        if (recognition && isRecording) recognition.stop();
+
+        const btn = document.getElementById('submitBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Evaluating Response...';
+    });
 });
 </script>
 {% endblock %}

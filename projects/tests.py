@@ -72,3 +72,26 @@ class ProjectsTests(TestCase):
         idea.refresh_from_db()
         self.assertEqual(idea.status, 'in_progress')
         self.assertEqual(idea.github_url, 'https://github.com/ankitojha16/ai-research-assistant')
+
+    def test_project_detail_has_readme_generator_and_goal_link(self):
+        idea = ProjectIdea.objects.create(
+            user=self.user,
+            title='Autonomous Trading Bot',
+            category='FinTech',
+            difficulty='Advanced',
+            technology_stack='Python, Celery, Redis',
+            description='Algorithmic trading engine with risk control',
+            problem_statement='High frequency latency',
+            objectives='Sub-millisecond execution',
+            main_features='Order matching\nRisk limits',
+            database_requirements='Trades, Ledgers',
+            development_phases='Phase 1\nPhase 2'
+        )
+        url = reverse('projects:detail_ref', kwargs={'project_ref': idea.project_ref})
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'openReadmeBtn')
+        self.assertContains(resp, 'readmeModal')
+        self.assertContains(resp, 'Track as Goal')
+        self.assertContains(resp, 'goals/?preset_title=Autonomous%20Trading%20Bot')
+
