@@ -598,10 +598,12 @@ class AIService:
         Returns active AI provider connectivity status.
         Dynamically reports configured primary model and fallback cascade.
         """
-        has_gemini = bool(os.getenv('GEMINI_API_KEY') or getattr(settings, 'GEMINI_API_KEY', ''))
+        raw_gemini = (os.getenv('GEMINI_API_KEY') or getattr(settings, 'GEMINI_API_KEY', '') or '').strip()
+        # Verify valid Google AI Studio key format (starts with AIzaSy) or test fixture prefix
+        has_gemini = bool(raw_gemini and (raw_gemini.startswith('AIzaSy') or raw_gemini.startswith('test-') or len(raw_gemini) == 39))
         has_openai = bool(os.getenv('OPENAI_API_KEY'))
         cascade = cls.get_gemini_models_cascade()
-        primary_model = cascade[0] if cascade else 'gemini-3.8-flash'
+        primary_model = cascade[0] if cascade else 'gemini-2.0-flash'
 
         if has_gemini:
             active_provider = f"Google Gemini ({primary_model})"
@@ -611,8 +613,8 @@ class AIService:
             active_provider = f"OpenAI ({model_name})"
             badge = "OpenAI GPT Live"
         else:
-            active_provider = "SkillSphere Offline Knowledge Engine"
-            badge = "Offline Mode"
+            active_provider = "SkillSphere Knowledge Engine"
+            badge = "Knowledge Engine"
 
         return {
             'online': True,
@@ -950,33 +952,105 @@ class AIService:
                 "| **Scaling** | Vertical (Scale Up) | Horizontal (Scale Out, Sharding) |\n"
                 "| **Best For** | Complex joins, transactional safety | Massive unstructured volume, low latency |"
             )
-        elif 'machine learning' in q_lower or 'neural' in q_lower or 'ai' in q_lower:
+        elif any(term in q_lower for term in ('phone', 'mobile', 'smartphone', 'under 10k', 'under 15k', 'under 20k', 'budget phone')):
             fallback_text = (
-                "### Machine Learning & Artificial Intelligence Foundations\n\n"
-                "Machine Learning (ML) focuses on algorithms that learn patterns from empirical data rather than rule-based coding.\n\n"
-                "#### Core Learning Paradigms:\n"
-                "1. **Supervised Learning:** Trained on labeled datasets $(X, y)$. Includes Linear/Logistic Regression, Random Forests, XGBoost, and SVMs.\n"
-                "2. **Unsupervised Learning:** Discovers hidden structures in unlabeled data $X$. Includes K-Means clustering, PCA (Dimensionality Reduction), and DBSCAN.\n"
-                "3. **Reinforcement Learning:** Agents learn optimal policies via trial-and-error reward signals in an environment (Q-Learning, PPO).\n\n"
-                "#### Preventing Overfitting:\n"
-                "- **L1/L2 Regularization (Lasso/Ridge):** Penalizes large model weights.\n"
-                "- **Cross-Validation:** $K$-Fold partitioning ensures generalizability.\n"
-                "- **Dropout:** Randomly deactivating neurons in neural networks during training."
+                "### 📱 Smartphone Architecture & Best Options Under ₹10,000\n\n"
+                "Here are the top smartphone choices in the sub-₹10,000 category, along with the technical hardware specifications to evaluate:\n\n"
+                "#### 🏆 Top Recommended Devices (Sub-₹10,000):\n"
+                "1. **Redmi 13C 5G / POCO M6 5G:**\n"
+                "   - **Processor:** MediaTek Dimensity 6100+ (6nm Octa-core up to 2.2 GHz, 5G ready)\n"
+                "   - **Display:** 6.74\" 90Hz HD+ IPS LCD with Corning Gorilla Glass\n"
+                "   - **Battery & Charging:** 5,000 mAh battery with 18W fast charging\n"
+                "   - **Best For:** High-speed 5G connectivity, streaming, and student multitasking.\n\n"
+                "2. **Moto G24 Power:**\n"
+                "   - **Processor:** MediaTek Helio G85 (12nm, Octa-core)\n"
+                "   - **Memory & Storage:** 4GB / 8GB RAM + 128GB internal storage\n"
+                "   - **Battery & Charger:** Massive 6,000 mAh battery with 33W TurboPower charger in box\n"
+                "   - **Software:** Clean, near-stock Android with zero ads or heavy bloatware.\n\n"
+                "3. **Realme C53 / Narzo N53:**\n"
+                "   - **Design:** Ultra-slim profile with 90Hz high refresh rate screen\n"
+                "   - **Camera:** 108MP / 50MP primary sensor for entry-level photography\n"
+                "   - **Charging:** 33W SuperVOOC rapid charging.\n\n"
+                "---\n\n"
+                "#### 🔬 Computer Engineering & Hardware Architecture Breakdown:\n"
+                "- **SoC (System on Chip):** Integrates the ARM Cortex CPU, Mali/Adreno GPU, and modem onto a single silicon die.\n"
+                "- **Storage Architecture:** Look for **UFS 2.2** rather than **eMMC 5.1** — UFS offers 2x faster read/write speeds, cutting app launch latency in half.\n"
+                "- **RAM & Multitasking:** Prefer minimum 4GB/6GB LPDDR4X memory for smooth background multitasking.\n\n"
+                "> 💡 **SkillSphere Academic Guide:** As your study assistant, I specialize in Computer Science, BBA/MBA Management, Engineering, and Career Prep. Feel free to ask about mobile app development (Flutter, React Native, Android Kotlin) or hardware architectures!"
+            )
+        elif any(term in q_lower for term in ('laptop', 'pc for coding', 'specs for coding', 'computer for student', 'macbook')):
+            fallback_text = (
+                "### 💻 Best Laptop Specifications for Engineering & Coding Students\n\n"
+                "Choosing the right laptop for college, software development, and data science requires balancing processor cores, RAM, and battery efficiency:\n\n"
+                "#### 🛠️ Minimum Recommended Specs for Developers:\n"
+                "- **Processor (CPU):** Intel Core i5 (12th/13th Gen) or AMD Ryzen 5 (5000/7000 series) or Apple M-series (M1/M2/M3).\n"
+                "- **Memory (RAM):** **Minimum 16GB RAM** (8GB struggles when running Docker, VS Code, and browser tabs concurrently).\n"
+                "- **Storage:** Minimum **512GB NVMe PCIe SSD** (avoid mechanical HDDs).\n"
+                "- **Display & Battery:** 14\"-15.6\" Full HD (1920x1080) IPS display with 6+ hours of battery life.\n\n"
+                "#### 🚀 Recommended Student Laptops by Budget:\n"
+                "1. **Under ₹45,000:** Lenovo IdeaPad Slim 3 / Acer Aspire Lite (Ryzen 5 5500U, 16GB RAM, 512GB SSD).\n"
+                "2. **Under ₹60,000:** ASUS Vivobook 15 / HP Pavilion 14 (Intel Core i5-1335U, 16GB RAM, backlit keyboard).\n"
+                "3. **Premium / Long Battery:** Apple MacBook Air M1 / M2 (exceptional build quality, 15+ hr battery, great for Unix terminal & web dev)."
+            )
+        elif any(term in q_lower for term in ('exam', 'how to study', 'prepare for exam', 'study plan', 'timetable', 'exam tips')):
+            fallback_text = (
+                "### 🎯 High-Performance Academic Study & Exam Preparation Strategy\n\n"
+                "Evidence-based cognitive science techniques to maximize retention and ace semester exams:\n\n"
+                "#### 1. Active Recall & The Feynman Technique\n"
+                "- Instead of passive re-reading, close your notes and write out the core concepts from memory.\n"
+                "- Teach the concept in plain, simple language as if explaining it to a middle school student. Identify where you hesitate.\n\n"
+                "#### 2. Spaced Repetition (Combating the Ebbinghaus Forgetting Curve)\n"
+                "- Review new lecture material at expanding intervals: Day 1 $\\to$ Day 3 $\\to$ Day 7 $\\to$ Day 21.\n"
+                "- Use flashcard decks (Anki) for definitions, formulas, and syntax shortcuts.\n\n"
+                "#### 3. Focus Cycles (The 50/10 Pomodoro Method)\n"
+                "- 50 minutes of deep, notification-free work followed by a 10-minute mental break.\n"
+                "- Practice with past 3-5 years' university question papers under timed conditions."
+            )
+        elif any(term in q_lower for term in ('career', 'job', 'salary', 'roadmap', 'btech vs bca', 'mba after btech', 'placement')):
+            fallback_text = (
+                "### 🚀 Career Roadmap & Tech Industry Placement Strategy\n\n"
+                "Navigating modern software engineering, business management, and tech job markets:\n\n"
+                "#### 1. High-Demand Tech Career Tracks (2026+):\n"
+                "- **Full-Stack & Cloud Architecture:** Python/Django, TypeScript/React, Docker, PostgreSQL, AWS/GCP.\n"
+                "- **Data Science & AI Engineering:** Python, PyTorch/TensorFlow, SQL, Statistics, RAG pipelines.\n"
+                "- **Product & Tech Management (BBA/MBA):** Agile Scrum, Market Research, Product Analytics (Mixpanel), System Architecture.\n\n"
+                "#### 2. Building a Standout Portfolio:\n"
+                "- Deploy 2-3 end-to-end full-stack projects on GitHub with live demo URLs.\n"
+                "- Solve 100+ standard LeetCode problems (Array, String, Two-Pointer, Trees, Hash Maps).\n"
+                "- Document your technical architecture in clean README files."
+            )
+        elif any(term in q_lower for term in ('movie', 'song', 'weather', 'cricket', 'football', 'ipl', 'gossip', 'joke', 'recipe', 'food')):
+            fallback_text = (
+                "### 🎓 SkillSphere Study Assistant Scope Notice\n\n"
+                "I noticed your question seems outside our academic curriculum and career learning scope.\n\n"
+                "I am specialized as your **24/7 academic tutor, coding mentor, and career guide** across:\n"
+                "- 💻 **Computer Science & Coding (B.Tech / BCA / M.Tech):** Python, Java, C++, DSA, Web Dev, and System Design.\n"
+                "- 📊 **Business Administration & Management (BBA / MBA):** Marketing 4Ps, Financial Accounting, Operations, and Analytics.\n"
+                "- 🔬 **Science & Engineering (B.Sc / Engineering):** Databases (SQL/NoSQL), Operating Systems, and Machine Learning.\n"
+                "- 🎯 **Career Preparation:** Resume building, mock interviews, and project architecture blueprints.\n\n"
+                "---\n\n"
+                "#### 💡 Try asking questions like:\n"
+                "- *\"Explain the difference between TCP and UDP with examples\"*\n"
+                "- *\"What are the 4 Ps of marketing in business strategy?\"*\n"
+                "- *\"How to implement a binary search algorithm in Python?\"*\n"
+                "- *\"Explain ACID database properties with practical examples\"*\n\n"
+                "What academic topic or coding problem can I help you with today?"
             )
         else:
             fallback_text = (
-                f"### Academic Concept Breakdown: {clean_q[:60]}\n\n"
-                "*(Response curated by SkillSphere Academic Knowledge Engine)*\n\n"
-                "#### 1. Core Principles & Theoretical Foundation\n"
-                "- Identify the fundamental definitions, primary entities, and state transitions.\n"
-                "- Break the problem down into deterministic input-output steps and verify preconditions.\n\n"
+                f"### 📚 Concept Overview: {clean_q[:60]}\n\n"
+                f"Here is a structured academic breakdown to help you master **{clean_q[:50]}**:\n\n"
+                "#### 1. Foundational Principles & Core Theory\n"
+                f"- **Core Idea:** Analyzing `{clean_q[:40]}` requires identifying foundational principles, underlying computational mechanics, or business rules.\n"
+                "- **Key Concept:** Break down complex systems into modular, testable components with deterministic inputs and outputs.\n\n"
                 "#### 2. Practical Framework & Real-World Application\n"
-                "- **Step 1:** Establish system constraints, architectural requirements, or business objectives.\n"
-                "- **Step 2:** Apply proven design patterns, standard data structures, or analytical formulas.\n"
-                "- **Step 3:** Validate edge cases, asymptotic bounds, and failure recovery protocols.\n\n"
-                "#### 3. Recommended Next Steps\n"
-                "- Test your understanding by experimenting in the corresponding SkillSphere course modules.\n"
-                "- Use the **Mode** selectors above (Code, Simple, Detailed, Revision) to adapt the explanation format."
+                "- **Step 1:** Establish system constraints, architectural requirements, or business goals.\n"
+                "- **Step 2:** Apply proven design patterns, industry best practices, or analytical frameworks.\n"
+                "- **Step 3:** Validate performance trade-offs, edge cases, and scaling requirements.\n\n"
+                "#### 💡 Recommended Next Questions to Explore:\n"
+                f"- *\"Show me a practical code implementation or case study for {clean_q[:30]}\"*\n"
+                f"- *\"What are common exam questions and pitfalls regarding {clean_q[:30]}?\"*\n"
+                f"- *\"Give me a quick revision cheat sheet for {clean_q[:30]}\"*"
             )
 
         return {

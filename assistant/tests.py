@@ -94,3 +94,40 @@ class AssistantTests(TestCase):
         data = response.json()
         self.assertIn('error', data)
 
+    def test_gadget_query_answers_with_specs_and_architecture(self):
+        """Phone and hardware queries answer with actual models, specs, and SoC architecture."""
+        conv = AIConversation.objects.create(user=self.user, title='Phone Advice', mode='detailed')
+        url = reverse('assistant:chat_detail', kwargs={'conversation_id': conv.id})
+        response = self.client.post(url, {
+            'question': 'best phone under 10k',
+            'mode': 'detailed'
+        }, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data.get('success'))
+        ai_text = data.get('ai_message', '')
+        self.assertIn('Redmi', ai_text)
+        self.assertIn('Moto', ai_text)
+        self.assertIn('SoC', ai_text)
+        # Verify it does NOT return the empty generic template
+        self.assertNotIn('deterministic input-output steps and verify preconditions', ai_text)
+
+    def test_off_topic_query_returns_scope_notice(self):
+        """Off-topic queries (e.g. movies) return a polite scope notice explaining what to ask."""
+        conv = AIConversation.objects.create(user=self.user, title='Movie Chat', mode='detailed')
+        url = reverse('assistant:chat_detail', kwargs={'conversation_id': conv.id})
+        response = self.client.post(url, {
+            'question': 'suggest a movie for tonight',
+            'mode': 'detailed'
+        }, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data.get('success'))
+        ai_text = data.get('ai_message', '')
+        self.assertIn('Scope Notice', ai_text)
+        self.assertIn('academic curriculum and career learning scope', ai_text)
+        self.assertIn('Try asking questions like', ai_text)
+
+
