@@ -3,6 +3,7 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from django.shortcuts import redirect, render
+from config.views import pwa_manifest_view, service_worker_view, offline_view
 
 def home_redirect(request):
     if request.user.is_authenticated:
@@ -10,6 +11,11 @@ def home_redirect(request):
     return redirect('courses:list')
 
 urlpatterns = [
+    # Progressive Web App (PWA) Core Routes
+    path('manifest.json', pwa_manifest_view, name='pwa_manifest'),
+    path('sw.js', service_worker_view, name='service_worker'),
+    path('offline/', offline_view, name='offline'),
+
     path('admin/', admin.site.urls),
     path('', home_redirect, name='home'),
     path('accounts/', include('accounts.urls', namespace='accounts')),

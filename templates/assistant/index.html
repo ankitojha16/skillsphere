@@ -261,8 +261,50 @@
     box-shadow: 0 0 10px rgba(59, 130, 246, 0.4);
 }
 
-/* Mobile Sidebar Drawer */
+/* Mobile Viewport & Sidebar Drawer */
+.chat-viewport {
+    height: calc(100vh - var(--navbar-height, 60px));
+}
+@supports (height: 100dvh) {
+    .chat-viewport {
+        height: calc(100dvh - var(--navbar-height, 60px));
+    }
+}
 @media (max-width: 767.98px) {
+    .chat-container {
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow-x: hidden !important;
+    }
+    .chat-header {
+        padding: 0.6rem 0.75rem !important;
+    }
+    #chatStream {
+        padding: 0.75rem 0.5rem !important;
+        gap: 0.75rem !important;
+    }
+    .message-row {
+        gap: 0.45rem !important;
+    }
+    .assistant-card, .user-card {
+        padding: 0.75rem !important;
+        border-radius: 14px !important;
+        max-width: 90% !important;
+        word-break: break-word;
+        overflow-wrap: break-word;
+    }
+    .chat-avatar {
+        width: 30px !important;
+        height: 30px !important;
+    }
+    .chat-bottom-bar {
+        padding: 0.5rem 0.65rem !important;
+        padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0.5rem)) !important;
+    }
+    .chat-textarea {
+        font-size: 0.9rem !important;
+        padding: 0.45rem 0.65rem !important;
+    }
     #conversationsSidebar {
         position: fixed;
         top: var(--navbar-height, 60px);
@@ -300,7 +342,7 @@
     <!-- Backdrop for mobile sidebar -->
     <div id="sidebarBackdrop"></div>
 
-    <div class="d-flex" style="height: calc(100vh - var(--navbar-height, 64px)); overflow: hidden;">
+    <div class="d-flex chat-viewport" style="overflow: hidden; max-width: 100%;">
         <!-- Left Conversations Sidebar -->
         <div id="conversationsSidebar" class="d-flex flex-column border-end p-3 flex-shrink-0" style="width: 280px; background-color: var(--bg-secondary, #111827); border-color: rgba(255, 255, 255, 0.08) !important;">
             <div class="d-flex justify-content-between align-items-center mb-3">
@@ -352,47 +394,47 @@
         </div>
 
         <!-- Main Chat Area -->
-        <div class="d-flex flex-column flex-grow-1" style="background-color: var(--bg-primary, #0b0f19); min-width: 0;">
+        <div class="d-flex flex-column flex-grow-1" style="background-color: var(--bg-primary, #0b0f19); min-width: 0; max-width: 100%;">
             <!-- Chat Header -->
-            <div class="d-flex justify-content-between align-items-center p-3 border-bottom px-4" style="border-color: rgba(255, 255, 255, 0.08) !important; background-color: rgba(17, 24, 39, 0.75); backdrop-filter: blur(8px);">
+            <div class="d-flex justify-content-between align-items-center p-2.5 p-md-3 border-bottom px-3 px-md-4 chat-header" style="border-color: rgba(255, 255, 255, 0.08) !important; background-color: rgba(17, 24, 39, 0.75); backdrop-filter: blur(8px);">
                 <div class="d-flex align-items-center gap-2 text-truncate">
-                    <!-- Mobile Hamburger Toggle -->
-                    <button type="button" class="btn btn-sm btn-outline-secondary d-md-none p-1.5 me-1 text-light border-secondary" id="sidebarToggle" title="Open Sessions">
+                    <!-- Mobile Sessions Drawer Toggle -->
+                    <button type="button" class="btn btn-sm btn-outline-secondary d-md-none p-1.5 me-1 text-light border-secondary" id="assistantSessionsToggle" title="Open Sessions">
                         <i data-lucide="menu" style="width: 16px; height: 16px;"></i>
                     </button>
 
-                    <div class="d-flex align-items-center justify-content-center rounded-3 shadow-sm flex-shrink-0" style="width: 36px; height: 36px; background: linear-gradient(135deg, #6366f1 0%, #3b82f6 100%);">
-                        <i data-lucide="bot" style="width: 20px; height: 20px; color: #ffffff;"></i>
+                    <div class="d-flex align-items-center justify-content-center rounded-3 shadow-sm flex-shrink-0 chat-avatar" style="width: 34px; height: 34px; background: linear-gradient(135deg, #6366f1 0%, #3b82f6 100%);">
+                        <i data-lucide="bot" style="width: 18px; height: 18px; color: #ffffff;"></i>
                     </div>
                     <div class="text-truncate">
-                        <h6 class="fw-bold text-white mb-0 text-truncate" style="font-size: 0.95rem;">{{ current_conv.title }}</h6>
-                        <span class="text-secondary" style="font-size: 0.76rem;">Mode: <strong class="text-light">{{ current_conv.get_mode_display }}</strong></span>
+                        <h6 class="fw-bold text-white mb-0 text-truncate" style="font-size: 0.92rem;">{{ current_conv.title }}</h6>
+                        <span class="text-secondary" style="font-size: 0.74rem;">Mode: <strong class="text-light">{{ current_conv.get_mode_display }}</strong></span>
                     </div>
                 </div>
 
                 <div class="d-flex align-items-center gap-2 flex-shrink-0">
                     {% if ai_status.is_live %}
-                    <span class="badge bg-success bg-opacity-15 text-success border border-success border-opacity-50 px-2.5 py-1.5 small rounded-pill d-flex align-items-center gap-1.5" title="Google Generative AI Active">
+                    <span class="badge bg-success bg-opacity-15 text-success border border-success border-opacity-50 px-2 py-1 small rounded-pill d-flex align-items-center gap-1.5" title="Google Generative AI Active" style="font-size: 0.74rem;">
                         <span class="pulse-indicator bg-success"></span>
                         <span class="d-none d-sm-inline">{{ ai_status.active_provider }}</span>
                         <span class="d-sm-none">Live AI</span>
                     </span>
                     {% else %}
-                    <span class="badge bg-primary bg-opacity-15 text-primary border border-primary border-opacity-50 px-2.5 py-1.5 small rounded-pill d-flex align-items-center gap-1.5" title="Operating with SkillSphere Curated Academic Knowledge Engine">
+                    <span class="badge bg-primary bg-opacity-15 text-primary border border-primary border-opacity-50 px-2 py-1 small rounded-pill d-flex align-items-center gap-1.5" title="Operating with SkillSphere Curated Academic Knowledge Engine" style="font-size: 0.74rem;">
                         <i data-lucide="brain-circuit" style="width: 12px; height: 12px;"></i>
                         <span class="d-none d-sm-inline">Knowledge Engine</span>
                         <span class="d-sm-none">Engine</span>
                     </span>
                     {% endif %}
 
-                    <a href="{% url 'assistant:new_chat' %}" class="btn btn-secondary-custom btn-sm py-1 px-2.5 d-md-none rounded-pill">
+                    <a href="{% url 'assistant:new_chat' %}" class="btn btn-secondary-custom btn-sm py-1 px-2 d-md-none rounded-pill" title="New Session">
                         <i data-lucide="plus" style="width: 14px; height: 14px;"></i>
                     </a>
                 </div>
             </div>
 
             <!-- Messages Stream -->
-            <div class="flex-grow-1 overflow-y-auto p-4 d-flex flex-column gap-3" id="chatStream">
+            <div class="flex-grow-1 overflow-y-auto p-2.5 p-md-4 d-flex flex-column gap-2.5 gap-md-3" id="chatStream">
                 {% if not chat_messages %}
                     <!-- Welcome Initial State -->
                     <div class="my-auto text-center py-4 px-2" style="max-width: 680px; margin: 0 auto;">
@@ -446,15 +488,15 @@
                     </div>
                 {% else %}
                     {% for msg in chat_messages %}
-                        <div class="message-row d-flex gap-3 {% if msg.role == 'user' %}justify-content-end user-bubble{% else %}assistant-bubble{% endif %}">
+                        <div class="message-row d-flex gap-2 gap-sm-3 {% if msg.role == 'user' %}justify-content-end user-bubble{% else %}assistant-bubble{% endif %}">
                             {% if msg.role == 'assistant' %}
-                            <div class="d-flex align-items-center justify-content-center rounded-3 shadow-sm flex-shrink-0" style="width: 36px; height: 36px; background: linear-gradient(135deg, #6366f1 0%, #3b82f6 100%);">
-                                <i data-lucide="bot" style="width: 19px; height: 19px; color: #ffffff;"></i>
+                            <div class="d-flex align-items-center justify-content-center rounded-3 shadow-sm flex-shrink-0 chat-avatar" style="width: 34px; height: 34px; background: linear-gradient(135deg, #6366f1 0%, #3b82f6 100%);">
+                                <i data-lucide="bot" style="width: 18px; height: 18px; color: #ffffff;"></i>
                             </div>
                             {% endif %}
 
-                            <div class="p-3 rounded-4 shadow-sm {% if msg.role == 'user' %}user-card{% else %}assistant-card{% endif %}" 
-                                 style="max-width: 82%;">
+                            <div class="p-2.5 p-sm-3 rounded-4 shadow-sm {% if msg.role == 'user' %}user-card{% else %}assistant-card{% endif %}" 
+                                 style="max-width: 86%;">
                                 <div class="d-flex justify-content-between align-items-center mb-1.5 gap-2 border-bottom pb-1.5" style="border-color: rgba(255, 255, 255, 0.08) !important;">
                                     <div class="d-flex align-items-center gap-2">
                                         <span class="fw-semibold small" style="color: {% if msg.role == 'user' %}#ffffff{% else %}#f8fafc{% endif %}; font-size: 0.84rem;">
@@ -498,9 +540,9 @@
 
                             {% if msg.role == 'user' %}
                                 {% if student_profile and student_profile.avatar_url %}
-                                <img src="{{ student_profile.avatar_url }}" alt="Avatar" class="rounded-circle user-avatar flex-shrink-0" style="width: 36px; height: 36px; object-fit: cover;">
+                                <img src="{{ student_profile.avatar_url }}" alt="Avatar" class="rounded-circle user-avatar flex-shrink-0 chat-avatar" style="width: 34px; height: 34px; object-fit: cover;">
                                 {% else %}
-                                <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center text-white fw-bold flex-shrink-0 shadow-sm" style="width: 36px; height: 36px; font-size: 0.85rem;">
+                                <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center text-white fw-bold flex-shrink-0 shadow-sm chat-avatar" style="width: 34px; height: 34px; font-size: 0.85rem;">
                                     {{ user.username|slice:":1"|upper }}
                                 </div>
                                 {% endif %}
@@ -510,40 +552,40 @@
                 {% endif %}
 
                 <!-- Dynamic Loading / Typing Indicator -->
-                <div id="loadingIndicator" class="d-none message-row d-flex gap-3 align-items-start">
-                    <div class="d-flex align-items-center justify-content-center rounded-3 shadow-sm flex-shrink-0" style="width: 36px; height: 36px; background: linear-gradient(135deg, #6366f1 0%, #3b82f6 100%);">
-                        <i data-lucide="bot" style="width: 19px; height: 19px; color: #ffffff;"></i>
+                <div id="loadingIndicator" class="d-none message-row d-flex gap-2 gap-sm-3 align-items-start">
+                    <div class="d-flex align-items-center justify-content-center rounded-3 shadow-sm flex-shrink-0 chat-avatar" style="width: 34px; height: 34px; background: linear-gradient(135deg, #6366f1 0%, #3b82f6 100%);">
+                        <i data-lucide="bot" style="width: 18px; height: 18px; color: #ffffff;"></i>
                     </div>
-                    <div class="assistant-card p-3 rounded-4 shadow-sm d-flex align-items-center gap-2.5">
+                    <div class="assistant-card p-2.5 p-sm-3 rounded-4 shadow-sm d-flex align-items-center gap-2.5">
                         <div class="typing-dots">
                             <span></span><span></span><span></span>
                         </div>
-                        <span class="text-secondary small font-monospace" style="font-size: 0.84rem;">SkillSphere AI is researching and preparing your response...</span>
+                        <span class="text-secondary small font-monospace" style="font-size: 0.82rem;">SkillSphere AI is researching and preparing your response...</span>
                     </div>
                 </div>
             </div>
 
             <!-- Bottom Question Bar -->
-            <div class="p-3 border-top px-4" style="border-color: rgba(255, 255, 255, 0.08) !important; background-color: var(--bg-secondary, #111827);">
+            <div class="p-2.5 p-md-3 border-top px-3 px-md-4 chat-bottom-bar" style="border-color: rgba(255, 255, 255, 0.08) !important; background-color: var(--bg-secondary, #111827);">
                 <form id="chatForm" method="post" action="{% url 'assistant:chat_detail' conversation_id=current_conv.id %}">
                     {% csrf_token %}
                     
                     <!-- Response Mode Radio Pills -->
-                    <div class="d-flex align-items-center gap-1.5 mb-2.5 overflow-x-auto pb-1" style="scrollbar-width: none;">
-                        <span class="text-secondary small me-1 flex-shrink-0" style="font-size: 0.8rem; font-weight: 500;">Mode:</span>
+                    <div class="d-flex align-items-center gap-1.5 mb-2 overflow-x-auto pb-1" style="scrollbar-width: none; -webkit-overflow-scrolling: touch;">
+                        <span class="text-secondary small me-1 flex-shrink-0" style="font-size: 0.78rem; font-weight: 500;">Mode:</span>
                         {% for mode_val, mode_label in mode_choices %}
                             <input type="radio" class="btn-check mode-pill-radio" name="mode" id="mode_{{ mode_val }}" value="{{ mode_val }}" {% if current_conv.mode == mode_val %}checked{% endif %}>
-                            <label class="btn btn-outline-secondary btn-sm py-1 px-2.5 rounded-pill text-light border-secondary border-opacity-40 flex-shrink-0" for="mode_{{ mode_val }}" style="font-size: 0.78rem;">
+                            <label class="btn btn-outline-secondary btn-sm py-1 px-2.5 rounded-pill text-light border-secondary border-opacity-40 flex-shrink-0" for="mode_{{ mode_val }}" style="font-size: 0.76rem;">
                                 {{ mode_label }}
                             </label>
                         {% endfor %}
                     </div>
 
                     <div class="d-flex gap-2 align-items-end">
-                        <div class="position-relative flex-grow-1">
-                            <textarea name="question" id="questionInput" class="form-control chat-textarea py-2.5 px-3" rows="1" placeholder="Ask any question, paste code, or request a cheat sheet... (Enter to send, Shift+Enter for new line)" required autocomplete="off"></textarea>
+                        <div class="position-relative flex-grow-1" style="min-width: 0;">
+                            <textarea name="question" id="questionInput" class="form-control chat-textarea py-2 px-3" rows="1" placeholder="Ask a question, paste code, or request a cheat sheet..." required autocomplete="off"></textarea>
                         </div>
-                        <button type="submit" id="submitBtn" class="btn btn-primary-custom flex-shrink-0 d-flex align-items-center justify-content-center gap-2 py-2.5 px-3.5 rounded-3" style="height: 44px;">
+                        <button type="submit" id="submitBtn" class="btn btn-primary-custom flex-shrink-0 d-flex align-items-center justify-content-center gap-2 py-2 px-3 rounded-3" style="height: 42px; min-width: 44px;">
                             <i data-lucide="send" style="width: 16px; height: 16px;"></i>
                             <span class="d-none d-sm-inline font-semibold">Send</span>
                         </button>
@@ -570,13 +612,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const questionInput = document.getElementById('questionInput');
     const submitBtn = document.getElementById('submitBtn');
     const loadingIndicator = document.getElementById('loadingIndicator');
-    const sidebarToggle = document.getElementById('sidebarToggle');
+    const assistantSessionsToggle = document.getElementById('assistantSessionsToggle');
     const conversationsSidebar = document.getElementById('conversationsSidebar');
     const sidebarBackdrop = document.getElementById('sidebarBackdrop');
 
-    // Mobile sidebar drawer handlers
-    if (sidebarToggle && conversationsSidebar) {
-        sidebarToggle.addEventListener('click', () => {
+    // Mobile study sessions drawer handlers
+    if (assistantSessionsToggle && conversationsSidebar) {
+        assistantSessionsToggle.addEventListener('click', () => {
             conversationsSidebar.classList.toggle('open');
             if (sidebarBackdrop) sidebarBackdrop.classList.toggle('open');
         });

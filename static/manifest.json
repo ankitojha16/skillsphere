@@ -1,0 +1,65 @@
+{
+  "id": "/",
+  "name": "SkillSphere — Learn, Build & Grow",
+  "short_name": "SkillSphere",
+  "description": "SkillSphere: Academic Coursework, AI Study Assistant, Mock Interviews, Projects & Career Platform",
+  "start_url": "/dashboard/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0b0f19",
+  "theme_color": "#0b0f19",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["education", "productivity", "career"],
+  "icons": [
+    {
+      "src": "/static/images/pwa/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/images/pwa/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/images/pwa/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "AI Study Assistant",
+      "short_name": "AI Assistant",
+      "description": "Chat with your 24/7 academic tutor & mentor",
+      "url": "/ai-assistant/",
+      "icons": [{ "src": "/static/images/pwa/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Explore Courses",
+      "short_name": "Courses",
+      "description": "Browse 50+ degree-aligned courses",
+      "url": "/courses/",
+      "icons": [{ "src": "/static/images/pwa/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "My Learning",
+      "short_name": "My Learning",
+      "description": "Continue your active courses & progress",
+      "url": "/courses/my-learning/",
+      "icons": [{ "src": "/static/images/pwa/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Certificates",
+      "short_name": "Certificates",
+      "description": "View and claim verified certificates",
+      "url": "/certificates/center/",
+      "icons": [{ "src": "/static/images/pwa/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

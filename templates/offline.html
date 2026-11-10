@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}You are Offline - SkillSphere{% endblock %}
+
+{% block content %}
+<div class="container d-flex flex-column align-items-center justify-content-center text-center py-5" style="min-height: 70vh;">
+    <div class="d-inline-flex align-items-center justify-content-center p-4 rounded-circle mb-4 shadow-lg" style="background: rgba(99, 102, 241, 0.15); border: 2px solid rgba(99, 102, 241, 0.3);">
+        <i data-lucide="wifi-off" style="width: 48px; height: 48px; color: #818cf8;"></i>
+    </div>
+    <h2 class="fw-bold text-white mb-2">You're Currently Offline</h2>
+    <p class="text-secondary mb-4" style="max-width: 460px;">
+        It looks like your internet connection was interrupted. Please reconnect to mobile data or Wi-Fi to continue your study sessions, view courses, or claim certificates.
+    </p>
+    <div class="d-flex flex-wrap gap-3 justify-content-center">
+        <button onclick="window.location.reload();" class="btn btn-primary-custom d-flex align-items-center gap-2 px-4 py-2.5 rounded-3">
+            <i data-lucide="refresh-cw" style="width: 16px; height: 16px;"></i>
+            <span>Retry Connection</span>
+        </button>
+        <a href="{% url 'dashboard:index' %}" class="btn btn-secondary-custom d-flex align-items-center gap-2 px-4 py-2.5 rounded-3">
+            <i data-lucide="layout-dashboard" style="width: 16px; height: 16px;"></i>
+            <span>Go to Dashboard</span>
+        </a>
+    </div>
+</div>
+{% endblock %}

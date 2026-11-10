@@ -3,10 +3,22 @@
 <html lang="en" data-bs-theme="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <title>{% block title %}SkillSphere - Learn Skills. Build Projects. Track Your Growth.{% endblock %}</title>
     
+    <!-- PWA & Mobile Web App Capabilities -->
+    <meta name="theme-color" content="#0b0f19">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="SkillSphere">
+    <meta name="application-name" content="SkillSphere">
+    <link rel="manifest" href="{% url 'pwa_manifest' %}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{% static 'images/pwa/icon-180.png' %}">
+    <link rel="icon" type="image/png" sizes="192x192" href="{% static 'images/pwa/icon-192.png' %}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{% static 'images/pwa/icon-32.png' %}">
+
     <!-- DNS Prefetch & Preconnect for CDN performance -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -18,19 +30,24 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 
     <!-- SkillSphere Master Stylesheet with Cache Buster -->
-    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=20261110_v102">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=20261110_v103">
     
-    <!-- Critical Layout & Contrast Overrides (Prevents Horizontal Overflow & Enforces Pure White Visibility) -->
+    <!-- Critical Layout, Mobile Viewport & Contrast Overrides -->
     <style>
         html, body {
-            max-width: 100vw;
-            overflow-x: hidden;
+            max-width: 100% !important;
+            width: 100% !important;
+            overflow-x: hidden !important;
+            -webkit-text-size-adjust: 100%;
+            touch-action: manipulation;
         }
         .app-wrapper {
-            max-width: 100vw;
-            width: 100%;
-            overflow-x: hidden;
+            max-width: 100% !important;
+            width: 100% !important;
+            overflow-x: hidden !important;
             position: relative;
+            min-height: 100vh;
+            min-height: 100dvh;
         }
         .main-wrapper {
             width: calc(100% - var(--sidebar-width, 260px)) !important;
@@ -49,6 +66,9 @@
                 width: 100% !important;
                 max-width: 100% !important;
                 margin-left: 0 !important;
+            }
+            .app-navbar {
+                padding: 0 0.85rem !important;
             }
         }
         .app-navbar {
@@ -79,6 +99,39 @@
         }
         .small, small {
             color: inherit;
+        }
+
+        /* PWA Install Floating Banner */
+        .pwa-banner {
+            position: fixed;
+            bottom: max(16px, env(safe-area-inset-bottom, 16px));
+            left: 50%;
+            transform: translateX(-50%);
+            width: calc(100% - 24px);
+            max-width: 480px;
+            background: rgba(15, 23, 42, 0.96);
+            border: 1px solid rgba(99, 102, 241, 0.4);
+            border-radius: 16px;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 25px rgba(99, 102, 241, 0.25);
+            z-index: 1060;
+            animation: slideUpPwa 0.35s ease-out;
+        }
+        @keyframes slideUpPwa {
+            from { transform: translate(-50%, 40px); opacity: 0; }
+            to { transform: translate(-50%, 0); opacity: 1; }
+        }
+        .pwa-banner-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            object-fit: cover;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 2px 10px rgba(99, 102, 241, 0.4);
+        }
+        .pwa-install-trigger {
+            cursor: pointer;
         }
     </style>
     {% block extra_css %}{% endblock %}
@@ -180,6 +233,10 @@
                     <i data-lucide="settings" style="width: 18px; height: 18px;"></i>
                     <span>Settings & Profile</span>
                 </a>
+                <a href="javascript:void(0)" onclick="triggerPWAInstall()" class="sidebar-link pwa-install-trigger text-info" style="display: none;">
+                    <i data-lucide="smartphone" style="width: 18px; height: 18px;"></i>
+                    <span>Install App</span>
+                </a>
                 {% if user.is_staff %}
                 <a href="/admin/" target="_blank" class="sidebar-link">
                     <i data-lucide="shield" style="width: 18px; height: 18px;"></i>
@@ -208,9 +265,9 @@
         <div class="main-wrapper {% if not user.is_authenticated or hide_sidebar %}no-sidebar{% endif %}">
             <!-- Top Navbar -->
             <header class="app-navbar">
-                <div class="d-flex align-items-center gap-3">
+                <div class="d-flex align-items-center gap-2 gap-sm-3">
                     {% if user.is_authenticated and not hide_sidebar %}
-                    <button class="btn text-white p-1 d-lg-none" id="sidebarToggle" type="button">
+                    <button class="btn text-white p-1 d-lg-none" id="sidebarToggle" type="button" aria-label="Toggle Navigation">
                         <i data-lucide="menu" style="width: 24px; height: 24px;"></i>
                     </button>
                     {% else %}
@@ -230,7 +287,14 @@
                     {% endblock navbar_search %}
                 </div>
 
-                <div class="navbar-actions">
+                <div class="navbar-actions d-flex align-items-center gap-2">
+                    <!-- Install App Button (Visible when PWA is installable) -->
+                    <button type="button" onclick="triggerPWAInstall()" class="btn btn-sm btn-outline-primary rounded-pill pwa-install-trigger d-none align-items-center gap-1 px-2.5 py-1 text-nowrap" style="font-size: 0.76rem; border-color: rgba(99, 102, 241, 0.5); color: #a5b4fc;">
+                        <i data-lucide="download" style="width: 13px; height: 13px;"></i>
+                        <span class="d-none d-sm-inline">Install App</span>
+                        <span class="d-sm-none">Install</span>
+                    </button>
+
                     {% if user.is_authenticated %}
                         <!-- Notification Bell Dropdown -->
                         <div class="dropdown">
@@ -242,7 +306,7 @@
                                 </span>
                                 {% endif %}
                             </a>
-                            <ul class="dropdown-menu dropdown-menu-end shadow border-0 p-0 overflow-hidden" style="background-color: #161F37; min-width: 300px; border-radius: 12px;">
+                            <ul class="dropdown-menu dropdown-menu-end shadow border-0 p-0 overflow-hidden" style="background-color: #161F37; min-width: min(300px, 90vw); border-radius: 12px;">
                                 <li class="px-3 py-2 border-bottom d-flex justify-content-between align-items-center" style="border-color: rgba(255,255,255,0.08) !important;">
                                     <span class="fw-bold text-white small">Notifications</span>
                                     <span class="badge bg-purple rounded-pill">{{ unread_notifications_count }} unread</span>
@@ -279,6 +343,7 @@
                                     <div class="fw-bold text-white">{{ student_profile.full_name|default:user.username }}</div>
                                     <small class="text-muted">{{ user.email }}</small>
                                 </li>
+                                <li><a class="dropdown-item text-light py-2" href="javascript:void(0)" onclick="triggerPWAInstall()"><i data-lucide="smartphone" class="me-2" style="width: 16px; height: 16px;"></i> Install App</a></li>
                                 <li><a class="dropdown-item text-light py-2" href="{% url 'careers:hub' %}"><i data-lucide="target" class="me-2" style="width: 16px; height: 16px;"></i> Career Hub</a></li>
                                 <li><a class="dropdown-item text-light py-2" href="{% url 'portfolios:builder' %}"><i data-lucide="globe" class="me-2" style="width: 16px; height: 16px;"></i> My Portfolio</a></li>
                                 <li><a class="dropdown-item text-light py-2" href="{% url 'accounts:profile' %}"><i data-lucide="user" class="me-2" style="width: 16px; height: 16px;"></i> My Profile</a></li>
@@ -295,26 +360,77 @@
                 </div>
             </header>
 
-            <!-- Alerts Container -->
-            <div class="px-4 pt-3">
-                {% if messages %}
-                    {% for message in messages %}
-                        <div class="alert alert-{% if message.tags == 'error' %}danger{% elif message.tags == 'info' %}info{% elif message.tags == 'warning' %}warning{% else %}success{% endif %} alert-dismissible fade show border-0 text-white shadow-sm" 
-                             style="background-color: {% if message.tags == 'error' %}#7F1D1D{% elif message.tags == 'warning' %}#78350F{% elif message.tags == 'info' %}#1E3A8A{% else %}#064E3B{% endif %}; border-radius: 12px;" role="alert">
-                            <div class="d-flex align-items-center gap-2">
-                                <i data-lucide="{% if message.tags == 'error' %}alert-circle{% elif message.tags == 'warning' %}alert-triangle{% else %}check-circle{% endif %}" style="width: 18px; height: 18px;"></i>
-                                <span>{{ message }}</span>
-                            </div>
-                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert" aria-label="Close"></button>
+            <!-- Alerts Container (Only rendered when messages exist) -->
+            {% if messages %}
+            <div class="px-3 px-sm-4 pt-3">
+                {% for message in messages %}
+                    <div class="alert alert-{% if message.tags == 'error' %}danger{% elif message.tags == 'info' %}info{% elif message.tags == 'warning' %}warning{% else %}success{% endif %} alert-dismissible fade show border-0 text-white shadow-sm" 
+                         style="background-color: {% if message.tags == 'error' %}#7F1D1D{% elif message.tags == 'warning' %}#78350F{% elif message.tags == 'info' %}#1E3A8A{% else %}#064E3B{% endif %}; border-radius: 12px;" role="alert">
+                        <div class="d-flex align-items-center gap-2">
+                            <i data-lucide="{% if message.tags == 'error' %}alert-circle{% elif message.tags == 'warning' %}alert-triangle{% else %}check-circle{% endif %}" style="width: 18px; height: 18px;"></i>
+                            <span>{{ message }}</span>
                         </div>
-                    {% endfor %}
-                {% endif %}
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
             </div>
+            {% endif %}
 
             <!-- Page Content -->
             <main class="page-container p-0">
                 {% block content %}{% endblock %}
             </main>
+        </div>
+    </div>
+
+    <!-- PWA Install Floating Banner -->
+    <div id="pwaInstallBanner" class="pwa-banner p-3 d-none">
+        <div class="d-flex align-items-center justify-content-between gap-2.5">
+            <div class="d-flex align-items-center gap-2.5 min-w-0">
+                <img src="{% static 'images/pwa/icon-192.png' %}" alt="SkillSphere App" class="pwa-banner-icon flex-shrink-0">
+                <div class="text-truncate">
+                    <div class="fw-bold text-white small mb-0.5">Install SkillSphere App</div>
+                    <div class="text-secondary text-truncate" style="font-size: 0.74rem;">Fast, full-screen study experience on your phone</div>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-1.5 flex-shrink-0">
+                <button type="button" class="btn btn-primary-custom btn-sm py-1.5 px-3 rounded-pill d-flex align-items-center gap-1.5" onclick="triggerPWAInstall()">
+                    <i data-lucide="download" style="width: 13px; height: 13px;"></i>
+                    <span style="font-size: 0.8rem;">Install</span>
+                </button>
+                <button type="button" class="btn btn-link text-secondary p-1" onclick="dismissPWABanner()" title="Dismiss">
+                    <i data-lucide="x" style="width: 16px; height: 16px;"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- iOS Safari Install Instructions Modal -->
+    <div class="modal fade" id="iosInstallModal" tabindex="-1" aria-labelledby="iosInstallModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
+            <div class="modal-content custom-card border-0 shadow-lg" style="background-color: #0f172a; border: 1px solid rgba(99, 102, 241, 0.3) !important;">
+                <div class="modal-header border-bottom pb-2" style="border-color: rgba(255, 255, 255, 0.08) !important;">
+                    <div class="d-flex align-items-center gap-2">
+                        <img src="{% static 'images/pwa/icon-192.png' %}" alt="SkillSphere" class="pwa-banner-icon" style="width: 32px; height: 32px;">
+                        <h6 class="modal-title fw-bold text-white mb-0" id="iosInstallModalLabel">Install SkillSphere on iPhone</h6>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-light py-3">
+                    <p class="text-secondary small mb-3">Install SkillSphere on your home screen for quick, offline-ready study sessions:</p>
+                    <ol class="small text-light ps-3 mb-3 d-flex flex-column gap-2">
+                        <li>Tap the <strong>Share</strong> button <i data-lucide="share" style="width: 15px; height: 15px; color: #60a5fa;" class="mx-0.5"></i> in Safari's bottom toolbar.</li>
+                        <li>Scroll down and tap <strong class="text-white">"Add to Home Screen"</strong> <i data-lucide="plus-square" style="width: 15px; height: 15px; color: #a78bfa;" class="mx-0.5"></i>.</li>
+                        <li>Tap <strong class="text-primary">"Add"</strong> in the top right corner.</li>
+                    </ol>
+                    <div class="p-2.5 rounded-3 bg-dark border border-secondary border-opacity-20 small text-center text-secondary">
+                        SkillSphere will appear as an app icon on your home screen!
+                    </div>
+                </div>
+                <div class="modal-footer border-top pt-2" style="border-color: rgba(255, 255, 255, 0.08) !important;">
+                    <button type="button" class="btn btn-secondary-custom btn-sm w-100 py-2 rounded-3" data-bs-dismiss="modal">Got it</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -325,6 +441,8 @@
     <!-- Bootstrap 5 Bundle JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{% static 'js/main.js' %}"></script>
+    <!-- PWA Install Controller & Service Worker Registration -->
+    <script src="{% static 'js/pwa-install.js' %}"></script>
     {% block extra_js %}{% endblock %}
     <script>
         if (typeof lucide !== 'undefined') {
