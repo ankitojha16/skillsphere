@@ -259,7 +259,8 @@ def course_detail_view(request, slug):
         user_review = CourseReview.objects.filter(user=request.user, course=course).first()
 
         if is_enrolled:
-            progress_info = course.get_user_progress(request.user)
+            Course.invalidate_user_progress_cache(request.user.id, course.id)
+            progress_info = course.get_user_progress(request.user, use_cache=False)
             completed_lesson_ids = set(
                 LessonProgress.objects.filter(
                     user=request.user,

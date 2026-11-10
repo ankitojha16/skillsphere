@@ -209,7 +209,7 @@
                                         <iframe id="videoIframe"
                                                 src="{{ lesson.embed_video_url }}"
                                                 title="{{ lesson.title }}"
-                                                referrerpolicy="strict-origin-when-cross-origin"
+                                                referrerpolicy="no-referrer-when-downgrade"
                                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                                                 allowfullscreen
                                                 loading="lazy">
@@ -854,6 +854,17 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Auto-open Claim Certificate Modal if eligible and unclaimed
+    {% if progress_info.is_certificate_eligible and not progress_info.certificate_issued %}
+    const autoModalEl = document.getElementById('claimCertModal');
+    if (autoModalEl && typeof bootstrap !== 'undefined') {
+        setTimeout(() => {
+            const m = bootstrap.Modal.getOrCreateInstance(autoModalEl);
+            m.show();
+        }, 500);
+    }
+    {% endif %}
+
     // 1. Lesson Complete Toggle via AJAX
     const completeBtn = document.getElementById('completeBtn');
     const form = document.getElementById('completeToggleForm');
@@ -899,15 +910,16 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
+        // Define lesson counts and eligibility FIRST
+        const compLessons = data.completed_mandatory_lessons !== undefined ? data.completed_mandatory_lessons : (data.completed_count || 0);
+        const totLessons = data.total_mandatory_lessons !== undefined ? data.total_mandatory_lessons : (data.total_count || 0);
+        const isCertEligible = Boolean(data.is_certificate_eligible || data.certificate_issued || (totLessons > 0 && compLessons >= totLessons) || pct >= 80);
+
         // Update Certificate Milestone card on the right
         const certMilestoneCard = document.getElementById('rightCertMilestoneCard');
         const certMilestoneIcon = document.getElementById('rightCertMilestoneIcon');
         const certMilestoneTitle = document.getElementById('rightCertMilestoneTitle');
         const certMilestoneDesc = document.getElementById('rightCertMilestoneDesc');
-
-        const isCertEligible = data.is_certificate_eligible || data.certificate_issued || (compLessons >= totLessons && totLessons > 0) || pct >= 80;
-        const compLessons = data.completed_mandatory_lessons !== undefined ? data.completed_mandatory_lessons : (data.completed_count || 0);
-        const totLessons = data.total_mandatory_lessons !== undefined ? data.total_mandatory_lessons : (data.total_count || 0);
 
         if (certMilestoneCard) {
             if (isCertEligible) {
@@ -961,6 +973,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="text-secondary small text-start mt-2" style="font-size: 0.75rem;">${reqsHtml}</div>
                     <a href="#courseCurriculumAccordion" class="btn btn-outline-secondary btn-sm py-1 px-3 w-100 mt-2.5">Continue Learning</a>
                 `;
+            }
+        }
+
+        // Automatically trigger Claim Certificate Modal popup when eligible!
+        if (isCertEligible && !data.certificate_issued) {
+            const claimModalEl = document.getElementById('claimCertModal');
+            if (claimModalEl && typeof bootstrap !== 'undefined') {
+                const claimModalInstance = bootstrap.Modal.getOrCreateInstance(claimModalEl);
+                claimModalInstance.show();
             }
         }
 

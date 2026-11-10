@@ -112,9 +112,10 @@ def lesson_view(request, course_slug, lesson_id):
                     next_lesson = all_lessons[idx + 1]
                 break
 
-        # Authoritative progress lookup with fallback
+        # Authoritative real-time progress lookup without stale cache
+        Course.invalidate_user_progress_cache(request.user.id, course.id)
         try:
-            progress_info = course.get_user_progress(request.user)
+            progress_info = course.get_user_progress(request.user, use_cache=False)
         except Exception as e:
             logger.error(f"Error calculating course progress in lesson_view: {e}", exc_info=True)
             total_cnt = len(all_lessons)
@@ -156,11 +157,9 @@ def lesson_view(request, course_slug, lesson_id):
                 'optional_remaining_activities': [],
             }
 
-        # Check if certificate is already issued
-        if progress_info.get('is_certificate_eligible') and not progress_info.get('certificate_issued'):
-            from certificates.models import Certificate
-            if Certificate.objects.filter(user=request.user, course=course).exists():
-                progress_info['certificate_issued'] = True
+        # Check real-time certificate issued status
+        from certificates.models import Certificate
+        progress_info['certificate_issued'] = Certificate.objects.filter(user=request.user, course=course).exists()
 
         # Modules structure
         try:
@@ -315,30 +314,11 @@ def complete_lesson_toggle(request, course_slug, lesson_id):
     else:
         messages.info(request, f"Marked '{lesson.title}' as incomplete.")
 
-    course_progress = course.get_user_progress(request.user)
-    if course_progress.get('is_certificate_eligible') and not course_progress.get('certificate_issued'):
-        from certificates.models import Certificate
-        profile = getattr(request.user, 'profile', None)
-        default_name = profile.full_name if (profile and profile.full_name) else (request.user.get_full_name() or request.user.username)
-        cert, created = Certificate.objects.get_or_create(
-            user=request.user,
-            course=course,
-            defaults={
-                'title': f"Course Completion: {course.title}",
-                'recipient_name': default_name,
-                'criteria_met': f"Successfully completed all mandatory video lessons and curriculum for {course.title}."
-            }
-        )
-        course_progress['certificate_issued'] = True
-        if created:
-            Course.invalidate_user_progress_cache(request.user.id, course.id)
-            Notification.objects.create(
-                user=request.user,
-                title="Certificate Issued! 🎓",
-                message=f"Congratulations, {default_name}! Your SkillSphere Course Completion Certificate for '{course.title}' has been generated.",
-                notification_type='certificate_issued',
-                link="/certificates/"
-            )
+    Course.invalidate_user_progress_cache(request.user.id, course.id)
+    course_progress = course.get_user_progress(request.user, use_cache=False)
+
+    from certificates.models import Certificate
+    course_progress['certificate_issued'] = Certificate.objects.filter(user=request.user, course=course).exists()
 
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
         return JsonResponse({
@@ -428,7 +408,8 @@ def video_progress_api(request, course_slug, lesson_id):
 
     video_prog.save()
 
-    prog = course.get_user_progress(request.user)
+    Course.invalidate_user_progress_cache(request.user.id, course.id)
+    prog = course.get_user_progress(request.user, use_cache=False)
 
     return JsonResponse({
         'success': True,
