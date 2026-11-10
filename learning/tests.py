@@ -601,6 +601,34 @@ class CurriculumExpansionAndCertificateTests(TestCase):
         self.assertEqual(prog_my['total'], 16)
         self.assertTrue(prog_my['is_unlocked'])
 
+    def test_lesson_view_certificate_ready_when_16_completed(self):
+        """Regression: When 16/16 lessons completed, lesson view displays Certificate Ready, claim button, and no locked/100% text."""
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        test_student = User.objects.create_user(username='cert_ready_student', password='Password123!')
+        Enrollment.objects.create(user=test_student, course=self.course, curriculum_version=2)
 
+        for lesson in self.lessons:
+            LessonProgress.objects.create(user=test_student, lesson=lesson, is_completed=True)
 
+        self.client.login(username='cert_ready_student', password='Password123!')
+        lesson_url = reverse('learning:lesson_detail', kwargs={'course_slug': self.course.slug, 'lesson_id': self.lessons[0].id})
+        resp = self.client.get(lesson_url)
+        self.assertEqual(resp.status_code, 200)
 
+        # Context assertions
+        prog_info = resp.context['progress_info']
+        self.assertEqual(prog_info['percentage'], 80)
+        self.assertEqual(prog_info['completed'], 16)
+        self.assertEqual(prog_info['total'], 16)
+        self.assertTrue(prog_info['is_certificate_eligible'])
+        self.assertFalse(prog_info['certificate_issued'])
+
+        # HTML assertions
+        content = resp.content.decode('utf-8')
+        self.assertIn('Certificate Ready! 🎉', content)
+        self.assertIn('Claim Certificate', content)
+        self.assertIn('claimCertModal', content)
+        self.assertNotIn('Certificate Locked', content)
+        self.assertNotIn('Requires 100%', content)
+        self.assertNotIn('Assessment Milestone Unlocked', content)
