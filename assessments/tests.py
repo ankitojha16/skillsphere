@@ -60,3 +60,22 @@ class AssessmentsTests(TestCase):
         self.assertEqual(attempt.total_questions, 2)
         self.assertEqual(attempt.percentage, 50)
         self.assertIn('Data Types', attempt.strengths + attempt.weaknesses)
+
+    def test_assessment_result_view_has_action_controls_and_confetti(self):
+        attempt = AssessmentAttempt.objects.create(
+            user=self.user,
+            assessment=self.assessment,
+            score=2,
+            total_questions=2,
+            percentage=100,
+            ai_feedback='Outstanding mastery of Python sequences.',
+            strengths='Data Types',
+            weaknesses='None'
+        )
+        url = reverse('assessments:result', kwargs={'attempt_id': attempt.id})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Retake Assessment')
+        self.assertContains(response, 'Track Weak Areas as Goal')
+        self.assertContains(response, 'canvas-confetti')
+

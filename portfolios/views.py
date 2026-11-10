@@ -128,10 +128,23 @@ def public_portfolio_view(request, username):
     projects = portfolio.projects.all()
     certificates = Certificate.objects.filter(user=portfolio.user, verification_status=True) if portfolio.show_certifications else []
 
-    # Student verified skills
-    student_profile = getattr(portfolio.user, 'student_profile', None)
-    avatar_url = student_profile.avatar_url if student_profile else "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80"
+    # Student verified skills & career goals
+    student_profile = getattr(portfolio.user, 'profile', None) or getattr(portfolio.user, 'student_profile', None)
+    avatar_url = student_profile.avatar_url if (student_profile and hasattr(student_profile, 'avatar_url') and student_profile.avatar_url) else "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80"
     full_name = student_profile.full_name if (student_profile and student_profile.full_name) else portfolio.user.get_full_name() or portfolio.user.username
+    career_goal = student_profile.career_goal if student_profile else ""
+
+    skills = []
+    if student_profile and portfolio.show_skills:
+        interest_map = {
+            'python': 'Python', 'cpp': 'C/C++', 'java': 'Java', 'web_dev': 'Web Development',
+            'dsa': 'Data Structures & Algorithms', 'ai': 'Artificial Intelligence',
+            'data_science': 'Data Science', 'dbms': 'PostgreSQL'
+        }
+        for slug in student_profile.get_interests_list():
+            skills.append(interest_map.get(slug, slug.title()))
+        if not skills:
+            skills = ['Python', 'Modern Software Architecture', 'Git']
 
     # Determine template to render
     template_map = {
@@ -146,6 +159,8 @@ def public_portfolio_view(request, username):
         'projects': projects,
         'certificates': certificates,
         'full_name': full_name,
+        'career_goal': career_goal,
+        'skills': skills,
         'avatar_url': avatar_url,
         'is_owner': request.user.is_authenticated and (request.user == portfolio.user),
     }

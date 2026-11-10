@@ -50,3 +50,24 @@ class PortfolioTests(TestCase):
         del_resp = self.client.post(reverse('portfolios:delete_project', kwargs={'project_id': project.id}))
         self.assertEqual(del_resp.status_code, 302)
         self.assertFalse(PortfolioProject.objects.filter(id=project.id).exists())
+
+    def test_public_portfolio_shows_career_goal_and_skills(self):
+        from accounts.models import StudentProfile
+        profile, _ = StudentProfile.objects.get_or_create(user=self.user)
+        profile.career_goal = "Senior AI Architect"
+        profile.learning_interests = '["python", "ai"]'
+        profile.save()
+
+        portfolio, _ = Portfolio.objects.get_or_create(
+            user=self.user,
+            username='portfoliotester',
+            is_public=True,
+            show_skills=True
+        )
+
+        response = self.client.get(reverse('portfolios:public', kwargs={'username': 'portfoliotester'}))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Senior AI Architect')
+        self.assertContains(response, 'Python')
+        self.assertContains(response, 'sharePortfolioBtn')
+

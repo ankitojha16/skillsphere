@@ -27,7 +27,7 @@
         </p>
 
         <!-- Stats Chips -->
-        <div class="d-flex justify-content-center gap-3 mb-4">
+        <div class="d-flex justify-content-center gap-3 mb-3">
             <div class="p-2 px-3 rounded-3" style="background-color: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.2);">
                 <div class="text-success fw-bold">{{ attempt.score }} Correct</div>
             </div>
@@ -37,6 +37,22 @@
             <div class="p-2 px-3 rounded-3" style="background-color: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.2);">
                 <div class="text-primary-accent fw-bold">+{% if attempt.percentage >= 70 %}50{% else %}25{% endif %} XP Earned</div>
             </div>
+        </div>
+
+        <!-- Quick Action Buttons -->
+        <div class="d-flex flex-wrap justify-content-center gap-2 mb-4">
+            <a href="{% url 'assessments:take' assessment_id=attempt.assessment.id %}" class="btn btn-sm btn-outline-info d-inline-flex align-items-center gap-1">
+                <i data-lucide="rotate-ccw" style="width: 14px; height: 14px;"></i>
+                <span>Retake Assessment</span>
+            </a>
+            <a href="{% url 'goals:index' %}?preset_title=Master%20{{ attempt.assessment.title|urlencode }}&preset_desc=Focus%20on%20{{ attempt.weaknesses|urlencode }}" class="btn btn-sm btn-outline-warning d-inline-flex align-items-center gap-1">
+                <i data-lucide="target" style="width: 14px; height: 14px;"></i>
+                <span>Track Weak Areas as Goal</span>
+            </a>
+            <a href="{% url 'resumes:builder' %}" class="btn btn-sm btn-outline-purple d-inline-flex align-items-center gap-1">
+                <i data-lucide="file-text" style="width: 14px; height: 14px;"></i>
+                <span>Update Resume</span>
+            </a>
         </div>
 
         <!-- AI Feedback Callout -->
@@ -133,4 +149,28 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+{% if attempt.percentage >= 70 %}
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof confetti === 'function') {
+        const count = 200;
+        const defaults = { origin: { y: 0.7 } };
+        function fire(particleRatio, opts) {
+            confetti(Object.assign({}, defaults, opts, {
+                particleCount: Math.floor(count * particleRatio)
+            }));
+        }
+        fire(0.25, { spread: 26, startVelocity: 55 });
+        fire(0.2, { spread: 60 });
+        fire(0.35, { spread: 100, decay: 0.91, scalar: 0.8 });
+        fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.2 });
+        fire(0.1, { spread: 120, startVelocity: 45 });
+    }
+});
+</script>
+{% endif %}
 {% endblock %}

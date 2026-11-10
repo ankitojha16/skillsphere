@@ -61,18 +61,26 @@
 <body class="py-5">
     <div class="container" style="max-width: 960px;">
         <!-- Top Verified Bar -->
-        <div class="d-flex justify-content-between align-items-center mb-5">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
             <div class="d-flex align-items-center gap-2">
                 <div class="p-1 rounded bg-purple text-white d-inline-flex" style="background-color: var(--accent);">
                     <i data-lucide="layers" style="width: 16px; height: 16px;"></i>
                 </div>
                 <span class="mono small text-secondary">skillsphere.verified // {{ portfolio.username }}</span>
             </div>
-            {% if is_owner %}
-            <a href="{% url 'portfolios:builder' %}" class="btn btn-sm btn-outline-light rounded-pill mono">
-                <i data-lucide="edit-2" style="width: 14px; height: 14px;" class="me-1"></i> Edit Mode
-            </a>
-            {% endif %}
+            <div class="d-flex align-items-center gap-2">
+                <button type="button" class="btn btn-sm btn-outline-info rounded-pill mono" id="sharePortfolioBtn" title="Copy public share URL">
+                    <i data-lucide="share-2" style="width: 13px; height: 13px;" class="me-1"></i><span id="shareBtnText">Share</span>
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill mono text-light" onclick="window.print();" title="Print as One-Page Profile">
+                    <i data-lucide="printer" style="width: 13px; height: 13px;" class="me-1"></i>Print
+                </button>
+                {% if is_owner %}
+                <a href="{% url 'portfolios:builder' %}" class="btn btn-sm btn-outline-light rounded-pill mono">
+                    <i data-lucide="edit-2" style="width: 13px; height: 13px;" class="me-1"></i> Edit Mode
+                </a>
+                {% endif %}
+            </div>
         </div>
 
         <!-- Hero Section -->
@@ -82,7 +90,12 @@
                     <img src="{{ avatar_url }}" alt="{{ full_name }}" class="rounded-circle avatar-glow img-fluid" style="width: 130px; height: 130px; object-fit: cover;">
                 </div>
                 <div class="col-md-9 text-center text-md-start">
-                    <div class="d-inline-block badge-tech mono mb-2">Available for roles</div>
+                    <div class="d-flex flex-wrap align-items-center justify-content-center justify-content-md-start gap-2 mb-2">
+                        <span class="badge-tech mono">Available for roles</span>
+                        {% if career_goal %}
+                        <span class="badge bg-purple bg-opacity-25 text-purple border border-purple-subtle mono small px-2.5 py-1">🎯 {{ career_goal }}</span>
+                        {% endif %}
+                    </div>
                     <h1 class="display-6 fw-bold text-white mb-1">{{ full_name }}</h1>
                     <h2 class="h5 text-info mb-3">{{ portfolio.title }}</h2>
                     <p class="text-secondary mb-4" style="line-height: 1.7;">{{ portfolio.about }}</p>
@@ -108,6 +121,18 @@
                 </div>
             </div>
         </header>
+
+        <!-- Technical Skills Section -->
+        {% if skills %}
+        <section class="mb-5">
+            <h3 class="h4 fw-bold text-white mb-3 mono"><i data-lucide="code" style="width: 20px; height: 20px;" class="text-cyan me-2"></i>Verified Engineering Skills</h3>
+            <div class="p-4 project-card d-flex flex-wrap gap-2">
+                {% for sk in skills %}
+                <span class="badge-tech mono py-1.5 px-3 fs-6" style="border-color: rgba(6, 182, 212, 0.4); color: #67e8f9;">{{ sk }}</span>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
 
         <!-- Projects Grid -->
         <section class="mb-5">
@@ -177,6 +202,22 @@
             Verified SkillSphere Developer Profile • Autonomous Education & Skill Tracking
         </footer>
     </div>
-    <script>lucide.createIcons();</script>
+    <script>
+        lucide.createIcons();
+        const shareBtn = document.getElementById('sharePortfolioBtn');
+        const shareText = document.getElementById('shareBtnText');
+        if (shareBtn) {
+            shareBtn.addEventListener('click', function() {
+                const url = window.location.href;
+                if (navigator.share) {
+                    navigator.share({ title: '{{ full_name }} Portfolio', url: url }).catch(() => {});
+                } else if (navigator.clipboard) {
+                    navigator.clipboard.writeText(url);
+                    shareText.innerText = 'Copied!';
+                    setTimeout(() => { shareText.innerText = 'Share'; }, 2000);
+                }
+            });
+        }
+    </script>
 </body>
 </html>
