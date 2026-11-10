@@ -287,14 +287,14 @@ class CoursesTests(TestCase):
         self.assertEqual(res.context['total_saved'], 2)
 
     def test_course_list_degree_filter(self):
-        bba_cat = Category.objects.create(name='Management', slug='management-business')
+        bba_cat = Category.objects.create(name='Management & Business Leadership', slug='management-business')
         bba_course = Course.objects.create(
-            title='Strategic Management & Leadership (MBA/BBA)',
+            title='Strategic Management & Leadership',
             slug='strategic-management-mba-bba',
             category=bba_cat,
             difficulty='Intermediate',
             instructor_name='Prof. Smith',
-            description='Executive leadership and corporate strategy',
+            description='Target Degree: BBA / MBA. Executive leadership and corporate strategy',
             is_published=True
         )
 
@@ -302,6 +302,16 @@ class CoursesTests(TestCase):
         self.assertEqual(res.status_code, 200)
         self.assertContains(res, 'Strategic Management &amp; Leadership')
         self.assertEqual(res.context['selected_degree'], 'BBA')
+
+    def test_no_degree_acronyms_in_course_names(self):
+        """Ensure no course names contain (BTech), (MTech), (BCA), or (BBA) tags."""
+        import re
+        degree_pattern = re.compile(r'\((?:btech|mtech|bca|bba|mba|bsc|bcom|ba)[^)]*\)', re.IGNORECASE)
+        for course in Course.objects.all():
+            self.assertFalse(
+                degree_pattern.search(course.title),
+                f"Course title '{course.title}' contains degree acronym tag in name."
+            )
 
 
 

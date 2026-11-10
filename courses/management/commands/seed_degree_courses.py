@@ -19,37 +19,37 @@ class Command(BaseCommand):
         # ---------------------------------------------------------------------
         categories_data = [
             {
-                'name': 'Management & Business Leadership (BBA/MBA)',
+                'name': 'Management & Business Leadership',
                 'slug': 'management-business',
                 'description': 'Product strategy, corporate finance, marketing management, supply chain operations, and venture capital.',
                 'icon': 'briefcase'
             },
             {
-                'name': 'Engineering & Emerging Technology (BTech/MTech)',
+                'name': 'Engineering & Emerging Technology',
                 'slug': 'engineering-tech',
                 'description': 'VLSI design, distributed systems, advanced cybersecurity, embedded robotics, computer vision, and HPC.',
                 'icon': 'cpu'
             },
             {
-                'name': 'Computer Applications & IT (BCA/BSc IT)',
+                'name': 'Computer Applications & IT',
                 'slug': 'computer-applications',
                 'description': 'Enterprise Java, mobile development with Flutter, Linux administration, software QA, and computer networks.',
                 'icon': 'terminal'
             },
             {
-                'name': 'Commerce, Banking & Taxation (BCom)',
+                'name': 'Commerce, Banking & Taxation',
                 'slug': 'commerce-finance',
                 'description': 'Financial accounting, corporate taxation, GST compliance, cost accounting, banking operations, and equity research.',
                 'icon': 'credit-card'
             },
             {
-                'name': 'Applied Sciences & Mathematics (BSc)',
+                'name': 'Applied Sciences & Mathematics',
                 'slug': 'applied-sciences',
                 'description': 'Bioinformatics, chemometrics, environmental GIS, quantum mechanics, cell biology, and applied probability.',
                 'icon': 'activity'
             },
             {
-                'name': 'Humanities, Arts & Communication (BA)',
+                'name': 'Humanities, Arts & Communication',
                 'slug': 'humanities-arts',
                 'description': 'Digital journalism, technical writing, public policy, cognitive psychology, international relations, and graphic design.',
                 'icon': 'feather'
@@ -276,7 +276,7 @@ class Command(BaseCommand):
         # ---------------------------------------------------------------------
         bba_mba = [
             (
-                "Strategic Management & Competitive Advantage (MBA/BBA)",
+                "Strategic Management & Competitive Advantage",
                 "strategic-management-mba",
                 "management-business",
                 "Intermediate",
@@ -316,7 +316,7 @@ class Command(BaseCommand):
                 ]
             ),
             (
-                "Corporate Finance, Capital Budgeting & Valuation (MBA/BBA)",
+                "Corporate Finance, Capital Budgeting & Valuation",
                 "corporate-finance-valuation",
                 "management-business",
                 "Advanced",
@@ -356,7 +356,7 @@ class Command(BaseCommand):
                 ]
             ),
             (
-                "Marketing Management & Consumer Brand Positioning (BBA/MBA)",
+                "Marketing Management & Consumer Brand Positioning",
                 "marketing-management-branding",
                 "management-business",
                 "Beginner",
@@ -396,7 +396,7 @@ class Command(BaseCommand):
                 ]
             ),
             (
-                "Human Resource Management & Organizational Dynamics (BBA/MBA)",
+                "Human Resource Management & Organizational Dynamics",
                 "human-resource-management-org-dynamics",
                 "management-business",
                 "Beginner",
@@ -436,7 +436,7 @@ class Command(BaseCommand):
                 ]
             ),
             (
-                "Supply Chain Management, Logistics & Lean Operations (MBA/BBA)",
+                "Supply Chain Management, Logistics & Lean Operations",
                 "supply-chain-logistics-operations",
                 "management-business",
                 "Intermediate",
@@ -476,7 +476,7 @@ class Command(BaseCommand):
                 ]
             ),
             (
-                "Business Analytics & Executive Data Modeling with Tableau (BBA/MBA)",
+                "Business Analytics & Executive Data Modeling with Tableau",
                 "business-analytics-tableau-excel",
                 "management-business",
                 "Beginner",
@@ -516,7 +516,7 @@ class Command(BaseCommand):
                 ]
             ),
             (
-                "Entrepreneurship, Startup Scaling & Venture Capital (BBA/MBA)",
+                "Entrepreneurship, Startup Scaling & Venture Capital",
                 "entrepreneurship-venture-capital",
                 "management-business",
                 "Beginner",
@@ -556,7 +556,7 @@ class Command(BaseCommand):
                 ]
             ),
             (
-                "Investment Banking Fundamentals & Financial Markets (MBA/BBA)",
+                "Investment Banking Fundamentals & Financial Markets",
                 "investment-banking-financial-markets",
                 "management-business",
                 "Intermediate",
@@ -596,7 +596,7 @@ class Command(BaseCommand):
                 ]
             ),
             (
-                "Digital Marketing Strategy, Performance Ads & Growth Hacking (BBA/MBA)",
+                "Digital Marketing Strategy, Performance Ads & Growth Hacking",
                 "digital-marketing-growth-hacking",
                 "management-business",
                 "Beginner",
@@ -636,7 +636,7 @@ class Command(BaseCommand):
                 ]
             ),
             (
-                "International Business & Cross-Border Trade Policy (BBA/MBA)",
+                "International Business & Cross-Border Trade Policy",
                 "international-business-cross-border-trade",
                 "management-business",
                 "Intermediate",
@@ -686,7 +686,7 @@ class Command(BaseCommand):
         # ---------------------------------------------------------------------
         btech_mtech = [
             (
-                "VLSI Design, Verilog HDL & Digital Circuit Architecture (BTech/MTech)",
+                "VLSI Design, Verilog HDL & Digital Circuit Architecture",
                 "vlsi-design-verilog-architecture",
                 "engineering-tech",
                 "Advanced",
@@ -726,7 +726,7 @@ class Command(BaseCommand):
                 ]
             ),
             (
-                "Distributed Systems, Fault Tolerance & Microservices (MTech/BTech)",
+                "Distributed Systems, Fault Tolerance & Microservices",
                 "distributed-systems-microservices",
                 "engineering-tech",
                 "Advanced",
@@ -766,7 +766,7 @@ class Command(BaseCommand):
                 ]
             ),
             (
-                "Advanced Cyber Security, Applied Cryptography & Network Defense (BTech/MTech)",
+                "Advanced Cyber Security, Applied Cryptography & Network Defense",
                 "advanced-cyber-security-cryptography",
                 "engineering-tech",
                 "Advanced",
@@ -806,7 +806,7 @@ class Command(BaseCommand):
                 ]
             ),
             (
-                "Cloud Native Infrastructure with Kubernetes & Terraform (BTech/MTech)",
+                "Cloud Native Infrastructure with Kubernetes & Terraform",
                 "cloud-native-kubernetes-terraform",
                 "engineering-tech",
                 "Intermediate",
@@ -846,7 +846,7 @@ class Command(BaseCommand):
                 ]
             ),
             (
-                "Embedded Systems, Microcontrollers & Embedded C (BTech/MTech)",
+                "Embedded Systems, Microcontrollers & Embedded C",
                 "embedded-systems-microcontrollers",
                 "engineering-tech",
                 "Intermediate",
@@ -886,7 +886,7 @@ class Command(BaseCommand):
                 ]
             ),
             (
-                "Computer Vision & Convolutional Neural Networks with PyTorch (MTech/BTech)",
+                "Computer Vision & Convolutional Neural Networks with PyTorch",
                 "computer-vision-deep-learning",
                 "engineering-tech",
                 "Advanced",
@@ -926,7 +926,7 @@ class Command(BaseCommand):
                 ]
             ),
             (
-                "Natural Language Processing, Transformers & Large Language Models (MTech/BTech)",
+                "Natural Language Processing, Transformers & Large Language Models",
                 "natural-language-processing-llms",
                 "engineering-tech",
                 "Advanced",
@@ -966,7 +966,7 @@ class Command(BaseCommand):
                 ]
             ),
             (
-                "Compiler Design, Parsing & Code Optimization (BTech/MTech)",
+                "Compiler Design, Parsing & Code Optimization",
                 "compiler-design-optimization",
                 "engineering-tech",
                 "Intermediate",
@@ -1006,7 +1006,7 @@ class Command(BaseCommand):
                 ]
             ),
             (
-                "Blockchain Architecture, Cryptography & Smart Contracts (BTech/MTech)",
+                "Blockchain Architecture, Cryptography & Smart Contracts",
                 "blockchain-architecture-smart-contracts",
                 "engineering-tech",
                 "Intermediate",
@@ -1046,7 +1046,7 @@ class Command(BaseCommand):
                 ]
             ),
             (
-                "High Performance Parallel Computing with MPI & OpenMP (MTech/BTech)",
+                "High Performance Parallel Computing with MPI & OpenMP",
                 "high-performance-computing-parallel",
                 "engineering-tech",
                 "Advanced",
@@ -1096,7 +1096,7 @@ class Command(BaseCommand):
         # ---------------------------------------------------------------------
         bca_bscit = [
             (
-                "Enterprise Java Application Development with Spring Boot (BCA/BSc IT)",
+                "Enterprise Java Application Development with Spring Boot",
                 "enterprise-java-spring-boot",
                 "computer-applications",
                 "Intermediate",
@@ -1136,7 +1136,7 @@ class Command(BaseCommand):
                 ]
             ),
             (
-                "Cross-Platform Mobile App Development with Flutter & Dart (BCA/BSc IT)",
+                "Cross-Platform Mobile App Development with Flutter & Dart",
                 "mobile-app-dev-flutter-dart",
                 "computer-applications",
                 "Beginner",
@@ -1176,7 +1176,7 @@ class Command(BaseCommand):
                 ]
             ),
             (
-                "Modern Web Development with PHP, MVC Architecture & MySQL (BCA/BSc IT)",
+                "Modern Web Development with PHP, MVC Architecture & MySQL",
                 "modern-web-development-php-mysql",
                 "computer-applications",
                 "Beginner",
@@ -1216,7 +1216,7 @@ class Command(BaseCommand):
                 ]
             ),
             (
-                "Software Quality Assurance, Automated Testing & Selenium (BCA/BSc IT)",
+                "Software Quality Assurance, Automated Testing & Selenium",
                 "software-qa-automated-testing",
                 "computer-applications",
                 "Beginner",
@@ -1256,7 +1256,7 @@ class Command(BaseCommand):
                 ]
             ),
             (
-                "Linux System Administration, Bash Scripting & Automation (BCA/BSc IT)",
+                "Linux System Administration, Bash Scripting & Automation",
                 "linux-system-administration-bash",
                 "computer-applications",
                 "Beginner",
@@ -1296,7 +1296,7 @@ class Command(BaseCommand):
                 ]
             ),
             (
-                "Computer Networking, TCP/IP Protocol Suite & Socket Programming (BCA/BSc IT)",
+                "Computer Networking, TCP/IP Protocol Suite & Socket Programming",
                 "computer-networks-tcp-ip",
                 "computer-applications",
                 "Intermediate",
@@ -1336,7 +1336,7 @@ class Command(BaseCommand):
                 ]
             ),
             (
-                "Object-Oriented Programming & Standard Template Library in C++ (BCA/BSc CS)",
+                "Object-Oriented Programming & Standard Template Library in C++",
                 "cpp-oop-stl-programming",
                 "computer-applications",
                 "Intermediate",
@@ -1376,7 +1376,7 @@ class Command(BaseCommand):
                 ]
             ),
             (
-                "Discrete Mathematics, Graph Theory & Computability for IT (BCA/BSc CS)",
+                "Discrete Mathematics, Graph Theory & Computability for IT",
                 "discrete-mathematics-computing",
                 "computer-applications",
                 "Intermediate",
@@ -1426,7 +1426,7 @@ class Command(BaseCommand):
         # ---------------------------------------------------------------------
         bcom = [
             (
-                "Financial Accounting: Journals, Ledgers & Final Accounts (BCom)",
+                "Financial Accounting: Journals, Ledgers & Final Accounts",
                 "financial-accounting-principles",
                 "commerce-finance",
                 "Beginner",
@@ -1466,7 +1466,7 @@ class Command(BaseCommand):
                 ]
             ),
             (
-                "Indian Corporate Taxation, Income Tax & GST Compliance (BCom)",
+                "Indian Corporate Taxation, Income Tax & GST Compliance",
                 "corporate-tax-gst-compliance",
                 "commerce-finance",
                 "Intermediate",
@@ -1506,7 +1506,7 @@ class Command(BaseCommand):
                 ]
             ),
             (
-                "Cost & Management Accounting: Marginal Costing & Budgeting (BCom)",
+                "Cost & Management Accounting: Marginal Costing & Budgeting",
                 "cost-management-accounting",
                 "commerce-finance",
                 "Intermediate",
@@ -1546,7 +1546,7 @@ class Command(BaseCommand):
                 ]
             ),
             (
-                "Commercial Banking Operations & Insurance Risk Underwriting (BCom)",
+                "Commercial Banking Operations & Insurance Risk Underwriting",
                 "commercial-banking-insurance",
                 "commerce-finance",
                 "Beginner",
@@ -1586,7 +1586,7 @@ class Command(BaseCommand):
                 ]
             ),
             (
-                "Auditing Standards, Internal Controls & Corporate Governance (BCom)",
+                "Auditing Standards, Internal Controls & Corporate Governance",
                 "auditing-standards-corporate-governance",
                 "commerce-finance",
                 "Intermediate",
@@ -1626,7 +1626,7 @@ class Command(BaseCommand):
                 ]
             ),
             (
-                "Equity Research, Stock Market Valuation & Portfolio Management (BCom)",
+                "Equity Research, Stock Market Valuation & Portfolio Management",
                 "equity-research-stock-market-investing",
                 "commerce-finance",
                 "Intermediate",
@@ -1666,7 +1666,7 @@ class Command(BaseCommand):
                 ]
             ),
             (
-                "Mercantile Law & The Indian Contract Act in Business (BCom)",
+                "Mercantile Law & The Indian Contract Act in Business",
                 "mercantile-law-indian-contract-act",
                 "commerce-finance",
                 "Beginner",
@@ -1706,7 +1706,7 @@ class Command(BaseCommand):
                 ]
             ),
             (
-                "E-Commerce Operations, FinTech Architecture & Digital Payments (BCom)",
+                "E-Commerce Operations, FinTech Architecture & Digital Payments",
                 "ecommerce-fintech-digital-payments",
                 "commerce-finance",
                 "Beginner",
@@ -1756,7 +1756,7 @@ class Command(BaseCommand):
         # ---------------------------------------------------------------------
         bsc = [
             (
-                "Computational Biology, Genomics & Bioinformatics Algorithms (BSc)",
+                "Computational Biology, Genomics & Bioinformatics Algorithms",
                 "computational-biology-genomics",
                 "applied-sciences",
                 "Intermediate",
@@ -1796,7 +1796,7 @@ class Command(BaseCommand):
                 ]
             ),
             (
-                "Data Analytics in Chemical Sciences & Chemometrics (BSc)",
+                "Data Analytics in Chemical Sciences & Chemometrics",
                 "data-analytics-chemical-sciences",
                 "applied-sciences",
                 "Intermediate",
@@ -1836,7 +1836,7 @@ class Command(BaseCommand):
                 ]
             ),
             (
-                "Environmental Science, Ecology & GIS Geospatial Mapping (BSc)",
+                "Environmental Science, Ecology & GIS Geospatial Mapping",
                 "environmental-science-gis-mapping",
                 "applied-sciences",
                 "Beginner",
@@ -1876,7 +1876,7 @@ class Command(BaseCommand):
                 ]
             ),
             (
-                "Applied Probability, Statistical Inference & Hypothesis Testing (BSc)",
+                "Applied Probability, Statistical Inference & Hypothesis Testing",
                 "applied-probability-statistical-inference",
                 "applied-sciences",
                 "Intermediate",
@@ -1916,7 +1916,7 @@ class Command(BaseCommand):
                 ]
             ),
             (
-                "Quantum Mechanics, Wave Equations & Physics Simulation (BSc)",
+                "Quantum Mechanics, Wave Equations & Physics Simulation",
                 "quantum-mechanics-physics-simulation",
                 "applied-sciences",
                 "Advanced",
@@ -1956,7 +1956,7 @@ class Command(BaseCommand):
                 ]
             ),
             (
-                "Cell Biology, Molecular Genetics & Recombinant DNA (BSc)",
+                "Cell Biology, Molecular Genetics & Recombinant DNA",
                 "cell-biology-molecular-genetics",
                 "applied-sciences",
                 "Beginner",
@@ -1996,7 +1996,7 @@ class Command(BaseCommand):
                 ]
             ),
             (
-                "Linear Algebra & Multivariable Calculus for Physical Sciences (BSc)",
+                "Linear Algebra & Multivariable Calculus for Physical Sciences",
                 "linear-algebra-calculus-scientists",
                 "applied-sciences",
                 "Intermediate",
@@ -2046,7 +2046,7 @@ class Command(BaseCommand):
         # ---------------------------------------------------------------------
         ba = [
             (
-                "Digital Journalism, Media Ethics & Investigative Storytelling (BA)",
+                "Digital Journalism, Media Ethics & Investigative Storytelling",
                 "digital-journalism-investigative-media",
                 "humanities-arts",
                 "Beginner",
@@ -2086,7 +2086,7 @@ class Command(BaseCommand):
                 ]
             ),
             (
-                "Technical Writing, API Documentation & Content Strategy (BA)",
+                "Technical Writing, API Documentation & Content Strategy",
                 "technical-writing-api-documentation",
                 "humanities-arts",
                 "Beginner",
@@ -2126,7 +2126,7 @@ class Command(BaseCommand):
                 ]
             ),
             (
-                "Public Policy Analysis, Policy Formulation & Governance (BA)",
+                "Public Policy Analysis, Policy Formulation & Governance",
                 "public-policy-governance-analysis",
                 "humanities-arts",
                 "Intermediate",
@@ -2166,7 +2166,7 @@ class Command(BaseCommand):
                 ]
             ),
             (
-                "Cognitive Psychology & Behavioral Decision Science (BA)",
+                "Cognitive Psychology & Behavioral Decision Science",
                 "cognitive-psychology-behavioral-decision",
                 "humanities-arts",
                 "Beginner",
@@ -2206,7 +2206,7 @@ class Command(BaseCommand):
                 ]
             ),
             (
-                "International Relations, Diplomacy & Modern Geopolitics (BA)",
+                "International Relations, Diplomacy & Modern Geopolitics",
                 "international-relations-geopolitics",
                 "humanities-arts",
                 "Intermediate",
@@ -2246,7 +2246,7 @@ class Command(BaseCommand):
                 ]
             ),
             (
-                "English Literary Criticism & Modern Narrative Theory (BA)",
+                "English Literary Criticism & Modern Narrative Theory",
                 "english-literary-criticism-narrative",
                 "humanities-arts",
                 "Beginner",
@@ -2286,7 +2286,7 @@ class Command(BaseCommand):
                 ]
             ),
             (
-                "Graphic Design Principles, Typography & Visual Communication (BA)",
+                "Graphic Design Principles, Typography & Visual Communication",
                 "graphic-design-visual-communication",
                 "humanities-arts",
                 "Beginner",
