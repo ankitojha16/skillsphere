@@ -216,22 +216,28 @@
                                         <span class="text-white small fw-bold">{{ lesson.title }}</span>
                                     </div>
                                     <div class="d-flex align-items-center gap-2">
-                                        <a href="{{ lesson.youtube_watch_url|default:lesson.video_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-danger btn-sm py-1 px-2.5 d-inline-flex align-items-center gap-1.5" title="Watch directly on YouTube in new tab">
-                                            <i data-lucide="external-link" style="width: 13px; height: 13px;"></i>
-                                            <span>Open on YouTube</span>
-                                        </a>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm py-1 px-2.5 d-inline-flex align-items-center gap-1.5 text-white" onclick="reloadVideoPlayer()" title="Reload inline player">
+                                            <i data-lucide="rotate-cw" style="width: 13px; height: 13px;"></i>
+                                            <span>Reload Video</span>
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm py-1 px-2.5 d-inline-flex align-items-center gap-1.5 text-white" onclick="toggleFullscreenPlayer()" title="Watch in fullscreen on site">
+                                            <i data-lucide="maximize" style="width: 13px; height: 13px;"></i>
+                                            <span>Fullscreen</span>
+                                        </button>
                                     </div>
                                 </div>
 
-                                <div class="ratio ratio-16x9 rounded-3 overflow-hidden border mb-2 shadow-lg" style="border-color: var(--border-color) !important; background: #000;">
+                                <div id="videoContainerWrapper" class="ratio ratio-16x9 rounded-3 overflow-hidden border mb-2 shadow-lg position-relative" style="border-color: var(--border-color) !important; background: #000;">
                                     {% if "youtube.com" in lesson.video_url or "youtu.be" in lesson.video_url %}
                                         <iframe id="videoIframe"
                                                 src="{{ lesson.embed_video_url }}"
                                                 title="{{ lesson.title }}"
-                                                referrerpolicy="no-referrer-when-downgrade"
+                                                sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-forms"
+                                                referrerpolicy="strict-origin-when-cross-origin"
                                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                                                 allowfullscreen
-                                                loading="lazy">
+                                                loading="lazy"
+                                                class="w-100 h-100 border-0">
                                         </iframe>
                                     {% else %}
                                         <video id="html5VideoPlayer" controls class="w-100 h-100">
@@ -241,11 +247,9 @@
                                     {% endif %}
                                 </div>
 
-                                <!-- Video Player Fallback / YouTube Error 153 Helper -->
+                                <!-- Video Player In-Site Playback Info -->
                                 <div id="videoFallback" class="p-2.5 rounded-2 text-center border mb-3 small text-white" style="background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.15) !important; color: #FFFFFF !important;">
-                                    <span class="text-white">💡 Having trouble with playback or seeing YouTube Error 153? </span>
-                                    <a href="{{ lesson.youtube_watch_url|default:lesson.video_url }}" target="_blank" rel="noopener noreferrer" class="text-danger fw-bold text-decoration-none">Watch directly on YouTube <i data-lucide="external-link" style="width: 12px; height: 12px; display: inline;"></i></a>
-                                    <span class="text-white"> • If your browser extensions or ad-blockers prevent playback, click <strong class="text-white">Open on YouTube</strong> above, then mark as watched.</span>
+                                    <span class="text-white">🛡️ <strong class="text-white">In-Platform Streaming:</strong> This lesson plays directly on SkillSphere without leaving the classroom. If the video ever needs to refresh, click <button type="button" class="btn btn-link btn-sm text-info p-0 align-baseline text-decoration-underline" onclick="reloadVideoPlayer()">Reload Video</button> or toggle <button type="button" class="btn btn-link btn-sm text-info p-0 align-baseline text-decoration-underline" onclick="toggleFullscreenPlayer()">Fullscreen</button>.</span>
                                 </div>
 
                                 <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 p-3 rounded-2" style="background-color: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255,255,255,0.15);">
@@ -1317,6 +1321,39 @@ function copyAiResult() {
         navigator.clipboard.writeText(textEl.innerText).then(() => {
             alert('AI notes copied to clipboard!');
         });
+    }
+}
+
+function reloadVideoPlayer() {
+    const iframe = document.getElementById('videoIframe');
+    if (iframe) {
+        const currentSrc = iframe.src;
+        iframe.src = '';
+        setTimeout(() => { iframe.src = currentSrc; }, 80);
+    }
+    const html5 = document.getElementById('html5VideoPlayer');
+    if (html5) {
+        html5.load();
+    }
+}
+
+function toggleFullscreenPlayer() {
+    const playerWrapper = document.getElementById('videoContainerWrapper');
+    if (!playerWrapper) return;
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+        if (playerWrapper.requestFullscreen) {
+            playerWrapper.requestFullscreen();
+        } else if (playerWrapper.webkitRequestFullscreen) {
+            playerWrapper.webkitRequestFullscreen();
+        } else if (playerWrapper.msRequestFullscreen) {
+            playerWrapper.msRequestFullscreen();
+        }
+    } else {
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+            document.webkitExitFullscreen();
+        }
     }
 }
 </script>

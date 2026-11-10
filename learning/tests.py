@@ -70,6 +70,21 @@ class LearningTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Lesson 1: Intro')
 
+    def test_video_plays_inline_on_site_without_yt_redirect(self):
+        self.client.force_login(self.enrolled_user)
+        url = reverse('learning:lesson_detail', kwargs={'course_slug': self.course.slug, 'lesson_id': self.lesson1.id})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        # Verify inline iframe embed is present with sandboxing that blocks top-level redirection
+        self.assertContains(response, 'id="videoIframe"')
+        self.assertContains(response, 'sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-forms"')
+        self.assertContains(response, 'referrerpolicy="strict-origin-when-cross-origin"')
+        self.assertContains(response, 'reloadVideoPlayer()')
+        self.assertContains(response, 'toggleFullscreenPlayer()')
+        # Verify no external redirect prompt or button exits to YouTube
+        self.assertNotContains(response, 'Open on YouTube')
+        self.assertNotContains(response, 'Watch directly on YouTube')
+
     def test_lesson_completion_and_weighted_progress(self):
         self.client.force_login(self.enrolled_user)
         toggle_url = reverse('learning:complete_toggle', kwargs={'course_slug': self.course.slug, 'lesson_id': self.lesson1.id})
