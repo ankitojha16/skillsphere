@@ -36,6 +36,10 @@ class GamificationTests(TestCase):
         resp = self.client.get(reverse('gamification:achievements'))
         self.assertEqual(resp.status_code, 200)
         self.assertContains(resp, 'Achievements & Consistency')
+        self.assertContains(resp, 'communityLeaderboard')
+        self.assertContains(resp, 'Platform Leaderboard')
+        self.assertContains(resp, 'gamertester')
+        self.assertContains(resp, 'Your Rank: #1')
 
     def test_award_xp_idempotency_with_activity_key(self):
         from gamification.models import XPTransaction

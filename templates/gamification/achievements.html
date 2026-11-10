@@ -157,6 +157,46 @@
                     </li>
                 </ul>
             </div>
+
+            <!-- Global Leaderboard -->
+            <div class="custom-card p-4 mt-4" id="communityLeaderboard">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold text-white mb-0 d-flex align-items-center gap-2">
+                        <i data-lucide="trophy" class="text-warning" style="width: 20px; height: 20px;"></i>
+                        <span>Platform Leaderboard</span>
+                    </h5>
+                    <span class="badge bg-warning bg-opacity-10 text-warning border border-warning-subtle small px-2 py-0.5">
+                        Your Rank: #{{ user_rank }}
+                    </span>
+                </div>
+                <p class="text-secondary small mb-3">Top learners ranked by verified technical study XP and active streak velocity.</p>
+
+                <div class="d-flex flex-column gap-2">
+                    {% for entry in leaderboard %}
+                    <div class="p-2.5 px-3 rounded-3 d-flex align-items-center justify-content-between {% if entry.user == request.user %}border border-primary bg-primary bg-opacity-10{% else %}border{% endif %}" style="background-color: rgba(255, 255, 255, 0.02); border-color: {% if entry.user == request.user %}rgba(139, 92, 246, 0.5){% else %}var(--border-color){% endif %} !important;">
+                        <div class="d-flex align-items-center gap-2.5">
+                            <span class="fw-bold fs-6 font-monospace" style="width: 24px; text-align: center; color: {% if forloop.counter == 1 %}#FACC15{% elif forloop.counter == 2 %}#E2E8F0{% elif forloop.counter == 3 %}#F97316{% else %}#94A3B8{% endif %};">
+                                {% if forloop.counter == 1 %}🥇{% elif forloop.counter == 2 %}🥈{% elif forloop.counter == 3 %}🥉{% else %}#{{ forloop.counter }}{% endif %}
+                            </span>
+                            <div>
+                                <div class="text-white small fw-bold d-flex align-items-center gap-1.5">
+                                    <span>{{ entry.user.username }}</span>
+                                    {% if entry.user == request.user %}
+                                    <span class="badge bg-purple text-white px-1.5 py-0" style="font-size: 0.68rem;">You</span>
+                                    {% endif %}
+                                </div>
+                                <div class="text-secondary small" style="font-size: 0.75rem;">
+                                    {{ entry.current_level }} • <i data-lucide="flame" style="width: 10px; height: 10px;" class="text-warning"></i> {{ entry.current_streak }}d streak
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <span class="text-white fw-bold font-monospace small">{{ entry.total_xp }} XP</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
         </div>
     </div>
 </div>

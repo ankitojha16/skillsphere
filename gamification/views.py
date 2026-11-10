@@ -122,6 +122,11 @@ def achievements_view(request):
                 xp_to_next = 0
             break
 
+    # Top Platform Engineers Leaderboard
+    from .models import UserGamification
+    leaderboard = list(UserGamification.objects.select_related('user').order_by('-total_xp', '-current_streak')[:5])
+    user_rank = UserGamification.objects.filter(total_xp__gt=gamification.total_xp).count() + 1
+
     return render(request, 'gamification/achievements.html', {
         'gamification': gamification,
         'badges_data': badges_data,
@@ -130,4 +135,6 @@ def achievements_view(request):
         'next_level': next_level,
         'xp_to_next': xp_to_next,
         'level_progress_pct': level_progress_pct,
+        'leaderboard': leaderboard,
+        'user_rank': user_rank,
     })
