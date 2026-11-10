@@ -39,6 +39,12 @@ def mark_as_read_view(request, pk):
 @login_required
 def mark_all_read_view(request):
     Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
+    from django.core.cache import cache
+    try:
+        cache.delete(f"user_notifs_ctx:{request.user.id}")
+    except Exception:
+        pass
+
     if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.content_type == 'application/json':
         return JsonResponse({'success': True, 'message': 'All notifications marked as read'})
 

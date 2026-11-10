@@ -26,9 +26,9 @@
   --danger: #F87171;
   --error: #F87171;
   
-  --text-main: #FFFFFF;
-  --text-secondary: #FFFFFF;
-  --text-muted: #F1F5F9;
+  --text-main: #F8FAFC;
+  --text-secondary: #CBD5E1;
+  --text-muted: #A8B7CC;
   
   /* Bootstrap 5 Native Theme Binding */
   --bs-body-bg: #0B1020;

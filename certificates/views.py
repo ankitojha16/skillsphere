@@ -97,7 +97,7 @@ def certificate_center_view(request):
                 Course.invalidate_user_progress_cache(request.user.id, course_to_claim.id)
                 msg = f"Certificate recipient name successfully updated to '{custom_name}'."
             else:
-                msg = f"SkillSphere Course Completion Certificate ready for '{course_to_claim.title}'."
+                msg = f"SkillSphere Course Completion Certificate already issued and ready for '{course_to_claim.title}'."
 
             if request.headers.get('x-requested-with') == 'XMLHttpRequest':
                 return JsonResponse({
