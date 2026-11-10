@@ -35,3 +35,34 @@ class DashboardTests(TestCase):
         self.assertContains(response, 'ATS Resume Studio')
         self.assertContains(response, 'Developer Portfolio')
         self.assertContains(response, 'Certificates Center')
+
+    def test_healthz_and_telemetry_endpoints(self):
+        response = self.client.get('/healthz')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data['status'], 'healthy')
+        self.assertIn('checks', data)
+        self.assertEqual(data['checks']['database']['status'], 'ok')
+        self.assertIn('latency_ms', data['checks']['database'])
+
+        api_resp = self.client.get('/api/health/')
+        self.assertEqual(api_resp.status_code, 200)
+        self.assertEqual(api_resp.json()['status'], 'healthy')
+
+    def test_robots_txt_endpoint(self):
+        response = self.client.get('/robots.txt')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'text/plain')
+        self.assertContains(response, 'User-agent: *')
+        self.assertContains(response, 'Allow: /courses/')
+        self.assertContains(response, 'Disallow: /admin/')
+        self.assertContains(response, 'Sitemap:')
+
+    def test_sitemap_xml_endpoint(self):
+        response = self.client.get('/sitemap.xml')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/xml')
+        self.assertContains(response, '<urlset')
+        self.assertContains(response, '/courses/')
+        self.assertContains(response, '/careers/')
+        self.assertContains(response, '</urlset>')

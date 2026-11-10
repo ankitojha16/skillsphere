@@ -3,7 +3,10 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from django.shortcuts import redirect, render
-from config.views import pwa_manifest_view, service_worker_view, offline_view
+from config.views import (
+    pwa_manifest_view, service_worker_view, offline_view,
+    health_check_view, robots_txt_view, sitemap_xml_view
+)
 
 def home_redirect(request):
     if request.user.is_authenticated:
@@ -11,6 +14,12 @@ def home_redirect(request):
     return redirect('courses:list')
 
 urlpatterns = [
+    # Infrastructure, Health & Telemetry Routes
+    path('healthz', health_check_view, name='healthz'),
+    path('api/health/', health_check_view, name='api_health'),
+    path('robots.txt', robots_txt_view, name='robots_txt'),
+    path('sitemap.xml', sitemap_xml_view, name='sitemap_xml'),
+
     # Progressive Web App (PWA) Core Routes
     path('manifest.json', pwa_manifest_view, name='pwa_manifest'),
     path('sw.js', service_worker_view, name='service_worker'),

@@ -5,6 +5,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
     <meta name="referrer" content="strict-origin-when-cross-origin">
+    <meta name="description" content="{% block meta_description %}SkillSphere - The autonomous education and engineering career acceleration platform. Learn skills, build production projects, practice AI mock interviews, and verify certifications.{% endblock %}">
+    
+    <!-- OpenGraph & Social Sharing Meta -->
+    <meta property="og:site_name" content="SkillSphere">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="{% block og_title %}SkillSphere - Autonomous Education & Career Acceleration{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}Master software engineering with interactive roadmaps, voice mock interviews, ATS resume studio, and verified credentials.{% endblock %}">
+    <meta property="og:url" content="{{ request.build_absolute_uri }}">
+    <meta property="og:image" content="{% block og_image %}https://skillsphere-cyan.vercel.app/static/images/pwa/icon-512.png{% endblock %}">
+
+    <!-- Twitter Card Meta -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{% block twitter_title %}SkillSphere - Autonomous Education & Career Platform{% endblock %}">
+    <meta name="twitter:description" content="{% block twitter_description %}Learn skills, practice technical mock interviews, and accelerate your engineering career.{% endblock %}">
+    <meta name="twitter:image" content="{% block twitter_image %}https://skillsphere-cyan.vercel.app/static/images/pwa/icon-512.png{% endblock %}">
+
     <title>{% block title %}SkillSphere - Learn Skills. Build Projects. Track Your Growth.{% endblock %}</title>
     
     <!-- PWA & Mobile Web App Capabilities -->
