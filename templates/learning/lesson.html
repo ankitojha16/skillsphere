@@ -16,6 +16,25 @@
 </div>
 {% endblock navbar_search %}
 
+{% block extra_css %}
+<style>
+    /* Absolute White & High Contrast Typography Safeguard for Learning Interface */
+    .text-secondary, .text-muted, .text-body-secondary, p.text-secondary, span.text-muted, div.text-secondary {
+        color: #FFFFFF !important;
+        --bs-text-opacity: 1 !important;
+    }
+    .text-light, .text-white {
+        color: #FFFFFF !important;
+    }
+    #videoFallback, #videoFallback span, #videoFallback strong {
+        color: #FFFFFF !important;
+    }
+    #rightCertMilestoneDesc, #rightExamMilestoneDesc, #certificateStatusCard p, #certificateStatusCard div {
+        color: #FFFFFF !important;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid px-3 py-3">
     <div class="row g-3">
@@ -223,29 +242,29 @@
                                 </div>
 
                                 <!-- Video Player Fallback / YouTube Error 153 Helper -->
-                                <div id="videoFallback" class="p-2.5 rounded-2 text-center border mb-3 small text-secondary" style="background: rgba(255,255,255,0.02); border-color: var(--border-color);">
-                                    <span>💡 Having trouble with playback or seeing YouTube Error 153? </span>
+                                <div id="videoFallback" class="p-2.5 rounded-2 text-center border mb-3 small text-white" style="background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.15) !important; color: #FFFFFF !important;">
+                                    <span class="text-white">💡 Having trouble with playback or seeing YouTube Error 153? </span>
                                     <a href="{{ lesson.youtube_watch_url|default:lesson.video_url }}" target="_blank" rel="noopener noreferrer" class="text-danger fw-bold text-decoration-none">Watch directly on YouTube <i data-lucide="external-link" style="width: 12px; height: 12px; display: inline;"></i></a>
-                                    <span class="text-muted"> • If unavailable, you can use the study notes while we update the lesson.</span>
+                                    <span class="text-white"> • If your browser extensions or ad-blockers prevent playback, click <strong class="text-white">Open on YouTube</strong> above, then mark as watched.</span>
                                 </div>
 
-                                <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 p-3 rounded-2" style="background-color: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color);">
+                                <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 p-3 rounded-2" style="background-color: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255,255,255,0.15);">
                                     <div class="d-flex align-items-center gap-2" id="videoStatusContainer">
                                         {% if video_prog and video_prog.is_completed %}
                                             <span class="badge bg-success-subtle text-success border border-success-subtle d-inline-flex align-items-center gap-1 px-2.5 py-1.5" id="videoAttendanceBadge">
                                                 <i data-lucide="check-circle-2" style="width: 14px; height: 14px;"></i>
-                                                <span>Video Attendance Verified</span>
+                                                <span class="text-success fw-bold">Video Attendance Verified</span>
                                             </span>
                                         {% else %}
-                                            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle d-inline-flex align-items-center gap-1 px-2.5 py-1.5" id="videoAttendanceBadge">
+                                            <span class="badge bg-secondary-subtle text-white border border-secondary-subtle d-inline-flex align-items-center gap-1 px-2.5 py-1.5" id="videoAttendanceBadge" style="color: #FFFFFF !important;">
                                                 <i data-lucide="clock" style="width: 14px; height: 14px;"></i>
-                                                <span>Video In Progress</span>
+                                                <span class="text-white fw-bold">Video In Progress</span>
                                             </span>
                                         {% endif %}
                                     </div>
                                     <button type="button" id="markVideoWatchedBtn" class="btn btn-outline-success btn-sm py-1.5 px-3 d-inline-flex align-items-center gap-1.5" {% if video_prog and video_prog.is_completed %}disabled{% endif %}>
                                         <i data-lucide="check" style="width: 14px; height: 14px;"></i>
-                                        <span id="markVideoWatchedText">{% if video_prog and video_prog.is_completed %}Watched{% else %}Mark Video as Watched{% endif %}</span>
+                                        <span id="markVideoWatchedText" class="fw-bold">{% if video_prog and video_prog.is_completed %}Watched{% else %}Mark Video as Watched{% endif %}</span>
                                     </button>
                                 </div>
                             </div>
