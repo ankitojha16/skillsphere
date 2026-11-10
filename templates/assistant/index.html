@@ -58,6 +58,43 @@
     font-weight: 600;
 }
 
+.markdown-rendered a {
+    color: #a5b4fc !important;
+    text-decoration: none !important;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 6px;
+    background: rgba(99, 102, 241, 0.15);
+    border: 1px solid rgba(99, 102, 241, 0.35);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.2s ease;
+    margin: 1px 0;
+}
+.markdown-rendered a:hover {
+    color: #ffffff !important;
+    background: rgba(99, 102, 241, 0.32);
+    border-color: rgba(129, 140, 248, 0.7);
+    box-shadow: 0 0 12px rgba(99, 102, 241, 0.3);
+    text-decoration: none !important;
+    transform: translateY(-1px);
+}
+
+.quick-starter-chip {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+    font-size: 0.76rem !important;
+}
+.quick-starter-chip:hover {
+    background: rgba(99, 102, 241, 0.25) !important;
+    border-color: rgba(99, 102, 241, 0.6) !important;
+    color: #ffffff !important;
+    transform: translateY(-1px);
+}
+
 .markdown-rendered ul, 
 .markdown-rendered ol {
     padding-left: 1.4rem;
@@ -569,7 +606,31 @@
             <div class="p-2.5 p-md-3 border-top px-3 px-md-4 chat-bottom-bar" style="border-color: rgba(255, 255, 255, 0.08) !important; background-color: var(--bg-secondary, #111827);">
                 <form id="chatForm" method="post" action="{% url 'assistant:chat_detail' conversation_id=current_conv.id %}">
                     {% csrf_token %}
-                    
+                    <!-- Quick Starter Prompt Chips -->
+                    <div class="d-flex align-items-center gap-1.5 mb-2 overflow-x-auto pb-1" style="scrollbar-width: none; -webkit-overflow-scrolling: touch;">
+                        <button type="button" class="btn btn-sm btn-dark border border-secondary border-opacity-30 rounded-pill text-light py-0.5 px-2.5 flex-shrink-0 quick-starter-chip" data-prompt="Recommend the best course for me on SkillSphere" style="background: rgba(99, 102, 241, 0.18); border-color: rgba(99, 102, 241, 0.5) !important;">
+                            🎓 Best Course for Me
+                        </button>
+                        <button type="button" class="btn btn-sm btn-dark border border-secondary border-opacity-30 rounded-pill text-light py-0.5 px-2.5 flex-shrink-0 quick-starter-chip" data-prompt="What are the best courses for B.Tech & Engineering?" style="background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.4) !important;">
+                            💻 B.Tech Courses
+                        </button>
+                        <button type="button" class="btn btn-sm btn-dark border border-secondary border-opacity-30 rounded-pill text-light py-0.5 px-2.5 flex-shrink-0 quick-starter-chip" data-prompt="What are the best courses for BBA & MBA Management?" style="background: rgba(245, 158, 11, 0.15); border-color: rgba(245, 158, 11, 0.4) !important;">
+                            📊 BBA / MBA Courses
+                        </button>
+                        <button type="button" class="btn btn-sm btn-dark border border-secondary border-opacity-30 rounded-pill text-light py-0.5 px-2.5 flex-shrink-0 quick-starter-chip" data-prompt="What are the best courses for BCA & Computer Applications?" style="background: rgba(59, 130, 246, 0.15); border-color: rgba(59, 130, 246, 0.4) !important;">
+                            🖥️ BCA Courses
+                        </button>
+                        <button type="button" class="btn btn-sm btn-dark border border-secondary border-opacity-30 rounded-pill text-light py-0.5 px-2.5 flex-shrink-0 quick-starter-chip" data-prompt="Explain Python OOP principles with real-world code example">
+                            🐍 Python OOP
+                        </button>
+                        <button type="button" class="btn btn-sm btn-dark border border-secondary border-opacity-30 rounded-pill text-light py-0.5 px-2.5 flex-shrink-0 quick-starter-chip" data-prompt="Explain Big-O notation and Time Complexity with cheat sheet">
+                            ⚡ Big-O Complexity
+                        </button>
+                        <button type="button" class="btn btn-sm btn-dark border border-secondary border-opacity-30 rounded-pill text-light py-0.5 px-2.5 flex-shrink-0 quick-starter-chip" data-prompt="Explain the 4 Ps of Marketing in business strategy">
+                            📈 Marketing 4Ps
+                        </button>
+                    </div>
+
                     <!-- Response Mode Radio Pills -->
                     <div class="d-flex align-items-center gap-1.5 mb-2 overflow-x-auto pb-1" style="scrollbar-width: none; -webkit-overflow-scrolling: touch;">
                         <span class="text-secondary small me-1 flex-shrink-0" style="font-size: 0.78rem; font-weight: 500;">Mode:</span>
@@ -810,6 +871,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 questionInput.style.height = 'auto';
                 questionInput.style.height = Math.min(questionInput.scrollHeight, 180) + 'px';
                 questionInput.focus();
+            }
+        });
+    });
+
+    // Quick starter prompt chips (bottom bar auto-submit)
+    document.querySelectorAll('.quick-starter-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+            const promptText = chip.getAttribute('data-prompt');
+            if (questionInput && promptText) {
+                questionInput.value = promptText;
+                questionInput.style.height = 'auto';
+                questionInput.style.height = Math.min(questionInput.scrollHeight, 180) + 'px';
+                questionInput.focus();
+                if (chatForm) {
+                    chatForm.requestSubmit();
+                }
             }
         });
     });

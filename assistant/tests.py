@@ -186,6 +186,40 @@ class AssistantTests(TestCase):
         self.assertIn('Recommended Courses', ai_text)
         self.assertIn('/courses/', ai_text)
 
+    def test_bba_course_recommendation_inquiry(self):
+        """Inquiring about BBA courses returns tailored management recommendations with course URLs."""
+        conv = AIConversation.objects.create(user=self.user, title='BBA Advice', mode='detailed')
+        url = reverse('assistant:chat_detail', kwargs={'conversation_id': conv.id})
+        response = self.client.post(url, {
+            'question': 'What are the best courses for BBA and MBA?',
+            'mode': 'detailed'
+        }, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        ai_text = data.get('ai_message', '')
+        self.assertNotIn('Domain Scope Notice', ai_text)
+        self.assertIn('Management Courses (BBA / MBA)', ai_text)
+        self.assertIn('Digital Marketing', ai_text)
+        self.assertIn('/courses/digital-marketing-growth-hacking/', ai_text)
+
+    def test_btech_course_recommendation_inquiry(self):
+        """Inquiring about BTech courses returns tailored engineering recommendations with course URLs."""
+        conv = AIConversation.objects.create(user=self.user, title='BTech Advice', mode='detailed')
+        url = reverse('assistant:chat_detail', kwargs={'conversation_id': conv.id})
+        response = self.client.post(url, {
+            'question': 'What are the best courses for B.Tech?',
+            'mode': 'detailed'
+        }, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        ai_text = data.get('ai_message', '')
+        self.assertNotIn('Domain Scope Notice', ai_text)
+        self.assertIn('Engineering & Tech Courses (B.Tech / M.Tech)', ai_text)
+        self.assertIn('/courses/blockchain-architecture-smart-contracts/', ai_text)
+
+
 
 
 

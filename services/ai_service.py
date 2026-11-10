@@ -875,6 +875,18 @@ class AIService:
             (r'\bbussiness\b', 'business'),
             (r'\bacounting\b', 'accounting'),
             (r'\benginering\b', 'engineering'),
+            (r'\bb\.?\s*tech\b', 'btech'),
+            (r'\bm\.?\s*tech\b', 'mtech'),
+            (r'\bb\.?\s*sc\b', 'bsc'),
+            (r'\bm\.?\s*sc\b', 'msc'),
+            (r'\bb\.?\s*com\b', 'bcom'),
+            (r'\bm\.?\s*com\b', 'mcom'),
+            (r'\bb\.?\s*ba\b', 'bba'),
+            (r'\bm\.?\s*ba\b', 'mba'),
+            (r'\bb\.?\s*ca\b', 'bca'),
+            (r'\bm\.?\s*ca\b', 'mca'),
+            (r'\bb\.?\s*a\b', 'ba'),
+            (r'\bm\.?\s*a\b', 'ma'),
         ]
         for pattern, repl in typo_patterns:
             normalized_q = re.sub(pattern, repl, normalized_q)
@@ -926,28 +938,117 @@ class AIService:
         )
 
         if is_course_inquiry:
-            fallback_text = (
-                "### 🎓 Top Recommended Courses for You on SkillSphere\n\n"
-                "SkillSphere offers structured, career-aligned curriculum tracks with hands-on practice, "
-                "projects, and verifiable certificates. Here are our top recommendations tailored by field:\n\n"
-                "#### 💻 1. Computer Science & Software Engineering (B.Tech / BCA / M.Tech)\n"
-                "- **Full-Stack Web Development (Python & Django):** Build scalable web applications, REST APIs, and database-backed platforms from scratch.\n"
-                "- **Data Structures & Algorithms (DSA Mastery):** Master Big-O analysis, binary trees, dynamic programming, and interview patterns.\n"
-                "- **Cloud Computing & Modern DevOps:** Docker containers, CI/CD pipelines, and cloud architecture deployment.\n\n"
-                "#### 📊 2. Business Administration & Management (BBA / MBA / B.Com)\n"
-                "- **Strategic Marketing Management:** Master the 4 Ps, SWOT analysis, consumer behavior, and brand positioning.\n"
-                "- **Corporate Financial Accounting & Analysis:** Balance sheets, cash flow models, financial ratios, and valuation techniques.\n"
-                "- **Business Analytics & Data-Driven Decision Making:** Excel, SQL for business intelligence, and KPI dashboarding.\n\n"
-                "#### 🔬 3. Science, AI & Engineering (B.Sc / Engineering)\n"
-                "- **Applied Machine Learning & Neural Networks:** Supervised and unsupervised algorithms, scikit-learn, and predictive modeling.\n"
-                "- **Enterprise Database Systems (SQL & NoSQL):** PostgreSQL schema design, indexing, ACID transactions, and Redis caching.\n\n"
-                "---\n\n"
-                "#### 🚀 How to Open and Start a Course:\n"
-                "1. Go to the **[Explore Courses Catalog](/courses/)** in the left navigation.\n"
-                "2. Filter by your target degree (**B.Tech, BCA, BBA, MBA, B.Sc, B.Com**) or skill level.\n"
-                "3. Click **\"Enroll Now\"** or **\"Start Course\"** to begin lessons, track your progress, and earn an authenticated certificate!\n\n"
-                "💡 *Which degree program or topic interests you most (e.g. Python, Marketing, DSA, or Finance)? Tell me, and I will tailor the exact course path for you!*"
-            )
+            # Check for degree-specific or topic-specific inquiries
+            if any(term in normalized_q for term in ('bba', 'mba', 'marketing', 'finance', 'business', 'management')):
+                fallback_text = (
+                    "### 📊 Top Recommended Business & Management Courses (BBA / MBA)\n\n"
+                    "SkillSphere provides industry-aligned business curriculum with corporate case studies and financial modeling:\n\n"
+                    "1. 📈 **[Digital Marketing Strategy, Performance Ads & Growth Hacking](/courses/digital-marketing-growth-hacking/)**\n"
+                    "   - *Curriculum:* Performance marketing, SEO/SEM, Google Analytics 4, customer acquisition funnels, and ROAS optimization.\n"
+                    "   - *Outcome:* Build end-to-end multi-channel marketing campaigns and growth models.\n\n"
+                    "2. 💼 **[Investment Banking Fundamentals & Financial Markets](/courses/investment-banking-financial-markets/)**\n"
+                    "   - *Curriculum:* Discounted Cash Flow (DCF) valuation, LBO modeling, M&A mechanics, and debt/equity capital markets.\n"
+                    "   - *Outcome:* Professional financial modeling for corporate advisory and equity research careers.\n\n"
+                    "3. 🌐 **[International Business & Cross-Border Trade Policy](/courses/international-business-cross-border-trade/)**\n"
+                    "   - *Curriculum:* Global supply chain logistics, foreign exchange risk management, and international trade tariffs.\n\n"
+                    "---\n"
+                    "👉 Explore all 10 management tracks in our **[Explore Courses Catalog](/courses/)**."
+                )
+            elif any(term in normalized_q for term in ('btech', 'mtech', 'engineering', 'blockchain', 'compiler', 'cloud')):
+                fallback_text = (
+                    "### 💻 Top Recommended Engineering & Tech Courses (B.Tech / M.Tech)\n\n"
+                    "SkillSphere provides advanced engineering curriculums with architectural design patterns and system performance:\n\n"
+                    "1. ⛓️ **[Blockchain Architecture, Cryptography & Smart Contracts](/courses/blockchain-architecture-smart-contracts/)**\n"
+                    "   - *Curriculum:* Zero-knowledge proofs, consensus protocols (PoW/PoS), EVM internals, and secure smart contract development.\n"
+                    "   - *Outcome:* Architect distributed decentralized applications and auditable cryptographic protocols.\n\n"
+                    "2. ⚡ **[High Performance Parallel Computing with MPI & OpenMP](/courses/high-performance-computing-parallel/)**\n"
+                    "   - *Curriculum:* Multi-threaded memory synchronization, cache locality optimization, and distributed GPU cluster scaling.\n\n"
+                    "3. 🛠️ **[Compiler Design, Parsing & Code Optimization](/courses/compiler-design-optimization/)**\n"
+                    "   - *Curriculum:* Lexical analysis, LL/LR parsing tables, intermediate representation (IR), and register allocation.\n\n"
+                    "4. 🚀 **[Full-Stack Web Development with Django & Bootstrap](/courses/full-stack-django-web-dev/)**\n"
+                    "   - *Curriculum:* REST APIs, relational ORM design, scalable authentication, and deployment automation.\n\n"
+                    "---\n"
+                    "👉 Explore all 10 engineering tracks in our **[Explore Courses Catalog](/courses/)**."
+                )
+            elif any(term in normalized_q for term in ('bca', 'programming', 'web', 'c++', 'network', 'it')):
+                fallback_text = (
+                    "### 💻 Top Recommended Computer Applications & Programming Courses (BCA / BSc IT)\n\n"
+                    "Master hands-on programming, system fundamentals, and software development foundations:\n\n"
+                    "1. 🐍 **[Python Programming from Scratch to OOP](/courses/python-programming-from-scratch/)**\n"
+                    "   - *Curriculum:* Core syntax, data structures, object-oriented design, modules, and error handling.\n\n"
+                    "2. ⚙️ **[Object-Oriented Programming & Standard Template Library in C++](/courses/cpp-oop-stl-programming/)**\n"
+                    "   - *Curriculum:* Memory pointers, inheritance, templates, and STL vectors/maps for high-performance computing.\n\n"
+                    "3. 🌐 **[Computer Networking, TCP/IP Protocol Suite & Socket Programming](/courses/computer-networks-tcp-ip/)**\n"
+                    "   - *Curriculum:* OSI model layers, packet routing, DNS resolution, and TCP/UDP socket programming.\n\n"
+                    "4. ⚛️ **[Modern React & Frontend Engineering](/courses/modern-react-frontend-engineering/)**\n"
+                    "   - *Curriculum:* Hooks, Redux state management, component lifecycle, and high-performance UI rendering.\n\n"
+                    "---\n"
+                    "👉 Explore all computer application courses in our **[Explore Courses Catalog](/courses/)**."
+                )
+            elif any(term in normalized_q for term in ('bcom', 'accounting', 'commerce', 'tax', 'gst', 'stock')):
+                fallback_text = (
+                    "### 📊 Top Recommended Commerce & Taxation Courses (B.Com)\n\n"
+                    "Gain high-yield financial expertise, regulatory compliance skills, and stock market analysis:\n\n"
+                    "1. 📈 **[Equity Research, Stock Market Valuation & Portfolio Management](/courses/equity-research-stock-market-investing/)**\n"
+                    "   - *Curriculum:* Fundamental company valuation, P/E ratios, technical chart analysis, and modern portfolio theory.\n\n"
+                    "2. 💳 **[E-Commerce Operations, FinTech Architecture & Digital Payments](/courses/ecommerce-fintech-digital-payments/)**\n"
+                    "   - *Curriculum:* Payment gateway integrations, UPI protocols, transaction security, and cross-border settlement.\n\n"
+                    "3. 📜 **[Mercantile Law & The Indian Contract Act in Business](/courses/mercantile-law-indian-contract-act/)**\n"
+                    "   - *Curriculum:* Contract validity, breach remedies, indemnity, guarantee, and corporate legal obligations.\n\n"
+                    "---\n"
+                    "👉 Explore all commerce tracks in our **[Explore Courses Catalog](/courses/)**."
+                )
+            elif any(term in normalized_q for term in ('bsc', 'science', 'math', 'quantum', 'physics', 'biology')):
+                fallback_text = (
+                    "### 🔬 Top Recommended Applied Sciences & Mathematics Courses (B.Sc)\n\n"
+                    "Deep dive into advanced physical sciences, applied mathematics, and scientific computing:\n\n"
+                    "1. 📐 **[Linear Algebra & Multivariable Calculus for Physical Sciences](/courses/linear-algebra-calculus-scientists/)**\n"
+                    "   - *Curriculum:* Vector spaces, eigenvalues, matrix transformations, gradient fields, and multiple integration.\n\n"
+                    "2. ⚛️ **[Quantum Mechanics, Wave Equations & Physics Simulation](/courses/quantum-mechanics-physics-simulation/)**\n"
+                    "   - *Curriculum:* Schrödinger wave equation, quantum states, uncertainty principles, and numerical simulation.\n\n"
+                    "3. 🧬 **[Cell Biology, Molecular Genetics & Recombinant DNA](/courses/cell-biology-molecular-genetics/)**\n"
+                    "   - *Curriculum:* Cellular metabolic pathways, DNA replication, PCR technologies, and gene cloning.\n\n"
+                    "---\n"
+                    "👉 Explore all scientific courses in our **[Explore Courses Catalog](/courses/)**."
+                )
+            elif any(term in normalized_q for term in ('ba', 'design', 'psychology', 'arts', 'humanities', 'writing')):
+                fallback_text = (
+                    "### 🎨 Top Recommended Humanities & Communication Courses (BA)\n\n"
+                    "Develop creative design, critical communication, and strategic behavioral analysis skills:\n\n"
+                    "1. 🖌️ **[Graphic Design Principles, Typography & Visual Communication](/courses/graphic-design-visual-communication/)**\n"
+                    "   - *Curriculum:* Color theory, grid systems, font pairings, branding identities, and Figma/design workflows.\n\n"
+                    "2. 🧠 **[Cognitive Psychology & Behavioral Decision Science](/courses/cognitive-psychology-behavioral-decision/)**\n"
+                    "   - *Curriculum:* Cognitive biases, perception mechanics, heuristics, and human decision-making science.\n\n"
+                    "3. ✍️ **[Technical Writing, API Documentation & Content Strategy](/courses/technical-writing-api-documentation/)**\n"
+                    "   - *Curriculum:* OpenAPI specifications, developer portal authoring, information architecture, and release notes.\n\n"
+                    "---\n"
+                    "👉 Explore all arts courses in our **[Explore Courses Catalog](/courses/)**."
+                )
+            else:
+                # Multi-track Flagship Recommendation (Default)
+                fallback_text = (
+                    "### 🎓 Top Recommended Courses for You on SkillSphere\n\n"
+                    "SkillSphere provides verified academic curriculum tracks across 6 major disciplines with hands-on labs and certificates. Here are our top flagship recommendations:\n\n"
+                    "#### 💻 1. Computer Science & IT (B.Tech / BCA / M.Tech)\n"
+                    "- 🐍 **[Python Programming from Scratch to OOP](/courses/python-programming-from-scratch/)**: Master Python, data structures, and object-oriented principles.\n"
+                    "- 🚀 **[Full-Stack Web Development with Django & Bootstrap](/courses/full-stack-django-web-dev/)**: Build database-backed production web applications.\n"
+                    "- ⚡ **[Mastering Data Structures & Algorithms with Python](/courses/mastering-dsa-with-python/)**: Big-O analysis, binary trees, dynamic programming, and interview prep.\n\n"
+                    "#### 📊 2. Business & Management (BBA / MBA / B.Com)\n"
+                    "- 📈 **[Digital Marketing Strategy, Performance Ads & Growth Hacking](/courses/digital-marketing-growth-hacking/)**: Master performance marketing, SEO/SEM, and analytics.\n"
+                    "- 💼 **[Investment Banking Fundamentals & Financial Markets](/courses/investment-banking-financial-markets/)**: DCF valuation, corporate finance, and equity markets.\n"
+                    "- 💳 **[Equity Research, Stock Market Valuation & Portfolio Management](/courses/equity-research-stock-market-investing/)**: Stock valuation, P/E ratios, and risk analysis.\n\n"
+                    "#### 🔬 3. Science & Emerging Tech (B.Sc / Engineering)\n"
+                    "- 🤖 **[Introduction to Artificial Intelligence & Neural Networks](/courses/intro-to-ai-and-neural-networks/)**: Machine learning, neural networks, and computer vision.\n"
+                    "- 🗄️ **[Relational Databases & SQL Mastery with PostgreSQL](/courses/postgresql-database-mastery/)**: SQL queries, indexing, schema design, and ACID transactions.\n"
+                    "- 📐 **[Linear Algebra & Multivariable Calculus for Physical Sciences](/courses/linear-algebra-calculus-scientists/)**: Matrix math, vectors, and multivariable calculus.\n\n"
+                    "---\n\n"
+                    "#### 🚀 How to Open and Start Learning:\n"
+                    "1. Click any course title link above or visit the **[Explore Courses Catalog](/courses/)**.\n"
+                    "2. Filter by your degree program (**B.Tech, BCA, BBA, MBA, B.Sc, B.Com**) or skill level.\n"
+                    "3. Click **\"Enroll Now\"** to track your syllabus completion and earn your verified certificate!\n\n"
+                    "💡 *Tip: You can ask me for courses in any specific degree, e.g. \"Best courses for BBA\", \"Courses for BCA\", or \"Courses for B.Tech\"!*"
+                )
+
             return {
                 'text': fallback_text,
                 'provider': 'skillsphere-engine',
