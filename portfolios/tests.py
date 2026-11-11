@@ -89,4 +89,21 @@ class PortfolioTests(TestCase):
             self.assertContains(response, 'Resume PDF')
             self.assertContains(response, reverse('resumes:export_pdf', kwargs={'pk': resume.pk}))
 
+    def test_public_portfolio_displays_52_week_heatmap(self):
+        portfolio, _ = Portfolio.objects.get_or_create(
+            user=self.user,
+            username='portfoliotester',
+            is_public=True
+        )
+        for tmpl in ['modern', 'minimal', 'creative']:
+            portfolio.template = tmpl
+            portfolio.save()
+            response = self.client.get(reverse('portfolios:public', kwargs={'username': 'portfoliotester'}))
+            self.assertEqual(response.status_code, 200)
+            self.assertIn('portfolio_heatmap_days_json', response.context)
+            self.assertIn('portfolio_total_active_days', response.context)
+            self.assertContains(response, 'portfolioHeatmapGrid')
+            self.assertContains(response, '52-Week Learning')
+
+
 

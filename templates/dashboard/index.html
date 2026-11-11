@@ -11,9 +11,11 @@
             <div class="col-md-7">
                 <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
                     <span class="badge-difficulty intermediate">{{ gamification.current_level }}</span>
-                    <span class="badge bg-warning bg-opacity-10 text-warning border border-warning-subtle small px-2 py-1">
-                        <i data-lucide="flame" style="width: 14px; height: 14px;"></i> {{ gamification.current_streak }}-Day Streak
-                    </span>
+                    <button type="button" class="btn btn-sm p-0 border-0 bg-transparent" onclick="triggerMilestoneCelebration('streak')" title="Click to celebrate streak milestone!">
+                        <span class="badge bg-warning bg-opacity-10 text-warning border border-warning-subtle small px-2 py-1 cursor-pointer">
+                            <i data-lucide="flame" style="width: 14px; height: 14px;"></i> {{ gamification.current_streak }}-Day Streak 🎉
+                        </span>
+                    </button>
                     <span class="text-secondary small">{{ today_date|date:"l, F d, Y" }}</span>
                 </div>
                 <h1 class="fw-bold text-white mb-2">
@@ -662,6 +664,9 @@
                                     <i data-lucide="download" style="width: 14px; height: 14px;"></i>
                                     <span>Download PDF</span>
                                 </a>
+                                <button type="button" class="btn btn-outline-warning btn-sm py-1.5 px-2.5" onclick="triggerMilestoneCelebration('certificate', '{{ cert.course.title|default:cert.title|escapejs }}', '{{ cert.certificate_id|escapejs }}')" title="Celebrate Certificate Achievement 🎉">
+                                    <i data-lucide="sparkles" style="width: 14px; height: 14px;"></i>
+                                </button>
                                 <a href="https://www.linkedin.com/profile/add?startTask=CERTIFICATION_NAME&name={{ cert.course.title|default:cert.title|urlencode }}&organizationName=SkillSphere&issueYear={{ cert.issued_at|date:'Y' }}&issueMonth={{ cert.issued_at|date:'n' }}&certUrl={{ request.scheme }}://{{ request.get_host }}{{ cert.get_verify_url }}&certId={{ cert.certificate_id }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-info btn-sm py-1.5 px-2.5" title="Add to LinkedIn Profile">
                                     <i data-lucide="linkedin" style="width: 14px; height: 14px;"></i>
                                 </a>
@@ -856,8 +861,122 @@
         </div>
     </div>
 </div>
+
+<!-- Milestone Celebration & Canvas Confetti Modal -->
+<div class="modal fade" id="milestoneCelebrationModal" tabindex="-1" aria-labelledby="milestoneCelebrationTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content text-white text-center p-4 border" style="background: radial-gradient(circle at top, #1e1b4b 0%, #0f172a 100%); border-color: rgba(234, 179, 8, 0.4) !important; border-radius: 16px; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);">
+            <div class="modal-body p-0">
+                <div class="mb-3">
+                    <span id="milestoneEmojiBadge" style="font-size: 3.5rem; display: inline-block;">🏆</span>
+                </div>
+                <span class="badge bg-warning text-dark fw-bold text-uppercase px-3 py-1 mb-2 tracking-wider" id="milestoneTagBadge">Milestone Unlocked</span>
+                <h3 class="h3 fw-bold text-white mb-2" id="milestoneCelebrationTitle">Incredible Consistency!</h3>
+                <p class="text-secondary small mb-4 px-2" id="milestoneCelebrationDesc">
+                    You're in the top 5% of active learners this week. Keep building your daily momentum!
+                </p>
+
+                <div class="row g-2 mb-4 p-3 rounded-3" style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08);">
+                    <div class="col-4 text-center border-end border-secondary border-opacity-25">
+                        <div class="text-warning fw-bold fs-4" id="milestoneStat1">{{ gamification.current_streak|default:1 }}d</div>
+                        <div class="text-secondary" style="font-size: 0.72rem;">Streak</div>
+                    </div>
+                    <div class="col-4 text-center border-end border-secondary border-opacity-25">
+                        <div class="text-info fw-bold fs-4" id="milestoneStat2">{{ gamification.total_xp|default:0 }}</div>
+                        <div class="text-secondary" style="font-size: 0.72rem;">Total XP</div>
+                    </div>
+                    <div class="col-4 text-center">
+                        <div class="text-success fw-bold fs-4" id="milestoneStat3">{{ completed_courses_count|default:0 }}</div>
+                        <div class="text-secondary" style="font-size: 0.72rem;">Completed</div>
+                    </div>
+                </div>
+
+                <div class="d-flex flex-column gap-2">
+                    <button type="button" class="btn btn-warning fw-bold py-2.5 rounded-pill shadow-sm d-flex align-items-center justify-content-center gap-2" onclick="launchConfettiCannon()">
+                        <span>🎉 Blast More Confetti!</span>
+                    </button>
+                    <div class="d-flex gap-2">
+                        <a id="milestoneShareLinkedIn" href="https://www.linkedin.com/sharing/share-offsite/?url={{ request.build_absolute_uri }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-info flex-grow-1 py-2 rounded-pill small d-flex align-items-center justify-content-center gap-1.5">
+                            <i data-lucide="linkedin" style="width: 14px; height: 14px;"></i> Share on LinkedIn
+                        </a>
+                        <a id="milestoneShareTwitter" href="https://twitter.com/intent/tweet?text=I%20just%20unlocked%20a%20new%20learning%20milestone%20on%20SkillSphere!%20%F0%9F%9A%80" target="_blank" rel="noopener noreferrer" class="btn btn-outline-light flex-grow-1 py-2 rounded-pill small d-flex align-items-center justify-content-center gap-1.5">
+                            <i data-lucide="twitter" style="width: 14px; height: 14px;"></i> Share on X
+                        </a>
+                    </div>
+                    <button type="button" class="btn btn-link text-secondary text-decoration-none small mt-2" data-bs-dismiss="modal">
+                        Keep Crushing It →
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
 <script src="{% static 'js/dashboard.js' %}"></script>
+<script>
+    function launchConfettiCannon() {
+        if (typeof confetti === 'function') {
+            confetti({ particleCount: 90, spread: 70, origin: { y: 0.6 } });
+            setTimeout(() => confetti({ particleCount: 60, angle: 60, spread: 55, origin: { x: 0 } }), 200);
+            setTimeout(() => confetti({ particleCount: 60, angle: 120, spread: 55, origin: { x: 1 } }), 400);
+        }
+    }
+
+    function triggerMilestoneCelebration(type, title, certId) {
+        const modalEl = document.getElementById('milestoneCelebrationModal');
+        if (!modalEl) return;
+
+        const titleEl = document.getElementById('milestoneCelebrationTitle');
+        const descEl = document.getElementById('milestoneCelebrationDesc');
+        const badgeEl = document.getElementById('milestoneTagBadge');
+        const emojiEl = document.getElementById('milestoneEmojiBadge');
+        const twShare = document.getElementById('milestoneShareTwitter');
+
+        if (type === 'certificate') {
+            if (emojiEl) emojiEl.innerText = '🎓';
+            if (badgeEl) badgeEl.innerText = 'Verified Certificate Earned';
+            if (titleEl) titleEl.innerText = title || 'Certificate Unlocked!';
+            if (descEl) descEl.innerText = 'Outstanding achievement! You have officially verified your skill proficiency on SkillSphere.';
+            if (twShare) {
+                twShare.href = `https://twitter.com/intent/tweet?text=${encodeURIComponent('Proud to earn my verified certificate for ' + (title || 'engineering') + ' on @SkillSphere! 🚀')}`;
+            }
+        } else {
+            if (emojiEl) emojiEl.innerText = '🔥';
+            if (badgeEl) badgeEl.innerText = 'Streak Milestone';
+            if (titleEl) titleEl.innerText = '{{ gamification.current_streak|default:1 }}-Day Streak Unlocked!';
+            if (descEl) descEl.innerText = 'Consistency is the superpower of great engineers. Keep the momentum going strong!';
+            if (twShare) {
+                twShare.href = `https://twitter.com/intent/tweet?text=${encodeURIComponent('I just maintained a {{ gamification.current_streak|default:1 }}-day continuous learning streak on SkillSphere! 🔥')}`;
+            }
+        }
+
+        if (window.bootstrap && bootstrap.Modal) {
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            modal.show();
+        }
+        launchConfettiCannon();
+        if (window.lucide) { lucide.createIcons(); }
+    }
+
+    // Auto-pop celebration once per session if user has a 7+ day streak or has earned certificates
+    document.addEventListener('DOMContentLoaded', () => {
+        const streak = Number('{{ gamification.current_streak|default:0 }}');
+        const certCount = Number('{{ user_certificates_count|default:0 }}');
+        const celebratedKey = `ss_milestone_celebrated_${streak}_${certCount}`;
+
+        if ((streak >= 7 || certCount > 0) && !sessionStorage.getItem(celebratedKey)) {
+            sessionStorage.setItem(celebratedKey, '1');
+            setTimeout(() => {
+                if (certCount > 0) {
+                    triggerMilestoneCelebration('certificate', 'Verified SkillSphere Graduate', '');
+                } else {
+                    triggerMilestoneCelebration('streak');
+                }
+            }, 1200);
+        }
+    });
+</script>
 {% endblock %}

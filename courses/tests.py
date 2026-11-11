@@ -313,5 +313,25 @@ class CoursesTests(TestCase):
                 f"Course title '{course.title}' contains degree acronym tag in name."
             )
 
+    def test_course_search_autocomplete_api(self):
+        url = reverse('courses:search_autocomplete')
+        # Short query returns empty
+        res = self.client.get(url + '?q=a')
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.json()['results'], [])
+
+        # Valid query matching self.course ('Python & Django Core')
+        res = self.client.get(url + '?q=Python')
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertIn('results', data)
+        self.assertTrue(len(data['results']) >= 1)
+        first = data['results'][0]
+        self.assertIn('title', first)
+        self.assertIn('slug', first)
+        self.assertIn('url', first)
+        self.assertIn('thumbnail', first)
+
+
 
 

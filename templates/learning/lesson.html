@@ -227,10 +227,30 @@
                                     </div>
                                 </div>
 
+                                <!-- Multi-Speed Toolbar & Hotkeys Cheatsheet -->
+                                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2 p-2 rounded-2" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);">
+                                    <div class="d-flex align-items-center gap-1" id="videoSpeedControls">
+                                        <span class="text-white small fw-bold me-1.5 d-flex align-items-center gap-1">
+                                            <i data-lucide="gauge" style="width: 13px; height: 13px;" class="text-info"></i>
+                                            <span>Speed:</span>
+                                        </span>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm speed-btn text-white py-0.5 px-2" data-speed="0.75" onclick="setPlaybackSpeed(0.75, this)" style="font-size: 0.78rem;">0.75x</button>
+                                        <button type="button" class="btn btn-info btn-sm speed-btn text-white py-0.5 px-2 active" data-speed="1.0" onclick="setPlaybackSpeed(1.0, this)" style="font-size: 0.78rem;">1.0x</button>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm speed-btn text-white py-0.5 px-2" data-speed="1.25" onclick="setPlaybackSpeed(1.25, this)" style="font-size: 0.78rem;">1.25x</button>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm speed-btn text-white py-0.5 px-2" data-speed="1.5" onclick="setPlaybackSpeed(1.5, this)" style="font-size: 0.78rem;">1.5x</button>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm speed-btn text-white py-0.5 px-2" data-speed="2.0" onclick="setPlaybackSpeed(2.0, this)" style="font-size: 0.78rem;">2.0x</button>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-1">
+                                        <span class="badge bg-dark border border-secondary text-white font-monospace" style="font-size: 0.74rem;" title="Global shortcuts: Space (Play/Pause), M (Mute), F (Fullscreen), Left/Right (Seek 5s), 0-9 (Jump %)">
+                                            ⌨️ Hotkeys: Space, M, F, ←/→ (±5s), 0-9
+                                        </span>
+                                    </div>
+                                </div>
+
                                 <div id="videoContainerWrapper" class="ratio ratio-16x9 rounded-3 overflow-hidden border mb-2 shadow-lg position-relative" style="border-color: var(--border-color) !important; background: #000;">
                                     {% if "youtube.com" in lesson.video_url or "youtu.be" in lesson.video_url %}
                                         <iframe id="videoIframe"
-                                                src="{{ lesson.embed_video_url }}"
+                                                src="{{ lesson.embed_video_url }}{% if '?' in lesson.embed_video_url %}&{% else %}?{% endif %}enablejsapi=1"
                                                 title="{{ lesson.title }}"
                                                 sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-forms"
                                                 referrerpolicy="strict-origin-when-cross-origin"
@@ -398,12 +418,22 @@
 
                         <!-- Student Personal Scratchpad Notes -->
                         <div class="mt-4 pt-3 border-top" style="border-color: var(--border-color) !important;">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
                                 <span class="fw-bold text-white small d-flex align-items-center gap-2">
                                     <i data-lucide="edit-3" class="text-warning" style="width: 16px; height: 16px;"></i>
                                     <span>My Personal Study Scratchpad</span>
                                 </span>
-                                <span class="text-muted small" id="noteSaveIndicator" style="font-size: 0.75rem;">Auto-saves on typing</span>
+                                <div class="d-flex align-items-center gap-2">
+                                    <button type="button" class="btn btn-outline-info btn-sm py-1 px-2.5 text-white d-inline-flex align-items-center gap-1" id="exportScratchpadMdBtn" onclick="exportScratchpadMarkdown()" title="Export notes to Markdown (.md) file">
+                                        <i data-lucide="download" style="width: 13px; height: 13px;"></i>
+                                        <span>Export .md</span>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm py-1 px-2.5 text-white d-inline-flex align-items-center gap-1" id="copyNotionScratchpadBtn" onclick="copyScratchpadForNotion()" title="Copy formatted for Notion or Obsidian">
+                                        <i data-lucide="clipboard" style="width: 13px; height: 13px;"></i>
+                                        <span>Copy for Notion</span>
+                                    </button>
+                                    <span class="text-muted small" id="noteSaveIndicator" style="font-size: 0.75rem;">Auto-saves on typing</span>
+                                </div>
                             </div>
                             <textarea id="studentNoteArea" class="form-control text-light" rows="4" placeholder="Type personal key observations, questions, or code snippets here..." style="background-color: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); font-size: 0.9rem;">{{ student_note_content }}</textarea>
                         </div>
@@ -431,6 +461,85 @@
                             </div>
                             <div class="text-light small" style="font-size: 0.82rem;">
                                 <strong>Beginner Note:</strong> These coding exercises are 100% optional! You can solve as many as you wish to test your practical skills. They do not prevent you from unlocking assessments or earning your certificate.
+                            </div>
+                        </div>
+
+                        <!-- Instant In-Browser Python Code Runner (WebAssembly / Pyodide) -->
+                        <div class="p-4 rounded-3 border mb-4 shadow-sm" style="background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(17, 24, 39, 0.98) 100%); border-color: rgba(56, 189, 248, 0.3) !important;">
+                            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 pb-2 border-bottom" style="border-color: rgba(255,255,255,0.08) !important;">
+                                <div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="badge bg-info bg-opacity-25 text-info border border-info-subtle font-monospace small">
+                                            <i data-lucide="zap" style="width: 12px; height: 12px;"></i> WebAssembly Pyodide
+                                        </span>
+                                        <h5 class="fw-bold text-white mb-0">Instant In-Browser Python Runner</h5>
+                                    </div>
+                                    <p class="text-secondary small mb-0 mt-1">Execute real Python 3 code directly inside your browser sandbox with sub-second execution.</p>
+                                </div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span id="pyodideStatusBadge" class="badge bg-secondary-subtle text-light border border-secondary-subtle small font-monospace">
+                                        Engine: Ready
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Python Code Editor -->
+                            <div class="mb-3 position-relative">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <label for="wasmPythonEditor" class="form-label text-secondary small fw-bold mb-0">
+                                        Python Script (Press Run or Ctrl+Enter):
+                                    </label>
+                                    <span class="text-muted font-monospace" style="font-size: 0.75rem;">Client-side WebAssembly Sandbox</span>
+                                </div>
+                                <textarea id="wasmPythonEditor" rows="7" class="form-control font-monospace text-light p-3" style="background-color: #0b1120; border: 1px solid rgba(255,255,255,0.15); font-size: 0.88rem; line-height: 1.5;" spellcheck="false"># In-Browser Python WebAssembly Playground
+# Try writing any algorithm, list comprehension, or math!
+
+def compute_lesson_metrics():
+    topics = ["Foundations", "Architecture", "Best Practices"]
+    progress = {t: f"{idx * 33 + 34}%" for idx, t in enumerate(topics)}
+    print("Lesson Topics & Mastery:")
+    for t, p in progress.items():
+        print(f"  • {t}: {p}")
+    return len(topics)
+
+total = compute_lesson_metrics()
+print(f"Total topics completed: {total}")
+</textarea>
+                            </div>
+
+                            <!-- Runner Action Controls -->
+                            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                                <div class="d-flex align-items-center gap-2">
+                                    <button type="button" id="runWasmPythonBtn" class="btn btn-primary-custom btn-sm py-1.5 px-3 d-inline-flex align-items-center gap-1.5" onclick="runPythonCodeWasm()">
+                                        <i data-lucide="play" style="width: 14px; height: 14px;"></i>
+                                        <span id="runWasmBtnText">Run Python (WASM)</span>
+                                    </button>
+                                    <button type="button" class="btn btn-secondary-custom btn-sm py-1.5 px-3 d-inline-flex align-items-center gap-1.5" onclick="resetWasmCode()">
+                                        <i data-lucide="rotate-ccw" style="width: 13px; height: 13px;"></i>
+                                        <span>Reset</span>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm py-1.5 px-3 text-white d-inline-flex align-items-center gap-1.5" onclick="clearWasmConsole()">
+                                        <i data-lucide="trash-2" style="width: 13px; height: 13px;"></i>
+                                        <span>Clear Output</span>
+                                    </button>
+                                </div>
+                                <div id="wasmMeter" class="text-secondary small font-monospace" style="font-size: 0.78rem;">
+                                    ⚡ Zero Server Load • 100% In-Browser
+                                </div>
+                            </div>
+
+                            <!-- Output Terminal Window -->
+                            <div class="rounded-3 border overflow-hidden" style="border-color: rgba(255,255,255,0.12) !important;">
+                                <div class="d-flex justify-content-between align-items-center px-3 py-1.5 bg-dark border-bottom border-secondary border-opacity-25 text-secondary font-monospace" style="font-size: 0.78rem;">
+                                    <div class="d-flex align-items-center gap-1.5">
+                                        <span class="rounded-circle" style="width: 9px; height: 9px; background: #ef4444; display: inline-block;"></span>
+                                        <span class="rounded-circle" style="width: 9px; height: 9px; background: #f59e0b; display: inline-block;"></span>
+                                        <span class="rounded-circle" style="width: 9px; height: 9px; background: #10b981; display: inline-block;"></span>
+                                        <span class="ms-2 text-white">Console Output (stdout / stderr)</span>
+                                    </div>
+                                    <span id="wasmExecTimer" class="text-info">Ready to run</span>
+                                </div>
+                                <pre id="wasmOutputConsole" class="p-3 mb-0 font-monospace text-light" style="background-color: #030712; min-height: 90px; max-height: 240px; overflow-y: auto; font-size: 0.85rem; line-height: 1.5; white-space: pre-wrap; word-break: break-all;"># Click 'Run Python (WASM)' above to execute in sub-second WebAssembly.</pre>
                             </div>
                         </div>
 
@@ -1355,6 +1464,230 @@ function toggleFullscreenPlayer() {
             document.webkitExitFullscreen();
         }
     }
+}
+
+// Multi-Speed Toolbar & Video Player Controls
+let currentPlaybackRate = 1.0;
+let isVideoMuted = false;
+let isVideoPlaying = false;
+
+function sendYouTubeCommand(func, args) {
+    const iframe = document.getElementById('videoIframe');
+    if (iframe && iframe.contentWindow) {
+        iframe.contentWindow.postMessage(JSON.stringify({
+            'event': 'command',
+            'func': func,
+            'args': args || []
+        }), '*');
+    }
+}
+
+function setPlaybackSpeed(speed, btnEl) {
+    currentPlaybackRate = speed;
+    sendYouTubeCommand('setPlaybackRate', [speed]);
+    const html5 = document.getElementById('html5VideoPlayer');
+    if (html5) {
+        html5.playbackRate = speed;
+    }
+    document.querySelectorAll('#videoSpeedControls .speed-btn').forEach(btn => {
+        btn.classList.remove('btn-info', 'active');
+        btn.classList.add('btn-outline-secondary');
+    });
+    if (btnEl) {
+        btnEl.classList.remove('btn-outline-secondary');
+        btnEl.classList.add('btn-info', 'active');
+    }
+}
+
+// Global Video Hotkeys: Space (Play/Pause), M (Mute), F (Fullscreen), Left/Right (Seek ±5s), 0-9 (Jump %)
+document.addEventListener('keydown', function(e) {
+    const active = document.activeElement;
+    if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable)) {
+        return;
+    }
+
+    const html5 = document.getElementById('html5VideoPlayer');
+    const iframe = document.getElementById('videoIframe');
+    if (!html5 && !iframe) return;
+
+    if (e.code === 'Space') {
+        e.preventDefault();
+        if (html5) {
+            html5.paused ? html5.play() : html5.pause();
+        } else {
+            isVideoPlaying = !isVideoPlaying;
+            sendYouTubeCommand(isVideoPlaying ? 'playVideo' : 'pauseVideo');
+        }
+    } else if (e.key === 'm' || e.key === 'M') {
+        e.preventDefault();
+        if (html5) {
+            html5.muted = !html5.muted;
+        } else {
+            isVideoMuted = !isVideoMuted;
+            sendYouTubeCommand(isVideoMuted ? 'mute' : 'unMute');
+        }
+    } else if (e.key === 'f' || e.key === 'F') {
+        e.preventDefault();
+        toggleFullscreenPlayer();
+    } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        if (html5) {
+            html5.currentTime = Math.max(0, html5.currentTime - 5);
+        } else {
+            sendYouTubeCommand('seekTo', [-5, false]);
+        }
+    } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        if (html5) {
+            html5.currentTime = Math.min(html5.duration || 9999, html5.currentTime + 5);
+        } else {
+            sendYouTubeCommand('seekTo', [5, false]);
+        }
+    } else if (e.key >= '0' && e.key <= '9') {
+        const pct = parseInt(e.key, 10) * 10;
+        if (html5 && html5.duration) {
+            html5.currentTime = (pct / 100) * html5.duration;
+        }
+    }
+});
+
+// Personal Scratchpad Export to Markdown & Copy for Notion/Obsidian
+function exportScratchpadMarkdown() {
+    const notesText = document.getElementById('studentNoteArea')?.value || '';
+    const content = `# Study Notes: {{ lesson.title|escapejs }}
+Course: {{ course.title|escapejs }}
+Chapter: {{ lesson.chapter_name|escapejs }}
+Exported on: ${new Date().toLocaleDateString()}
+
+---
+
+## Personal Study Notes
+${notesText || '_No personal notes written yet._'}
+
+---
+*Exported from SkillSphere Autonomous Education Platform*
+`;
+    const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `skillsphere-notes-lesson-{{ lesson.id }}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+function copyScratchpadForNotion() {
+    const notesText = document.getElementById('studentNoteArea')?.value || '';
+    const content = `> **Course**: {{ course.title|escapejs }} | **Lesson**: {{ lesson.title|escapejs }}
+
+## Personal Notes
+${notesText || '_No personal notes written yet._'}
+`;
+    navigator.clipboard.writeText(content).then(() => {
+        const btn = document.getElementById('copyNotionScratchpadBtn');
+        if (btn) {
+            const orig = btn.innerHTML;
+            btn.innerHTML = `<i data-lucide="check" style="width: 13px; height: 13px;"></i> Copied!`;
+            setTimeout(() => { btn.innerHTML = orig; if (window.lucide) lucide.createIcons(); }, 2000);
+        }
+    });
+}
+
+// In-Browser Python WebAssembly Runner (Pyodide)
+let pyodideInstance = null;
+let isPyodideLoading = false;
+
+async function loadPyodideEngine() {
+    if (pyodideInstance) return pyodideInstance;
+    if (isPyodideLoading) {
+        while (isPyodideLoading) {
+            await new Promise(r => setTimeout(r, 100));
+        }
+        return pyodideInstance;
+    }
+    isPyodideLoading = true;
+    const badge = document.getElementById('pyodideStatusBadge');
+    if (badge) badge.innerText = 'Engine: Loading WASM...';
+
+    if (!window.loadPyodide) {
+        await new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js';
+            script.onload = resolve;
+            script.onerror = reject;
+            document.head.appendChild(script);
+        });
+    }
+
+    pyodideInstance = await window.loadPyodide({
+        indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.25.1/full/'
+    });
+    isPyodideLoading = false;
+    if (badge) {
+        badge.innerText = 'Engine: Python 3 (WASM)';
+        badge.classList.remove('bg-secondary-subtle', 'text-light');
+        badge.classList.add('bg-success-subtle', 'text-success');
+    }
+    return pyodideInstance;
+}
+
+async function runPythonCodeWasm() {
+    const editor = document.getElementById('wasmPythonEditor');
+    const consoleEl = document.getElementById('wasmOutputConsole');
+    const timerEl = document.getElementById('wasmExecTimer');
+    const btnText = document.getElementById('runWasmBtnText');
+    if (!editor || !consoleEl) return;
+
+    const code = editor.value;
+    if (btnText) btnText.innerText = 'Running...';
+    consoleEl.textContent = 'Executing in WebAssembly sandbox...\n';
+    const t0 = performance.now();
+
+    try {
+        const pyodide = await loadPyodideEngine();
+        let stdout = '';
+        let stderr = '';
+        pyodide.setStdout({ batched: (str) => { stdout += str + '\n'; } });
+        pyodide.setStderr({ batched: (str) => { stderr += str + '\n'; } });
+
+        const result = await pyodide.runPythonAsync(code);
+        const t1 = performance.now();
+        const duration = (t1 - t0).toFixed(1);
+
+        let finalOutput = '';
+        if (stdout) finalOutput += stdout;
+        if (stderr) finalOutput += `[STDERR]\n${stderr}`;
+        if (!stdout && !stderr && result !== undefined) {
+            finalOutput += `=> ${result}\n`;
+        }
+        if (!finalOutput.trim()) {
+            finalOutput = '(Execution completed with no output)\n';
+        }
+        finalOutput += `\n[Finished in ${duration}ms | Exit code 0]`;
+        consoleEl.textContent = finalOutput;
+        if (timerEl) timerEl.innerText = `⚡ ${duration}ms`;
+    } catch (err) {
+        const t1 = performance.now();
+        const duration = (t1 - t0).toFixed(1);
+        consoleEl.textContent = `Error in execution:\n${err.message || err}\n\n[Failed in ${duration}ms]`;
+        if (timerEl) timerEl.innerText = `⚠️ Error`;
+    } finally {
+        if (btnText) btnText.innerText = 'Run Python (WASM)';
+    }
+}
+
+function resetWasmCode() {
+    const editor = document.getElementById('wasmPythonEditor');
+    if (editor) {
+        editor.value = `# In-Browser Python WebAssembly Playground\n\ndef compute_lesson_metrics():\n    topics = ["Foundations", "Architecture", "Best Practices"]\n    progress = {t: f"{idx * 33 + 34}%" for idx, t in enumerate(topics)}\n    print("Lesson Topics & Mastery:")\n    for t, p in progress.items():\n        print(f"  • {t}: {p}")\n    return len(topics)\n\ntotal = compute_lesson_metrics()\nprint(f"Total topics completed: {total}")\n`;
+    }
+}
+
+function clearWasmConsole() {
+    const consoleEl = document.getElementById('wasmOutputConsole');
+    if (consoleEl) consoleEl.textContent = '# Console cleared. Press Run to execute code.';
 }
 </script>
 {% endblock %}

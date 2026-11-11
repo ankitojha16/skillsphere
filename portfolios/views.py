@@ -159,6 +159,61 @@ def public_portfolio_view(request, username):
     if not primary_resume:
         primary_resume = Resume.objects.filter(user=portfolio.user).first()
 
+    # 52-Week Study & Coding Contribution Heatmap
+    from datetime import timedelta
+    from django.utils import timezone
+    from django.db.models import Count
+    from django.db.models.functions import TruncDate
+    from goals.models import LearningActivity
+    import json
+
+    today = timezone.now().date()
+    heatmap_start = today - timedelta(days=363)
+    lesson_acts = dict(
+        LessonProgress.objects.filter(
+            user=portfolio.user,
+            is_completed=True,
+            completed_at__isnull=False,
+            completed_at__date__gte=heatmap_start
+        ).annotate(day=TruncDate('completed_at')).values('day').annotate(cnt=Count('id')).values_list('day', 'cnt')
+    )
+    extra_acts = dict(
+        LearningActivity.objects.filter(
+            user=portfolio.user,
+            created_at__date__gte=heatmap_start
+        ).annotate(day=TruncDate('created_at')).values('day').annotate(cnt=Count('id')).values_list('day', 'cnt')
+    )
+
+    portfolio_heatmap_days = []
+    portfolio_total_active_days = 0
+    portfolio_annual_contributions = 0
+
+    for i in range(363, -1, -1):
+        d = today - timedelta(days=i)
+        l_cnt = lesson_acts.get(d, 0)
+        e_cnt = extra_acts.get(d, 0)
+        cnt = l_cnt + e_cnt
+        if cnt > 0:
+            portfolio_total_active_days += 1
+            portfolio_annual_contributions += cnt
+        
+        lvl = 0
+        if cnt == 1:
+            lvl = 1
+        elif 2 <= cnt <= 3:
+            lvl = 2
+        elif 4 <= cnt <= 5:
+            lvl = 3
+        elif cnt >= 6:
+            lvl = 4
+
+        portfolio_heatmap_days.append({
+            'date': d.strftime('%Y-%m-%d'),
+            'display_date': d.strftime('%b %d, %Y'),
+            'count': cnt,
+            'level': lvl
+        })
+
     context = {
         'portfolio': portfolio,
         'projects': projects,
@@ -168,6 +223,9 @@ def public_portfolio_view(request, username):
         'skills': skills,
         'avatar_url': avatar_url,
         'primary_resume': primary_resume,
+        'portfolio_heatmap_days_json': json.dumps(portfolio_heatmap_days),
+        'portfolio_total_active_days': portfolio_total_active_days,
+        'portfolio_annual_contributions': portfolio_annual_contributions,
         'is_owner': request.user.is_authenticated and (request.user == portfolio.user),
     }
     return render(request, target_template, context)

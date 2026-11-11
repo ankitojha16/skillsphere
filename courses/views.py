@@ -19,6 +19,41 @@ from goals.models import LearningActivity
 
 logger = logging.getLogger('skillsphere.courses')
 
+def course_search_autocomplete_api(request):
+    """
+    Sub-second search suggestions API with debounced live querying.
+    Returns JSON array of top 6 matching courses with metadata.
+    """
+    q = request.GET.get('q', '').strip()
+    if not q or len(q) < 2:
+        return JsonResponse({'results': []})
+
+    cache_key = f"course_autocomplete_{q.lower()[:32]}"
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return JsonResponse({'results': cached})
+
+    matches = Course.objects.filter(is_published=True).filter(
+        Q(title__icontains=q) |
+        Q(instructor_name__icontains=q) |
+        Q(category__name__icontains=q)
+    ).select_related('category')[:6]
+
+    results = []
+    for c in matches:
+        results.append({
+            'title': c.title,
+            'slug': c.slug,
+            'url': reverse('courses:detail', kwargs={'slug': c.slug}),
+            'instructor': c.instructor_name,
+            'category': c.category.name if c.category else 'General',
+            'difficulty': c.difficulty,
+            'thumbnail': c.get_thumbnail_url(),
+        })
+
+    cache.set(cache_key, results, 300)
+    return JsonResponse({'results': results})
+
 def course_list_view(request):
     # Tier-1 In-memory cache for public category metadata (15 mins TTL)
     categories = cache.get('skillsphere_published_categories')

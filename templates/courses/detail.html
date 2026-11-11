@@ -382,16 +382,16 @@
                             <form action="{% url 'courses:submit_review' slug=course.slug %}" method="post">
                                 {% csrf_token %}
                                 <div class="mb-3">
-                                    <label class="form-label text-secondary small mb-1">Your Rating</label>
-                                    <div class="d-flex align-items-center gap-3">
-                                        <select name="rating" class="form-select form-select-sm w-auto" required>
-                                            <option value="5" selected>⭐⭐⭐⭐⭐ 5 - Excellent</option>
-                                            <option value="4">⭐⭐⭐⭐ 4 - Very Good</option>
-                                            <option value="3">⭐⭐⭐ 3 - Average</option>
-                                            <option value="2">⭐⭐ 2 - Below Average</option>
-                                            <option value="1">⭐ 1 - Poor</option>
-                                        </select>
+                                    <label class="form-label text-secondary small mb-1 fw-bold">Your Rating</label>
+                                    <div class="d-flex align-items-center gap-1.5 mb-2" id="starRatingSelector">
+                                        {% for star_val in "12345"|make_list %}
+                                            <button type="button" class="btn btn-link p-0 text-warning star-btn" data-star="{{ star_val }}" onclick="setCourseStarRating({{ star_val }})" style="text-decoration:none;">
+                                                <i data-lucide="star" class="star-icon" style="width: 22px; height: 22px; fill: currentColor; color: #f59e0b;"></i>
+                                            </button>
+                                        {% endfor %}
+                                        <span class="text-white small ms-2 fw-bold" id="starRatingLabel">5 / 5 - Excellent</span>
                                     </div>
+                                    <input type="hidden" name="rating" id="reviewRatingInput" value="5" required>
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label text-secondary small mb-1">Your Feedback (Optional, max 1000 characters)</label>
@@ -654,5 +654,33 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
+function setCourseStarRating(val) {
+    const ratingInput = document.getElementById('reviewRatingInput');
+    const label = document.getElementById('starRatingLabel');
+    if (ratingInput) ratingInput.value = val;
+
+    const descriptions = {
+        1: '1 / 5 - Poor',
+        2: '2 / 5 - Below Average',
+        3: '3 / 5 - Average',
+        4: '4 / 5 - Very Good',
+        5: '5 / 5 - Excellent'
+    };
+    if (label) label.textContent = descriptions[val] || `${val} / 5 Stars`;
+
+    document.querySelectorAll('#starRatingSelector .star-btn').forEach((btn, idx) => {
+        const icon = btn.querySelector('svg') || btn.querySelector('i');
+        if (icon) {
+            if (idx + 1 <= val) {
+                icon.style.color = '#f59e0b';
+                icon.style.fill = '#f59e0b';
+            } else {
+                icon.style.color = '#64748b';
+                icon.style.fill = 'none';
+            }
+        }
+    });
+}
 </script>
 {% endblock %}
