@@ -71,3 +71,22 @@ class PortfolioTests(TestCase):
         self.assertContains(response, 'Python')
         self.assertContains(response, 'sharePortfolioBtn')
 
+    def test_public_portfolio_displays_resume_pdf_download_link(self):
+        from resumes.models import Resume
+        resume = Resume.objects.create(
+            user=self.user,
+            title='Staff Software Engineer CV',
+            is_primary=True,
+            resume_data={'contact': {'full_name': 'Portfolio Tester'}}
+        )
+        for tmpl in ['modern', 'minimal', 'creative']:
+            portfolio, _ = Portfolio.objects.get_or_create(user=self.user, username='portfoliotester')
+            portfolio.template = tmpl
+            portfolio.is_public = True
+            portfolio.save()
+            response = self.client.get(reverse('portfolios:public', kwargs={'username': 'portfoliotester'}))
+            self.assertEqual(response.status_code, 200)
+            self.assertContains(response, 'Resume PDF')
+            self.assertContains(response, reverse('resumes:export_pdf', kwargs={'pk': resume.pk}))
+
+

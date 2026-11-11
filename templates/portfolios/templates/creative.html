@@ -54,6 +54,11 @@
                 <button type="button" class="btn btn-sm btn-outline-info rounded-pill" id="sharePortfolioBtn" title="Copy share URL">
                     <i data-lucide="share-2" style="width: 13px; height: 13px;" class="me-1"></i><span id="shareBtnText">Share</span>
                 </button>
+                {% if primary_resume %}
+                <a href="{% url 'resumes:export_pdf' pk=primary_resume.pk %}" class="btn btn-sm btn-outline-success rounded-pill" title="Download Official ATS Resume PDF">
+                    <i data-lucide="file-text" style="width: 13px; height: 13px;" class="me-1"></i>Resume PDF
+                </a>
+                {% endif %}
                 <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill text-light" onclick="window.print();" title="Print as CV">
                     <i data-lucide="printer" style="width: 13px; height: 13px;" class="me-1"></i>Print
                 </button>

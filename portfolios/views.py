@@ -154,6 +154,11 @@ def public_portfolio_view(request, username):
     }
     target_template = template_map.get(portfolio.template, 'portfolios/templates/modern.html')
 
+    from resumes.models import Resume
+    primary_resume = Resume.objects.filter(user=portfolio.user, is_primary=True).first()
+    if not primary_resume:
+        primary_resume = Resume.objects.filter(user=portfolio.user).first()
+
     context = {
         'portfolio': portfolio,
         'projects': projects,
@@ -162,6 +167,7 @@ def public_portfolio_view(request, username):
         'career_goal': career_goal,
         'skills': skills,
         'avatar_url': avatar_url,
+        'primary_resume': primary_resume,
         'is_owner': request.user.is_authenticated and (request.user == portfolio.user),
     }
     return render(request, target_template, context)
