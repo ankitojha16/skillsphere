@@ -15,7 +15,7 @@ from certificates.models import Certificate
 
 from django.core.cache import cache
 from django.db.models import Count, Avg, Q
-from django.db.models.functions import TruncDate
+from django.db.models.functions import TruncDate, Coalesce
 
 @login_required
 def dashboard_view(request):
@@ -161,8 +161,13 @@ def dashboard_view(request):
         LessonProgress.objects.filter(
             user=user,
             is_completed=True,
+            completed_at__isnull=False,
             completed_at__date__gte=week_start
-        ).annotate(day=TruncDate('completed_at')).values('day').annotate(cnt=Count('id')).values_list('day', 'cnt')
+        )
+        .annotate(day=TruncDate('completed_at'))
+        .values('day')
+        .annotate(cnt=Count('id'))
+        .values_list('day', 'cnt')
     )
 
     chart_labels = []
@@ -173,6 +178,62 @@ def dashboard_view(request):
         chart_counts.append(activity_by_day.get(day, 0))
 
     weekly_lessons_completed = sum(chart_counts)
+
+    # 5b. 52-Week Study Activity Heatmap (364 days / 52 full weeks)
+    heatmap_start = today - timedelta(days=363)
+    lesson_activity_year = dict(
+        LessonProgress.objects.filter(
+            user=user,
+            is_completed=True,
+            completed_at__isnull=False,
+            completed_at__date__gte=heatmap_start
+        )
+        .annotate(day=TruncDate('completed_at'))
+        .values('day')
+        .annotate(cnt=Count('id'))
+        .values_list('day', 'cnt')
+    )
+
+    extra_activity_year = dict(
+        LearningActivity.objects.filter(
+            user=user,
+            created_at__date__gte=heatmap_start
+        ).annotate(day=TruncDate('created_at')).values('day').annotate(cnt=Count('id')).values_list('day', 'cnt')
+    )
+
+    heatmap_days = []
+    total_active_days = 0
+    annual_study_actions = 0
+
+    for i in range(363, -1, -1):
+        d = today - timedelta(days=i)
+        lessons_cnt = lesson_activity_year.get(d, 0)
+        extra_cnt = extra_activity_year.get(d, 0)
+        cnt = lessons_cnt + extra_cnt
+        if cnt > 0:
+            total_active_days += 1
+            annual_study_actions += cnt
+
+        # Level 0 to 4
+        if cnt == 0:
+            lvl = 0
+        elif cnt == 1:
+            lvl = 1
+        elif cnt <= 3:
+            lvl = 2
+        elif cnt <= 5:
+            lvl = 3
+        else:
+            lvl = 4
+
+        heatmap_days.append({
+            'date': d.strftime('%Y-%m-%d'),
+            'display_date': d.strftime('%b %d, %Y'),
+            'count': cnt,
+            'lessons': lessons_cnt,
+            'level': lvl,
+            'weekday': d.weekday()  # 0=Mon, 6=Sun
+        })
 
     # 6. Active and Recent Learning Goals
     goals_qs = list(LearningGoal.objects.filter(user=user).order_by('target_date'))
@@ -265,6 +326,9 @@ def dashboard_view(request):
         'recent_activities': recent_activities,
         'chart_labels_json': json.dumps(chart_labels),
         'chart_counts_json': json.dumps(chart_counts),
+        'heatmap_days_json': json.dumps(heatmap_days),
+        'total_active_days': total_active_days,
+        'annual_study_actions': annual_study_actions,
         
         # Phase 2 additions
         'gamification': gamification,

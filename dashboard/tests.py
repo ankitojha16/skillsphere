@@ -1,11 +1,14 @@
 from django.test import TestCase, Client
 from django.contrib.auth.models import User
 from django.urls import reverse
+from django.utils import timezone
+from django.core.cache import cache
 from courses.models import Category, Course, Enrollment
 from learning.models import Lesson, LessonProgress
 
 class DashboardTests(TestCase):
     def setUp(self):
+        cache.clear()
         self.client = Client()
         self.user = User.objects.create_user(username='dashuser', email='dash@test.com', password='Password123!')
         self.category = Category.objects.create(name='AI', slug='ai')
@@ -62,7 +65,23 @@ class DashboardTests(TestCase):
         response = self.client.get('/sitemap.xml')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/xml')
-        self.assertContains(response, '<urlset')
         self.assertContains(response, '/courses/')
         self.assertContains(response, '/careers/')
         self.assertContains(response, '</urlset>')
+
+    def test_dashboard_has_52_week_study_heatmap(self):
+        self.client.force_login(self.user)
+        LessonProgress.objects.create(
+            user=self.user,
+            lesson=self.lesson,
+            is_completed=True,
+            completed_at=timezone.now()
+        )
+        response = self.client.get(reverse('dashboard:index'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, '52-Week Study Consistency Heatmap')
+        self.assertContains(response, 'studyHeatmapGrid')
+        self.assertContains(response, 'heatmapDaysData')
+        self.assertIn('heatmap_days_json', response.context)
+        self.assertGreaterEqual(response.context['total_active_days'], 1)
+

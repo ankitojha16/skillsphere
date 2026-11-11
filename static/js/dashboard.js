@@ -96,4 +96,68 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
+
+    // 52-Week Study Consistency Heatmap Rendering
+    const heatmapGrid = document.getElementById('studyHeatmapGrid');
+    const heatmapDaysEl = document.getElementById('heatmapDaysData');
+    const hoverInfoEl = document.getElementById('heatmapHoverInfo');
+
+    if (heatmapGrid && heatmapDaysEl) {
+        try {
+            const days = JSON.parse(heatmapDaysEl.textContent);
+            const levelColors = {
+                0: 'rgba(255, 255, 255, 0.05)',
+                1: 'rgba(14, 165, 233, 0.35)',
+                2: 'rgba(14, 165, 233, 0.65)',
+                3: '#0ea5e9',
+                4: '#38bdf8'
+            };
+
+            const fragment = document.createDocumentFragment();
+            days.forEach(day => {
+                const cell = document.createElement('div');
+                cell.className = 'heatmap-cell';
+                cell.style.width = '12px';
+                cell.style.height = '12px';
+                cell.style.borderRadius = '2px';
+                cell.style.backgroundColor = levelColors[day.level] || levelColors[0];
+                cell.style.cursor = 'pointer';
+                cell.style.transition = 'transform 0.15s ease, box-shadow 0.15s ease';
+                if (day.level === 4) {
+                    cell.style.boxShadow = '0 0 5px rgba(56, 189, 248, 0.6)';
+                }
+
+                cell.setAttribute('title', `${day.count} activity on ${day.display_date}`);
+
+                cell.addEventListener('mouseenter', () => {
+                    cell.style.transform = 'scale(1.35)';
+                    cell.style.zIndex = '5';
+                    if (hoverInfoEl) {
+                        if (day.count > 0) {
+                            hoverInfoEl.innerHTML = `<strong class="text-white">${day.display_date}</strong>: <span class="text-info fw-semibold">${day.count} study actions</span> (${day.lessons} lessons completed)`;
+                        } else {
+                            hoverInfoEl.innerHTML = `<strong class="text-white">${day.display_date}</strong>: <span class="text-secondary">No study records on this day</span>`;
+                        }
+                    }
+                });
+
+                cell.addEventListener('mouseleave', () => {
+                    cell.style.transform = 'scale(1)';
+                    cell.style.zIndex = '1';
+                });
+
+                fragment.appendChild(cell);
+            });
+
+            heatmapGrid.appendChild(fragment);
+
+            heatmapGrid.addEventListener('mouseleave', () => {
+                if (hoverInfoEl) {
+                    hoverInfoEl.textContent = 'Hover over any day to inspect completed lessons & activity';
+                }
+            });
+        } catch (e) {
+            console.error("Error rendering study heatmap", e);
+        }
+    }
 });

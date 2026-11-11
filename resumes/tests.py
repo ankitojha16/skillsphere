@@ -237,4 +237,32 @@ class ResumeTests(TestCase):
         self.assertContains(response, 'id="importSkillSphereCertsBtn"')
         self.assertContains(response, 'Import SkillSphere (1)')
 
+    def test_ats_check_with_target_job_description(self):
+        response = self.client.post(
+            reverse('resumes:ai_improve'),
+            data=json.dumps({
+                'type': 'ats_check',
+                'resume_data': {
+                    'contact': {'full_name': 'Test Dev', 'email': 'test@example.com'},
+                    'summary': 'Passionate Python and Django developer with database skills.',
+                    'skills': ['Python', 'Django'],
+                    'education': [{'school': 'NIT', 'degree': 'B.Tech', 'year': '2025'}],
+                    'projects': [{'title': 'Project 1', 'technologies': 'Python', 'description': 'Web app'}],
+                },
+                'job_description': 'Looking for an engineer skilled in Python, Django, React, PostgreSQL, and Docker.'
+            }),
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data.get('success'))
+        analysis = data.get('analysis', {})
+        self.assertIn('score', analysis)
+        self.assertIn('keywords_matched', analysis)
+        self.assertIn('keywords_missing', analysis)
+        matched_lower = [k.lower() for k in analysis['keywords_matched']]
+        self.assertIn('python', matched_lower)
+        missing_lower = [k.lower() for k in analysis['keywords_missing']]
+        self.assertTrue(any(k in missing_lower for k in ['react', 'postgresql', 'docker']))
+
 

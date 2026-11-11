@@ -451,13 +451,26 @@
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content text-white" style="background-color: #11182B; border: 1px solid rgba(255,255,255,0.12);">
             <div class="modal-header border-secondary border-opacity-25">
-                <h5 class="modal-title fw-bold"><i data-lucide="shield-check" class="text-info me-2"></i>Educational ATS Readability Analysis</h5>
+                <h5 class="modal-title fw-bold"><i data-lucide="shield-check" class="text-info me-2"></i>Educational ATS Readability & Keyword Match Analysis</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body" id="atsModalBody">
-                <div class="text-center py-4">
-                    <div class="spinner-border text-info mb-2" role="status"></div>
-                    <p class="text-secondary small">Evaluating keyword coverage, structural sections, and typography readability...</p>
+            <div class="modal-body p-4" id="atsModalBody">
+                <div class="p-3 rounded mb-4" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);">
+                    <label for="atsJobDescriptionInput" class="form-label text-info small fw-bold mb-1 d-flex align-items-center gap-1">
+                        <i data-lucide="briefcase" style="width:14px;height:14px;"></i> Target Job Description (Optional - Paste to Compare Keywords)
+                    </label>
+                    <p class="text-secondary small mb-2">Paste a job posting from LinkedIn, Indeed, or career sites to analyze keyword coverage and identify missing skills.</p>
+                    <textarea id="atsJobDescriptionInput" rows="3" class="form-control form-control-sm bg-dark text-white border-secondary mb-2" placeholder="e.g. Seeking Full-Stack Engineer experienced in Python, Django, React, PostgreSQL, Docker, and REST APIs..."></textarea>
+                    <button type="button" id="atsReanalyzeBtn" class="btn btn-sm btn-outline-info d-inline-flex align-items-center gap-1">
+                        <i data-lucide="sparkles" style="width:14px;height:14px;"></i>
+                        <span>Re-Analyze Keyword Match</span>
+                    </button>
+                </div>
+                <div id="atsAnalysisResults">
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-info mb-2" role="status"></div>
+                        <p class="text-secondary small">Evaluating keyword coverage, structural sections, and typography readability...</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -899,52 +912,140 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // ATS Audit Modal
+    // ATS Audit Modal & Target JD Keyword Matcher
     const atsAuditBtn = document.getElementById('atsAuditBtn');
-    if (atsAuditBtn) {
-        atsAuditBtn.addEventListener('click', async function() {
-            const modal = new bootstrap.Modal(document.getElementById('atsModal'));
-            modal.show();
-            const data = getResumeJSON();
-            try {
-                const resp = await fetch('{% url "resumes:ai_improve" %}', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': '{{ csrf_token }}'
-                    },
-                    body: JSON.stringify({
-                        type: 'ats_check',
-                        resume_data: data
-                    })
-                });
-                const res = await resp.json();
-                if (res.success && res.analysis) {
-                    const an = res.analysis;
-                    document.getElementById('atsModalBody').innerHTML = `
-                        <div class="text-center mb-4">
-                            <div class="display-4 fw-bold text-white mb-1">${an.score}<span class="fs-5 text-muted">/100</span></div>
-                            <span class="badge ${an.score >= 80 ? 'bg-success' : 'bg-warning text-dark'} px-3 py-1 fs-6">${an.readability_status} Readability</span>
-                        </div>
+    let atsModalInstance = null;
+
+    async function runAtsAnalysis() {
+        const resultsContainer = document.getElementById('atsAnalysisResults');
+        if (!resultsContainer) return;
+        resultsContainer.innerHTML = `
+            <div class="text-center py-4">
+                <div class="spinner-border text-info mb-2" role="status"></div>
+                <p class="text-secondary small">Evaluating keyword coverage, structural sections, and target match...</p>
+            </div>
+        `;
+        const data = getResumeJSON();
+        const jobDesc = document.getElementById('atsJobDescriptionInput')?.value.trim() || '';
+
+        try {
+            const resp = await fetch('{% url "resumes:ai_improve" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    type: 'ats_check',
+                    resume_data: data,
+                    job_description: jobDesc
+                })
+            });
+            const res = await resp.json();
+            if (res.success && res.analysis) {
+                const an = res.analysis;
+
+                let matchedHtml = '';
+                if (an.keywords_matched && an.keywords_matched.length > 0) {
+                    matchedHtml = `
                         <div class="mb-3">
-                            <h6 class="fw-bold text-white small text-uppercase">Strengths</h6>
-                            <ul class="text-success small ps-3">
-                                ${an.strengths.map(s => `<li>${s}</li>`).join('')}
-                            </ul>
+                            <h6 class="fw-bold text-success small text-uppercase d-flex align-items-center gap-1">
+                                <i data-lucide="check-circle-2" style="width:14px;height:14px;"></i> Matched Industry Keywords (${an.keywords_matched.length})
+                            </h6>
+                            <div class="d-flex flex-wrap gap-1 mt-1">
+                                ${an.keywords_matched.map(kw => `<span class="badge bg-success bg-opacity-25 text-success border border-success-subtle px-2 py-1">${escapeHtml(kw)}</span>`).join('')}
+                            </div>
                         </div>
-                        <div class="mb-3">
-                            <h6 class="fw-bold text-white small text-uppercase">Recommended Enhancements</h6>
-                            <ul class="text-warning small ps-3">
-                                ${an.improvements.map(i => `<li>${i}</li>`).join('')}
-                            </ul>
-                        </div>
-                        <p class="text-muted small mb-0">${an.disclaimer}</p>
                     `;
-                    document.getElementById('atsScoreBadge').innerText = `${an.score}/100`;
                 }
-            } catch (err) {
-                document.getElementById('atsModalBody').innerHTML = `<p class="text-danger">Failed to run ATS analysis: ${err}</p>`;
+
+                let missingHtml = '';
+                if (an.keywords_missing && an.keywords_missing.length > 0) {
+                    missingHtml = `
+                        <div class="mb-3 p-3 rounded" style="background: rgba(234, 179, 8, 0.08); border: 1px solid rgba(234, 179, 8, 0.2);">
+                            <h6 class="fw-bold text-warning small text-uppercase d-flex align-items-center gap-1 mb-1">
+                                <i data-lucide="alert-triangle" style="width:14px;height:14px;"></i> Missing Target Keywords (${an.keywords_missing.length})
+                            </h6>
+                            <p class="text-secondary small mb-2">Click below to inject missing relevant skills directly into your resume:</p>
+                            <div class="d-flex flex-wrap gap-1.5" id="missingKeywordsContainer">
+                                ${an.keywords_missing.map(kw => `
+                                    <button type="button" class="btn btn-xs btn-outline-warning d-inline-flex align-items-center gap-1 add-keyword-btn" data-keyword="${escapeHtml(kw)}" style="font-size: 0.78rem; padding: 3px 8px;">
+                                        <span>+ ${escapeHtml(kw)}</span>
+                                    </button>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+
+                resultsContainer.innerHTML = `
+                    <div class="text-center mb-4">
+                        <div class="display-4 fw-bold text-white mb-1">${an.score}<span class="fs-5 text-muted">/100</span></div>
+                        <span class="badge ${an.score >= 80 ? 'bg-success' : 'bg-warning text-dark'} px-3 py-1 fs-6">${escapeHtml(an.readability_status)} Readability</span>
+                    </div>
+                    ${matchedHtml}
+                    ${missingHtml}
+                    <div class="mb-3">
+                        <h6 class="fw-bold text-white small text-uppercase">Strengths</h6>
+                        <ul class="text-success small ps-3">
+                            ${(an.strengths || []).map(s => `<li>${escapeHtml(s)}</li>`).join('')}
+                        </ul>
+                    </div>
+                    <div class="mb-3">
+                        <h6 class="fw-bold text-white small text-uppercase">Recommended Enhancements</h6>
+                        <ul class="text-warning small ps-3">
+                            ${(an.improvements || []).map(i => `<li>${escapeHtml(i)}</li>`).join('')}
+                        </ul>
+                    </div>
+                    <p class="text-muted small mb-0">${escapeHtml(an.disclaimer)}</p>
+                `;
+
+                if (window.lucide) {
+                    lucide.createIcons();
+                }
+
+                // Bind click event to "+ Add" buttons for missing keywords
+                resultsContainer.querySelectorAll('.add-keyword-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const kw = this.getAttribute('data-keyword');
+                        const skillsInput = document.getElementById('input_skills');
+                        if (skillsInput && kw) {
+                            let curr = skillsInput.value.split(',').map(s => s.trim()).filter(Boolean);
+                            if (!curr.some(s => s.toLowerCase() === kw.toLowerCase())) {
+                                curr.push(kw);
+                                skillsInput.value = curr.join(', ');
+                                updatePreview();
+                            }
+                            this.classList.remove('btn-outline-warning');
+                            this.classList.add('btn-success');
+                            this.innerHTML = `<span>✓ Added</span>`;
+                            this.disabled = true;
+                        }
+                    });
+                });
+
+                const badge = document.getElementById('atsScoreBadge');
+                if (badge) badge.innerText = `${an.score}/100`;
             }
+        } catch (err) {
+            resultsContainer.innerHTML = `<p class="text-danger">Failed to run ATS analysis: ${escapeHtml(err.message || err)}</p>`;
+        }
+    }
+
+    if (atsAuditBtn) {
+        atsAuditBtn.addEventListener('click', function() {
+            if (!atsModalInstance) {
+                atsModalInstance = new bootstrap.Modal(document.getElementById('atsModal'));
+            }
+            atsModalInstance.show();
+            runAtsAnalysis();
+        });
+    }
+
+    const reanalyzeBtn = document.getElementById('atsReanalyzeBtn');
+    if (reanalyzeBtn) {
+        reanalyzeBtn.addEventListener('click', function() {
+            runAtsAnalysis();
         });
     }
 });
