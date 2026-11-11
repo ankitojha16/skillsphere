@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Spaced Repetition Flashcards - SkillSphere{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4 pb-2 border-bottom border-secondary border-opacity-25">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="badge bg-warning bg-opacity-25 text-warning border border-warning-subtle rounded-pill px-3 py-1 small">
+                    <i data-lucide="brain" style="width: 13px; height: 13px;"></i> SuperMemo SM-2 Algorithm
+                </span>
+                <span class="badge bg-success bg-opacity-25 text-success border border-success-subtle rounded-pill px-2.5 py-1 small">
+                    Active Recall Engine
+                </span>
+            </div>
+            <h1 class="h3 fw-bold text-white mb-0">Spaced Repetition Flashcard Decks</h1>
+            <p class="text-secondary small mb-0 mt-1">Review key architectural concepts and algorithms at mathematically optimized retention intervals.</p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <div class="p-2.5 px-3 rounded-pill bg-dark border border-secondary border-opacity-50 text-white small font-monospace d-flex align-items-center gap-2">
+                <span class="rounded-circle bg-warning" style="width: 8px; height: 8px; display: inline-block;"></span>
+                <span><strong>{{ total_due_today }}</strong> card{{ total_due_today|pluralize }} due for review today</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Decks Grid -->
+    <div class="row g-4">
+        {% for deck in decks %}
+            <div class="col-md-6 col-lg-4">
+                <div class="custom-card p-4 h-100 d-flex flex-column justify-content-between border-purple-glow position-relative" style="background: linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(56,189,248,0.03) 100%);">
+                    <div>
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <span class="badge-category"><i data-lucide="layers" style="width: 12px; height: 12px;"></i> {{ deck.course.category.name|default:"Engineering" }}</span>
+                            {% if deck.due_count > 0 %}
+                                <span class="badge bg-warning text-dark fw-bold rounded-pill px-2.5 py-1 small">
+                                    {{ deck.due_count }} Due
+                                </span>
+                            {% else %}
+                                <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25 rounded-pill px-2 py-1 small">
+                                    ✓ Up to Date
+                                </span>
+                            {% endif %}
+                        </div>
+
+                        <h5 class="fw-bold text-white mb-2">{{ deck.course.title }}</h5>
+
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <div class="p-2 rounded-2 text-center" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.06);">
+                                    <div class="h5 fw-bold text-white mb-0">{{ deck.total_cards }}</div>
+                                    <div class="text-secondary small font-monospace" style="font-size: 0.72rem;">Total Cards</div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="p-2 rounded-2 text-center" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.06);">
+                                    <div class="h5 fw-bold text-success mb-0">{{ deck.mastered_count }}</div>
+                                    <div class="text-secondary small font-monospace" style="font-size: 0.72rem;">Mastered</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pt-3 border-top border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
+                        <a href="{% url 'learning:flashcards_auto_generate' course_id=deck.course.id %}" class="btn btn-sm btn-outline-secondary text-white py-1.5 px-2.5 small" title="Re-sync flashcards from lesson takeaways">
+                            <i data-lucide="sparkles" style="width: 13px; height: 13px;"></i> Sync
+                        </a>
+                        <a href="{% url 'learning:flashcards_study' course_id=deck.course.id %}" class="btn btn-sm btn-primary-custom py-1.5 px-4 d-inline-flex align-items-center gap-1.5 fw-bold">
+                            <i data-lucide="play" style="width: 14px; height: 14px;"></i>
+                            <span>Study Deck</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        {% empty %}
+            <div class="col-12">
+                <div class="custom-card p-5 text-center">
+                    <div class="p-3 rounded-circle d-inline-flex mb-3" style="background: rgba(56, 189, 248, 0.1); color: #38bdf8;">
+                        <i data-lucide="book-open" style="width: 42px; height: 42px;"></i>
+                    </div>
+                    <h4 class="fw-bold text-white mb-2">No Course Enrollments Found</h4>
+                    <p class="text-secondary small mb-4">Enroll in any SkillSphere course to automatically unlock spaced repetition flashcard decks.</p>
+                    <a href="{% url 'courses:list' %}" class="btn btn-primary-custom px-4 py-2">Explore Course Catalog</a>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

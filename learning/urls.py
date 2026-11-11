@@ -4,6 +4,12 @@ from . import views
 app_name = 'learning'
 
 urlpatterns = [
+    # Spaced Repetition Flashcard Engine Routes
+    path('flashcards/', views.flashcards_hub_view, name='flashcards_hub'),
+    path('flashcards/<int:course_id>/study/', views.flashcards_study_view, name='flashcards_study'),
+    path('flashcards/review/', views.flashcards_record_review_view, name='flashcards_record_review'),
+    path('flashcards/<int:course_id>/auto-generate/', views.flashcards_auto_generate_view, name='flashcards_auto_generate'),
+
     path('<slug:course_slug>/<int:lesson_id>/', views.lesson_view, name='lesson_detail'),
     path('<slug:course_slug>/<int:lesson_id>/toggle/', views.complete_lesson_toggle, name='complete_toggle'),
     path('<slug:course_slug>/<int:lesson_id>/video-progress/', views.video_progress_api, name='video_progress'),

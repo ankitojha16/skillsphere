@@ -267,6 +267,32 @@ class CertificateTests(TestCase):
         self.assertEqual(center_resp.status_code, 200)
         self.assertContains(center_resp, 'linkedin.com/profile/add')
 
+    def test_verification_portal_and_qr_scanner(self):
+        """Verify the dedicated public verification portal and QR scanner views."""
+        # 1. Access portal without ID
+        resp = self.client.get('/verify/')
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'SkillSphere Credential Verification')
+        self.assertContains(resp, 'qrReader')
+        self.assertContains(resp, 'Scan QR Code')
+
+        # 2. Access via /certificates/verify/
+        resp2 = self.client.get(reverse('certificates:verify_portal'))
+        self.assertEqual(resp2.status_code, 200)
+
+        # 3. Search via query param redirect
+        cert = Certificate.objects.create(
+            user=self.user,
+            course=self.course,
+            title=self.course.title,
+            certificate_id='SS-CERT-2026-PORTAL1',
+            recipient_name='Jane Doe'
+        )
+        resp3 = self.client.get('/verify/?id=' + cert.certificate_id)
+        self.assertEqual(resp3.status_code, 302)
+        self.assertEqual(resp3['Location'], f'/verify/{cert.certificate_id}/')
+
+
 
 
 

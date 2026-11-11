@@ -220,3 +220,140 @@ def ai_improve_view(request):
         return JsonResponse({'error': 'Unknown action type'}, status=400)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+
+# Standard Curated Interview Question Bank
+INTERVIEW_QUESTION_BANK = {
+    'fullstack': {
+        'title': 'Full-Stack Software Engineer',
+        'technical': [
+            "Explain how the request-response lifecycle works when a browser requests a page from a Django/React application.",
+            "What strategies do you use for database indexing and optimizing slow SQL queries in a production web application?",
+            "How do you design a secure RESTful API with proper token-based authentication and rate limiting?",
+            "What is the difference between optimistic and pessimistic locking in relational databases, and when would you use each?"
+        ],
+        'behavioral': [
+            "Tell me about a time when you had to debug a critical production bug under time pressure. How did you identify the root cause?",
+            "Describe a situation where you had a technical disagreement with a team member. How did you resolve it?",
+            "Tell me about a complex project where the requirements changed midway through development. How did you adapt?"
+        ],
+        'system_design': [
+            "Design a URL shortening service like Bit.ly that can handle 10,000 writes and 100,000 reads per second.",
+            "How would you design a real-time notification feed system for a platform like SkillSphere with millions of active users?"
+        ]
+    },
+    'python': {
+        'title': 'Python & Django Specialist',
+        'technical': [
+            "Explain the difference between Django's `select_related` and `prefetch_related`. How do they prevent N+1 query problems?",
+            "How does Python's GIL (Global Interpreter Lock) affect concurrency, and how would you execute CPU-bound vs I/O-bound tasks?",
+            "What are Python generators and iterators? How do they improve memory efficiency when processing large datasets?",
+            "How do Django database transactions and the `atomic()` context manager work during concurrent requests?"
+        ],
+        'behavioral': [
+            "Tell me about an open-source library or module you built or heavily refactored. What lessons did you learn?",
+            "Describe a time you advocated for code quality, testing, or documentation when the business wanted to rush a release."
+        ],
+        'system_design': [
+            "How would you architect an asynchronous background job processing pipeline using Celery and Redis in Django?"
+        ]
+    },
+    'frontend': {
+        'title': 'Frontend React & UI Engineer',
+        'technical': [
+            "Explain the virtual DOM and the React reconciliation algorithm. How do keys impact rendering performance?",
+            "How do you optimize Core Web Vitals (LCP, FID/INP, CLS) for a high-traffic single-page application?",
+            "What are the trade-offs between Client-Side Rendering (CSR), Server-Side Rendering (SSR), and Static Site Generation (SSG)?"
+        ],
+        'behavioral': [
+            "Tell me about a time when you received harsh critical feedback on a UI design or frontend implementation. How did you handle it?",
+            "Describe how you collaborated closely with backend engineers to define an optimal API schema for a complex UI screen."
+        ],
+        'system_design': [
+            "Design an infinite-scroll photo and media feed that maintains 60 FPS performance without memory leaks."
+        ]
+    },
+    'devops': {
+        'title': 'Cloud & DevOps Specialist',
+        'technical': [
+            "Explain how a Kubernetes Pod communicates across a cluster network using Services and Ingress controllers.",
+            "What are the differences between blue-green deployments, canary releases, and rolling updates?",
+            "How do you secure secrets and sensitive API credentials in CI/CD pipelines and production container runtimes?"
+        ],
+        'behavioral': [
+            "Describe an outage or incident you resolved. How did you manage stakeholder communication and conduct the post-mortem?",
+            "Tell me about an automation you implemented that significantly improved deployment speed or engineering reliability."
+        ],
+        'system_design': [
+            "Design a multi-region highly available architecture on AWS/GCP with automated failover and database replication."
+        ]
+    },
+    'data_science': {
+        'title': 'Data Scientist & AI Engineer',
+        'technical': [
+            "Explain the bias-variance tradeoff and how regularization (L1/L2) helps prevent model overfitting.",
+            "How do Transformer attention mechanisms calculate self-attention, and why are they superior to traditional RNNs/LSTMs?",
+            "What techniques do you employ to handle severely imbalanced datasets in classification tasks?"
+        ],
+        'behavioral': [
+            "Tell me about a project where machine learning metrics (e.g. F1-score) didn't translate into expected business impact. What happened?",
+            "Describe how you explained a complex black-box model to non-technical stakeholders to gain their trust."
+        ],
+        'system_design': [
+            "Design an end-to-end real-time recommendation engine that serves personalized recommendations within 50ms."
+        ]
+    }
+}
+
+
+@login_required
+def mock_interview_view(request):
+    """
+    AI Audio/Voice Mock Technical & Behavioral Interview Studio.
+    Provides speech synthesis (AI reads questions) + speech recognition + Gemini evaluation.
+    """
+    selected_role = request.GET.get('role', 'fullstack')
+    if selected_role not in INTERVIEW_QUESTION_BANK:
+        selected_role = 'fullstack'
+
+    role_data = INTERVIEW_QUESTION_BANK[selected_role]
+    return render(request, 'resumes/mock_interview.html', {
+        'selected_role': selected_role,
+        'role_data': role_data,
+        'all_roles': INTERVIEW_QUESTION_BANK,
+    })
+
+
+@login_required
+def evaluate_interview_answer_view(request):
+    """
+    Evaluates candidate's spoken or typed answer to an interview question using AIService.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST request required'}, status=405)
+
+    try:
+        if request.content_type == 'application/json':
+            body = json.loads(request.body)
+        else:
+            body = request.POST
+
+        role = body.get('role', 'Software Engineer')
+        question = body.get('question', '').strip()
+        answer = body.get('answer', '').strip()
+        category = body.get('category', 'technical')
+
+        if not question or not answer:
+            return JsonResponse({'error': 'Both question and answer are required.'}, status=400)
+
+        analysis = AIService.evaluate_interview_answer(
+            role=role,
+            question=question,
+            answer=answer,
+            category=category
+        )
+        return JsonResponse({'success': True, 'analysis': analysis})
+    except Exception as e:
+        logger.error(f"Interview evaluation error: {e}")
+        return JsonResponse({'error': str(e)}, status=500)
+

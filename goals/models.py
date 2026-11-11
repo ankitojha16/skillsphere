@@ -31,6 +31,8 @@ class LearningActivity(models.Model):
         ('COMPLETE_LESSON', 'Lesson Completed'),
         ('GOAL_CREATED', 'Goal Created'),
         ('GOAL_COMPLETED', 'Goal Completed'),
+        ('FOCUS_SESSION', 'Pomodoro Focus Session'),
+        ('FLASHCARD_REVIEW', 'Flashcard Spaced Repetition'),
     ]
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='activities')

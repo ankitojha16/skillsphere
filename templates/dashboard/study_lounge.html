@@ -1,0 +1,592 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Virtual Study Lounge & Pomodoro Hub - SkillSphere{% endblock %}
+
+{% block extra_css %}
+<style>
+    .lounge-card {
+        background: #111827;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 20px;
+    }
+    .timer-ring-circle {
+        transition: stroke-dashoffset 1s linear;
+        transform: rotate(-90deg);
+        transform-origin: 50% 50%;
+    }
+    .ambient-slider::-webkit-slider-thumb {
+        background: #38bdf8;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4 pb-2 border-bottom border-secondary border-opacity-25">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="badge bg-warning bg-opacity-25 text-warning border border-warning-subtle rounded-pill px-3 py-1 small">
+                    <i data-lucide="timer" style="width: 13px; height: 13px;"></i> Pomodoro Focus Engine
+                </span>
+                <span class="badge bg-info bg-opacity-25 text-info border border-info-subtle rounded-pill px-2.5 py-1 small">
+                    Web Audio Ambient Mixer
+                </span>
+            </div>
+            <h1 class="h3 fw-bold text-white mb-0">Virtual Study Lounge & Focus Hub</h1>
+            <p class="text-secondary small mb-0 mt-1">Deep work environment with synchronized Pomodoro cycles, procedural ambient audio, and automatic 52-week heatmap logging.</p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <div class="p-2.5 px-3 rounded-pill bg-dark border border-secondary border-opacity-50 text-white small font-monospace d-flex align-items-center gap-2">
+                <span class="rounded-circle bg-success" style="width: 8px; height: 8px; display: inline-block;"></span>
+                <span>Today: <strong id="todayPomodoroDisplay">{{ today_pomodoros }}</strong> sessions (<strong id="todayMinutesDisplay">{{ today_minutes }}</strong> mins focus)</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Left: Pomodoro Timer -->
+        <div class="col-lg-7">
+            <div class="lounge-card p-4 p-md-5 text-center position-relative mb-4">
+                <!-- Mode Switcher Tabs -->
+                <div class="d-inline-flex p-1 rounded-pill mb-4" style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.08);">
+                    <button type="button" class="btn btn-sm rounded-pill px-3 py-1 text-white fw-semibold" id="modeFocusBtn" onclick="setTimerMode('focus')">
+                        Focus (25m)
+                    </button>
+                    <button type="button" class="btn btn-sm rounded-pill px-3 py-1 text-secondary fw-semibold" id="modeShortBtn" onclick="setTimerMode('short')">
+                        Short Break (5m)
+                    </button>
+                    <button type="button" class="btn btn-sm rounded-pill px-3 py-1 text-secondary fw-semibold" id="modeLongBtn" onclick="setTimerMode('long')">
+                        Long Break (15m)
+                    </button>
+                </div>
+
+                <!-- Circular SVG Timer -->
+                <div class="position-relative d-inline-flex justify-content-center align-items-center my-3" style="width: 260px; height: 260px;">
+                    <svg width="260" height="260" viewBox="0 0 260 260">
+                        <!-- Background track -->
+                        <circle cx="130" cy="130" r="115" stroke="rgba(255,255,255,0.06)" stroke-width="12" fill="none"/>
+                        <!-- Animated Progress Ring -->
+                        <circle id="timerProgressCircle" class="timer-ring-circle" cx="130" cy="130" r="115" stroke="#f59e0b" stroke-width="12" stroke-linecap="round" fill="none" stroke-dasharray="722.56" stroke-dashoffset="0"/>
+                    </svg>
+
+                    <!-- Center Time Display -->
+                    <div class="position-absolute d-flex flex-column align-items-center">
+                        <div class="display-3 fw-bold text-white font-monospace lh-1" id="timerDisplay">25:00</div>
+                        <div class="text-secondary small font-monospace mt-2" id="timerStatusLabel">Ready to Focus</div>
+                    </div>
+                </div>
+
+                <!-- Timer Controls -->
+                <div class="d-flex justify-content-center align-items-center gap-3 mt-4">
+                    <button type="button" class="btn btn-primary-custom px-4 py-2 fw-bold d-inline-flex align-items-center gap-2" id="timerStartBtn" onclick="toggleTimer()">
+                        <i data-lucide="play" id="timerPlayIcon" style="width: 18px; height: 18px;"></i>
+                        <span id="timerStartText">Start Focus</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary-custom px-3 py-2 text-white" onclick="resetTimer()" title="Reset Timer">
+                        <i data-lucide="rotate-ccw" style="width: 16px; height: 16px;"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary px-3 py-2 text-white" onclick="skipTimer()" title="Skip / Complete Session">
+                        <i data-lucide="skip-forward" style="width: 16px; height: 16px;"></i>
+                    </button>
+                </div>
+
+                <!-- Target Course Tag (Optional) -->
+                {% if enrolled_courses %}
+                    <div class="mt-4 pt-3 border-top border-secondary border-opacity-25 d-flex justify-content-center align-items-center gap-2">
+                        <label for="focusCourseSelect" class="text-secondary small mb-0 font-monospace">Focus Topic:</label>
+                        <select id="focusCourseSelect" class="form-select form-select-sm bg-dark text-white border-secondary py-1 px-3 rounded-pill" style="max-width: 280px; font-size: 0.8rem;">
+                            <option value="">General Engineering Study</option>
+                            {% for c in enrolled_courses %}
+                                <option value="{{ c.id }}">{{ c.title }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Focus Session Tasks Checklist -->
+            <div class="lounge-card p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold text-white mb-0 d-flex align-items-center gap-2">
+                        <i data-lucide="check-square" style="width: 16px; height: 16px;" class="text-success"></i>
+                        <span>Session Focus Checklist</span>
+                    </h5>
+                    <span class="text-secondary small font-monospace" id="tasksDoneRatio">0/0 completed</span>
+                </div>
+
+                <div class="input-group mb-3">
+                    <input type="text" id="newTaskInput" class="form-control bg-dark text-white border-secondary" placeholder="Add a specific task for this Pomodoro..." onkeydown="if(event.key==='Enter') addTask()">
+                    <button class="btn btn-outline-secondary text-white" type="button" onclick="addTask()">
+                        <i data-lucide="plus" style="width: 16px; height: 16px;"></i>
+                    </button>
+                </div>
+
+                <div class="d-flex flex-column gap-2" id="tasksListContainer">
+                    <div class="text-secondary small font-monospace text-center py-2" id="noTasksMsg">
+                        No tasks added yet. Plan 2-3 specific milestones for this session.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Procedural Web Audio Ambient Mixer -->
+        <div class="col-lg-5">
+            <div class="lounge-card p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom border-secondary border-opacity-25">
+                    <div>
+                        <h5 class="fw-bold text-white mb-0 d-flex align-items-center gap-2">
+                            <i data-lucide="headphones" style="width: 18px; height: 18px;" class="text-info"></i>
+                            <span>Procedural Ambient Mixer</span>
+                        </h5>
+                        <div class="text-secondary small" style="font-size: 0.75rem;">100% Offline • Zero External Audio Streaming</div>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-info rounded-pill py-1 px-3 d-inline-flex align-items-center gap-1.5" id="masterAudioBtn" onclick="toggleMasterAudio()">
+                        <i data-lucide="volume-2" id="masterAudioIcon" style="width: 14px; height: 14px;"></i>
+                        <span id="masterAudioText">Play Ambient</span>
+                    </button>
+                </div>
+
+                <!-- 4 Sound Channels -->
+                <div class="d-flex flex-column gap-3 py-2">
+                    <!-- Channel 1: Gentle Rain -->
+                    <div class="p-3 rounded-3" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06);">
+                        <div class="d-flex justify-content-between align-items-center mb-1.5">
+                            <span class="text-white small fw-semibold d-inline-flex align-items-center gap-2">
+                                <i data-lucide="cloud-rain" style="width: 14px; height: 14px;" class="text-info"></i> Gentle Rain
+                            </span>
+                            <span class="text-secondary small font-monospace" id="volTextRain">40%</span>
+                        </div>
+                        <input type="range" class="form-range ambient-slider" min="0" max="100" value="40" id="volSliderRain" oninput="setChannelVolume('rain', this.value)">
+                    </div>
+
+                    <!-- Channel 2: Coffee Shop Hum -->
+                    <div class="p-3 rounded-3" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06);">
+                        <div class="d-flex justify-content-between align-items-center mb-1.5">
+                            <span class="text-white small fw-semibold d-inline-flex align-items-center gap-2">
+                                <i data-lucide="coffee" style="width: 14px; height: 14px;" class="text-warning"></i> Coffee Shop Ambience
+                            </span>
+                            <span class="text-secondary small font-monospace" id="volTextCoffee">0%</span>
+                        </div>
+                        <input type="range" class="form-range ambient-slider" min="0" max="100" value="0" id="volSliderCoffee" oninput="setChannelVolume('coffee', this.value)">
+                    </div>
+
+                    <!-- Channel 3: Binaural Alpha Waves (10Hz) -->
+                    <div class="p-3 rounded-3" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06);">
+                        <div class="d-flex justify-content-between align-items-center mb-1.5">
+                            <span class="text-white small fw-semibold d-inline-flex align-items-center gap-2">
+                                <i data-lucide="activity" style="width: 14px; height: 14px;" class="text-success"></i> Binaural Alpha Waves (10Hz)
+                            </span>
+                            <span class="text-secondary small font-monospace" id="volTextBinaural">0%</span>
+                        </div>
+                        <input type="range" class="form-range ambient-slider" min="0" max="100" value="0" id="volSliderBinaural" oninput="setChannelVolume('binaural', this.value)">
+                    </div>
+
+                    <!-- Channel 4: Lo-Fi Vinyl Crackle -->
+                    <div class="p-3 rounded-3" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06);">
+                        <div class="d-flex justify-content-between align-items-center mb-1.5">
+                            <span class="text-white small fw-semibold d-inline-flex align-items-center gap-2">
+                                <i data-lucide="disc" style="width: 14px; height: 14px;" class="text-primary-accent"></i> Lo-Fi Vinyl Warmth
+                            </span>
+                            <span class="text-secondary small font-monospace" id="volTextVinyl">0%</span>
+                        </div>
+                        <input type="range" class="form-range ambient-slider" min="0" max="100" value="0" id="volSliderVinyl" oninput="setChannelVolume('vinyl', this.value)">
+                    </div>
+                </div>
+
+                <!-- Heatmap Link -->
+                <div class="p-3 rounded-3 mt-3 text-center" style="background: rgba(56, 189, 248, 0.05); border: 1px solid rgba(56, 189, 248, 0.2);">
+                    <div class="text-info small fw-bold mb-1">⚡ Automatic Heatmap Sync</div>
+                    <p class="text-secondary small mb-2" style="font-size: 0.78rem;">
+                        Every completed 25-minute Pomodoro automatically earns +25 XP and illuminates an activity cell on your 52-week contribution grid.
+                    </p>
+                    <a href="{% url 'dashboard:index' %}" class="btn btn-sm btn-outline-info rounded-pill px-3 py-1 small">
+                        View Study Heatmap
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // -------------------------------------------------------------
+    // Pomodoro Timer Engine
+    // -------------------------------------------------------------
+    const RING_CIRCUMFERENCE = 722.56;
+    let timerMode = 'focus'; // 'focus', 'short', 'long'
+    let totalSeconds = 25 * 60;
+    let remainingSeconds = 25 * 60;
+    let timerInterval = null;
+    let isRunning = false;
+
+    function setTimerMode(mode) {
+        clearInterval(timerInterval);
+        isRunning = false;
+        timerMode = mode;
+        updateTimerButtons();
+
+        if (mode === 'focus') {
+            totalSeconds = 25 * 60;
+            document.getElementById('timerProgressCircle').style.stroke = '#f59e0b';
+            document.getElementById('timerStatusLabel').innerText = 'Ready to Focus';
+        } else if (mode === 'short') {
+            totalSeconds = 5 * 60;
+            document.getElementById('timerProgressCircle').style.stroke = '#10b981';
+            document.getElementById('timerStatusLabel').innerText = 'Short Rest Break';
+        } else if (mode === 'long') {
+            totalSeconds = 15 * 60;
+            document.getElementById('timerProgressCircle').style.stroke = '#38bdf8';
+            document.getElementById('timerStatusLabel').innerText = 'Long Rest Break';
+        }
+        remainingSeconds = totalSeconds;
+        updateTimerDisplay();
+    }
+
+    function updateTimerButtons() {
+        ['Focus', 'Short', 'Long'].forEach(m => {
+            const btn = document.getElementById(`mode${m}Btn`);
+            if (m.toLowerCase() === timerMode) {
+                btn.classList.add('bg-primary-custom', 'text-white');
+                btn.classList.remove('text-secondary');
+            } else {
+                btn.classList.remove('bg-primary-custom', 'text-white');
+                btn.classList.add('text-secondary');
+            }
+        });
+
+        const startBtn = document.getElementById('timerStartBtn');
+        const startText = document.getElementById('timerStartText');
+        const icon = document.getElementById('timerPlayIcon');
+        if (isRunning) {
+            startText.innerText = 'Pause';
+            if (icon) icon.setAttribute('data-lucide', 'pause');
+        } else {
+            startText.innerText = remainingSeconds < totalSeconds ? 'Resume' : 'Start Focus';
+            if (icon) icon.setAttribute('data-lucide', 'play');
+        }
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    function toggleTimer() {
+        if (isRunning) {
+            clearInterval(timerInterval);
+            isRunning = false;
+            document.getElementById('timerStatusLabel').innerText = 'Paused';
+        } else {
+            isRunning = true;
+            document.getElementById('timerStatusLabel').innerText = timerMode === 'focus' ? 'Focus in progress...' : 'Resting...';
+            timerInterval = setInterval(() => {
+                remainingSeconds--;
+                updateTimerDisplay();
+                if (remainingSeconds <= 0) {
+                    clearInterval(timerInterval);
+                    isRunning = false;
+                    onTimerComplete();
+                }
+            }, 1000);
+        }
+        updateTimerButtons();
+    }
+
+    function resetTimer() {
+        clearInterval(timerInterval);
+        isRunning = false;
+        remainingSeconds = totalSeconds;
+        document.getElementById('timerStatusLabel').innerText = 'Ready';
+        updateTimerDisplay();
+        updateTimerButtons();
+    }
+
+    function skipTimer() {
+        if (confirm('Complete this session early and record progress?')) {
+            clearInterval(timerInterval);
+            isRunning = false;
+            onTimerComplete();
+        }
+    }
+
+    function updateTimerDisplay() {
+        const mins = Math.floor(remainingSeconds / 60).toString().padStart(2, '0');
+        const secs = (remainingSeconds % 60).toString().padStart(2, '0');
+        document.getElementById('timerDisplay').innerText = `${mins}:${secs}`;
+        document.title = `(${mins}:${secs}) Study Lounge - SkillSphere`;
+
+        // Update stroke dashoffset
+        const progress = (totalSeconds - remainingSeconds) / totalSeconds;
+        const offset = RING_CIRCUMFERENCE - (progress * RING_CIRCUMFERENCE);
+        document.getElementById('timerProgressCircle').style.strokeDashoffset = offset;
+    }
+
+    async function onTimerComplete() {
+        playBellChime();
+        if (timerMode === 'focus') {
+            const courseSelect = document.getElementById('focusCourseSelect');
+            const courseId = courseSelect ? courseSelect.value : null;
+
+            // Log session via AJAX
+            try {
+                const resp = await fetch('{% url "dashboard:log_focus_session" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: JSON.stringify({
+                        minutes: 25,
+                        course_id: courseId
+                    })
+                });
+                const data = await resp.json();
+                if (data.success) {
+                    document.getElementById('todayPomodoroDisplay').innerText = data.today_pomodoros;
+                    document.getElementById('todayMinutesDisplay').innerText = data.today_minutes;
+                    alert('🎉 Pomodoro complete! +25 XP awarded and logged to your activity heatmap.');
+                }
+            } catch (e) {
+                console.warn('Focus session logging error', e);
+            }
+            setTimerMode('short');
+        } else {
+            alert('Break complete! Ready for your next focus cycle.');
+            setTimerMode('focus');
+        }
+    }
+
+    // -------------------------------------------------------------
+    // Procedural Web Audio Ambient Sound Synthesizer
+    // -------------------------------------------------------------
+    let audioCtx = null;
+    let masterGain = null;
+    let isMasterPlaying = false;
+    const channels = {};
+
+    function initAudioContext() {
+        if (!audioCtx) {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            audioCtx = new AudioContext();
+            masterGain = audioCtx.createGain();
+            masterGain.gain.setValueAtTime(0.7, audioCtx.currentTime);
+            masterGain.connect(audioCtx.destination);
+            setupSynthesizers();
+        }
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+    }
+
+    function setupSynthesizers() {
+        // 1. Rain Synthesizer (Filtered White Noise)
+        const bufferSize = audioCtx.sampleRate * 2;
+        const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            output[i] = Math.random() * 2 - 1;
+        }
+
+        const whiteNoise = audioCtx.createBufferSource();
+        whiteNoise.buffer = noiseBuffer;
+        whiteNoise.loop = true;
+
+        const rainFilter = audioCtx.createBiquadFilter();
+        rainFilter.type = 'lowpass';
+        rainFilter.frequency.setValueAtTime(800, audioCtx.currentTime);
+
+        const rainGain = audioCtx.createGain();
+        rainGain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+
+        whiteNoise.connect(rainFilter);
+        rainFilter.connect(rainGain);
+        rainGain.connect(masterGain);
+        whiteNoise.start();
+        channels.rain = rainGain;
+
+        // 2. Coffee Shop Synthesizer (Warm Low Hum & Filtered Pink Noise)
+        const pinkBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const pinkOut = pinkBuffer.getChannelData(0);
+        let b0 = 0, b1 = 0, b2 = 0;
+        for (let i = 0; i < bufferSize; i++) {
+            const white = Math.random() * 2 - 1;
+            b0 = 0.99886 * b0 + white * 0.0555179;
+            b1 = 0.99332 * b1 + white * 0.0750759;
+            b2 = 0.96900 * b2 + white * 0.1538520;
+            pinkOut[i] = (b0 + b1 + b2) * 0.1;
+        }
+
+        const pinkSource = audioCtx.createBufferSource();
+        pinkSource.buffer = pinkBuffer;
+        pinkSource.loop = true;
+
+        const coffeeFilter = audioCtx.createBiquadFilter();
+        coffeeFilter.type = 'bandpass';
+        coffeeFilter.frequency.setValueAtTime(450, audioCtx.currentTime);
+
+        const coffeeGain = audioCtx.createGain();
+        coffeeGain.gain.setValueAtTime(0.0, audioCtx.currentTime);
+
+        pinkSource.connect(coffeeFilter);
+        coffeeFilter.connect(coffeeGain);
+        coffeeGain.connect(masterGain);
+        pinkSource.start();
+        channels.coffee = coffeeGain;
+
+        // 3. Binaural Alpha Waves (Left: 200Hz, Right: 210Hz)
+        const merger = audioCtx.createChannelMerger(2);
+        const oscL = audioCtx.createOscillator();
+        oscL.frequency.setValueAtTime(200, audioCtx.currentTime);
+        const oscR = audioCtx.createOscillator();
+        oscR.frequency.setValueAtTime(210, audioCtx.currentTime);
+
+        const binauralGain = audioCtx.createGain();
+        binauralGain.gain.setValueAtTime(0.0, audioCtx.currentTime);
+
+        oscL.connect(merger, 0, 0);
+        oscR.connect(merger, 0, 1);
+        merger.connect(binauralGain);
+        binauralGain.connect(masterGain);
+        oscL.start();
+        oscR.start();
+        channels.binaural = binauralGain;
+
+        // 4. Lo-Fi Vinyl Crackle (Low rumble + pops)
+        const vinylBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const vData = vinylBuffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            vData[i] = Math.random() < 0.002 ? (Math.random() * 2 - 1) * 0.8 : 0;
+        }
+        const vinylSource = audioCtx.createBufferSource();
+        vinylSource.buffer = vinylBuffer;
+        vinylSource.loop = true;
+
+        const vinylGain = audioCtx.createGain();
+        vinylGain.gain.setValueAtTime(0.0, audioCtx.currentTime);
+
+        vinylSource.connect(vinylGain);
+        vinylGain.connect(masterGain);
+        vinylSource.start();
+        channels.vinyl = vinylGain;
+    }
+
+    function toggleMasterAudio() {
+        initAudioContext();
+        isMasterPlaying = !isMasterPlaying;
+        const btnText = document.getElementById('masterAudioText');
+        const icon = document.getElementById('masterAudioIcon');
+
+        if (isMasterPlaying) {
+            masterGain.gain.setValueAtTime(0.7, audioCtx.currentTime);
+            btnText.innerText = 'Mute All';
+            if (icon) icon.setAttribute('data-lucide', 'volume-x');
+        } else {
+            masterGain.gain.setValueAtTime(0, audioCtx.currentTime);
+            btnText.innerText = 'Play Ambient';
+            if (icon) icon.setAttribute('data-lucide', 'volume-2');
+        }
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    function setChannelVolume(channel, val) {
+        initAudioContext();
+        const floatVal = parseFloat(val) / 100.0;
+        if (channels[channel]) {
+            channels[channel].gain.setValueAtTime(floatVal, audioCtx.currentTime);
+        }
+        const txtEl = document.getElementById(`volText${channel.charAt(0).toUpperCase() + channel.slice(1)}`);
+        if (txtEl) txtEl.innerText = `${val}%`;
+
+        // If user raises a slider, auto-unmute master if muted
+        if (floatVal > 0 && !isMasterPlaying) {
+            toggleMasterAudio();
+        }
+    }
+
+    function playBellChime() {
+        initAudioContext();
+        const now = audioCtx.currentTime;
+        const notes = [523.25, 659.25, 783.99, 1046.50]; // C Major Chord
+        notes.forEach((freq, idx) => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+            gain.gain.setValueAtTime(0.15, now + idx * 0.08);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 1.8);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now + idx * 0.08);
+            osc.stop(now + idx * 0.08 + 1.9);
+        });
+    }
+
+    // -------------------------------------------------------------
+    // Session Task Checklist (localStorage)
+    // -------------------------------------------------------------
+    let tasks = JSON.parse(localStorage.getItem('study_lounge_tasks') || '[]');
+
+    function renderTasks() {
+        const container = document.getElementById('tasksListContainer');
+        const emptyMsg = document.getElementById('noTasksMsg');
+        const ratio = document.getElementById('tasksDoneRatio');
+
+        if (!tasks || tasks.length === 0) {
+            container.innerHTML = '';
+            if (emptyMsg) container.appendChild(emptyMsg);
+            ratio.innerText = '0/0 completed';
+            return;
+        }
+
+        let doneCount = 0;
+        let html = '';
+        tasks.forEach((t, i) => {
+            if (t.done) doneCount++;
+            html += `
+                <div class="p-2.5 rounded-2 d-flex justify-content-between align-items-center" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06);">
+                    <div class="form-check mb-0">
+                        <input class="form-check-input" type="checkbox" id="task_${i}" ${t.done ? 'checked' : ''} onchange="toggleTask(${i})">
+                        <label class="form-check-label text-light small ${t.done ? 'text-decoration-line-through text-secondary' : ''}" for="task_${i}">
+                            ${t.text}
+                        </label>
+                    </div>
+                    <button type="button" class="btn btn-link text-secondary p-0" onclick="deleteTask(${i})" title="Remove task">
+                        <i data-lucide="x" style="width: 13px; height: 13px;"></i>
+                    </button>
+                </div>
+            `;
+        });
+        container.innerHTML = html;
+        ratio.innerText = `${doneCount}/${tasks.length} completed`;
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    function addTask() {
+        const input = document.getElementById('newTaskInput');
+        const text = input.value.trim();
+        if (!text) return;
+        tasks.push({ text: text, done: false });
+        input.value = '';
+        saveTasks();
+    }
+
+    function toggleTask(idx) {
+        if (tasks[idx]) {
+            tasks[idx].done = !tasks[idx].done;
+            saveTasks();
+        }
+    }
+
+    function deleteTask(idx) {
+        tasks.splice(idx, 1);
+        saveTasks();
+    }
+
+    function saveTasks() {
+        localStorage.setItem('study_lounge_tasks', JSON.stringify(tasks));
+        renderTasks();
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        setTimerMode('focus');
+        renderTasks();
+    });
+</script>
+{% endblock %}

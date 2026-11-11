@@ -5,7 +5,7 @@ from django.urls import reverse
 from courses.models import Category, Course, Enrollment, CourseModule
 from learning.models import (
     Lesson, LessonProgress, VideoProgress, LessonBookmark,
-    StudentNote, Exercise, ExerciseSubmission
+    StudentNote, Exercise, ExerciseSubmission, Flashcard, FlashcardReview
 )
 
 class LearningTests(TestCase):
@@ -647,3 +647,99 @@ class CurriculumExpansionAndCertificateTests(TestCase):
         self.assertNotIn('Certificate Locked', content)
         self.assertNotIn('Requires 100%', content)
         self.assertNotIn('Assessment Milestone Unlocked', content)
+
+
+class SpacedRepetitionFlashcardTests(TestCase):
+    def setUp(self):
+        from django.contrib.auth.models import User
+        self.user = User.objects.create_user(username='flashcard_learner', password='Password123!')
+        self.client = Client()
+        self.client.login(username='flashcard_learner', password='Password123!')
+
+        self.category = Category.objects.create(name='AI Engineering', slug='ai-engineering')
+        self.course = Course.objects.create(
+            title='Neural Networks & Deep Learning',
+            slug='neural-networks-deep-learning',
+            category=self.category,
+            is_published=True
+        )
+        self.enrollment = Enrollment.objects.create(user=self.user, course=self.course)
+
+        self.card1 = Flashcard.objects.create(
+            course=self.course,
+            front='What is Backpropagation?',
+            back='An algorithm that computes the gradient of the loss function with respect to weights using the chain rule.',
+            category='Optimization',
+            order=1
+        )
+        self.card2 = Flashcard.objects.create(
+            course=self.course,
+            front='What is Dropout?',
+            back='A regularization technique that randomly zeros out unit activations during training to prevent co-adaptation.',
+            category='Regularization',
+            order=2
+        )
+
+    def test_sm2_algorithm_quality_scaling(self):
+        """Test SuperMemo SM-2 interval calculations across quality ratings."""
+        review = FlashcardReview.objects.create(user=self.user, flashcard=self.card1)
+        self.assertEqual(review.repetition, 0)
+        self.assertEqual(review.interval_days, 1)
+        self.assertEqual(review.ease_factor, 2.5)
+
+        # 1. First review: Good (quality=2) -> interval = 1
+        review.record_review(quality=2)
+        self.assertEqual(review.repetition, 1)
+        self.assertEqual(review.interval_days, 1)
+
+        # 2. Second review: Good (quality=2) -> interval = 4
+        review.record_review(quality=2)
+        self.assertEqual(review.repetition, 2)
+        self.assertEqual(review.interval_days, 4)
+
+        # 3. Third review: Easy (quality=3) -> interval = 4 * 2.5 = 10, EF increases
+        initial_ef = review.ease_factor
+        review.record_review(quality=3)
+        self.assertEqual(review.repetition, 3)
+        self.assertGreaterEqual(review.interval_days, 10)
+        self.assertGreater(review.ease_factor, initial_ef)
+
+        # 4. Failure: Again (quality=0) -> resets repetition to 0, interval to 1
+        review.record_review(quality=0)
+        self.assertEqual(review.repetition, 0)
+        self.assertEqual(review.interval_days, 1)
+
+    def test_flashcards_hub_and_study_flow(self):
+        """Test hub rendering, study session, and AJAX review API."""
+        # 1. Hub view
+        hub_resp = self.client.get(reverse('learning:flashcards_hub'))
+        self.assertEqual(hub_resp.status_code, 200)
+        self.assertContains(hub_resp, 'Spaced Repetition Flashcard Decks')
+        self.assertContains(hub_resp, 'Neural Networks')
+
+        # 2. Study view
+        study_url = reverse('learning:flashcards_study', kwargs={'course_id': self.course.id})
+        study_resp = self.client.get(study_url)
+        self.assertEqual(study_resp.status_code, 200)
+        self.assertContains(study_resp, 'What is Backpropagation?')
+        self.assertContains(study_resp, 'SuperMemo SM-2 Rating Controls')
+
+        # 3. Record review via AJAX POST
+        review_url = reverse('learning:flashcards_record_review')
+        post_resp = self.client.post(
+            review_url,
+            data=json.dumps({'card_id': self.card1.id, 'quality': 3}),
+            content_type='application/json'
+        )
+        self.assertEqual(post_resp.status_code, 200)
+        data = post_resp.json()
+        self.assertTrue(data.get('success'))
+        self.assertIn('interval_days', data)
+        self.assertIn('xp_awarded', data)
+
+        # 4. Verify LearningActivity logged for heatmap
+        from goals.models import LearningActivity
+        activity = LearningActivity.objects.filter(user=self.user, activity_type='FLASHCARD_REVIEW').first()
+        self.assertIsNotNone(activity)
+        self.assertIn('Neural Networks & Deep Learning', activity.description)
+

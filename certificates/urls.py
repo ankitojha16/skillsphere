@@ -13,8 +13,10 @@ urlpatterns = [
     path('certificates/course/<int:course_id>/download-cert/', views.download_course_certificate_view, name='download_course_certificate'),
     path('certificates/<int:pk>/pdf/', views.download_certificate_pdf_view, name='download_pdf'),
     path('certificates/<int:pk>/preview/', views.preview_certificate_pdf_view, name='preview_pdf'),
+    path('certificates/verify/', views.verify_portal_view, name='verify_portal'),
     path('certificates/verify/<str:certificate_id>/', views.verify_certificate_view, name='verify_full'),
     path('certificates/verify/<str:certificate_id>/pdf/', views.public_verify_pdf_view, name='verify_pdf'),
+    path('verify/', views.verify_portal_view, name='verify_portal_short'),
     path('verify/<str:certificate_id>/', views.verify_certificate_view, name='verify'),
     path('verify/<str:certificate_id>/pdf/', views.public_verify_pdf_view, name='verify_pdf_short'),
 ]

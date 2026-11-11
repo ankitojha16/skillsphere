@@ -19,7 +19,9 @@ from .models import (
     Exercise,
     ExerciseSubmission,
     Assignment,
-    AssignmentSubmission
+    AssignmentSubmission,
+    Flashcard,
+    FlashcardReview
 )
 from goals.models import LearningActivity
 from services.pdf_service import PDFService
@@ -593,3 +595,203 @@ def ai_notes_assist_api(request, course_slug, lesson_id):
         'provider_label': result.get('provider_label', 'SkillSphere Knowledge Engine'),
         'is_fallback': result.get('is_fallback', True),
     })
+
+
+# ============================================================================
+# Spaced Repetition Flashcards Views (SM-2 Engine)
+# ============================================================================
+
+@login_required
+def flashcards_hub_view(request):
+    """
+    Spaced Repetition Flashcard Hub.
+    Lists all enrolled course decks with cards due today, mastery counts, and review triggers.
+    """
+    enrollments = Enrollment.objects.filter(user=request.user).select_related('course')
+    decks = []
+    total_due_today = 0
+    now = timezone.now()
+
+    for enr in enrollments:
+        course = enr.course
+        total_cards = course.flashcards.count()
+        if total_cards == 0:
+            # Auto-seed initial cards from lessons
+            lessons = course.lessons.exclude(key_takeaways='').all()
+            if lessons:
+                for idx, les in enumerate(lessons, 1):
+                    Flashcard.objects.create(
+                        course=course,
+                        lesson=les,
+                        front=f"Core Concept from {les.title}: What is the primary takeaway?",
+                        back=les.key_takeaways or les.title,
+                        category=les.chapter_name or 'Core Concept',
+                        order=idx
+                    )
+                total_cards = course.flashcards.count()
+
+        reviews = FlashcardReview.objects.filter(user=request.user, flashcard__course=course)
+        reviewed_card_ids = set(reviews.values_list('flashcard_id', flat=True))
+
+        due_count = (total_cards - len(reviewed_card_ids)) + reviews.filter(next_review_due__lte=now).count()
+        mastered_count = reviews.filter(repetition__gte=3, ease_factor__gte=2.4).count()
+
+        total_due_today += due_count
+        decks.append({
+            'course': course,
+            'total_cards': total_cards,
+            'due_count': due_count,
+            'mastered_count': mastered_count,
+        })
+
+    return render(request, 'learning/flashcards_hub.html', {
+        'decks': decks,
+        'total_due_today': total_due_today,
+    })
+
+
+@login_required
+def flashcards_study_view(request, course_id):
+    """
+    Interactive Spaced Repetition Study Session for a Course.
+    Fetches cards due today and serves the 3D flip card review interface.
+    """
+    course = get_object_or_404(Course, id=course_id)
+    if not Enrollment.objects.filter(user=request.user, course=course).exists():
+        messages.error(request, "Please enroll in this course to review its flashcard decks.")
+        return redirect('courses:detail', slug=course.slug)
+
+    now = timezone.now()
+    cards = list(course.flashcards.all().select_related('lesson'))
+    if not cards:
+        default_prompts = [
+            ("What is the primary architectural principle emphasized in this course?",
+             "Modularity, clean separation of concerns, and defensive error handling.",
+             "Architecture"),
+            ("How do database indexes optimize lookup performance?",
+             "By constructing balanced search trees (B-Trees) that reduce lookup complexity from O(N) to O(log N).",
+             "Databases"),
+            ("What is the difference between synchronous blocking and asynchronous non-blocking execution?",
+             "Synchronous execution halts thread progress waiting for I/O; asynchronous uses an event loop to yield control during I/O operations.",
+             "Performance"),
+            ("Why is automated testcase validation critical in production deployment pipelines?",
+             "It prevents regressions, verifies contract compliance, and provides deterministic safety during CI/CD.",
+             "Testing")
+        ]
+        for idx, (f, b, cat) in enumerate(default_prompts, 1):
+            Flashcard.objects.create(
+                course=course,
+                front=f,
+                back=b,
+                category=cat,
+                order=idx
+            )
+        cards = list(course.flashcards.all())
+
+    reviews_map = {
+        r.flashcard_id: r
+        for r in FlashcardReview.objects.filter(user=request.user, flashcard__in=cards)
+    }
+
+    due_cards = []
+    upcoming_cards = []
+    for c in cards:
+        rev = reviews_map.get(c.id)
+        if not rev or rev.next_review_due <= now:
+            due_cards.append((c, rev))
+        else:
+            upcoming_cards.append((c, rev))
+
+    study_queue = due_cards if due_cards else upcoming_cards
+
+    cards_payload = [
+        {
+            'id': c.id,
+            'front': c.front,
+            'back': c.back,
+            'category': c.category,
+            'difficulty': c.difficulty,
+            'repetition': rev.repetition if rev else 0,
+            'interval_days': rev.interval_days if rev else 1,
+            'ease_factor': rev.ease_factor if rev else 2.5,
+            'is_due': (not rev or rev.next_review_due <= now),
+        }
+        for c, rev in study_queue
+    ]
+
+    return render(request, 'learning/flashcards_study.html', {
+        'course': course,
+        'cards_json': json.dumps(cards_payload),
+        'total_cards': len(cards_payload),
+    })
+
+
+@login_required
+def flashcards_record_review_view(request):
+    """
+    POST API: records user's quality rating (0=Again, 1=Hard, 2=Good, 3=Easy)
+    for a flashcard using SM-2 algorithm, logs activity, awards XP.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+
+    try:
+        if request.content_type == 'application/json':
+            body = json.loads(request.body)
+        else:
+            body = request.POST
+
+        card_id = int(body.get('card_id'))
+        quality = int(body.get('quality', 2))
+
+        card = get_object_or_404(Flashcard, id=card_id)
+        review, _ = FlashcardReview.objects.get_or_create(user=request.user, flashcard=card)
+        review.record_review(quality)
+
+        xp_gain = 10 if quality == 3 else (5 if quality == 2 else 2)
+        award_user_xp(request.user, xp_gain, f"Spaced Repetition: {card.category}")
+
+        LearningActivity.objects.create(
+            user=request.user,
+            activity_type='FLASHCARD_REVIEW',
+            reference_id=card.id,
+            description=f"Spaced repetition review on '{card.front[:40]}...' ({card.course.title})"
+        )
+
+        return JsonResponse({
+            'success': True,
+            'interval_days': review.interval_days,
+            'repetition': review.repetition,
+            'ease_factor': review.ease_factor,
+            'next_due': review.next_review_due.strftime('%Y-%m-%d'),
+            'xp_awarded': xp_gain
+        })
+    except Exception as e:
+        logger.error(f"Flashcard review error: {e}")
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required
+def flashcards_auto_generate_view(request, course_id):
+    """
+    1-Click generation of flashcards from course lessons.
+    """
+    course = get_object_or_404(Course, id=course_id)
+    lessons = course.lessons.all()
+    created_count = 0
+
+    for idx, les in enumerate(lessons, 1):
+        if les.key_takeaways:
+            Flashcard.objects.create(
+                course=course,
+                lesson=les,
+                front=f"Key Principle from Lesson #{les.lesson_order}: {les.title}",
+                back=les.key_takeaways,
+                category=les.chapter_name or 'Core Concept',
+                order=idx
+            )
+            created_count += 1
+
+    messages.success(request, f"Generated {created_count} flashcards from course lesson takeaways!")
+    return redirect('learning:flashcards_study', course_id=course.id)
+

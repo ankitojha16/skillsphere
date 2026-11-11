@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
 from django.utils import timezone
 from datetime import timedelta
 import json
@@ -7,7 +8,7 @@ import json
 from courses.models import Course, Enrollment, CourseCompletion
 from learning.models import Lesson, LessonProgress
 from goals.models import LearningGoal, LearningActivity
-from gamification.services import get_or_create_gamification
+from gamification.services import get_or_create_gamification, award_user_xp
 from roadmaps.models import LearningRoadmap
 from assessments.models import SkillAssessment, AssessmentAttempt
 from projects.models import ProjectIdea
@@ -357,3 +358,88 @@ def dashboard_view(request):
         pass
 
     return render(request, 'dashboard/index.html', context)
+
+
+@login_required
+def study_lounge_view(request):
+    """
+    Virtual Study Lounge & Ambient Pomodoro Focus Hub.
+    Combines synchronized focus timer, Web Audio ambient generator, and task tracking.
+    """
+    today = timezone.now().date()
+    today_sessions = LearningActivity.objects.filter(
+        user=request.user,
+        activity_type='FOCUS_SESSION',
+        created_at__date=today
+    )
+    today_pomodoros = today_sessions.count()
+    today_minutes = today_pomodoros * 25
+
+    enrolled_courses = Course.objects.filter(enrollments__user=request.user).distinct()
+    gamification = get_or_create_gamification(request.user)
+
+    return render(request, 'dashboard/study_lounge.html', {
+        'today_pomodoros': today_pomodoros,
+        'today_minutes': today_minutes,
+        'enrolled_courses': enrolled_courses,
+        'gamification': gamification,
+    })
+
+
+@login_required
+def log_focus_session_view(request):
+    """
+    Records a completed Pomodoro focus session, awards +25 XP, and updates the activity heatmap.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+
+    try:
+        if request.content_type == 'application/json':
+            body = json.loads(request.body)
+        else:
+            body = request.POST
+
+        minutes = int(body.get('minutes', 25))
+        course_id = body.get('course_id')
+        notes = body.get('notes', '').strip()
+
+        desc = f"Completed {minutes}-minute Pomodoro focus block"
+        if course_id:
+            course = Course.objects.filter(id=course_id).first()
+            if course:
+                desc += f" on {course.title}"
+
+        # 1. Log activity to feed 52-week heatmap
+        LearningActivity.objects.create(
+            user=request.user,
+            activity_type='FOCUS_SESSION',
+            reference_id=course_id if course_id else None,
+            description=desc
+        )
+
+        # 2. Award XP via gamification
+        award_user_xp(request.user, 25, "Pomodoro Focus Block")
+
+        # 3. Invalidate dashboard cache for immediate heatmap reflection
+        cache.delete(f"user_dashboard_payload_{request.user.id}")
+
+        today = timezone.now().date()
+        today_sessions = LearningActivity.objects.filter(
+            user=request.user,
+            activity_type='FOCUS_SESSION',
+            created_at__date=today
+        )
+        total_poms = today_sessions.count()
+        total_mins = total_poms * 25
+
+        return JsonResponse({
+            'success': True,
+            'xp_awarded': 25,
+            'today_pomodoros': total_poms,
+            'today_minutes': total_mins,
+            'message': f"Great focus! +25 XP awarded and logged to your activity heatmap."
+        })
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+

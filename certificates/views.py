@@ -387,3 +387,17 @@ def public_verify_pdf_view(request, certificate_id):
     response['Content-Length'] = str(len(pdf_bytes))
     return response
 
+
+def verify_portal_view(request):
+    """
+    Public Certificate Verification Portal.
+    Allows recruiters, employers, and students to:
+    1. Search certificates by Certificate ID.
+    2. Scan physical or screen QR codes using device camera or file upload.
+    """
+    cert_id = request.GET.get('id', '').strip()
+    if cert_id:
+        return redirect('certificates:verify', certificate_id=cert_id)
+    return render(request, 'certificates/verify_portal.html')
+
+

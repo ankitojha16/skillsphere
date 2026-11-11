@@ -1863,3 +1863,104 @@ class AIService:
             'latency_ms': 0.0,
         }
 
+    @classmethod
+    def evaluate_interview_answer(cls, role: str, question: str, answer: str, category: str = "technical") -> Dict[str, Any]:
+        """
+        Evaluates a candidate's spoken or typed answer to a technical or behavioral interview question.
+        Returns structured scores (accuracy, clarity, STAR adherence), strengths, areas for improvement, and ideal talking points.
+        """
+        cleaned_answer = (answer or '').strip()
+        word_count = len(cleaned_answer.split()) if cleaned_answer else 0
+
+        # Build prompt
+        system_prompt = (
+            "You are a Principal Tech Recruiter and Engineering Director at a Tier-1 tech company. "
+            "Evaluate candidate interview answers thoroughly, constructively, and realistically. "
+            "Output MUST be valid JSON with keys: accuracy_score (integer 0-100), clarity_score (integer 0-100), "
+            "overall_score (integer 0-100), star_adherence (integer 0-100), strengths (list of strings), "
+            "improvements (list of strings), model_answer (string), summary (string)."
+        )
+        user_prompt = (
+            f"Target Role: {role}\n"
+            f"Question Category: {category}\n"
+            f"Interview Question: {question}\n"
+            f"Candidate's Answer:\n\"\"\"{cleaned_answer}\"\"\"\n\n"
+            "Analyze and score this answer strictly as JSON with the requested keys."
+        )
+
+        try:
+            meta = cls.generate_text_with_meta(
+                prompt=user_prompt,
+                system_instruction=system_prompt,
+                json_mode=True
+            )
+            raw_text = meta.get('text', '')
+            if raw_text:
+                cleaned = re.sub(r'```(?:json)?', '', raw_text).strip()
+                parsed = json.loads(cleaned)
+                if isinstance(parsed, dict) and 'overall_score' in parsed:
+                    return parsed
+        except Exception as e:
+            logger.warning(f"AIService.evaluate_interview_answer fallback triggered: {e}")
+
+        # Deterministic intelligent fallback evaluation
+        base_score = 40
+        if word_count >= 15:
+            base_score += 15
+        if word_count >= 45:
+            base_score += 15
+        if word_count >= 80:
+            base_score += 10
+
+        has_situation = any(k in cleaned_answer.lower() for k in ['when', 'project', 'team', 'at', 'company', 'problem', 'goal'])
+        has_action = any(k in cleaned_answer.lower() for k in ['i built', 'implemented', 'designed', 'created', 'refactored', 'used', 'solved', 'wrote'])
+        has_result = any(k in cleaned_answer.lower() for k in ['result', 'improved', 'increased', 'reduced', 'metric', 'delivered', 'learned', 'outcome'])
+
+        star_score = 30 + (25 if has_situation else 0) + (25 if has_action else 0) + (20 if has_result else 0)
+        clarity_score = min(95, max(45, base_score + (10 if word_count > 40 else 0)))
+        accuracy_score = min(92, max(40, base_score + (15 if word_count > 60 else 5)))
+        overall_score = int(round((accuracy_score * 0.4) + (clarity_score * 0.3) + (star_score * 0.3)))
+
+        strengths = []
+        improvements = []
+        if word_count >= 30:
+            strengths.append(f"Answered with good detail ({word_count} words) directly addressing the question.")
+        else:
+            improvements.append("Answer is quite brief. Elaborate with concrete examples, technologies, and reasoning.")
+
+        if has_action:
+            strengths.append("Clearly highlighted personal engineering actions and ownership of the problem.")
+        else:
+            improvements.append("Use first-person active verbs ('I designed...', 'I implemented...') to show direct contribution.")
+
+        if has_result:
+            strengths.append("Included business impact, performance metrics, or outcome of the work.")
+        else:
+            improvements.append("Conclude with measurable results (e.g., '% latency reduction', 'shipped to 10k users', 'clean code delivery').")
+
+        if category.lower() == 'behavioral':
+            model_answer = (
+                f"In my previous project, we faced a situation where {question.lower().replace('?', '')}. "
+                f"My task was to ensure reliable delivery. I initiated a structured review, selected modern tools, "
+                f"and communicated proactively with stakeholders. As a result, we deployed on time with zero regressions."
+            )
+        else:
+            model_answer = (
+                f"For {role}, the optimal approach to '{question}' involves first clarifying architectural constraints, "
+                f"selecting the appropriate design patterns and data structures, and handling error boundaries gracefully. "
+                f"In production, I would ensure comprehensive test coverage, observability metrics, and clean code documentation."
+            )
+
+        return {
+            'overall_score': overall_score,
+            'accuracy_score': accuracy_score,
+            'clarity_score': clarity_score,
+            'star_adherence': star_score,
+            'strengths': strengths or ["Addressed the core intent of the question."],
+            'improvements': improvements or ["Provide specific numerical metrics and system trade-offs."],
+            'model_answer': model_answer,
+            'summary': f"Candidate demonstrated {'solid' if overall_score >= 70 else 'foundational'} understanding for a {role} position. Follow the STAR framework to elevate interview readiness.",
+            'is_fallback': True
+        }
+
+

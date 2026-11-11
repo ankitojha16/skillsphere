@@ -85,3 +85,34 @@ class DashboardTests(TestCase):
         self.assertIn('heatmap_days_json', response.context)
         self.assertGreaterEqual(response.context['total_active_days'], 1)
 
+    def test_study_lounge_page_loads(self):
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('dashboard:study_lounge'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Virtual Study Lounge & Focus Hub')
+        self.assertContains(response, 'timerDisplay')
+        self.assertContains(response, 'Procedural Ambient Mixer')
+
+    def test_log_focus_session_view(self):
+        import json
+        from goals.models import LearningActivity
+        self.client.force_login(self.user)
+        response = self.client.post(
+            reverse('dashboard:log_focus_session'),
+            data=json.dumps({'minutes': 25, 'course_id': self.course.id}),
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data.get('success'))
+        self.assertEqual(data.get('xp_awarded'), 25)
+        self.assertEqual(data.get('today_pomodoros'), 1)
+        self.assertTrue(
+            LearningActivity.objects.filter(
+                user=self.user,
+                activity_type='FOCUS_SESSION',
+                reference_id=self.course.id
+            ).exists()
+        )
+
+

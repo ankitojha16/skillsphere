@@ -169,7 +169,7 @@
 
             <div class="sidebar-nav">
                 <div class="nav-section-title">Learning Core</div>
-                <a href="{% url 'dashboard:index' %}" class="sidebar-link {% if request.resolver_match.app_name == 'dashboard' %}active{% endif %}">
+                <a href="{% url 'dashboard:index' %}" class="sidebar-link {% if request.resolver_match.app_name == 'dashboard' and request.resolver_match.url_name == 'index' %}active{% endif %}">
                     <i data-lucide="layout-dashboard" style="width: 18px; height: 18px;"></i>
                     <span>Dashboard</span>
                 </a>
@@ -180,6 +180,14 @@
                 <a href="{% url 'courses:my_learning' %}" class="sidebar-link {% if request.resolver_match.url_name == 'my_learning' %}active{% endif %}">
                     <i data-lucide="book-marked" style="width: 18px; height: 18px;"></i>
                     <span>My Learning</span>
+                </a>
+                <a href="{% url 'learning:flashcards_hub' %}" class="sidebar-link {% if 'flashcards' in request.path %}active{% endif %}">
+                    <i data-lucide="layers" style="width: 18px; height: 18px;"></i>
+                    <span>Flashcards (SM-2)</span>
+                </a>
+                <a href="{% url 'dashboard:study_lounge' %}" class="sidebar-link {% if 'study-lounge' in request.path %}active{% endif %}">
+                    <i data-lucide="headphones" style="width: 18px; height: 18px;"></i>
+                    <span>Study Lounge & Pomodoro</span>
                 </a>
 
                 <div class="nav-section-title">AI & Practice</div>
@@ -195,6 +203,10 @@
                     <i data-lucide="clipboard-check" style="width: 18px; height: 18px;"></i>
                     <span>Skill Assessment</span>
                 </a>
+                <a href="{% url 'resumes:mock_interview' %}" class="sidebar-link {% if 'mock-interview-studio' in request.path %}active{% endif %}">
+                    <i data-lucide="mic" style="width: 18px; height: 18px;"></i>
+                    <span>AI Voice Interview</span>
+                </a>
                 <a href="{% url 'interviews:setup' %}" class="sidebar-link {% if request.resolver_match.app_name == 'interviews' %}active{% endif %}">
                     <i data-lucide="message-square-code" style="width: 18px; height: 18px;"></i>
                     <span>Mock Interview</span>
@@ -209,7 +221,7 @@
                     <i data-lucide="target" style="width: 18px; height: 18px;"></i>
                     <span>Career Hub</span>
                 </a>
-                <a href="{% url 'resumes:builder' %}" class="sidebar-link {% if request.resolver_match.app_name == 'resumes' %}active{% endif %}">
+                <a href="{% url 'resumes:builder' %}" class="sidebar-link {% if request.resolver_match.app_name == 'resumes' and 'mock-interview-studio' not in request.path %}active{% endif %}">
                     <i data-lucide="file-text" style="width: 18px; height: 18px;"></i>
                     <span>Resume Builder</span>
                 </a>
@@ -237,9 +249,13 @@
                 </a>
 
                 <div class="nav-section-title">Credentials & Settings</div>
-                <a href="{% url 'certificates:center' %}" class="sidebar-link {% if request.resolver_match.app_name == 'certificates' %}active{% endif %}">
+                <a href="{% url 'certificates:center' %}" class="sidebar-link {% if request.resolver_match.app_name == 'certificates' and 'verify' not in request.path %}active{% endif %}">
                     <i data-lucide="file-check" style="width: 18px; height: 18px;"></i>
                     <span>Certificates</span>
+                </a>
+                <a href="{% url 'certificates:verify_portal_short' %}" class="sidebar-link {% if 'verify' in request.path %}active{% endif %}">
+                    <i data-lucide="qr-code" style="width: 18px; height: 18px;"></i>
+                    <span>Verify Credential (QR)</span>
                 </a>
                 <a href="{% url 'gamification:achievements' %}" class="sidebar-link {% if request.resolver_match.app_name == 'gamification' %}active{% endif %}">
                     <i data-lucide="award" style="width: 18px; height: 18px;"></i>

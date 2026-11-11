@@ -265,4 +265,57 @@ class ResumeTests(TestCase):
         missing_lower = [k.lower() for k in analysis['keywords_missing']]
         self.assertTrue(any(k in missing_lower for k in ['react', 'postgresql', 'docker']))
 
+    def test_mock_interview_page_loads(self):
+        """Verify the mock interview studio loads with audio/voice controls."""
+        resp = self.client.get(reverse('resumes:mock_interview'))
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'AI Technical & Behavioral Mock Interviewer')
+        self.assertContains(resp, 'voiceRecordBtn')
+        self.assertContains(resp, 'Listen to AI')
+        self.assertContains(resp, 'Evaluate with AI')
+
+        # Test with specific role
+        resp_python = self.client.get(reverse('resumes:mock_interview') + '?role=python')
+        self.assertEqual(resp_python.status_code, 200)
+        self.assertContains(resp_python, 'select_related')
+
+    def test_evaluate_interview_answer_success(self):
+        """Verify the AI interview evaluation API endpoint returns structured scoring."""
+        resp = self.client.post(
+            reverse('resumes:mock_interview_evaluate'),
+            data=json.dumps({
+                'role': 'Full-Stack Software Engineer',
+                'question': 'Tell me about a time you optimized a slow database query.',
+                'answer': 'In my project at SkillSphere, when user traffic doubled, our dashboard API was taking 1.5 seconds. I analyzed the slow query log, added compound indexes on user_id and created_at, and refactored N+1 queries using select_related. As a result, API latency was reduced by 85% to under 200ms.',
+                'category': 'technical'
+            }),
+            content_type='application/json'
+        )
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertTrue(data.get('success'))
+        analysis = data.get('analysis', {})
+        self.assertIn('overall_score', analysis)
+        self.assertIn('accuracy_score', analysis)
+        self.assertIn('clarity_score', analysis)
+        self.assertIn('star_adherence', analysis)
+        self.assertIn('strengths', analysis)
+        self.assertIn('improvements', analysis)
+        self.assertIn('model_answer', analysis)
+        self.assertGreaterEqual(analysis['overall_score'], 50)
+
+    def test_evaluate_interview_answer_validation_error(self):
+        """Verify empty answers are rejected with 400 Bad Request."""
+        resp = self.client.post(
+            reverse('resumes:mock_interview_evaluate'),
+            data=json.dumps({
+                'role': 'Full-Stack Software Engineer',
+                'question': 'How does indexing work?',
+                'answer': ''
+            }),
+            content_type='application/json'
+        )
+        self.assertEqual(resp.status_code, 400)
+
+
 

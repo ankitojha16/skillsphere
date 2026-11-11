@@ -1,0 +1,460 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}AI Mock Interview Studio - SkillSphere{% endblock %}
+
+{% block extra_css %}
+<style>
+    .interview-card {
+        background: #111827;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+    .mic-pulsing {
+        animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+    }
+    @keyframes pulse-ring {
+        0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+        70% { box-shadow: 0 0 0 12px rgba(239, 68, 68, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4 pb-2 border-bottom border-secondary border-opacity-25">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="badge bg-primary bg-opacity-25 text-primary border border-primary-subtle rounded-pill px-3 py-1 small">
+                    <i data-lucide="mic" style="width: 13px; height: 13px;"></i> Audio / Voice AI Studio
+                </span>
+                <span class="badge bg-success bg-opacity-25 text-success border border-success-subtle rounded-pill px-2.5 py-1 small">
+                    STAR Evaluation Engine
+                </span>
+            </div>
+            <h1 class="h3 fw-bold text-white mb-0">AI Technical & Behavioral Mock Interviewer</h1>
+            <p class="text-secondary small mb-0 mt-1">Practice realistic voice interview scenarios with real-time speech transcription and instant FAANG-caliber candidate scoring.</p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <label for="roleSelector" class="text-secondary small mb-0 fw-semibold">Target Role:</label>
+            <select id="roleSelector" class="form-select form-select-sm bg-dark text-white border-secondary py-1.5 px-3 rounded-pill" onchange="changeRole(this.value)">
+                {% for r_key, r_info in all_roles.items %}
+                    <option value="{{ r_key }}" {% if r_key == selected_role %}selected{% endif %}>{{ r_info.title }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    <!-- Category Pill Switcher -->
+    <ul class="nav nav-pills gap-2 mb-4 p-1.5 rounded-3" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);" id="categoryTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active py-2 px-3 small fw-semibold text-white d-inline-flex align-items-center gap-1.5" id="tab-technical" onclick="switchCategory('technical')">
+                <i data-lucide="code" style="width: 15px; height: 15px;" class="text-info"></i> Technical Core (<span id="count-technical">{{ role_data.technical|length }}</span>)
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link py-2 px-3 small fw-semibold text-white d-inline-flex align-items-center gap-1.5" id="tab-behavioral" onclick="switchCategory('behavioral')">
+                <i data-lucide="user-check" style="width: 15px; height: 15px;" class="text-warning"></i> Behavioral & STAR (<span id="count-behavioral">{{ role_data.behavioral|length }}</span>)
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link py-2 px-3 small fw-semibold text-white d-inline-flex align-items-center gap-1.5" id="tab-system" onclick="switchCategory('system_design')">
+                <i data-lucide="layers" style="width: 15px; height: 15px;" class="text-success"></i> System Design (<span id="count-system">{{ role_data.system_design|length }}</span>)
+            </button>
+        </li>
+    </ul>
+
+    <div class="row g-4">
+        <!-- Left: Question & Answer Workspace -->
+        <div class="col-lg-7">
+            <!-- Question Card -->
+            <div class="interview-card p-4 mb-4 position-relative">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="badge bg-secondary-subtle text-light font-monospace small px-2.5 py-1 rounded-pill" id="questionCounter">
+                        Question 1 of {{ role_data.technical|length }}
+                    </span>
+                    <div class="d-flex align-items-center gap-1.5">
+                        <button type="button" class="btn btn-sm btn-outline-info rounded-pill py-1 px-3 d-inline-flex align-items-center gap-1.5" onclick="speakCurrentQuestion()">
+                            <i data-lucide="volume-2" style="width: 14px; height: 14px;"></i>
+                            <span id="speechBtnText">Listen to AI</span>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary text-white py-1 px-2.5 rounded-circle" onclick="prevQuestion()" title="Previous Question">
+                            <i data-lucide="chevron-left" style="width: 14px; height: 14px;"></i>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary text-white py-1 px-2.5 rounded-circle" onclick="nextQuestion()" title="Next Question">
+                            <i data-lucide="chevron-right" style="width: 14px; height: 14px;"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <h4 class="fw-bold text-white mb-2 lh-base" id="activeQuestionText">
+                    {{ role_data.technical.0 }}
+                </h4>
+                <div class="text-secondary small" id="categoryHint">
+                    Focus on technical precision, trade-offs, and production considerations.
+                </div>
+            </div>
+
+            <!-- Answer Recording & Typing Terminal -->
+            <div class="interview-card p-4">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+                    <label for="candidateAnswerInput" class="form-label text-white small fw-bold mb-0 d-flex align-items-center gap-1.5">
+                        <i data-lucide="message-square" style="width: 14px; height: 14px;" class="text-primary"></i>
+                        <span>Your Response:</span>
+                    </label>
+                    <div class="d-flex align-items-center gap-2">
+                        <button type="button" id="voiceRecordBtn" class="btn btn-sm btn-outline-danger py-1 px-3 rounded-pill d-inline-flex align-items-center gap-1.5" onclick="toggleVoiceRecording()">
+                            <i data-lucide="mic" style="width: 13px; height: 13px;"></i>
+                            <span id="voiceRecordBtnText">Speak Answer</span>
+                        </button>
+                        <span id="answerWordCount" class="text-secondary small font-monospace">0 words</span>
+                    </div>
+                </div>
+
+                <textarea id="candidateAnswerInput" rows="7" class="form-control text-light p-3 mb-3 font-monospace" style="background-color: #030712; border: 1px solid rgba(255,255,255,0.15); font-size: 0.9rem; line-height: 1.6;" placeholder="Speak using the 'Speak Answer' microphone button or type your structured response here..." oninput="updateWordCount()"></textarea>
+
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <div class="text-secondary small font-monospace" style="font-size: 0.76rem;">
+                        <span class="text-info">💡 Tip:</span> Use Situation → Task → Action → Result (STAR).
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <button type="button" class="btn btn-secondary-custom btn-sm py-1.5 px-3" onclick="clearAnswer()">
+                            Clear
+                        </button>
+                        <button type="button" id="evaluateBtn" class="btn btn-primary-custom btn-sm py-1.5 px-4 d-inline-flex align-items-center gap-1.5 fw-bold" onclick="submitForEvaluation()">
+                            <i data-lucide="sparkles" style="width: 14px; height: 14px;"></i>
+                            <span id="evaluateBtnText">Evaluate with AI</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Real-Time Evaluation Feedback & Scorecard -->
+        <div class="col-lg-5">
+            <div class="interview-card p-4 h-100" id="evaluationPanel">
+                <!-- Idle State Placeholder -->
+                <div id="evalPlaceholder" class="text-center py-5">
+                    <div class="p-3 rounded-circle d-inline-flex mb-3" style="background: rgba(56, 189, 248, 0.1); color: #38bdf8;">
+                        <i data-lucide="activity" style="width: 38px; height: 38px;"></i>
+                    </div>
+                    <h5 class="fw-bold text-white mb-2">Awaiting Candidate Response</h5>
+                    <p class="text-secondary small mb-0 px-3">
+                        Speak or type your answer on the left and tap <strong>"Evaluate with AI"</strong>. You will receive an immediate breakdown across technical accuracy, communication clarity, and STAR framework adherence.
+                    </p>
+                </div>
+
+                <!-- Active Result Display (Hidden initially) -->
+                <div id="evalResults" class="d-none">
+                    <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom border-secondary border-opacity-25">
+                        <h5 class="fw-bold text-white mb-0 d-flex align-items-center gap-2">
+                            <i data-lucide="award" style="width: 18px; height: 18px;" class="text-warning"></i>
+                            <span>AI Candidate Assessment</span>
+                        </h5>
+                        <span id="scoreTierBadge" class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1 small">
+                            Strong Match
+                        </span>
+                    </div>
+
+                    <!-- Overall Score Progress Gauge -->
+                    <div class="p-3 rounded-3 mb-3 text-center" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.08);">
+                        <div class="display-6 fw-bold text-white mb-0" id="resOverallScore">88%</div>
+                        <div class="text-secondary small font-monospace">Overall Readiness Score</div>
+                    </div>
+
+                    <!-- 3 Dimension Gauges -->
+                    <div class="row g-2 mb-3">
+                        <div class="col-4">
+                            <div class="p-2 rounded-2 text-center" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);">
+                                <div class="text-info fw-bold mb-0" id="resAccuracyScore">85%</div>
+                                <div class="text-secondary" style="font-size: 0.7rem;">Accuracy</div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="p-2 rounded-2 text-center" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);">
+                                <div class="text-success fw-bold mb-0" id="resClarityScore">90%</div>
+                                <div class="text-secondary" style="font-size: 0.7rem;">Clarity</div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="p-2 rounded-2 text-center" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);">
+                                <div class="text-warning fw-bold mb-0" id="resStarScore">75%</div>
+                                <div class="text-secondary" style="font-size: 0.7rem;">STAR Fit</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Strengths -->
+                    <div class="mb-3">
+                        <h6 class="text-success small fw-bold mb-1.5 d-flex align-items-center gap-1">
+                            <i data-lucide="check-circle-2" style="width: 14px; height: 14px;"></i> Key Strengths:
+                        </h6>
+                        <ul class="text-secondary small ps-3 mb-0" id="resStrengthsList"></ul>
+                    </div>
+
+                    <!-- Actionable Improvements -->
+                    <div class="mb-3">
+                        <h6 class="text-warning small fw-bold mb-1.5 d-flex align-items-center gap-1">
+                            <i data-lucide="lightbulb" style="width: 14px; height: 14px;"></i> Areas for Improvement:
+                        </h6>
+                        <ul class="text-secondary small ps-3 mb-0" id="resImprovementsList"></ul>
+                    </div>
+
+                    <!-- Model Talking Points Box -->
+                    <div class="p-3 rounded-3 mb-3" style="background: rgba(56, 189, 248, 0.05); border: 1px solid rgba(56, 189, 248, 0.2);">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="text-info small fw-bold">Recommended Talking Points:</span>
+                            <button type="button" class="btn btn-link text-info p-0 small text-decoration-none" onclick="copyModelAnswer()">
+                                <i data-lucide="copy" style="width: 12px; height: 12px;"></i> Copy
+                            </button>
+                        </div>
+                        <p class="text-light small mb-0 font-monospace" style="font-size: 0.78rem; line-height: 1.5;" id="resModelAnswerText"></p>
+                    </div>
+
+                    <div class="p-2 rounded-2 bg-dark text-secondary small font-monospace" style="font-size: 0.75rem;" id="resSummaryText"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const roleQuestions = {{ role_data|safe }};
+    let currentCategory = 'technical';
+    let currentIndex = 0;
+    let recognition = null;
+    let isRecording = false;
+
+    function changeRole(roleKey) {
+        window.location.href = `?role=${encodeURIComponent(roleKey)}`;
+    }
+
+    function switchCategory(cat) {
+        currentCategory = cat;
+        currentIndex = 0;
+        document.querySelectorAll('#categoryTabs .nav-link').forEach(btn => btn.classList.remove('active'));
+        if (cat === 'technical') document.getElementById('tab-technical').classList.add('active');
+        if (cat === 'behavioral') document.getElementById('tab-behavioral').classList.add('active');
+        if (cat === 'system_design') document.getElementById('tab-system').classList.add('active');
+
+        const hint = document.getElementById('categoryHint');
+        if (cat === 'behavioral') {
+            hint.innerText = 'Structure your story: Situation, Task, Action, and Measurable Result.';
+        } else if (cat === 'system_design') {
+            hint.innerText = 'Address scale, latency, data models, bottlenecks, and single points of failure.';
+        } else {
+            hint.innerText = 'Focus on technical precision, trade-offs, and production considerations.';
+        }
+
+        renderCurrentQuestion();
+    }
+
+    function renderCurrentQuestion() {
+        const list = roleQuestions[currentCategory] || [];
+        if (list.length === 0) return;
+        if (currentIndex >= list.length) currentIndex = 0;
+        if (currentIndex < 0) currentIndex = list.length - 1;
+
+        document.getElementById('activeQuestionText').innerText = list[currentIndex];
+        document.getElementById('questionCounter').innerText = `Question ${currentIndex + 1} of ${list.length}`;
+    }
+
+    function nextQuestion() {
+        const list = roleQuestions[currentCategory] || [];
+        if (list.length === 0) return;
+        currentIndex = (currentIndex + 1) % list.length;
+        renderCurrentQuestion();
+    }
+
+    function prevQuestion() {
+        const list = roleQuestions[currentCategory] || [];
+        if (list.length === 0) return;
+        currentIndex = (currentIndex - 1 + list.length) % list.length;
+        renderCurrentQuestion();
+    }
+
+    // Web Speech API: Speech Synthesis
+    function speakCurrentQuestion() {
+        const text = document.getElementById('activeQuestionText').innerText;
+        if (!('speechSynthesis' in window)) {
+            alert('Speech synthesis is not supported in this browser.');
+            return;
+        }
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 0.95;
+        utterance.pitch = 1.0;
+        const btnText = document.getElementById('speechBtnText');
+        utterance.onstart = () => { if (btnText) btnText.innerText = 'Speaking...'; };
+        utterance.onend = () => { if (btnText) btnText.innerText = 'Listen to AI'; };
+        utterance.onerror = () => { if (btnText) btnText.innerText = 'Listen to AI'; };
+        window.speechSynthesis.speak(utterance);
+    }
+
+    // Web Speech API: Voice Recording & Speech Recognition
+    function toggleVoiceRecording() {
+        const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRec) {
+            alert('Speech Recognition is not supported by your browser. You can type your answer in the text area!');
+            return;
+        }
+
+        const btn = document.getElementById('voiceRecordBtn');
+        const btnText = document.getElementById('voiceRecordBtnText');
+        const textarea = document.getElementById('candidateAnswerInput');
+
+        if (isRecording && recognition) {
+            recognition.stop();
+            return;
+        }
+
+        recognition = new SpeechRec();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = 'en-US';
+
+        recognition.onstart = () => {
+            isRecording = true;
+            btn.classList.add('btn-danger', 'text-white', 'mic-pulsing');
+            btn.classList.remove('btn-outline-danger');
+            btnText.innerText = 'Stop Recording';
+        };
+
+        recognition.onresult = (event) => {
+            let finalTranscript = '';
+            for (let i = event.resultIndex; i < event.results.length; ++i) {
+                if (event.results[i].isFinal) {
+                    finalTranscript += event.results[i][0].transcript + ' ';
+                }
+            }
+            if (finalTranscript) {
+                textarea.value = (textarea.value + ' ' + finalTranscript).trim();
+                updateWordCount();
+            }
+        };
+
+        recognition.onerror = (event) => {
+            console.warn('Speech recognition error:', event.error);
+            stopRecordingUI();
+        };
+
+        recognition.onend = () => {
+            stopRecordingUI();
+        };
+
+        recognition.start();
+    }
+
+    function stopRecordingUI() {
+        isRecording = false;
+        const btn = document.getElementById('voiceRecordBtn');
+        const btnText = document.getElementById('voiceRecordBtnText');
+        if (btn) {
+            btn.classList.remove('btn-danger', 'text-white', 'mic-pulsing');
+            btn.classList.add('btn-outline-danger');
+        }
+        if (btnText) btnText.innerText = 'Speak Answer';
+    }
+
+    function updateWordCount() {
+        const text = document.getElementById('candidateAnswerInput').value.trim();
+        const count = text ? text.split(/\s+/).length : 0;
+        document.getElementById('answerWordCount').innerText = `${count} word${count === 1 ? '' : 's'}`;
+    }
+
+    function clearAnswer() {
+        document.getElementById('candidateAnswerInput').value = '';
+        updateWordCount();
+    }
+
+    // Submit for AI Evaluation
+    async function submitForEvaluation() {
+        const question = document.getElementById('activeQuestionText').innerText.trim();
+        const answer = document.getElementById('candidateAnswerInput').value.trim();
+        const role = document.getElementById('roleSelector').selectedOptions[0].text;
+        const btn = document.getElementById('evaluateBtn');
+        const btnText = document.getElementById('evaluateBtnText');
+
+        if (!answer) {
+            alert('Please speak or type your answer before submitting for evaluation.');
+            return;
+        }
+
+        btn.disabled = true;
+        btnText.innerText = 'Evaluating...';
+
+        try {
+            const resp = await fetch('{% url "resumes:mock_interview_evaluate" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    role: role,
+                    question: question,
+                    answer: answer,
+                    category: currentCategory
+                })
+            });
+
+            const data = await resp.json();
+            if (data.success && data.analysis) {
+                renderEvaluationResults(data.analysis);
+            } else {
+                alert(data.error || 'Evaluation failed. Please try again.');
+            }
+        } catch (err) {
+            alert('Network error while evaluating. Please try again.');
+        } finally {
+            btn.disabled = false;
+            btnText.innerText = 'Evaluate with AI';
+        }
+    }
+
+    function renderEvaluationResults(res) {
+        document.getElementById('evalPlaceholder').classList.add('d-none');
+        document.getElementById('evalResults').classList.remove('d-none');
+
+        const overall = res.overall_score || 0;
+        document.getElementById('resOverallScore').innerText = `${overall}%`;
+        document.getElementById('resAccuracyScore').innerText = `${res.accuracy_score || 0}%`;
+        document.getElementById('resClarityScore').innerText = `${res.clarity_score || 0}%`;
+        document.getElementById('resStarScore').innerText = `${res.star_adherence || 0}%`;
+
+        const tierBadge = document.getElementById('scoreTierBadge');
+        if (overall >= 85) {
+            tierBadge.innerText = 'Elite Candidate';
+            tierBadge.className = 'badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1 small';
+        } else if (overall >= 70) {
+            tierBadge.innerText = 'Strong Match';
+            tierBadge.className = 'badge bg-info-subtle text-info border border-info-subtle rounded-pill px-2.5 py-1 small';
+        } else {
+            tierBadge.innerText = 'Needs Practice';
+            tierBadge.className = 'badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill px-2.5 py-1 small';
+        }
+
+        const strList = document.getElementById('resStrengthsList');
+        strList.innerHTML = (res.strengths || []).map(s => `<li class="mb-1">${s}</li>`).join('');
+
+        const impList = document.getElementById('resImprovementsList');
+        impList.innerHTML = (res.improvements || []).map(i => `<li class="mb-1">${i}</li>`).join('');
+
+        document.getElementById('resModelAnswerText').innerText = res.model_answer || '';
+        document.getElementById('resSummaryText').innerText = res.summary || '';
+
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    function copyModelAnswer() {
+        const text = document.getElementById('resModelAnswerText').innerText;
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(text);
+            alert('Copied recommended talking points to clipboard!');
+        }
+    }
+</script>
+{% endblock %}

@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.utils import timezone
 from courses.models import Course
 
 class Lesson(models.Model):
@@ -214,3 +215,75 @@ class AssignmentSubmission(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.assignment.title} ({self.status})"
+
+
+# ============================================================================
+# Spaced Repetition Flashcard Engine (SuperMemo SM-2 Algorithm)
+# ============================================================================
+
+class Flashcard(models.Model):
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='flashcards')
+    lesson = models.ForeignKey(Lesson, on_delete=models.SET_NULL, null=True, blank=True, related_name='flashcards')
+    front = models.TextField(help_text='Prompt, question, or code snippet')
+    back = models.TextField(help_text='Answer, architectural explanation, or takeaway')
+    category = models.CharField(max_length=100, default='Core Concept')
+    difficulty = models.CharField(max_length=20, default='medium')
+    order = models.PositiveIntegerField(default=1)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['order', 'id']
+
+    def __str__(self):
+        return f"{self.course.title} - #{self.order}: {self.front[:50]}"
+
+
+class FlashcardReview(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='flashcard_reviews')
+    flashcard = models.ForeignKey(Flashcard, on_delete=models.CASCADE, related_name='user_reviews')
+    repetition = models.PositiveIntegerField(default=0)
+    interval_days = models.PositiveIntegerField(default=1)
+    ease_factor = models.FloatField(default=2.5)
+    last_reviewed_at = models.DateTimeField(auto_now=True)
+    next_review_due = models.DateTimeField(default=timezone.now)
+    last_quality = models.PositiveIntegerField(default=0)  # 0: Again, 1: Hard, 2: Good, 3: Easy
+
+    class Meta:
+        unique_together = ('user', 'flashcard')
+        ordering = ['next_review_due']
+
+    def __str__(self):
+        return f"{self.user.username} review #{self.repetition} on Card {self.flashcard_id} (due {self.next_review_due.strftime('%Y-%m-%d')})"
+
+    def record_review(self, quality: int):
+        """
+        Standard SuperMemo SM-2 algorithm:
+        quality: 0 (Again), 1 (Hard), 2 (Good), 3 (Easy)
+        """
+        from datetime import timedelta
+        # Clamp quality between 0 and 3
+        quality = max(0, min(3, quality))
+        self.last_quality = quality
+        self.last_reviewed_at = timezone.now()
+
+        if quality < 2:
+            # Failed retention: reset to beginning
+            self.repetition = 0
+            self.interval_days = 1
+        else:
+            # Successful retention
+            if self.repetition == 0:
+                self.interval_days = 1
+            elif self.repetition == 1:
+                self.interval_days = 4 if quality == 2 else 6
+            else:
+                self.interval_days = max(1, int(round(self.interval_days * self.ease_factor)))
+            self.repetition += 1
+
+        # Update ease factor (SM-2 formula adapted for 0-3 scale):
+        # delta = 0.1 - (3 - q) * (0.08 + (3 - q) * 0.02)
+        delta = 0.1 - (3 - quality) * (0.08 + (3 - quality) * 0.02)
+        self.ease_factor = max(1.3, round(self.ease_factor + delta, 2))
+        self.next_review_due = timezone.now() + timedelta(days=self.interval_days)
+        self.save()
+

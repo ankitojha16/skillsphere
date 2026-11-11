@@ -1,0 +1,290 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Review Flashcards: {{ course.title }} - SkillSphere{% endblock %}
+
+{% block extra_css %}
+<style>
+    .flashcard-wrapper {
+        perspective: 1200px;
+        min-height: 340px;
+    }
+    .flashcard-inner {
+        position: relative;
+        width: 100%;
+        min-height: 340px;
+        text-align: center;
+        transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        transform-style: preserve-3d;
+        cursor: pointer;
+    }
+    .flashcard-inner.is-flipped {
+        transform: rotateY(180deg);
+    }
+    .flashcard-face {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        border-radius: 20px;
+        padding: 2.5rem 2rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 20px 50px -10px rgba(0,0,0,0.6);
+        background: #111827;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+    .flashcard-back {
+        transform: rotateY(180deg);
+        background: #0b1329;
+        border-color: rgba(56, 189, 248, 0.4);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width: 780px;">
+    <!-- Top Navigation Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <a href="{% url 'learning:flashcards_hub' %}" class="btn btn-sm btn-outline-secondary text-white d-inline-flex align-items-center gap-1.5">
+            <i data-lucide="arrow-left" style="width: 14px; height: 14px;"></i>
+            <span>All Flashcard Decks</span>
+        </a>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-secondary-subtle text-light font-monospace small px-3 py-1.5 rounded-pill" id="cardCounter">
+                Card 1 of {{ total_cards }}
+            </span>
+            <span class="badge bg-success bg-opacity-25 text-success border border-success-subtle font-monospace small px-2.5 py-1.5 rounded-pill" id="sessionXpBadge">
+                +0 XP Earned
+            </span>
+        </div>
+    </div>
+
+    <!-- Course Title & Progress Bar -->
+    <div class="mb-4">
+        <h4 class="fw-bold text-white mb-2">{{ course.title }}</h4>
+        <div class="progress" style="height: 6px; background-color: rgba(255,255,255,0.08); border-radius: 999px;">
+            <div class="progress-bar bg-warning rounded-pill" id="studyProgressBar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+        </div>
+    </div>
+
+    <!-- Active Flashcard 3D Container -->
+    <div id="studyContainer">
+        <div class="flashcard-wrapper mb-4">
+            <div class="flashcard-inner" id="flashcardElement" onclick="flipCard()">
+                <!-- Front Side (Prompt / Question) -->
+                <div class="flashcard-face flashcard-front">
+                    <div class="w-100 d-flex justify-content-between align-items-center mb-3">
+                        <span class="badge bg-info bg-opacity-25 text-info border border-info-subtle font-monospace small" id="cardCategory">
+                            Core Concept
+                        </span>
+                        <span class="text-secondary small font-monospace">
+                            Tap to reveal answer ⟲
+                        </span>
+                    </div>
+
+                    <div class="my-auto py-3">
+                        <h4 class="fw-bold text-white mb-0 lh-base" id="cardFrontText" style="font-size: 1.35rem;"></h4>
+                    </div>
+
+                    <div class="text-secondary small font-monospace mt-3">
+                        [ Space ] Flip Card
+                    </div>
+                </div>
+
+                <!-- Back Side (Answer / Architecture Breakdown) -->
+                <div class="flashcard-face flashcard-back">
+                    <div class="w-100 d-flex justify-content-between align-items-center mb-3">
+                        <span class="badge bg-success bg-opacity-25 text-success border border-success-subtle font-monospace small">
+                            Answer & Concept
+                        </span>
+                        <span class="text-secondary small font-monospace">
+                            Tap to flip back
+                        </span>
+                    </div>
+
+                    <div class="my-auto py-3 text-start w-100">
+                        <div class="text-light small font-monospace lh-lg" id="cardBackText" style="font-size: 0.95rem; white-space: pre-wrap;"></div>
+                    </div>
+
+                    <div class="text-secondary small font-monospace mt-3">
+                        Rate retention below to calculate optimal review interval
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SuperMemo SM-2 Rating Controls -->
+        <div class="custom-card p-3" id="ratingControls">
+            <div class="text-secondary small text-center mb-2 font-monospace">
+                How well did you recall this concept?
+            </div>
+            <div class="row g-2">
+                <div class="col-3">
+                    <button type="button" class="btn btn-outline-danger w-100 py-2 small fw-bold d-flex flex-column align-items-center" onclick="submitRating(0)">
+                        <span>Again</span>
+                        <span class="text-muted fw-normal" style="font-size: 0.68rem;">[1] • 1 day</span>
+                    </button>
+                </div>
+                <div class="col-3">
+                    <button type="button" class="btn btn-outline-warning w-100 py-2 small fw-bold d-flex flex-column align-items-center" onclick="submitRating(1)">
+                        <span>Hard</span>
+                        <span class="text-muted fw-normal" style="font-size: 0.68rem;">[2] • 1 day</span>
+                    </button>
+                </div>
+                <div class="col-3">
+                    <button type="button" class="btn btn-outline-info w-100 py-2 small fw-bold d-flex flex-column align-items-center" onclick="submitRating(2)">
+                        <span>Good</span>
+                        <span class="text-muted fw-normal" style="font-size: 0.68rem;">[3] • 4-6 days</span>
+                    </button>
+                </div>
+                <div class="col-3">
+                    <button type="button" class="btn btn-outline-success w-100 py-2 small fw-bold d-flex flex-column align-items-center" onclick="submitRating(3)">
+                        <span>Easy</span>
+                        <span class="text-muted fw-normal" style="font-size: 0.68rem;">[4] • 10+ days</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Completed Session Card (Hidden initially) -->
+    <div id="completedContainer" class="custom-card p-5 text-center d-none">
+        <div class="p-3 rounded-circle d-inline-flex mb-3" style="background: rgba(16, 185, 129, 0.15); color: #10b981;">
+            <i data-lucide="check-circle" style="width: 48px; height: 48px;"></i>
+        </div>
+        <h3 class="fw-bold text-white mb-2">Deck Review Complete!</h3>
+        <p class="text-secondary small mb-4">
+            You've completed your spaced repetition session for <strong>{{ course.title }}</strong>. The SM-2 scheduling engine has updated your optimal recall intervals.
+        </p>
+
+        <div class="row g-3 justify-content-center mb-4" style="max-width: 400px; margin: 0 auto;">
+            <div class="col-6">
+                <div class="p-3 rounded-3 bg-dark border border-secondary border-opacity-25">
+                    <div class="h4 fw-bold text-white mb-0" id="totalReviewedCount">0</div>
+                    <div class="text-secondary small font-monospace">Cards Reviewed</div>
+                </div>
+            </div>
+            <div class="col-6">
+                <div class="p-3 rounded-3 bg-dark border border-secondary border-opacity-25">
+                    <div class="h4 fw-bold text-success mb-0" id="totalXpAwarded">+0</div>
+                    <div class="text-secondary small font-monospace">XP Earned</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-center gap-3">
+            <a href="{% url 'learning:flashcards_hub' %}" class="btn btn-primary-custom px-4 py-2">
+                All Decks
+            </a>
+            <a href="{% url 'dashboard:index' %}" class="btn btn-secondary-custom px-4 py-2">
+                Dashboard Heatmap
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+    const cardsData = {{ cards_json|safe }};
+    let currentIndex = 0;
+    let isFlipped = false;
+    let sessionXp = 0;
+    let reviewedCount = 0;
+
+    function renderCard() {
+        if (!cardsData || cardsData.length === 0) return;
+        if (currentIndex >= cardsData.length) {
+            showCompleted();
+            return;
+        }
+
+        const card = cardsData[currentIndex];
+        isFlipped = false;
+        const inner = document.getElementById('flashcardElement');
+        if (inner) inner.classList.remove('is-flipped');
+
+        document.getElementById('cardFrontText').innerText = card.front;
+        document.getElementById('cardBackText').innerText = card.back;
+        document.getElementById('cardCategory').innerText = card.category || 'Core Concept';
+        document.getElementById('cardCounter').innerText = `Card ${currentIndex + 1} of ${cardsData.length}`;
+
+        const pct = Math.round((currentIndex / cardsData.length) * 100);
+        document.getElementById('studyProgressBar').style.width = `${pct}%`;
+    }
+
+    function flipCard() {
+        const inner = document.getElementById('flashcardElement');
+        isFlipped = !isFlipped;
+        if (isFlipped) {
+            inner.classList.add('is-flipped');
+        } else {
+            inner.classList.remove('is-flipped');
+        }
+    }
+
+    async function submitRating(quality) {
+        if (currentIndex >= cardsData.length) return;
+        const card = cardsData[currentIndex];
+
+        // Send AJAX review
+        try {
+            const resp = await fetch('{% url "learning:flashcards_record_review" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    card_id: card.id,
+                    quality: quality
+                })
+            });
+            const data = await resp.json();
+            if (data.success) {
+                sessionXp += (data.xp_awarded || 5);
+                reviewedCount++;
+                document.getElementById('sessionXpBadge').innerText = `+${sessionXp} XP Earned`;
+            }
+        } catch (e) {
+            console.warn('Review logging failed offline', e);
+        }
+
+        currentIndex++;
+        renderCard();
+    }
+
+    function showCompleted() {
+        document.getElementById('studyContainer').classList.add('d-none');
+        document.getElementById('completedContainer').classList.remove('d-none');
+        document.getElementById('totalReviewedCount').innerText = reviewedCount;
+        document.getElementById('totalXpAwarded').innerText = `+${sessionXp} XP`;
+        document.getElementById('studyProgressBar').style.width = '100%';
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    // Keyboard Shortcuts
+    document.addEventListener('keydown', (e) => {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+        if (e.code === 'Space') {
+            e.preventDefault();
+            flipCard();
+        } else if (e.key === '1') {
+            submitRating(0);
+        } else if (e.key === '2') {
+            submitRating(1);
+        } else if (e.key === '3') {
+            submitRating(2);
+        } else if (e.key === '4') {
+            submitRating(3);
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+        renderCard();
+    });
+</script>
+{% endblock %}
