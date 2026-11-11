@@ -184,3 +184,57 @@ class ResumeTests(TestCase):
         self.assertEqual(resp['Content-Type'], 'application/pdf')
         self.assertGreater(len(resp.content), 800)
 
+    def test_resume_builder_education_and_certifications(self):
+        # 1. Verify template contains interactive education and certification containers
+        response = self.client.get(reverse('resumes:builder'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="educationContainer"')
+        self.assertContains(response, 'id="addEducationBtn"')
+        self.assertContains(response, 'id="certificationsContainer"')
+        self.assertContains(response, 'id="addCertificationBtn"')
+        self.assertContains(response, 'id="preview_education_wrap"')
+        self.assertContains(response, 'id="preview_certifications_wrap"')
+
+        # 2. Save resume with full education & certifications
+        resume = Resume.objects.filter(user=self.user).first()
+        updated_data = resume.resume_data.copy()
+        updated_data['education'] = [
+            {'degree': 'B.Tech in Computer Science', 'school': 'IIT Delhi', 'year': '2026', 'gpa': '9.1 / 10.0'}
+        ]
+        updated_data['certifications'] = [
+            {'title': 'Python & Django Core Specialist', 'issuer': 'SkillSphere Verified (ID: SS-CERT-2026-A1B2C3D4)'},
+            {'title': 'AWS Certified Cloud Practitioner', 'issuer': 'Amazon Web Services'}
+        ]
+        post_resp = self.client.post(reverse('resumes:builder_edit', kwargs={'pk': resume.pk}), {
+            'action': 'save_resume',
+            'title': 'Certified Software Engineer Resume',
+            'template': 'modern',
+            'resume_data_json': json.dumps(updated_data)
+        })
+        self.assertEqual(post_resp.status_code, 302)
+
+        resume.refresh_from_db()
+        self.assertEqual(len(resume.resume_data['education']), 1)
+        self.assertEqual(resume.resume_data['education'][0]['school'], 'IIT Delhi')
+        self.assertEqual(len(resume.resume_data['certifications']), 2)
+        self.assertGreater(resume.ats_score, 0)
+
+        # 3. Verify PDF generation succeeds with education and certifications
+        pdf_resp = self.client.get(reverse('resumes:export_pdf', kwargs={'pk': resume.pk}))
+        self.assertEqual(pdf_resp.status_code, 200)
+        self.assertEqual(pdf_resp['Content-Type'], 'application/pdf')
+        self.assertGreater(len(pdf_resp.content), 1000)
+
+    def test_user_certificates_passed_to_builder(self):
+        from certificates.models import Certificate
+        Certificate.objects.create(
+            user=self.user,
+            title='Full Stack Django Architecture Specialist',
+            certificate_id='SS-CERT-2026-TEST99'
+        )
+        response = self.client.get(reverse('resumes:builder'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="importSkillSphereCertsBtn"')
+        self.assertContains(response, 'Import SkillSphere (1)')
+
+

@@ -133,11 +133,21 @@ def resume_builder_view(request, pk=None):
             messages.success(request, "Resume saved successfully!")
             return redirect('resumes:builder_edit', pk=resume.pk)
 
+    user_certificates = []
+    for cert in Certificate.objects.filter(user=request.user):
+        user_certificates.append({
+            'title': cert.title,
+            'certificate_id': cert.certificate_id,
+            'issued_year': cert.issued_at.strftime('%Y') if cert.issued_at else '2026',
+        })
+
     context = {
         'resume': resume,
         'resume_data': resume.resume_data,
         'resume_data_json': json.dumps(resume.resume_data),
         'saved_resumes': Resume.objects.filter(user=request.user),
+        'user_certificates': user_certificates,
+        'user_certificates_json': json.dumps(user_certificates),
     }
     return render(request, 'resumes/builder.html', context)
 

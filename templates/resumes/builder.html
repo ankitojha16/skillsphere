@@ -242,6 +242,113 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- 6. Education -->
+                    <div class="accordion-item bg-dark border-secondary border-opacity-25 mb-2 rounded-3 overflow-hidden">
+                        <div class="d-flex align-items-center justify-content-between pe-3 bg-dark">
+                            <h2 class="accordion-header flex-grow-1" id="headingEducation">
+                                <button class="accordion-button bg-dark text-white shadow-none collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseEducation">
+                                    <i data-lucide="graduation-cap" style="width: 16px; height: 16px;" class="me-2 text-primary-accent"></i> Education Background
+                                </button>
+                            </h2>
+                            <button type="button" id="addEducationBtn" class="btn btn-outline-info btn-xs py-1 px-2 d-inline-flex align-items-center gap-1" style="font-size: 0.75rem;">
+                                <i data-lucide="plus" style="width: 12px; height: 12px;"></i> Add Education
+                            </button>
+                        </div>
+                        <div id="collapseEducation" class="accordion-collapse collapse">
+                            <div class="accordion-body text-light">
+                                <div id="educationContainer">
+                                    {% for edu in resume_data.education %}
+                                    <div class="p-3 mb-2 rounded border border-secondary border-opacity-25 edu-item position-relative">
+                                        <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-2 remove-edu-btn" aria-label="Remove"></button>
+                                        <div class="row g-2 mb-2">
+                                            <div class="col-md-6">
+                                                <label class="form-label text-secondary small mb-1">Degree / Program</label>
+                                                <input type="text" class="form-control form-control-sm bg-dark text-white border-secondary edu-degree" value="{{ edu.degree }}" placeholder="e.g. B.Tech Computer Science, B.S., BCA">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label text-secondary small mb-1">Institution / University</label>
+                                                <input type="text" class="form-control form-control-sm bg-dark text-white border-secondary edu-school" value="{{ edu.school }}" placeholder="e.g. Indian Institute of Technology / Stanford">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label text-secondary small mb-1">Graduation Year</label>
+                                                <input type="text" class="form-control form-control-sm bg-dark text-white border-secondary edu-year" value="{{ edu.year }}" placeholder="e.g. 2026">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label text-secondary small mb-1">GPA / Score (Optional)</label>
+                                                <input type="text" class="form-control form-control-sm bg-dark text-white border-secondary edu-gpa" value="{{ edu.gpa }}" placeholder="e.g. 8.8 / 10.0 or 3.9 GPA">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% empty %}
+                                    <div class="p-3 mb-2 rounded border border-secondary border-opacity-25 edu-item position-relative">
+                                        <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-2 remove-edu-btn" aria-label="Remove"></button>
+                                        <div class="row g-2 mb-2">
+                                            <div class="col-md-6">
+                                                <label class="form-label text-secondary small mb-1">Degree / Program</label>
+                                                <input type="text" class="form-control form-control-sm bg-dark text-white border-secondary edu-degree" value="" placeholder="e.g. B.Tech Computer Science, B.S., BCA">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label text-secondary small mb-1">Institution / University</label>
+                                                <input type="text" class="form-control form-control-sm bg-dark text-white border-secondary edu-school" value="" placeholder="e.g. National Institute of Technology">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label text-secondary small mb-1">Graduation Year</label>
+                                                <input type="text" class="form-control form-control-sm bg-dark text-white border-secondary edu-year" value="" placeholder="e.g. 2026">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label text-secondary small mb-1">GPA / Score (Optional)</label>
+                                                <input type="text" class="form-control form-control-sm bg-dark text-white border-secondary edu-gpa" value="" placeholder="e.g. 8.5 / 10.0">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 7. Certifications & Credentials -->
+                    <div class="accordion-item bg-dark border-secondary border-opacity-25 mb-2 rounded-3 overflow-hidden">
+                        <div class="d-flex align-items-center justify-content-between pe-3 bg-dark">
+                            <h2 class="accordion-header flex-grow-1" id="headingCertifications">
+                                <button class="accordion-button bg-dark text-white shadow-none collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseCertifications">
+                                    <i data-lucide="award" style="width: 16px; height: 16px;" class="me-2 text-success"></i> Certifications & Credentials
+                                </button>
+                            </h2>
+                            <div class="d-flex gap-1">
+                                {% if user_certificates %}
+                                <button type="button" id="importSkillSphereCertsBtn" class="btn btn-outline-success btn-xs py-1 px-2 d-inline-flex align-items-center gap-1" style="font-size: 0.75rem;" title="Import all verified SkillSphere certificates">
+                                    <i data-lucide="shield-check" style="width: 12px; height: 12px;"></i> Import SkillSphere ({{ user_certificates|length }})
+                                </button>
+                                {% endif %}
+                                <button type="button" id="addCertificationBtn" class="btn btn-outline-info btn-xs py-1 px-2 d-inline-flex align-items-center gap-1" style="font-size: 0.75rem;">
+                                    <i data-lucide="plus" style="width: 12px; height: 12px;"></i> Add Cert
+                                </button>
+                            </div>
+                        </div>
+                        <div id="collapseCertifications" class="accordion-collapse collapse">
+                            <div class="accordion-body text-light">
+                                <div id="certificationsContainer">
+                                    {% for cert in resume_data.certifications %}
+                                    <div class="p-3 mb-2 rounded border border-secondary border-opacity-25 cert-item position-relative">
+                                        <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-2 remove-cert-btn" aria-label="Remove"></button>
+                                        <div class="row g-2">
+                                            <div class="col-md-7">
+                                                <label class="form-label text-secondary small mb-1">Certification Title</label>
+                                                <input type="text" class="form-control form-control-sm bg-dark text-white border-secondary cert-title" value="{% if cert.title %}{{ cert.title }}{% else %}{{ cert }}{% endif %}" placeholder="e.g. AWS Certified Solutions Architect">
+                                            </div>
+                                            <div class="col-md-5">
+                                                <label class="form-label text-secondary small mb-1">Issuer / Verification ID</label>
+                                                <input type="text" class="form-control form-control-sm bg-dark text-white border-secondary cert-issuer" value="{% if cert.issuer %}{{ cert.issuer }}{% else %}Verified Credential{% endif %}" placeholder="e.g. Amazon Web Services / SkillSphere">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="alert alert-dark border-secondary border-opacity-25 text-secondary small mt-3 mb-0">
@@ -270,7 +377,7 @@
                     </div>
 
                     <div class="mb-3">
-                        <div class="fw-bold text-dark text-uppercase small tracking-wide border-bottom pb-1 mb-1" style="letter-spacing: 0.05em;" id="preview_section_title">Career Objective & Goals</div>
+                        <div class="fw-bold text-dark text-uppercase small tracking-wide border-bottom pb-1 mb-1 preview-section-header" style="letter-spacing: 0.05em;" id="preview_section_title">Career Objective & Goals</div>
                         <div id="preview_target_wrap" class="small fw-bold text-dark mb-1">
                             <span id="preview_career_goal">{{ resume_data.career_goal|default:resume_data.contact.headline|default:'Software Developer' }}</span>
                             <span id="preview_target_industry_wrap" class="text-muted fw-normal"> | <span id="preview_target_industry">{{ resume_data.target_industry|default:'Technology & Software Engineering' }}</span></span>
@@ -284,12 +391,12 @@
                     </div>
 
                     <div class="mb-3">
-                        <div class="fw-bold text-dark text-uppercase small tracking-wide border-bottom pb-1 mb-1" style="letter-spacing: 0.05em;">Technical Skills</div>
+                        <div class="fw-bold text-dark text-uppercase small tracking-wide border-bottom pb-1 mb-1 preview-section-header" style="letter-spacing: 0.05em;">Technical Skills</div>
                         <div class="small text-secondary" id="preview_skills">{{ resume_data.skills|join:', ' }}</div>
                     </div>
 
                     <div class="mb-3">
-                        <div class="fw-bold text-dark text-uppercase small tracking-wide border-bottom pb-1 mb-1" style="letter-spacing: 0.05em;">Featured Projects</div>
+                        <div class="fw-bold text-dark text-uppercase small tracking-wide border-bottom pb-1 mb-1 preview-section-header" style="letter-spacing: 0.05em;">Featured Projects</div>
                         <div id="preview_projects">
                             {% for proj in resume_data.projects %}
                             <div class="mb-2">
@@ -300,14 +407,36 @@
                         </div>
                     </div>
 
-                    <div>
-                        <div class="fw-bold text-dark text-uppercase small tracking-wide border-bottom pb-1 mb-1" style="letter-spacing: 0.05em;">Experience</div>
+                    <div class="mb-3">
+                        <div class="fw-bold text-dark text-uppercase small tracking-wide border-bottom pb-1 mb-1 preview-section-header" style="letter-spacing: 0.05em;">Experience</div>
                         <div id="preview_experience">
                             {% for exp in resume_data.experience %}
                             <div class="mb-2">
                                 <div class="fw-bold small text-dark">{{ exp.role }} <span class="text-muted fw-normal">— {{ exp.company }} ({{ exp.dates }})</span></div>
                                 <div class="small text-secondary">{{ exp.description }}</div>
                             </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Education in Live Preview -->
+                    <div class="mb-3" id="preview_education_wrap">
+                        <div class="fw-bold text-dark text-uppercase small tracking-wide border-bottom pb-1 mb-1 preview-section-header" style="letter-spacing: 0.05em;">Education</div>
+                        <div id="preview_education">
+                            {% for edu in resume_data.education %}
+                            <div class="mb-1">
+                                <div class="fw-bold small text-dark">{{ edu.degree }} <span class="text-muted fw-normal">— {{ edu.school }} {% if edu.year %}({{ edu.year }}){% endif %} {% if edu.gpa %}| GPA: {{ edu.gpa }}{% endif %}</span></div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Certifications in Live Preview -->
+                    <div class="mb-2" id="preview_certifications_wrap">
+                        <div class="fw-bold text-dark text-uppercase small tracking-wide border-bottom pb-1 mb-1 preview-section-header" style="letter-spacing: 0.05em;">Certifications & Credentials</div>
+                        <div id="preview_certifications">
+                            {% for cert in resume_data.certifications %}
+                            <div class="small text-secondary">• {% if cert.title %}{{ cert.title }}{% if cert.issuer %} — <span class="text-muted">{{ cert.issuer }}</span>{% endif %}{% else %}{{ cert }}{% endif %}</div>
                             {% endfor %}
                         </div>
                     </div>
@@ -339,8 +468,18 @@
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
     function getResumeJSON() {
-        const skillsRaw = document.getElementById('input_skills').value;
+        const skillsRaw = document.getElementById('input_skills')?.value || '';
         const skillsList = skillsRaw.split(',').map(s => s.trim()).filter(s => s);
 
         const goalsRaw = document.getElementById('input_goals')?.value || '';
@@ -348,21 +487,43 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const projects = [];
         document.querySelectorAll('.project-item').forEach(item => {
-            projects.push({
-                title: item.querySelector('.proj-title').value,
-                technologies: item.querySelector('.proj-tech').value,
-                description: item.querySelector('.proj-desc').value,
-            });
+            const title = item.querySelector('.proj-title')?.value.trim() || '';
+            const technologies = item.querySelector('.proj-tech')?.value.trim() || '';
+            const description = item.querySelector('.proj-desc')?.value.trim() || '';
+            if (title || technologies) {
+                projects.push({ title, technologies, description });
+            }
         });
 
         const experience = [];
         document.querySelectorAll('.exp-item').forEach(item => {
-            experience.push({
-                role: item.querySelector('.exp-role').value,
-                company: item.querySelector('.exp-company').value,
-                dates: item.querySelector('.exp-dates').value,
-                description: item.querySelector('.exp-desc').value,
-            });
+            const role = item.querySelector('.exp-role')?.value.trim() || '';
+            const company = item.querySelector('.exp-company')?.value.trim() || '';
+            const dates = item.querySelector('.exp-dates')?.value.trim() || '';
+            const description = item.querySelector('.exp-desc')?.value.trim() || '';
+            if (role || company) {
+                experience.push({ role, company, dates, description });
+            }
+        });
+
+        const education = [];
+        document.querySelectorAll('.edu-item').forEach(item => {
+            const degree = item.querySelector('.edu-degree')?.value.trim() || '';
+            const school = item.querySelector('.edu-school')?.value.trim() || '';
+            const year = item.querySelector('.edu-year')?.value.trim() || '';
+            const gpa = item.querySelector('.edu-gpa')?.value.trim() || '';
+            if (degree || school) {
+                education.push({ degree, school, year, gpa });
+            }
+        });
+
+        const certifications = [];
+        document.querySelectorAll('.cert-item').forEach(item => {
+            const title = item.querySelector('.cert-title')?.value.trim() || '';
+            const issuer = item.querySelector('.cert-issuer')?.value.trim() || '';
+            if (title) {
+                certifications.push({ title, issuer });
+            }
         });
 
         const careerGoal = document.getElementById('input_career_goal')?.value.trim() || '';
@@ -371,12 +532,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
         return {
             contact: {
-                full_name: document.getElementById('input_full_name').value,
-                headline: document.getElementById('input_headline').value,
-                email: document.getElementById('input_email').value,
-                phone: document.getElementById('input_phone').value,
-                location: document.getElementById('input_location').value,
-                links: document.getElementById('input_links').value,
+                full_name: document.getElementById('input_full_name')?.value || '',
+                headline: document.getElementById('input_headline')?.value || '',
+                email: document.getElementById('input_email')?.value || '',
+                phone: document.getElementById('input_phone')?.value || '',
+                location: document.getElementById('input_location')?.value || '',
+                links: document.getElementById('input_links')?.value || '',
             },
             career_goal: careerGoal,
             target_industry: targetIndustry,
@@ -386,18 +547,24 @@ document.addEventListener('DOMContentLoaded', function() {
             skills: skillsList,
             projects: projects,
             experience: experience,
-            education: {{ resume_data.education|safe|default:"[]" }},
-            certifications: {{ resume_data.certifications|safe|default:"[]" }}
+            education: education,
+            certifications: certifications
         };
     }
 
     function updatePreview() {
         const data = getResumeJSON();
-        document.getElementById('resumeDataInput').value = JSON.stringify(data);
+        const jsonInput = document.getElementById('resumeDataInput');
+        if (jsonInput) jsonInput.value = JSON.stringify(data);
 
-        document.getElementById('preview_name').innerText = data.contact.full_name || 'Student Developer';
-        document.getElementById('preview_headline').innerText = data.contact.headline || '';
-        document.getElementById('preview_contact_line').innerText = [data.contact.email, data.contact.phone, data.contact.location, data.contact.links].filter(Boolean).join(' • ');
+        const pName = document.getElementById('preview_name');
+        if (pName) pName.innerText = data.contact.full_name || 'Student Developer';
+        
+        const pHeadline = document.getElementById('preview_headline');
+        if (pHeadline) pHeadline.innerText = data.contact.headline || '';
+        
+        const pContact = document.getElementById('preview_contact_line');
+        if (pContact) pContact.innerText = [data.contact.email, data.contact.phone, data.contact.location, data.contact.links].filter(Boolean).join(' • ');
 
         // Update Career Objective & Goals in Live Document Preview
         const previewCareerGoal = document.getElementById('preview_career_goal');
@@ -408,20 +575,241 @@ document.addEventListener('DOMContentLoaded', function() {
         if (previewTargetInd) previewTargetInd.innerText = data.target_industry || 'Technology';
         if (previewTargetWrap) previewTargetWrap.style.display = (data.career_goal || data.target_industry) ? 'block' : 'none';
 
-        document.getElementById('preview_summary').innerText = data.career_objective || data.summary || '';
+        const pSummary = document.getElementById('preview_summary');
+        if (pSummary) pSummary.innerText = data.career_objective || data.summary || '';
 
         const previewGoalsEl = document.getElementById('preview_goals');
         if (previewGoalsEl) {
-            previewGoalsEl.innerHTML = data.short_term_goals.map(g => `<div>• ${g}</div>`).join('');
+            previewGoalsEl.innerHTML = data.short_term_goals.map(g => `<div>• ${escapeHtml(g)}</div>`).join('');
         }
 
-        document.getElementById('preview_skills').innerText = data.skills.join(', ');
+        const pSkills = document.getElementById('preview_skills');
+        if (pSkills) pSkills.innerText = data.skills.join(', ');
+
+        // Update Projects
+        const pProjects = document.getElementById('preview_projects');
+        if (pProjects) {
+            if (data.projects.length > 0) {
+                pProjects.innerHTML = data.projects.map(proj => `
+                    <div class="mb-2">
+                        <div class="fw-bold small text-dark">${escapeHtml(proj.title)} <span class="text-muted fw-normal">${proj.technologies ? '| ' + escapeHtml(proj.technologies) : ''}</span></div>
+                        <div class="small text-secondary">${escapeHtml(proj.description)}</div>
+                    </div>
+                `).join('');
+            } else {
+                pProjects.innerHTML = '<div class="small text-muted fst-italic">No projects listed yet.</div>';
+            }
+        }
+
+        // Update Experience
+        const pExp = document.getElementById('preview_experience');
+        if (pExp) {
+            if (data.experience.length > 0) {
+                pExp.innerHTML = data.experience.map(exp => `
+                    <div class="mb-2">
+                        <div class="fw-bold small text-dark">${escapeHtml(exp.role)} <span class="text-muted fw-normal">— ${escapeHtml(exp.company)} ${exp.dates ? '(' + escapeHtml(exp.dates) + ')' : ''}</span></div>
+                        <div class="small text-secondary">${escapeHtml(exp.description)}</div>
+                    </div>
+                `).join('');
+            } else {
+                pExp.innerHTML = '<div class="small text-muted fst-italic">No prior employment added.</div>';
+            }
+        }
+
+        // Update Education
+        const previewEduWrap = document.getElementById('preview_education_wrap');
+        const previewEdu = document.getElementById('preview_education');
+        if (previewEdu) {
+            if (data.education.length > 0) {
+                previewEdu.innerHTML = data.education.map(edu => `
+                    <div class="mb-1">
+                        <div class="fw-bold small text-dark">${escapeHtml(edu.degree)} <span class="text-muted fw-normal">— ${escapeHtml(edu.school)} ${edu.year ? '(' + escapeHtml(edu.year) + ')' : ''} ${edu.gpa ? '| GPA: ' + escapeHtml(edu.gpa) : ''}</span></div>
+                    </div>
+                `).join('');
+                if (previewEduWrap) previewEduWrap.style.display = 'block';
+            } else {
+                previewEdu.innerHTML = '';
+                if (previewEduWrap) previewEduWrap.style.display = 'none';
+            }
+        }
+
+        // Update Certifications
+        const previewCertWrap = document.getElementById('preview_certifications_wrap');
+        const previewCert = document.getElementById('preview_certifications');
+        if (previewCert) {
+            if (data.certifications.length > 0) {
+                previewCert.innerHTML = data.certifications.map(cert => {
+                    const cTitle = typeof cert === 'string' ? cert : cert.title;
+                    const cIssuer = typeof cert === 'object' && cert.issuer ? ` — <span class="text-muted">${escapeHtml(cert.issuer)}</span>` : '';
+                    return `<div class="small text-secondary">• ${escapeHtml(cTitle)}${cIssuer}</div>`;
+                }).join('');
+                if (previewCertWrap) previewCertWrap.style.display = 'block';
+            } else {
+                previewCert.innerHTML = '';
+                if (previewCertWrap) previewCertWrap.style.display = 'none';
+            }
+        }
     }
 
-    // Attach sync listeners
-    document.querySelectorAll('#resumeAccordion input, #resumeAccordion textarea').forEach(el => {
-        el.addEventListener('input', updatePreview);
+    // Attach sync listeners dynamically
+    function attachListeners() {
+        document.querySelectorAll('#resumeAccordion input, #resumeAccordion textarea').forEach(el => {
+            el.removeEventListener('input', updatePreview);
+            el.addEventListener('input', updatePreview);
+        });
+        document.querySelectorAll('.remove-edu-btn').forEach(btn => {
+            btn.onclick = function() {
+                this.closest('.edu-item')?.remove();
+                updatePreview();
+            };
+        });
+        document.querySelectorAll('.remove-cert-btn').forEach(btn => {
+            btn.onclick = function() {
+                this.closest('.cert-item')?.remove();
+                updatePreview();
+            };
+        });
+    }
+
+    // Add Education Dynamic Handler
+    const addEduBtn = document.getElementById('addEducationBtn');
+    if (addEduBtn) {
+        addEduBtn.addEventListener('click', () => {
+            const container = document.getElementById('educationContainer');
+            const div = document.createElement('div');
+            div.className = 'p-3 mb-2 rounded border border-secondary border-opacity-25 edu-item position-relative';
+            div.innerHTML = `
+                <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-2 remove-edu-btn" aria-label="Remove"></button>
+                <div class="row g-2 mb-2">
+                    <div class="col-md-6">
+                        <label class="form-label text-secondary small mb-1">Degree / Program</label>
+                        <input type="text" class="form-control form-control-sm bg-dark text-white border-secondary edu-degree" placeholder="e.g. B.Tech Computer Science, B.S., BCA">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-secondary small mb-1">Institution / University</label>
+                        <input type="text" class="form-control form-control-sm bg-dark text-white border-secondary edu-school" placeholder="e.g. Indian Institute of Technology / Stanford">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-secondary small mb-1">Graduation Year</label>
+                        <input type="text" class="form-control form-control-sm bg-dark text-white border-secondary edu-year" placeholder="e.g. 2026">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-secondary small mb-1">GPA / Score (Optional)</label>
+                        <input type="text" class="form-control form-control-sm bg-dark text-white border-secondary edu-gpa" placeholder="e.g. 8.8 / 10.0 or 3.9 GPA">
+                    </div>
+                </div>
+            `;
+            container.appendChild(div);
+            attachListeners();
+            const collapseEl = document.getElementById('collapseEducation');
+            if (collapseEl && !collapseEl.classList.contains('show')) {
+                bootstrap.Collapse.getOrCreateInstance(collapseEl).show();
+            }
+            updatePreview();
+        });
+    }
+
+    // Add Certification Dynamic Handler
+    function addCertificationItem(title = '', issuer = '') {
+        const container = document.getElementById('certificationsContainer');
+        const div = document.createElement('div');
+        div.className = 'p-3 mb-2 rounded border border-secondary border-opacity-25 cert-item position-relative';
+        div.innerHTML = `
+            <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-2 remove-cert-btn" aria-label="Remove"></button>
+            <div class="row g-2">
+                <div class="col-md-7">
+                    <label class="form-label text-secondary small mb-1">Certification Title</label>
+                    <input type="text" class="form-control form-control-sm bg-dark text-white border-secondary cert-title" value="${escapeHtml(title)}" placeholder="e.g. AWS Certified Solutions Architect">
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label text-secondary small mb-1">Issuer / Verification ID</label>
+                    <input type="text" class="form-control form-control-sm bg-dark text-white border-secondary cert-issuer" value="${escapeHtml(issuer)}" placeholder="e.g. Amazon Web Services / SkillSphere">
+                </div>
+            </div>
+        `;
+        container.appendChild(div);
+        attachListeners();
+        const collapseEl = document.getElementById('collapseCertifications');
+        if (collapseEl && !collapseEl.classList.contains('show')) {
+            bootstrap.Collapse.getOrCreateInstance(collapseEl).show();
+        }
+        updatePreview();
+    }
+
+    const addCertBtn = document.getElementById('addCertificationBtn');
+    if (addCertBtn) {
+        addCertBtn.addEventListener('click', () => addCertificationItem());
+    }
+
+    // Import Verified SkillSphere Certificates
+    const importCertsBtn = document.getElementById('importSkillSphereCertsBtn');
+    if (importCertsBtn) {
+        const userCerts = {{ user_certificates_json|safe|default:"[]" }};
+        importCertsBtn.addEventListener('click', () => {
+            if (userCerts.length === 0) {
+                alert('No SkillSphere certificates earned yet. Complete courses on SkillSphere to earn verified certificates!');
+                return;
+            }
+            userCerts.forEach(c => {
+                addCertificationItem(`${c.title} - SkillSphere Certified`, `SkillSphere Verified (ID: ${c.certificate_id})`);
+            });
+            updatePreview();
+        });
+    }
+
+    // Template live style preview
+    const templateSelect = document.getElementById('templateSelect');
+    function applyTemplatePreviewStyle(template) {
+        const sheet = document.getElementById('resumePreviewSheet');
+        const nameHeader = document.getElementById('preview_name');
+        const sectionHeaders = document.querySelectorAll('.preview-section-header');
+        if (!sheet) return;
+
+        if (template === 'modern') {
+            sheet.style.fontFamily = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+            if (nameHeader) nameHeader.style.color = '#4338CA';
+            sectionHeaders.forEach(h => {
+                h.style.color = '#6366F1';
+                h.style.borderBottomColor = '#A5B4FC';
+            });
+        } else if (template === 'fresher') {
+            sheet.style.fontFamily = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+            if (nameHeader) nameHeader.style.color = '#065F46';
+            sectionHeaders.forEach(h => {
+                h.style.color = '#059669';
+                h.style.borderBottomColor = '#6EE7B7';
+            });
+        } else if (template === 'minimal') {
+            sheet.style.fontFamily = "'Courier New', Courier, monospace";
+            if (nameHeader) nameHeader.style.color = '#18181B';
+            sectionHeaders.forEach(h => {
+                h.style.color = '#27272A';
+                h.style.borderBottomColor = '#E4E4E7';
+            });
+        } else { // 'ats'
+            sheet.style.fontFamily = "'Helvetica Neue', Arial, sans-serif";
+            if (nameHeader) nameHeader.style.color = '#0F172A';
+            sectionHeaders.forEach(h => {
+                h.style.color = '#1E293B';
+                h.style.borderBottomColor = '#CBD5E1';
+            });
+        }
+    }
+    if (templateSelect) {
+        templateSelect.addEventListener('change', () => applyTemplatePreviewStyle(templateSelect.value));
+        applyTemplatePreviewStyle(templateSelect.value);
+    }
+
+    // Cmd+S / Ctrl+S Quick Save
+    document.addEventListener('keydown', function(e) {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+            e.preventDefault();
+            document.getElementById('resumeForm')?.submit();
+        }
     });
+
+    attachListeners();
+    updatePreview();
 
     // 1-Click Track Presets
     document.querySelectorAll('.goal-track-preset').forEach(btn => {

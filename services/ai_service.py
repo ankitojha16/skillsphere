@@ -1558,6 +1558,13 @@ class AIService:
                 score += 4
                 strengths.append("Essential contact coordinates are complete.")
 
+            certifications = resume_data.get('certifications', [])
+            if certifications and len(certifications) > 0:
+                score += 6
+                strengths.append(f"Verified certifications and credentials included ({len(certifications)} listed).")
+            else:
+                improvements.append("Add verified industry certifications or SkillSphere course credentials to elevate your ranking.")
+
             score = min(score, 100)
 
             keywords_matched = []

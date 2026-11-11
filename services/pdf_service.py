@@ -1382,8 +1382,15 @@ class PDFService:
         if certifications:
             elements.append(Paragraph("CERTIFICATIONS & AWARDS", section_style))
             for cert in certifications:
-                c_name = cert if isinstance(cert, str) else cert.get('title', '')
-                elements.append(Paragraph(f"• {c_name}", body_style))
+                if isinstance(cert, dict):
+                    c_title = cert.get('title', '')
+                    c_issuer = cert.get('issuer', '')
+                    c_text = f"<b>{c_title}</b>"
+                    if c_issuer:
+                        c_text += f" — <font color='#64748B'>{c_issuer}</font>"
+                else:
+                    c_text = str(cert)
+                elements.append(Paragraph(f"• {c_text}", body_style))
             elements.append(Spacer(1, 4))
 
         doc.build(elements)
