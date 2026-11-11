@@ -348,6 +348,29 @@
                     {% endif %}
                 </div>
 
+                {% if reviews_count > 0 and rating_distribution %}
+                <div class="row g-3 align-items-center mb-4 p-3 rounded-3" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06);">
+                    <div class="col-md-4 text-center border-end border-secondary border-opacity-25 py-2">
+                        <div class="display-5 fw-bold text-warning mb-0 lh-1">{{ avg_rating|floatformat:1 }}</div>
+                        <div class="text-warning d-flex justify-content-center gap-1 my-2">
+                            {% for i in "12345"|make_list %}<i data-lucide="star" style="width: 15px; height: 15px; fill: currentColor;"></i>{% endfor %}
+                        </div>
+                        <div class="text-secondary small">{{ reviews_count }} verified review{{ reviews_count|pluralize }}</div>
+                    </div>
+                    <div class="col-md-8 px-md-3">
+                        {% for dist in rating_distribution %}
+                            <div class="d-flex align-items-center gap-2 mb-1.5 small">
+                                <span class="text-secondary font-monospace" style="width: 28px;">{{ dist.stars }}★</span>
+                                <div class="progress flex-grow-1" style="height: 6px; background-color: rgba(255,255,255,0.08); border-radius: 999px;">
+                                    <div class="progress-bar bg-warning rounded-pill" role="progressbar" style="width: {{ dist.percent }}%;" aria-valuenow="{{ dist.percent }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                                <span class="text-secondary font-monospace text-end" style="width: 32px; font-size: 0.72rem;">{{ dist.count }}</span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
                 <!-- Review Form or Status Card -->
                 {% if user.is_authenticated %}
                     {% if user_review %}

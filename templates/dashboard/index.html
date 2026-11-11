@@ -610,10 +610,26 @@
             </div>
         </div>
 
-        <!-- Heatmap scrollable container -->
+        <!-- Heatmap scrollable container with Month & Day labels -->
         <div class="table-responsive" style="overflow-x: auto; padding-bottom: 6px;">
-            <div id="studyHeatmapGrid" style="display: grid; grid-template-rows: repeat(7, 12px); grid-auto-flow: column; grid-auto-columns: 12px; gap: 3px; min-width: 760px; padding: 4px 0;">
-                <!-- Injected via JavaScript from heatmap_days_json -->
+            <div style="min-width: 780px;">
+                <!-- Month Labels Row -->
+                <div id="studyHeatmapMonths" class="d-flex text-secondary font-monospace mb-1" style="font-size: 0.72rem; padding-left: 28px; justify-content: space-between; user-select: none;">
+                    <span>Nov</span><span>Dec</span><span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span><span>Jul</span><span>Aug</span><span>Sep</span><span>Oct</span><span>Nov</span>
+                </div>
+                <!-- Grid Row with Day Labels -->
+                <div class="d-flex align-items-center gap-1.5">
+                    <!-- Day Labels (Mon, Wed, Fri) -->
+                    <div class="d-flex flex-column justify-content-between text-secondary font-monospace pe-1" style="height: 102px; font-size: 0.68rem; line-height: 1; user-select: none;">
+                        <span>Mon</span>
+                        <span>Wed</span>
+                        <span>Fri</span>
+                    </div>
+                    <!-- 52-Week Grid -->
+                    <div id="studyHeatmapGrid" style="display: grid; grid-template-rows: repeat(7, 12px); grid-auto-flow: column; grid-auto-columns: 12px; gap: 3px; padding: 2px 0;">
+                        <!-- Injected via JavaScript from heatmap_days_json -->
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -895,13 +911,16 @@
                     <button type="button" class="btn btn-warning fw-bold py-2.5 rounded-pill shadow-sm d-flex align-items-center justify-content-center gap-2" onclick="launchConfettiCannon()">
                         <span>🎉 Blast More Confetti!</span>
                     </button>
-                    <div class="d-flex gap-2">
+                    <div class="d-flex flex-wrap gap-2">
                         <a id="milestoneShareLinkedIn" href="https://www.linkedin.com/sharing/share-offsite/?url={{ request.build_absolute_uri }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-info flex-grow-1 py-2 rounded-pill small d-flex align-items-center justify-content-center gap-1.5">
-                            <i data-lucide="linkedin" style="width: 14px; height: 14px;"></i> Share on LinkedIn
+                            <i data-lucide="linkedin" style="width: 14px; height: 14px;"></i> LinkedIn
                         </a>
                         <a id="milestoneShareTwitter" href="https://twitter.com/intent/tweet?text=I%20just%20unlocked%20a%20new%20learning%20milestone%20on%20SkillSphere!%20%F0%9F%9A%80" target="_blank" rel="noopener noreferrer" class="btn btn-outline-light flex-grow-1 py-2 rounded-pill small d-flex align-items-center justify-content-center gap-1.5">
-                            <i data-lucide="twitter" style="width: 14px; height: 14px;"></i> Share on X
+                            <i data-lucide="twitter" style="width: 14px; height: 14px;"></i> X
                         </a>
+                        <button type="button" id="copyMilestonePostBtn" class="btn btn-outline-warning flex-grow-1 py-2 rounded-pill small d-flex align-items-center justify-content-center gap-1.5" onclick="copyMilestonePost()">
+                            <i data-lucide="copy" style="width: 14px; height: 14px;"></i> Copy Post
+                        </button>
                     </div>
                     <button type="button" class="btn btn-link text-secondary text-decoration-none small mt-2" data-bs-dismiss="modal">
                         Keep Crushing It →
@@ -917,6 +936,20 @@
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
 <script src="{% static 'js/dashboard.js' %}"></script>
 <script>
+    function copyMilestonePost() {
+        const title = document.getElementById('milestoneCelebrationTitle')?.innerText || 'Learning Milestone';
+        const streak = '{{ gamification.current_streak|default:1 }}';
+        const post = `🚀 Milestone Unlocked on SkillSphere!\n\n${title}\n🔥 Continuous Study Streak: ${streak} Days\n⚡ Total XP: {{ gamification.total_xp|default:0 }}\n\nContinuous deliberate practice is how great software engineers are forged.\n\n#SkillSphere #LearnInPublic #SoftwareEngineering #CareerGrowth`;
+        navigator.clipboard.writeText(post).then(() => {
+            const btn = document.getElementById('copyMilestonePostBtn');
+            if (btn) {
+                const orig = btn.innerHTML;
+                btn.innerHTML = `<i data-lucide="check" style="width: 14px; height: 14px;"></i> Copied!`;
+                setTimeout(() => { btn.innerHTML = orig; if (window.lucide) lucide.createIcons(); }, 2000);
+            }
+        });
+    }
+
     function launchConfettiCannon() {
         if (typeof confetti === 'function') {
             confetti({ particleCount: 90, spread: 70, origin: { y: 0.6 } });

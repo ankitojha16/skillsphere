@@ -118,4 +118,42 @@
         }
     };
 
+    // 7. Real-time Network Connectivity Monitoring
+    function updateNetworkStatus(online) {
+        const pill = document.getElementById('networkStatusPill');
+        const text = document.getElementById('networkStatusText');
+        if (!pill || !text) return;
+
+        if (!online) {
+            pill.className = 'position-fixed bottom-0 start-0 m-3 px-3 py-2 rounded-pill small fw-semibold shadow-lg d-flex align-items-center gap-2 text-warning';
+            pill.style.background = 'rgba(26, 20, 8, 0.94)';
+            pill.style.border = '1px solid rgba(245, 158, 11, 0.45)';
+            pill.style.zIndex = '1060';
+            pill.style.fontSize = '0.78rem';
+            pill.style.backdropFilter = 'blur(10px)';
+            const dot = pill.querySelector('.status-indicator-dot');
+            if (dot) dot.style.background = '#f59e0b';
+            text.innerHTML = '<span>Offline Mode — Cached lessons & resources remain accessible</span>';
+            pill.classList.remove('d-none');
+        } else {
+            if (!pill.classList.contains('d-none')) {
+                pill.className = 'position-fixed bottom-0 start-0 m-3 px-3 py-2 rounded-pill small fw-semibold shadow-lg d-flex align-items-center gap-2 text-success';
+                pill.style.background = 'rgba(6, 30, 20, 0.94)';
+                pill.style.border = '1px solid rgba(16, 185, 129, 0.45)';
+                const dot = pill.querySelector('.status-indicator-dot');
+                if (dot) dot.style.background = '#10b981';
+                text.innerHTML = '<span>Back Online — Connected to SkillSphere cloud</span>';
+                setTimeout(() => {
+                    pill.classList.add('d-none');
+                }, 3500);
+            }
+        }
+    }
+
+    window.addEventListener('offline', () => updateNetworkStatus(false));
+    window.addEventListener('online', () => updateNetworkStatus(true));
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        window.addEventListener('DOMContentLoaded', () => updateNetworkStatus(false));
+    }
+
 })();

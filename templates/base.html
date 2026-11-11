@@ -421,6 +421,12 @@
         </div>
     </div>
 
+    <!-- Real-time Network Connectivity Status Pill -->
+    <div id="networkStatusPill" class="d-none position-fixed bottom-0 start-0 m-3 px-3 py-2 rounded-pill small fw-semibold shadow-lg d-flex align-items-center gap-2" style="z-index: 1060; font-size: 0.78rem; transition: opacity 0.3s ease, transform 0.3s ease; backdrop-filter: blur(10px);">
+        <span class="status-indicator-dot rounded-circle" style="width: 8px; height: 8px; display: inline-block;"></span>
+        <span id="networkStatusText"></span>
+    </div>
+
     <!-- iOS Safari Install Instructions Modal -->
     <div class="modal fade" id="iosInstallModal" tabindex="-1" aria-labelledby="iosInstallModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">

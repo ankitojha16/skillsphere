@@ -398,14 +398,65 @@ const dropdown = document.getElementById('courseSearchDropdown');
 let debounceTimer = null;
 
 if (searchInput && dropdown) {
+    let activeSuggestionIndex = -1;
+
     function escapeHtml(str) {
         if (!str) return '';
         return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
 
+    function highlightQuery(text, query) {
+        if (!query) return escapeHtml(text);
+        const escapedText = escapeHtml(text);
+        const escapedQuery = escapeHtml(query);
+        const regex = new RegExp(`(${escapedQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+        return escapedText.replace(regex, '<span style="color: #38bdf8; font-weight: 700; text-decoration: underline;">$1</span>');
+    }
+
+    function updateActiveSuggestion(items) {
+        items.forEach((item, idx) => {
+            if (idx === activeSuggestionIndex) {
+                item.style.backgroundColor = '#1e293b';
+                item.style.borderColor = '#38bdf8';
+                item.focus();
+            } else {
+                item.style.backgroundColor = '#11182B';
+                item.style.borderColor = '';
+            }
+        });
+    }
+
+    searchInput.addEventListener('keydown', function(e) {
+        const items = dropdown.querySelectorAll('.autocomplete-item');
+        if (!items || items.length === 0 || dropdown.classList.contains('d-none')) {
+            if (e.key === 'Escape') dropdown.classList.add('d-none');
+            return;
+        }
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            activeSuggestionIndex = (activeSuggestionIndex + 1) % items.length;
+            updateActiveSuggestion(items);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            activeSuggestionIndex = (activeSuggestionIndex - 1 + items.length) % items.length;
+            updateActiveSuggestion(items);
+        } else if (e.key === 'Enter') {
+            if (activeSuggestionIndex >= 0 && items[activeSuggestionIndex]) {
+                e.preventDefault();
+                items[activeSuggestionIndex].click();
+            }
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            dropdown.classList.add('d-none');
+            activeSuggestionIndex = -1;
+        }
+    });
+
     searchInput.addEventListener('input', function() {
         const query = this.value.trim();
         clearTimeout(debounceTimer);
+        activeSuggestionIndex = -1;
         if (query.length < 2) {
             dropdown.innerHTML = '';
             dropdown.classList.add('d-none');
@@ -417,11 +468,11 @@ if (searchInput && dropdown) {
                 const resp = await fetch(`{% url "courses:search_autocomplete" %}?q=${encodeURIComponent(query)}`);
                 const data = await resp.json();
                 if (data.results && data.results.length > 0) {
-                    dropdown.innerHTML = data.results.map(c => `
-                        <a href="${c.url}" class="list-group-item list-group-item-action d-flex align-items-center gap-3 p-2.5 text-white border-bottom border-secondary border-opacity-25" style="background-color: #11182B;">
+                    dropdown.innerHTML = data.results.map((c, i) => `
+                        <a href="${c.url}" class="list-group-item list-group-item-action d-flex align-items-center gap-3 p-2.5 text-white border-bottom border-secondary border-opacity-25 autocomplete-item" data-index="${i}" style="background-color: #11182B; transition: background 0.15s ease;">
                             <img src="${c.thumbnail}" alt="${escapeHtml(c.title)}" class="rounded-2" style="width: 44px; height: 32px; object-fit: cover;">
                             <div class="flex-grow-1 overflow-hidden">
-                                <div class="fw-bold small text-truncate text-white mb-0.5">${escapeHtml(c.title)}</div>
+                                <div class="fw-bold small text-truncate text-white mb-0.5">${highlightQuery(c.title, query)}</div>
                                 <div class="text-secondary small d-flex align-items-center gap-2" style="font-size: 0.78rem;">
                                     <span>${escapeHtml(c.instructor)}</span>
                                     <span>•</span>
@@ -457,6 +508,7 @@ if (searchInput && dropdown) {
     document.addEventListener('click', function(e) {
         if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
             dropdown.classList.add('d-none');
+            activeSuggestionIndex = -1;
         }
     });
 

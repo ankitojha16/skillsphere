@@ -143,6 +143,9 @@
                                 <a href="https://www.linkedin.com/profile/add?startTask=CERTIFICATION_NAME&name={{ cert.course.title|default:cert.title|urlencode }}&organizationName=SkillSphere&issueYear={{ cert.issued_at|date:'Y' }}&issueMonth={{ cert.issued_at|date:'n' }}&certUrl={{ request.scheme }}://{{ request.get_host }}{{ cert.get_verify_url }}&certId={{ cert.certificate_id }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-info" title="Add to LinkedIn Profile">
                                     <i data-lucide="linkedin" style="width: 14px; height: 14px;"></i> LinkedIn
                                 </a>
+                                <button type="button" class="btn btn-sm btn-outline-secondary text-white" onclick="copyCertBadgeMarkdown('{{ cert.title|escapejs }}', '{{ request.scheme }}://{{ request.get_host }}{{ cert.get_verify_url }}')" title="Copy GitHub README Badge Markdown">
+                                    <i data-lucide="code" style="width: 14px; height: 14px;"></i> Badge
+                                </button>
                                 <button type="button" class="btn btn-sm btn-outline-warning" onclick="openClaimModal({{ cert.course.id }}, '{{ cert.course.title|escapejs }}', '{{ cert.recipient_name|escapejs }}');" title="Customize name on this certificate">
                                     <i data-lucide="edit-3" style="width: 14px; height: 14px;"></i> Edit Name
                                 </button>
@@ -405,6 +408,13 @@ function openClaimModal(courseId, courseTitle, currentName) {
         }
     }
     claimModal.show();
+}
+
+function copyCertBadgeMarkdown(title, verifyUrl) {
+    const badgeMd = `[![SkillSphere Certified: ${title}](https://img.shields.io/badge/SkillSphere-Certified-22c55e?logo=checkmarx&logoColor=white)](${verifyUrl})`;
+    navigator.clipboard.writeText(badgeMd).then(() => {
+        alert(`Copied GitHub README Badge markdown for '${title}'!\n\nYou can paste it directly into your GitHub profile README or personal portfolio.`);
+    });
 }
 </script>
 {% endblock %}

@@ -378,6 +378,21 @@ def course_detail_view(request, slug):
     )
     avg_rating, reviews_count = course.get_rating_summary()
 
+    # Calculate rating distribution breakdown
+    rating_counts = {5: 0, 4: 0, 3: 0, 2: 0, 1: 0}
+    for rev in approved_reviews:
+        if rev.rating in rating_counts:
+            rating_counts[rev.rating] += 1
+    total_revs = len(approved_reviews)
+    rating_distribution = [
+        {
+            'stars': star,
+            'count': rating_counts[star],
+            'percent': int(round((rating_counts[star] / total_revs) * 100)) if total_revs > 0 else 0
+        }
+        for star in [5, 4, 3, 2, 1]
+    ]
+
     return render(request, 'courses/detail.html', {
         'course': course,
         'modules': modules,
@@ -399,6 +414,7 @@ def course_detail_view(request, slug):
         'can_review': can_review,
         'avg_rating': avg_rating,
         'reviews_count': reviews_count,
+        'rating_distribution': rating_distribution,
     })
 
 
