@@ -343,8 +343,12 @@ def course_detail_view(request, slug):
                     is_completed=True
                 ).values_list('lesson_id', flat=True)
             )
-            # User can review if enrolled and has completed at least 1 lesson
-            can_review = len(completed_lesson_ids) >= 1
+            # User can review if enrolled and has completed >= 50% of the course
+            total_course_lessons = len(lessons)
+            can_review = (
+                (total_course_lessons == 0 and len(completed_lesson_ids) >= 1) or
+                (total_course_lessons > 0 and (len(completed_lesson_ids) / total_course_lessons) >= 0.5)
+            )
 
             # Find next incomplete lesson from prefetched list
             for lesson in lessons:
@@ -624,14 +628,19 @@ def submit_course_review_view(request, slug):
 
     course = get_object_or_404(Course, slug=slug, is_published=True)
 
-    # Strict Eligibility check: enrolled + completed >= 1 lesson
+    # Strict Eligibility check: enrolled + completed >= 50% of the course
     is_enrolled = Enrollment.objects.filter(user=request.user, course=course).exists()
     completed_lessons_count = LessonProgress.objects.filter(
         user=request.user, lesson__course=course, is_completed=True
     ).count()
+    total_course_lessons = course.lessons.count()
+    is_eligible = is_enrolled and (
+        (total_course_lessons == 0 and completed_lessons_count >= 1) or
+        (total_course_lessons > 0 and (completed_lessons_count / total_course_lessons) >= 0.5)
+    )
 
-    if not is_enrolled or completed_lessons_count < 1:
-        messages.error(request, "You must be enrolled and complete at least 1 lesson before submitting a review.")
+    if not is_eligible:
+        messages.error(request, "You must be enrolled and complete at least 50% of the course before submitting a review.")
         return redirect('courses:detail', slug=slug)
 
     try:
