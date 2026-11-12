@@ -3,6 +3,81 @@
 
 {% block title %}AI Resume Builder - SkillSphere{% endblock %}
 
+{% block extra_css %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<style>
+.theme-harvard {
+    font-family: 'Times New Roman', 'Garamond', Georgia, serif !important;
+    color: #111827 !important;
+    background: #ffffff !important;
+}
+.theme-harvard #preview_name {
+    text-align: center;
+    font-size: 1.55rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #111827 !important;
+}
+.theme-harvard #preview_headline {
+    text-align: center;
+    font-style: italic;
+    font-size: 0.95rem;
+    color: #374151 !important;
+    margin-bottom: 2px;
+}
+.theme-harvard #preview_contact_line {
+    text-align: center;
+    font-size: 0.82rem;
+    color: #4B5563 !important;
+}
+.theme-harvard .preview-section-header {
+    border-bottom: 1.5px solid #111827 !important;
+    color: #111827 !important;
+    font-weight: 700;
+    font-size: 0.88rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-top: 0.85rem;
+    margin-bottom: 0.4rem;
+}
+.theme-modern {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    color: #0F172A !important;
+}
+.theme-modern .preview-section-header {
+    border-bottom: 2px solid #6366F1 !important;
+    color: #4F46E5 !important;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+.theme-minimal {
+    font-family: 'Helvetica Neue', Arial, sans-serif !important;
+    color: #27272A !important;
+}
+.theme-minimal .preview-section-header {
+    border-bottom: 1px solid #CBD5E1 !important;
+    color: #27272A !important;
+    font-weight: 600;
+}
+.btn-pill-toggle {
+    font-size: 0.78rem;
+    padding: 3px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.15);
+    background: transparent;
+    color: #94A3B8;
+    transition: all 0.15s ease;
+}
+.btn-pill-toggle.active {
+    background: rgba(99, 102, 241, 0.25);
+    border-color: #6366F1;
+    color: #FFFFFF;
+    font-weight: 600;
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid p-4">
     <!-- Header -->
@@ -11,14 +86,18 @@
             <h1 class="h3 fw-bold text-white mb-1">AI Resume Builder</h1>
             <p class="text-secondary mb-0">Create, optimize, and export ATS-compliant developer resumes with AI refinement.</p>
         </div>
-        <div class="d-flex gap-2">
-            <a href="{% url 'resumes:export_pdf' pk=resume.pk %}" class="btn btn-primary-custom">
+        <div class="d-flex flex-wrap gap-2">
+            <button type="button" class="btn btn-success d-flex align-items-center gap-1" id="directPdfExportBtn" title="Instant 1-Click Vector PDF Download">
+                <i data-lucide="file-down" style="width: 16px; height: 16px;"></i>
+                <span>1-Click PDF</span>
+            </button>
+            <a href="{% url 'resumes:export_pdf' pk=resume.pk %}" class="btn btn-primary-custom d-flex align-items-center gap-1" title="Download ReportLab Official PDF">
                 <i data-lucide="download" style="width: 16px; height: 16px;"></i>
-                <span>Download PDF</span>
+                <span>Official PDF</span>
             </a>
-            <button type="button" class="btn btn-secondary-custom" id="atsAuditBtn">
-                <i data-lucide="shield-alert" style="width: 16px; height: 16px;"></i>
-                <span>Check ATS Score</span>
+            <button type="button" class="btn btn-secondary-custom d-flex align-items-center gap-1" id="atsAuditBtn">
+                <i data-lucide="shield-check" style="width: 16px; height: 16px;"></i>
+                <span>Job ATS Matcher</span>
             </button>
         </div>
     </div>
@@ -361,13 +440,21 @@
         <!-- Live Document Preview -->
         <div class="col-lg-6">
             <div class="custom-card p-4">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="fw-bold text-white mb-0"><i data-lucide="eye" style="width: 18px; height: 18px;" class="me-2 text-info"></i>Live Document Preview</h5>
-                    <span class="badge bg-dark border border-secondary text-secondary small">Real-Time Sync</span>
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                    <h5 class="fw-bold text-white mb-0 d-flex align-items-center gap-2">
+                        <i data-lucide="eye" style="width: 18px; height: 18px;" class="text-info"></i>
+                        <span>Live Document Preview</span>
+                    </h5>
+                    <!-- Visual Theme Toggle Pills -->
+                    <div class="d-flex align-items-center gap-1" id="previewThemeToggle">
+                        <button type="button" class="btn-pill-toggle active" data-theme="harvard" onclick="setPreviewTheme('harvard')">Harvard FAANG</button>
+                        <button type="button" class="btn-pill-toggle" data-theme="modern" onclick="setPreviewTheme('modern')">Modern Tech</button>
+                        <button type="button" class="btn-pill-toggle" data-theme="minimal" onclick="setPreviewTheme('minimal')">Minimal</button>
+                    </div>
                 </div>
 
                 <!-- Printable Document Sheet Simulation -->
-                <div class="p-4 rounded-3 text-dark" id="resumePreviewSheet" style="background: #ffffff; min-height: 520px; font-family: 'Helvetica Neue', Arial, sans-serif; box-shadow: 0 8px 24px rgba(0,0,0,0.4);">
+                <div class="p-4 rounded-3 text-dark theme-harvard" id="resumePreviewSheet" style="background: #ffffff; min-height: 520px; box-shadow: 0 8px 24px rgba(0,0,0,0.4);">
                     <div class="border-bottom pb-2 mb-3">
                         <h2 class="h4 fw-bold mb-0 text-dark" id="preview_name">{{ resume_data.contact.full_name|default:request.user.get_full_name|default:request.user.username }}</h2>
                         <div class="text-secondary small fw-medium" id="preview_headline">{{ resume_data.contact.headline }}</div>
@@ -1134,6 +1221,59 @@ document.addEventListener('DOMContentLoaded', function() {
     if (reanalyzeBtn) {
         reanalyzeBtn.addEventListener('click', function() {
             runAtsAnalysis();
+        });
+    }
+
+    // Window theme toggle for Harvard FAANG vs Modern vs Minimal
+    window.setPreviewTheme = function(theme) {
+        const sheet = document.getElementById('resumePreviewSheet');
+        if (!sheet) return;
+        document.querySelectorAll('#previewThemeToggle button').forEach(b => b.classList.remove('active'));
+        document.querySelector(`#previewThemeToggle button[data-theme="${theme}"]`)?.classList.add('active');
+
+        sheet.classList.remove('theme-harvard', 'theme-modern', 'theme-minimal');
+        sheet.classList.add(`theme-${theme}`);
+
+        const tSelect = document.getElementById('templateSelect');
+        if (tSelect) {
+            if (theme === 'harvard') tSelect.value = 'ats';
+            else if (theme === 'modern') tSelect.value = 'modern';
+            else if (theme === 'minimal') tSelect.value = 'minimal';
+        }
+    };
+
+    // 1-Click Direct Vector PDF Export via html2pdf
+    const directPdfBtn = document.getElementById('directPdfExportBtn');
+    if (directPdfBtn) {
+        directPdfBtn.addEventListener('click', function() {
+            const sheet = document.getElementById('resumePreviewSheet');
+            if (!sheet) return;
+            const candidateName = document.getElementById('input_full_name')?.value || 'Resume';
+            const opt = {
+                margin: [6, 6, 6, 6],
+                filename: `${candidateName.replace(/\s+/g, '_')}_ATS_Resume.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true },
+                jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' }
+            };
+            const origHtml = directPdfBtn.innerHTML;
+            directPdfBtn.disabled = true;
+            directPdfBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Building PDF...';
+
+            if (typeof html2pdf !== 'undefined') {
+                html2pdf().set(opt).from(sheet).save().then(() => {
+                    directPdfBtn.disabled = false;
+                    directPdfBtn.innerHTML = origHtml;
+                    if (window.lucide) lucide.createIcons();
+                }).catch(err => {
+                    console.error("html2pdf export failed, falling back to server PDF:", err);
+                    directPdfBtn.disabled = false;
+                    directPdfBtn.innerHTML = origHtml;
+                    window.location.href = "{% url 'resumes:export_pdf' pk=resume.pk %}";
+                });
+            } else {
+                window.location.href = "{% url 'resumes:export_pdf' pk=resume.pk %}";
+            }
         });
     }
 });
