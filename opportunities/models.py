@@ -70,3 +70,53 @@ class SavedOpportunity(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.opportunity.title} ({self.application_status})"
+
+
+class CandidateShortlist(models.Model):
+    STATUS_CHOICES = [
+        ('review', 'Under Review'),
+        ('shortlisted', 'Shortlisted'),
+        ('interview_requested', 'Interview Requested'),
+        ('offered', 'Offer Extended'),
+        ('archived', 'Archived'),
+    ]
+
+    recruiter = models.ForeignKey(User, on_delete=models.CASCADE, related_name='shortlisted_candidates')
+    candidate = models.ForeignKey(User, on_delete=models.CASCADE, related_name='recruiter_shortlists')
+    status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='shortlisted')
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-updated_at']
+        constraints = [
+            models.UniqueConstraint(fields=['recruiter', 'candidate'], name='unique_recruiter_candidate_shortlist')
+        ]
+
+    def __str__(self):
+        return f"{self.recruiter.username} -> {self.candidate.username} ({self.status})"
+
+
+class InterviewInvitation(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Pending Response'),
+        ('accepted', 'Accepted'),
+        ('declined', 'Declined'),
+    ]
+
+    recruiter = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_interview_invitations')
+    candidate = models.ForeignKey(User, on_delete=models.CASCADE, related_name='received_interview_invitations')
+    role_title = models.CharField(max_length=200)
+    company_name = models.CharField(max_length=200)
+    message = models.TextField()
+    meeting_link = models.CharField(max_length=300, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Interview: {self.role_title} at {self.company_name} for {self.candidate.username}"
+

@@ -1,0 +1,681 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ room.title }} ({{ room.room_code }}) - SkillSphere Pair Lounge{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-3" style="max-width: 100%;">
+    <!-- Top Action Navbar -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 p-3 rounded-3 mb-3" style="background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(255, 255, 255, 0.1);">
+        <div class="d-flex align-items-center gap-3">
+            <a href="{% url 'collaboration:lounge_hub' %}" class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1" title="Back to Lounge Hub">
+                <i data-lucide="arrow-left" style="width: 14px; height: 14px;"></i>
+            </a>
+            <div>
+                <div class="d-flex align-items-center gap-2">
+                    <h1 class="h6 fw-bold text-white mb-0">{{ room.title }}</h1>
+                    <span class="badge bg-dark border border-secondary text-warning font-monospace text-uppercase px-2" style="font-size: 0.75rem; letter-spacing: 0.05em; cursor: pointer;" id="copyCodeBadge" title="Click to copy room code">
+                        <i data-lucide="copy" class="d-inline-block align-middle me-1" style="width: 12px; height: 12px;"></i>{{ room.room_code }}
+                    </span>
+                </div>
+                <div class="d-flex align-items-center gap-3 text-secondary small" style="font-size: 0.75rem;">
+                    <span>Host: <strong class="text-white">@{{ room.host.username }}</strong></span>
+                    <span>•</span>
+                    <span>Collaborator: <strong class="text-info" id="collabLabel">{% if room.collaborator %}@{{ room.collaborator.username }}{% else %}Waiting for peer...{% endif %}</strong></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+            <!-- Language Selector -->
+            <select id="langSelect" class="form-select form-select-sm bg-dark text-white border-secondary font-monospace" style="width: 130px;">
+                <option value="python" {% if room.language == 'python' %}selected{% endif %}>Python 3</option>
+                <option value="javascript" {% if room.language == 'javascript' %}selected{% endif %}>JavaScript</option>
+                <option value="sql" {% if room.language == 'sql' %}selected{% endif %}>PostgreSQL</option>
+            </select>
+
+            <!-- Sync Indicator -->
+            <span class="badge bg-dark border border-secondary text-secondary d-flex align-items-center gap-1 font-monospace" id="syncStatusBadge" style="font-size: 0.7rem;">
+                <span class="spinner-grow spinner-grow-sm text-success" role="status" style="width: 8px; height: 8px;"></span> Live Synced
+            </span>
+
+            <!-- Run Code Button -->
+            <button type="button" id="runCodeBtn" class="btn btn-sm btn-primary-custom d-flex align-items-center gap-1">
+                <i data-lucide="play" style="width: 14px; height: 14px;"></i> Run Shared Code
+            </button>
+
+            <!-- Toggle Chat Drawer Button -->
+            <button type="button" class="btn btn-sm btn-outline-secondary position-relative" data-bs-toggle="offcanvas" data-bs-target="#chatOffcanvas" aria-controls="chatOffcanvas" title="Open Team Chat">
+                <i data-lucide="message-square" style="width: 16px; height: 16px;"></i>
+                <span class="position-absolute top-0 start-100 translate-middle p-1 bg-primary rounded-circle" style="width: 8px; height: 8px;"></span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Dual Split Workspace: Left IDE, Right Interactive System Design Whiteboard -->
+    <div class="row g-3">
+        <!-- LEFT COLUMN: Collaborative Monaco-style Code Editor -->
+        <div class="col-xl-6">
+            <div class="custom-card p-0 d-flex flex-column" style="height: 750px; background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; overflow: hidden;">
+                <!-- Editor Tab Bar -->
+                <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom border-secondary" style="background: rgba(15, 23, 42, 0.9);">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-primary text-white font-monospace" id="fileTabLabel" style="font-size: 0.75rem;">solution.py</span>
+                        <span class="text-secondary small font-monospace" id="charCountLabel">0 chars</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <button type="button" id="copyCodeBtn" class="btn btn-sm btn-link text-secondary p-0 text-decoration-none small" title="Copy code">
+                            <i data-lucide="copy" style="width: 14px; height: 14px;"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Editor Textarea -->
+                <div class="flex-grow-1 position-relative" style="min-height: 0;">
+                    <textarea id="codeEditor" class="w-100 h-100 p-3 bg-dark text-white font-monospace border-0" style="resize: none; outline: none; font-size: 0.9rem; line-height: 1.6; tab-size: 4; font-family: 'Fira Code', 'JetBrains Mono', Consolas, monospace;" spellcheck="false">{{ room.code_content }}</textarea>
+                </div>
+
+                <!-- Execution Output Console Drawer -->
+                <div class="border-top border-secondary p-3" style="background: #0b1020; min-height: 180px; max-height: 220px; overflow-y: auto;">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <span class="text-secondary small fw-bold font-monospace text-uppercase d-flex align-items-center gap-1">
+                            <i data-lucide="terminal" style="width: 14px; height: 14px;"></i> Output Terminal
+                        </span>
+                        <span class="text-secondary small font-monospace" id="runDurationLabel">Ready</span>
+                    </div>
+                    <pre id="consoleOutput" class="text-white font-monospace small mb-0" style="white-space: pre-wrap; word-break: break-all; color: #a5f3fc !important;">Press 'Run Shared Code' to execute across Python sandbox or node engine.</pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN: Interactive System Design Whiteboard -->
+        <div class="col-xl-6">
+            <div class="custom-card p-0 d-flex flex-column" style="height: 750px; background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; overflow: hidden;">
+                <!-- Whiteboard Toolbar -->
+                <div class="p-2 border-bottom border-secondary d-flex flex-wrap align-items-center justify-content-between gap-2" style="background: rgba(15, 23, 42, 0.9);">
+                    <div class="d-flex flex-wrap align-items-center gap-1">
+                        <span class="text-secondary small fw-bold font-monospace me-1 text-uppercase" style="font-size: 0.7rem;">+ Block:</span>
+                        <button type="button" class="btn btn-sm btn-outline-secondary px-2 py-1 add-node-btn small" data-type="client" title="Add Client / Browser">
+                            📱 Client
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary px-2 py-1 add-node-btn small" data-type="lb" title="Add NGINX / Load Balancer">
+                            ⚖️ NGINX
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary px-2 py-1 add-node-btn small" data-type="api" title="Add Microservice / App API">
+                            ⚡ Microservice
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary px-2 py-1 add-node-btn small" data-type="cache" title="Add Redis Cache">
+                            🚀 Redis
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary px-2 py-1 add-node-btn small" data-type="db" title="Add PostgreSQL Database">
+                            🗄️ PostgreSQL
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary px-2 py-1 add-node-btn small" data-type="queue" title="Add Kafka / RabbitMQ">
+                            📬 Kafka
+                        </button>
+                    </div>
+
+                    <div class="d-flex align-items-center gap-1">
+                        <button type="button" id="resetWhiteboardBtn" class="btn btn-sm btn-outline-danger px-2 py-1 small" title="Reset diagram">
+                            <i data-lucide="rotate-ccw" style="width: 12px; height: 12px;"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Whiteboard Visual Workspace / Canvas -->
+                <div id="whiteboardCanvas" class="flex-grow-1 position-relative" style="background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px); background-size: 24px 24px; background-color: #0b1020; overflow: hidden; user-select: none;">
+                    <!-- SVG Connection Lines Layer -->
+                    <svg id="canvasSvgLayer" class="position-absolute top-0 start-0 w-100 h-100" style="pointer-events: none; z-index: 1;">
+                        <defs>
+                            <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                                <path d="M 0 0 L 10 5 L 0 10 z" fill="#06b6d4" />
+                            </marker>
+                        </defs>
+                    </svg>
+
+                    <!-- Interactive Drag-and-Drop Nodes Container -->
+                    <div id="nodesContainer" class="position-absolute top-0 start-0 w-100 h-100" style="z-index: 2;"></div>
+                </div>
+
+                <!-- Whiteboard Bottom Status Bar -->
+                <div class="px-3 py-2 border-top border-secondary d-flex align-items-center justify-content-between small text-secondary" style="background: rgba(15, 23, 42, 0.9); font-size: 0.75rem;">
+                    <span>💡 <strong class="text-white">Tip:</strong> Drag blocks anywhere. Click any block to connect or delete it.</span>
+                    <span id="nodeCountBadge" class="font-monospace text-info">5 Components</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Offcanvas Collaborative Chat Drawer -->
+<div class="offcanvas offcanvas-end bg-dark text-white border-secondary" tabindex="-1" id="chatOffcanvas" aria-labelledby="chatOffcanvasLabel" style="width: 380px;">
+    <div class="offcanvas-header border-bottom border-secondary">
+        <h5 class="offcanvas-title fw-bold d-flex align-items-center gap-2" id="chatOffcanvasLabel">
+            <i data-lucide="message-square" class="text-primary" style="width: 18px; height: 18px;"></i>
+            <span>Team Lounge Chat</span>
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body d-flex flex-column p-0">
+        <!-- Messages List -->
+        <div id="chatMessagesList" class="flex-grow-1 p-3 d-flex flex-column gap-2 overflow-y-auto" style="background: #0b1020;">
+            {% for msg in recent_chats %}
+            <div class="p-2 rounded {% if msg.sender == user %}align-self-end bg-primary text-white{% else %}align-self-start bg-dark border border-secondary text-white{% endif %}" style="max-width: 80%; font-size: 0.85rem;">
+                <div class="d-flex justify-content-between align-items-center gap-2 mb-1" style="font-size: 0.7rem; opacity: 0.8;">
+                    <strong>@{{ msg.sender.username }}</strong>
+                    <span>{{ msg.created_at|date:"H:i" }}</span>
+                </div>
+                <div style="word-break: break-word;">{{ msg.message }}</div>
+            </div>
+            {% empty %}
+            <div class="text-center text-secondary small py-4" id="emptyChatNotice">
+                No chat messages yet. Send a message to coordinate code!
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Chat Input Form -->
+        <div class="p-3 border-top border-secondary bg-dark">
+            <form id="chatForm" class="d-flex gap-2">
+                <input type="text" id="chatInput" class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="Type a message..." required autocomplete="off">
+                <button type="submit" class="btn btn-sm btn-primary-custom">
+                    <i data-lucide="send" style="width: 14px; height: 14px;"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+.whiteboard-node {
+    position: absolute;
+    width: 170px;
+    padding: 10px;
+    border-radius: 8px;
+    color: #ffffff;
+    font-size: 0.8rem;
+    font-weight: 600;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+    cursor: move;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    transition: transform 0.05s, border-color 0.15s;
+}
+.whiteboard-node:hover {
+    border-color: #38bdf8;
+    z-index: 10 !important;
+}
+.whiteboard-node.selected {
+    border-color: #facc15 !important;
+    box-shadow: 0 0 12px rgba(250, 204, 21, 0.5);
+}
+.whiteboard-node .node-type {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    opacity: 0.75;
+}
+.node-client { background: linear-gradient(135deg, #1e293b, #334155); border-left: 4px solid #38bdf8 !important; }
+.node-lb     { background: linear-gradient(135deg, #1e293b, #334155); border-left: 4px solid #f59e0b !important; }
+.node-api    { background: linear-gradient(135deg, #1e293b, #334155); border-left: 4px solid #10b981 !important; }
+.node-cache  { background: linear-gradient(135deg, #1e293b, #334155); border-left: 4px solid #ec4899 !important; }
+.node-db     { background: linear-gradient(135deg, #1e293b, #334155); border-left: 4px solid #6366f1 !important; }
+.node-queue  { background: linear-gradient(135deg, #1e293b, #334155); border-left: 4px solid #eab308 !important; }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    lucide.createIcons();
+
+    const roomCode = "{{ room.room_code }}";
+    const currentUsername = "{{ user.username }}";
+    const codeEditor = document.getElementById('codeEditor');
+    const langSelect = document.getElementById('langSelect');
+    const fileTabLabel = document.getElementById('fileTabLabel');
+    const charCountLabel = document.getElementById('charCountLabel');
+    const syncStatusBadge = document.getElementById('syncStatusBadge');
+    const runCodeBtn = document.getElementById('runCodeBtn');
+    const consoleOutput = document.getElementById('consoleOutput');
+    const runDurationLabel = document.getElementById('runDurationLabel');
+    const copyCodeBadge = document.getElementById('copyCodeBadge');
+    const copyCodeBtn = document.getElementById('copyCodeBtn');
+    const collabLabel = document.getElementById('collabLabel');
+
+    const nodesContainer = document.getElementById('nodesContainer');
+    const canvasSvgLayer = document.getElementById('canvasSvgLayer');
+    const nodeCountBadge = document.getElementById('nodeCountBadge');
+    const resetWhiteboardBtn = document.getElementById('resetWhiteboardBtn');
+
+    const chatForm = document.getElementById('chatForm');
+    const chatInput = document.getElementById('chatInput');
+    const chatMessagesList = document.getElementById('chatMessagesList');
+
+    const getCsrfToken = () => {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, 10) === ('csrftoken=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(10));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    };
+
+    // Extension tab sync
+    const updateTabLabel = () => {
+        const lang = langSelect.value;
+        const ext = lang === 'python' ? 'py' : (lang === 'javascript' ? 'js' : 'sql');
+        fileTabLabel.textContent = `solution.${ext}`;
+    };
+    langSelect.addEventListener('change', () => {
+        updateTabLabel();
+        triggerSync({ language: langSelect.value });
+    });
+    updateTabLabel();
+
+    // Char count
+    const updateCharCount = () => {
+        charCountLabel.textContent = `${codeEditor.value.length} chars`;
+    };
+    codeEditor.addEventListener('input', updateCharCount);
+    updateCharCount();
+
+    // Tab key support in textarea
+    codeEditor.addEventListener('keydown', (e) => {
+        if (e.key === 'Tab') {
+            e.preventDefault();
+            const start = codeEditor.selectionStart;
+            const end = codeEditor.selectionEnd;
+            codeEditor.value = codeEditor.value.substring(0, start) + "    " + codeEditor.value.substring(end);
+            codeEditor.selectionStart = codeEditor.selectionEnd = start + 4;
+            updateCharCount();
+        }
+    });
+
+    // Copy room code
+    if (copyCodeBadge) {
+        copyCodeBadge.addEventListener('click', () => {
+            navigator.clipboard.writeText(roomCode);
+            alert(`Lounge Room code "${roomCode}" copied to clipboard!`);
+        });
+    }
+    if (copyCodeBtn) {
+        copyCodeBtn.addEventListener('click', () => {
+            navigator.clipboard.writeText(codeEditor.value);
+            alert("Code copied to clipboard!");
+        });
+    }
+
+    // ==========================================
+    // WHITEBOARD ARCHITECTURE CANVAS LOGIC
+    // ==========================================
+    let whiteboardData = {
+        nodes: [
+            { id: "node-1", type: "client", label: "Client Browser", x: 60, y: 100 },
+            { id: "node-2", type: "lb", label: "Load Balancer (NGINX)", x: 260, y: 100 },
+            { id: "node-3", type: "api", label: "App Cluster (Django)", x: 480, y: 100 },
+            { id: "node-4", type: "cache", label: "Redis Cache", x: 480, y: 240 },
+            { id: "node-5", type: "db", label: "PostgreSQL Primary", x: 680, y: 100 }
+        ],
+        connections: [
+            { from: "node-1", to: "node-2" },
+            { from: "node-2", to: "node-3" },
+            { from: "node-3", to: "node-4" },
+            { from: "node-3", to: "node-5" }
+        ]
+    };
+
+    try {
+        const raw = `{{ room.whiteboard_data|safe }}`;
+        if (raw) whiteboardData = JSON.parse(raw);
+    } catch (e) {
+        console.warn("Using default whiteboard data");
+    }
+
+    let selectedNodeId = null;
+
+    const renderWhiteboard = () => {
+        nodesContainer.innerHTML = '';
+        canvasSvgLayer.innerHTML = `
+            <defs>
+                <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                    <path d="M 0 0 L 10 5 L 0 10 z" fill="#06b6d4" />
+                </marker>
+            </defs>
+        `;
+
+        // Render nodes
+        whiteboardData.nodes.forEach(node => {
+            const el = document.createElement('div');
+            el.className = `whiteboard-node node-${node.type} ${selectedNodeId === node.id ? 'selected' : ''}`;
+            el.id = node.id;
+            el.style.left = `${node.x}px`;
+            el.style.top = `${node.y}px`;
+
+            el.innerHTML = `
+                <div class="d-flex align-items-center justify-content-between mb-1">
+                    <span class="node-type">${node.type}</span>
+                    <button type="button" class="btn btn-sm btn-link text-danger p-0 delete-node-btn" style="line-height: 1; text-decoration: none;">&times;</button>
+                </div>
+                <div class="node-label text-truncate text-white" title="${node.label}">${node.label}</div>
+            `;
+
+            // Node selection for connections
+            el.addEventListener('click', (e) => {
+                if (e.target.classList.contains('delete-node-btn')) return;
+                if (!selectedNodeId) {
+                    selectedNodeId = node.id;
+                } else if (selectedNodeId === node.id) {
+                    selectedNodeId = null;
+                } else {
+                    // Connect selectedNodeId to node.id
+                    const exists = whiteboardData.connections.some(c => c.from === selectedNodeId && c.to === node.id);
+                    if (!exists) {
+                        whiteboardData.connections.push({ from: selectedNodeId, to: node.id });
+                        triggerSync({ whiteboard: whiteboardData });
+                    }
+                    selectedNodeId = null;
+                }
+                renderWhiteboard();
+            });
+
+            // Delete node
+            el.querySelector('.delete-node-btn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                whiteboardData.nodes = whiteboardData.nodes.filter(n => n.id !== node.id);
+                whiteboardData.connections = whiteboardData.connections.filter(c => c.from !== node.id && c.to !== node.id);
+                triggerSync({ whiteboard: whiteboardData });
+                renderWhiteboard();
+            });
+
+            // Dragging logic
+            let isDragging = false;
+            let startX, startY, initialLeft, initialTop;
+
+            el.addEventListener('mousedown', (e) => {
+                if (e.target.classList.contains('delete-node-btn')) return;
+                isDragging = true;
+                startX = e.clientX;
+                startY = e.clientY;
+                initialLeft = node.x;
+                initialTop = node.y;
+
+                const onMouseMove = (moveEvt) => {
+                    if (!isDragging) return;
+                    const dx = moveEvt.clientX - startX;
+                    const dy = moveEvt.clientY - startY;
+                    node.x = Math.max(10, initialLeft + dx);
+                    node.y = Math.max(10, initialTop + dy);
+                    el.style.left = `${node.x}px`;
+                    el.style.top = `${node.y}px`;
+                    renderConnections();
+                };
+
+                const onMouseUp = () => {
+                    if (isDragging) {
+                        isDragging = false;
+                        document.removeEventListener('mousemove', onMouseMove);
+                        document.removeEventListener('mouseup', onMouseUp);
+                        triggerSync({ whiteboard: whiteboardData });
+                    }
+                };
+
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('mouseup', onMouseUp);
+            });
+
+            nodesContainer.appendChild(el);
+        });
+
+        renderConnections();
+        nodeCountBadge.textContent = `${whiteboardData.nodes.length} Components`;
+    };
+
+    const renderConnections = () => {
+        // Clear previous lines
+        canvasSvgLayer.querySelectorAll('path').forEach(p => p.remove());
+
+        whiteboardData.connections.forEach(conn => {
+            const fromNode = whiteboardData.nodes.find(n => n.id === conn.from);
+            const toNode = whiteboardData.nodes.find(n => n.id === conn.to);
+            if (!fromNode || !toNode) return;
+
+            const x1 = fromNode.x + 85;
+            const y1 = fromNode.y + 25;
+            const x2 = toNode.x + 85;
+            const y2 = toNode.y + 25;
+
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            const dx = (x2 - x1) / 2;
+            const d = `M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`;
+            path.setAttribute('d', d);
+            path.setAttribute('stroke', '#06b6d4');
+            path.setAttribute('stroke-width', '2');
+            path.setAttribute('stroke-dasharray', '4');
+            path.setAttribute('fill', 'none');
+            path.setAttribute('marker-end', 'url(#arrow)');
+            canvasSvgLayer.appendChild(path);
+        });
+    };
+
+    // Add node button handlers
+    document.querySelectorAll('.add-node-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const type = btn.dataset.type;
+            const labels = {
+                client: "Client App",
+                lb: "NGINX Gateway",
+                api: "Microservice Worker",
+                cache: "Redis Cache Cluster",
+                db: "PostgreSQL Replica",
+                queue: "Kafka Event Broker"
+            };
+            const id = `node-${Date.now()}`;
+            const newNode = {
+                id: id,
+                type: type,
+                label: labels[type] || "Service Component",
+                x: 150 + Math.floor(Math.random() * 200),
+                y: 100 + Math.floor(Math.random() * 150)
+            };
+            whiteboardData.nodes.push(newNode);
+            triggerSync({ whiteboard: whiteboardData });
+            renderWhiteboard();
+        });
+    });
+
+    if (resetWhiteboardBtn) {
+        resetWhiteboardBtn.addEventListener('click', () => {
+            if (confirm("Reset whiteboard to default 3-tier architecture?")) {
+                whiteboardData = {
+                    nodes: [
+                        { id: "node-1", type: "client", label: "Client Browser", x: 60, y: 100 },
+                        { id: "node-2", type: "lb", label: "Load Balancer (NGINX)", x: 260, y: 100 },
+                        { id: "node-3", type: "api", label: "App Cluster (Django)", x: 480, y: 100 },
+                        { id: "node-4", type: "cache", label: "Redis Cache", x: 480, y: 240 },
+                        { id: "node-5", type: "db", label: "PostgreSQL Primary", x: 680, y: 100 }
+                    ],
+                    connections: [
+                        { from: "node-1", to: "node-2" },
+                        { from: "node-2", to: "node-3" },
+                        { from: "node-3", to: "node-4" },
+                        { from: "node-3", to: "node-5" }
+                    ]
+                };
+                triggerSync({ whiteboard: whiteboardData });
+                renderWhiteboard();
+            }
+        });
+    }
+
+    renderWhiteboard();
+
+    // ==========================================
+    // REAL-TIME SYNC ENGINE (Polling + Debounce)
+    // ==========================================
+    let isTyping = false;
+    let syncTimeout = null;
+
+    const triggerSync = async (payload = {}) => {
+        try {
+            const body = {
+                code: payload.code !== undefined ? payload.code : codeEditor.value,
+                language: payload.language !== undefined ? payload.language : langSelect.value,
+                whiteboard: payload.whiteboard !== undefined ? payload.whiteboard : whiteboardData,
+                chat_message: payload.chat_message || ''
+            };
+
+            const res = await fetch(`/collaboration/lounge/room/${roomCode}/sync/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCsrfToken(),
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(body)
+            });
+            const data = await res.json();
+            handleSyncData(data);
+        } catch (err) {
+            console.error("Sync error:", err);
+        }
+    };
+
+    codeEditor.addEventListener('input', () => {
+        isTyping = true;
+        clearTimeout(syncTimeout);
+        syncTimeout = setTimeout(() => {
+            isTyping = false;
+            triggerSync({ code: codeEditor.value });
+        }, 800);
+    });
+
+    const handleSyncData = (data) => {
+        if (!data || data.status !== 'success') return;
+
+        // Update collaborator label
+        if (data.collaborator && collabLabel) {
+            collabLabel.textContent = `@${data.collaborator}`;
+        }
+
+        // If not actively typing, sync peer's code
+        if (!isTyping && document.activeElement !== codeEditor) {
+            if (codeEditor.value !== data.code) {
+                codeEditor.value = data.code;
+                updateCharCount();
+            }
+        }
+
+        // Sync language
+        if (langSelect.value !== data.language) {
+            langSelect.value = data.language;
+            updateTabLabel();
+        }
+
+        // Sync whiteboard if changed from outside
+        if (data.whiteboard && data.whiteboard.nodes) {
+            const currentStr = JSON.stringify(whiteboardData);
+            const incomingStr = JSON.stringify(data.whiteboard);
+            if (currentStr !== incomingStr) {
+                whiteboardData = data.whiteboard;
+                renderWhiteboard();
+            }
+        }
+
+        // Sync chat messages
+        if (data.chat_messages && data.chat_messages.length > 0) {
+            const emptyNotice = document.getElementById('emptyChatNotice');
+            if (emptyNotice) emptyNotice.remove();
+
+            chatMessagesList.innerHTML = '';
+            data.chat_messages.forEach(msg => {
+                const el = document.createElement('div');
+                const isMe = msg.is_me;
+                el.className = `p-2 rounded ${isMe ? 'align-self-end bg-primary text-white' : 'align-self-start bg-dark border border-secondary text-white'}`;
+                el.style.maxWidth = '80%';
+                el.style.fontSize = '0.85rem';
+                el.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center gap-2 mb-1" style="font-size: 0.7rem; opacity: 0.8;">
+                        <strong>@${msg.sender}</strong>
+                        <span>${msg.time}</span>
+                    </div>
+                    <div style="word-break: break-word;">${msg.message}</div>
+                `;
+                chatMessagesList.appendChild(el);
+            });
+        }
+    };
+
+    // Continuous heartbeat poll every 2.5s
+    setInterval(async () => {
+        try {
+            const res = await fetch(`/collaboration/lounge/room/${roomCode}/sync/`);
+            const data = await res.json();
+            handleSyncData(data);
+        } catch (e) {
+            // silent network retry
+        }
+    }, 2500);
+
+    // ==========================================
+    // CHAT MESSAGE DISPATCH
+    // ==========================================
+    if (chatForm) {
+        chatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const text = chatInput.value.trim();
+            if (!text) return;
+            chatInput.value = '';
+            await triggerSync({ chat_message: text });
+            chatMessagesList.scrollTop = chatMessagesList.scrollHeight;
+        });
+    }
+
+    // ==========================================
+    // CODE EXECUTION DISPATCH
+    // ==========================================
+    if (runCodeBtn) {
+        runCodeBtn.addEventListener('click', async () => {
+            runCodeBtn.disabled = true;
+            runCodeBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Executing...`;
+            consoleOutput.textContent = "Compiling and executing shared code...";
+
+            try {
+                const res = await fetch(`/collaboration/lounge/room/${roomCode}/run/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCsrfToken(),
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        code: codeEditor.value,
+                        language: langSelect.value
+                    })
+                });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    if (data.error) {
+                        consoleOutput.textContent = `=== EXECUTION FAILED ===\n${data.error}\n\nStandard Output:\n${data.output || '(no stdout)'}`;
+                        consoleOutput.style.color = '#f87171';
+                    } else {
+                        consoleOutput.textContent = data.output || "Program finished with exit code 0 (no output).";
+                        consoleOutput.style.color = '#a5f3fc';
+                    }
+                    runDurationLabel.textContent = `${data.duration_ms} ms`;
+                } else {
+                    consoleOutput.textContent = data.message || "Execution error.";
+                }
+            } catch (err) {
+                consoleOutput.textContent = `Network / Runtime execution error: ${err.message}`;
+            } finally {
+                runCodeBtn.disabled = false;
+                runCodeBtn.innerHTML = `<i data-lucide="play" style="width: 14px; height: 14px;"></i> Run Shared Code`;
+                lucide.createIcons();
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

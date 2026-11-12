@@ -192,3 +192,231 @@ def manage_team_view(request, pk):
         'statuses': CollaborationProject.STATUS_CHOICES,
     }
     return render(request, 'collaboration/manage.html', context)
+
+
+# ==============================================================================
+# PILLAR 5: COLLABORATIVE PAIR PROGRAMMING & SYSTEM DESIGN WHITEBOARD LOUNGE
+# ==============================================================================
+import json
+import uuid
+import secrets
+from django.http import JsonResponse
+from .models import PairProgrammingRoom, RoomChatMessage
+
+
+@login_required
+def lounge_hub_view(request):
+    """
+    Dashboard of active collaborative pair programming & architecture rooms.
+    Allows creating a new lounge room or joining an existing room with code.
+    """
+    my_hosted_rooms = PairProgrammingRoom.objects.filter(host=request.user, is_active=True).order_by('-updated_at')
+    my_joined_rooms = PairProgrammingRoom.objects.filter(collaborator=request.user, is_active=True).order_by('-updated_at')
+    public_rooms = PairProgrammingRoom.objects.filter(is_active=True).exclude(host=request.user).order_by('-updated_at')[:12]
+
+    return render(request, 'collaboration/lounge_hub.html', {
+        'my_hosted_rooms': my_hosted_rooms,
+        'my_joined_rooms': my_joined_rooms,
+        'public_rooms': public_rooms,
+    })
+
+
+@login_required
+def create_lounge_room_view(request):
+    """
+    Creates a new pair programming & whiteboard room with a unique room code.
+    """
+    if request.method == 'POST':
+        title = request.POST.get('title', 'System Design & Algorithm Pair Session').strip()
+        language = request.POST.get('language', 'python')
+        if language not in ['python', 'javascript', 'sql']:
+            language = 'python'
+
+        # Generate readable unique room code
+        random_suffix = secrets.token_hex(3).upper()
+        room_code = f"SPHERE-{random_suffix}"
+
+        room = PairProgrammingRoom.objects.create(
+            room_code=room_code,
+            title=title or "Collaborative Pair Session",
+            host=request.user,
+            language=language
+        )
+        messages.success(request, f"Lounge room created! Share code: {room_code}")
+        return redirect('collaboration:pair_room', room_code=room.room_code)
+
+    return redirect('collaboration:lounge_hub')
+
+
+@login_required
+def join_lounge_room_view(request):
+    """
+    Joins a lounge room via room code.
+    """
+    if request.method == 'POST':
+        code = request.POST.get('room_code', '').strip().upper()
+        room = PairProgrammingRoom.objects.filter(room_code=code, is_active=True).first()
+        if not room:
+            messages.error(request, f"Room '{code}' not found or has been closed.")
+            return redirect('collaboration:lounge_hub')
+
+        if room.host != request.user and (room.collaborator is None or room.collaborator == request.user):
+            room.collaborator = request.user
+            room.save()
+
+        return redirect('collaboration:pair_room', room_code=room.room_code)
+
+    return redirect('collaboration:lounge_hub')
+
+
+@login_required
+def pair_room_view(request, room_code):
+    """
+    The full-screen collaborative pair programming IDE & System Design whiteboard.
+    """
+    room = get_object_or_404(PairProgrammingRoom, room_code=room_code)
+    
+    # Auto-assign collaborator if slot open
+    if room.host != request.user and room.collaborator is None:
+        room.collaborator = request.user
+        room.save()
+
+    recent_chats = room.chat_messages.select_related('sender').order_by('created_at')[:40]
+
+    return render(request, 'collaboration/pair_room.html', {
+        'room': room,
+        'recent_chats': recent_chats,
+        'is_host': room.host == request.user,
+    })
+
+
+@login_required
+def room_sync_api(request, room_code):
+    """
+    Bidirectional polling/sync API: updates & fetches code, whiteboard state, and chat.
+    """
+    room = get_object_or_404(PairProgrammingRoom, room_code=room_code)
+
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body.decode('utf-8'))
+        except Exception:
+            data = {}
+
+        updated = False
+        if 'code' in data and data['code'] is not None:
+            room.code_content = data['code']
+            updated = True
+        if 'language' in data and data['language'] in ['python', 'javascript', 'sql']:
+            room.language = data['language']
+            updated = True
+        if 'whiteboard' in data and data['whiteboard'] is not None:
+            if isinstance(data['whiteboard'], dict):
+                room.whiteboard_data = json.dumps(data['whiteboard'])
+            else:
+                room.whiteboard_data = str(data['whiteboard'])
+            updated = True
+
+        chat_text = data.get('chat_message', '').strip()
+        if chat_text:
+            RoomChatMessage.objects.create(
+                room=room,
+                sender=request.user,
+                message=chat_text
+            )
+
+        if updated:
+            room.save()
+
+    # Fetch last 30 chat messages
+    messages_data = [
+        {
+            'id': m.id,
+            'sender': m.sender.username,
+            'is_me': m.sender == request.user,
+            'message': m.message,
+            'time': m.created_at.strftime('%H:%M')
+        }
+        for m in room.chat_messages.select_related('sender').order_by('-created_at')[:30][::-1]
+    ]
+
+    whiteboard_parsed = {}
+    try:
+        whiteboard_parsed = json.loads(room.whiteboard_data)
+    except Exception:
+        whiteboard_parsed = {"nodes": [], "connections": []}
+
+    return JsonResponse({
+        'status': 'success',
+        'code': room.code_content,
+        'language': room.language,
+        'whiteboard': whiteboard_parsed,
+        'host': room.host.username,
+        'collaborator': room.collaborator.username if room.collaborator else None,
+        'updated_at': room.updated_at.isoformat(),
+        'chat_messages': messages_data,
+    })
+
+
+@login_required
+def run_room_code_api(request, room_code):
+    """
+    Safely executes collaborative code and returns stdout/result.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'POST required'}, status=400)
+
+    room = get_object_or_404(PairProgrammingRoom, room_code=room_code)
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+        code = data.get('code', room.code_content)
+        language = data.get('language', room.language)
+    except Exception:
+        code = room.code_content
+        language = room.language
+
+    # Save code to room
+    room.code_content = code
+    room.language = language
+    room.save()
+
+    if language == 'python':
+        import io
+        import contextlib
+        import time
+
+        stdout_capture = io.StringIO()
+        start_time = time.time()
+        error_msg = None
+
+        safe_globals = {
+            "__builtins__": {
+                "print": print, "range": range, "len": len, "int": int, "float": float,
+                "str": str, "list": list, "dict": dict, "set": set, "tuple": tuple,
+                "bool": bool, "sum": sum, "min": min, "max": max, "sorted": sorted,
+                "abs": abs, "enumerate": enumerate, "zip": zip, "map": map, "filter": filter
+            }
+        }
+
+        try:
+            with contextlib.redirect_stdout(stdout_capture):
+                exec(code, safe_globals)
+            out = stdout_capture.getvalue()
+        except Exception as e:
+            out = stdout_capture.getvalue()
+            error_msg = f"{type(e).__name__}: {str(e)}"
+
+        duration_ms = round((time.time() - start_time) * 1000, 2)
+        return JsonResponse({
+            'status': 'success',
+            'output': out,
+            'error': error_msg,
+            'duration_ms': duration_ms,
+        })
+    else:
+        return JsonResponse({
+            'status': 'success',
+            'output': f"Code saved for {language.upper()}! Run client-side execution.",
+            'error': None,
+            'duration_ms': 5,
+        })

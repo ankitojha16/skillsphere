@@ -86,3 +86,45 @@ class CollaborationRequest(models.Model):
 
     def __str__(self):
         return f"Request by {self.user.username} for {self.project.title} ({self.status})"
+
+
+class PairProgrammingRoom(models.Model):
+    LANGUAGE_CHOICES = [
+        ('python', 'Python 3'),
+        ('javascript', 'JavaScript (ES6)'),
+        ('sql', 'PostgreSQL / SQL'),
+    ]
+
+    room_code = models.CharField(max_length=16, unique=True, db_index=True)
+    title = models.CharField(max_length=200, default='Pair Programming Session')
+    host = models.ForeignKey(User, on_delete=models.CASCADE, related_name='hosted_pair_rooms')
+    collaborator = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='joined_pair_rooms')
+    language = models.CharField(max_length=20, choices=LANGUAGE_CHOICES, default='python')
+    code_content = models.TextField(
+        default='# SkillSphere Collaborative Pair Programming\n# Real-time code execution & system design architecture\n\ndef solution():\n    print("Hello from SkillSphere Pair Programming Lounge!")\n\nsolution()\n'
+    )
+    whiteboard_data = models.TextField(
+        default='{"nodes":[{"id":"node-1","type":"client","label":"Client Browser","x":80,"y":120},{"id":"node-2","type":"lb","label":"Load Balancer (NGINX)","x":280,"y":120},{"id":"node-3","type":"api","label":"App Cluster (Django)","x":500,"y":120},{"id":"node-4","type":"cache","label":"Redis Cache","x":500,"y":260},{"id":"node-5","type":"db","label":"PostgreSQL Primary","x":720,"y":120}],"connections":[{"from":"node-1","to":"node-2"},{"from":"node-2","to":"node-3"},{"from":"node-3","to":"node-4"},{"from":"node-3","to":"node-5"}]}'
+    )
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-updated_at']
+
+    def __str__(self):
+        return f"Room {self.room_code}: {self.title} (Host: {self.host.username})"
+
+
+class RoomChatMessage(models.Model):
+    room = models.ForeignKey(PairProgrammingRoom, on_delete=models.CASCADE, related_name='chat_messages')
+    sender = models.ForeignKey(User, on_delete=models.CASCADE)
+    message = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"{self.sender.username} in {self.room.room_code}: {self.message[:30]}"

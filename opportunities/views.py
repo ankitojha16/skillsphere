@@ -1,12 +1,19 @@
+import json
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from django.db.models import Q
+from django.db.models import Q, Count
 from django.contrib import messages
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseBadRequest
 from django.utils import timezone
+from django.contrib.auth.models import User
 
-from .models import Opportunity, SavedOpportunity
+from .models import Opportunity, SavedOpportunity, CandidateShortlist, InterviewInvitation
 from notifications.models import Notification
+from accounts.models import StudentProfile
+from resumes.models import Resume
+from assessments.models import ChallengeSubmission
+from gamification.models import UserArenaRating
+from certificates.models import Certificate
 
 @login_required
 def opportunity_list_view(request):
@@ -122,3 +129,197 @@ def application_tracker_view(request):
         'statuses': SavedOpportunity.STATUS_CHOICES,
     }
     return render(request, 'opportunities/tracker.html', context)
+
+
+# ==========================================
+# RECRUITER TALENT PORTAL & CANDIDATE SEARCH
+# ==========================================
+
+@login_required
+def talent_portal_view(request):
+    query = request.GET.get('q', '').strip()
+    min_challenges = int(request.GET.get('min_challenges', 0))
+    tier_filter = request.GET.get('tier', 'all')
+
+    candidates = User.objects.filter(is_active=True).exclude(id=request.user.id)
+
+    if query:
+        candidates = candidates.filter(
+            Q(username__icontains=query) |
+            Q(first_name__icontains=query) |
+            Q(last_name__icontains=query) |
+            Q(profile__career_goal__icontains=query) |
+            Q(profile__learning_interests__icontains=query) |
+            Q(profile__institution__icontains=query)
+        ).distinct()
+
+    shortlisted_ids = set(
+        CandidateShortlist.objects.filter(recruiter=request.user).values_list('candidate_id', flat=True)
+    )
+
+    candidate_cards = []
+    for user in candidates[:40]:
+        profile = getattr(user, 'profile', None)
+        resume = Resume.objects.filter(user=user, is_primary=True).first() or Resume.objects.filter(user=user).first()
+        arena_rating = getattr(user, 'arena_rating', None)
+        challenges_solved = ChallengeSubmission.objects.filter(user=user, status='Accepted').values('challenge_id').distinct().count()
+        certs_count = Certificate.objects.filter(user=user).count()
+
+        tier_name = arena_rating.tier_name if arena_rating else 'Bronze'
+        if tier_filter != 'all' and tier_name.lower() != tier_filter.lower():
+            continue
+
+        if challenges_solved < min_challenges:
+            continue
+
+        skills = []
+        if profile and hasattr(profile, 'get_interests_list'):
+            skills.extend(profile.get_interests_list())
+        if resume and resume.skills:
+            res_skills = resume.get_skills_list() if hasattr(resume, 'get_skills_list') else (resume.skills if isinstance(resume.skills, list) else [])
+            for s in res_skills[:4]:
+                if s not in skills:
+                    skills.append(s)
+
+        candidate_cards.append({
+            'user': user,
+            'profile': profile,
+            'resume': resume,
+            'arena_rating': arena_rating,
+            'headline': profile.career_goal if profile and profile.career_goal else (resume.title if resume and hasattr(resume, 'title') else 'Software Developer'),
+            'institution': profile.institution if profile else '',
+            'skills': skills[:6],
+            'challenges_solved': challenges_solved,
+            'elo': arena_rating.elo if arena_rating else 1200,
+            'tier_name': tier_name,
+            'certificates_count': certs_count,
+            'ats_score': resume.ats_score if resume else 0,
+            'is_shortlisted': user.id in shortlisted_ids,
+        })
+
+    return render(request, 'opportunities/talent_portal.html', {
+        'candidate_cards': candidate_cards,
+        'candidates': candidate_cards,
+        'query': query,
+        'min_challenges': min_challenges,
+        'tier_filter': tier_filter,
+        'total_candidates': len(candidate_cards),
+        'shortlisted_count': len(shortlisted_ids),
+    })
+
+
+@login_required
+def candidate_dossier_view(request, username):
+    candidate = get_object_or_404(User, username=username)
+    profile = getattr(candidate, 'profile', None)
+    resume = Resume.objects.filter(user=candidate, is_primary=True).first() or Resume.objects.filter(user=candidate).first()
+    arena_rating = getattr(candidate, 'arena_rating', None)
+    
+    solved_challenges = ChallengeSubmission.objects.filter(
+        user=candidate, status='Accepted'
+    ).select_related('challenge').order_by('-created_at')[:10]
+
+    certificates = Certificate.objects.filter(user=candidate).order_by('-issued_at')
+    
+    is_shortlisted = CandidateShortlist.objects.filter(recruiter=request.user, candidate=candidate).exists()
+    invitations = InterviewInvitation.objects.filter(recruiter=request.user, candidate=candidate)
+
+    return render(request, 'opportunities/candidate_dossier.html', {
+        'candidate': candidate,
+        'profile': profile,
+        'resume': resume,
+        'arena_rating': arena_rating,
+        'solved_challenges': solved_challenges,
+        'certificates': certificates,
+        'is_shortlisted': is_shortlisted,
+        'invitations': invitations,
+    })
+
+
+@login_required
+def toggle_shortlist_candidate_api(request, username):
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'POST required'}, status=400)
+
+    candidate = get_object_or_404(User, username=username)
+    existing = CandidateShortlist.objects.filter(recruiter=request.user, candidate=candidate).first()
+
+    if existing:
+        existing.delete()
+        is_shortlisted = False
+    else:
+        CandidateShortlist.objects.create(recruiter=request.user, candidate=candidate, status='shortlisted')
+        is_shortlisted = True
+
+    return JsonResponse({
+        'status': 'success',
+        'is_shortlisted': is_shortlisted,
+        'username': candidate.username
+    })
+
+
+@login_required
+def send_interview_invitation_api(request, username):
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'POST required'}, status=400)
+
+    candidate = get_object_or_404(User, username=username)
+    try:
+        body = json.loads(request.body.decode('utf-8'))
+    except Exception:
+        body = {}
+
+    role_title = body.get('role_title', 'Software Engineering Role').strip()
+    company_name = body.get('company_name', 'Hiring Partner').strip()
+    message = body.get('message', '').strip()
+    meeting_link = body.get('meeting_link', '').strip()
+
+    invitation = InterviewInvitation.objects.create(
+        recruiter=request.user,
+        candidate=candidate,
+        role_title=role_title,
+        company_name=company_name,
+        message=message,
+        meeting_link=meeting_link,
+        status='pending'
+    )
+
+    Notification.objects.create(
+        user=candidate,
+        title="Direct Interview Invitation!",
+        message=f"{request.user.username} ({company_name}) invited you to interview for {role_title}.",
+        notification_type="system"
+    )
+
+    return JsonResponse({
+        'status': 'success',
+        'invitation_id': invitation.id,
+        'message': f"Invitation dispatched to @{candidate.username} successfully!"
+    })
+
+
+@login_required
+def recruiter_shortlist_view(request):
+    shortlists = CandidateShortlist.objects.filter(recruiter=request.user).select_related('candidate', 'candidate__profile')
+    
+    candidates_data = []
+    for item in shortlists:
+        c = item.candidate
+        resume = Resume.objects.filter(user=c, is_primary=True).first() or Resume.objects.filter(user=c).first()
+        rating = getattr(c, 'arena_rating', None)
+        challenges_solved = ChallengeSubmission.objects.filter(user=c, status='Accepted').values('challenge_id').distinct().count()
+
+        candidates_data.append({
+            'shortlist_entry': item,
+            'candidate': c,
+            'headline': c.profile.career_goal if hasattr(c, 'profile') and c.profile and c.profile.career_goal else 'Developer',
+            'elo': rating.elo if rating else 1200,
+            'challenges_solved': challenges_solved,
+            'ats_score': resume.ats_score if resume else 0,
+        })
+
+    return render(request, 'opportunities/recruiter_shortlist.html', {
+        'candidates': candidates_data,
+        'total_shortlisted': len(candidates_data),
+    })
+

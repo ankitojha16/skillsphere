@@ -274,9 +274,14 @@
                     <i data-lucide="globe" style="width: 18px; height: 18px;"></i>
                     <span>Portfolio</span>
                 </a>
-                <a href="{% url 'opportunities:list' %}" class="sidebar-link {% if request.resolver_match.app_name == 'opportunities' %}active{% endif %}">
+                <a href="{% url 'opportunities:list' %}" class="sidebar-link {% if request.resolver_match.app_name == 'opportunities' and 'talent' not in request.path %}active{% endif %}">
                     <i data-lucide="briefcase" style="width: 18px; height: 18px;"></i>
                     <span>Opportunities</span>
+                </a>
+                <a href="{% url 'opportunities:talent_portal' %}" class="sidebar-link {% if 'talent' in request.path %}active{% endif %}">
+                    <i data-lucide="scan-face" style="width: 18px; height: 18px;"></i>
+                    <span>Recruiter Talent</span>
+                    <span class="badge bg-success text-white rounded-pill px-2 py-0 ms-auto" style="font-size: 0.65rem;">Scout</span>
                 </a>
 
                 <div class="nav-section-title">Community & Teams</div>
@@ -284,9 +289,14 @@
                     <i data-lucide="message-square" style="width: 18px; height: 18px;"></i>
                     <span>Community</span>
                 </a>
-                <a href="{% url 'collaboration:list' %}" class="sidebar-link {% if request.resolver_match.app_name == 'collaboration' %}active{% endif %}">
+                <a href="{% url 'collaboration:list' %}" class="sidebar-link {% if request.resolver_match.app_name == 'collaboration' and 'lounge' not in request.path %}active{% endif %}">
                     <i data-lucide="users" style="width: 18px; height: 18px;"></i>
                     <span>Collaboration</span>
+                </a>
+                <a href="{% url 'collaboration:lounge_hub' %}" class="sidebar-link {% if 'lounge' in request.path %}active{% endif %}">
+                    <i data-lucide="split" style="width: 18px; height: 18px;"></i>
+                    <span>Pair Lounge &amp; Board</span>
+                    <span class="badge bg-danger text-white rounded-pill px-2 py-0 ms-auto" style="font-size: 0.65rem;">Live</span>
                 </a>
                 <a href="{% url 'events:list' %}" class="sidebar-link {% if request.resolver_match.app_name == 'events' %}active{% endif %}">
                     <i data-lucide="calendar" style="width: 18px; height: 18px;"></i>

@@ -1,0 +1,225 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Pair Programming & System Design Whiteboard Lounge - SkillSphere{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="badge bg-danger text-white px-3 py-1 fw-bold rounded-pill text-uppercase font-monospace" style="letter-spacing: 0.05em; font-size: 0.75rem;">
+                    <i data-lucide="radio" class="d-inline-block align-middle me-1" style="width: 14px; height: 14px;"></i> Live Studio
+                </span>
+                <span class="badge bg-dark border border-secondary text-secondary font-monospace">Monaco + Visual Whiteboard</span>
+            </div>
+            <h1 class="h3 fw-bold text-white mb-1">Collaborative Pair Programming &amp; Architecture Lounge</h1>
+            <p class="text-secondary mb-0">Code live with peers, brainstorm microservice system designs on a shared whiteboard, and solve engineering challenges together.</p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <button type="button" class="btn btn-primary-custom d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#createRoomModal">
+                <i data-lucide="plus-circle" style="width: 18px; height: 18px;"></i>
+                <span>Create New Room</span>
+            </button>
+            <a href="{% url 'collaboration:list' %}" class="btn btn-outline-secondary d-flex align-items-center gap-1">
+                <i data-lucide="users" style="width: 16px; height: 16px;"></i>
+                <span>Team Projects</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Join Room Quick Card -->
+    <div class="custom-card p-4 mb-4" style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.7), rgba(15, 23, 42, 0.85)); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 14px;">
+        <div class="row align-items-center g-3">
+            <div class="col-lg-7">
+                <h2 class="h5 fw-bold text-white mb-1 d-flex align-items-center gap-2">
+                    <i data-lucide="log-in" class="text-primary" style="width: 20px; height: 20px;"></i>
+                    <span>Have a Pair Session Code?</span>
+                </h2>
+                <p class="text-secondary small mb-0">Enter a 10-character lounge room code (e.g. <span class="font-monospace text-info">SPHERE-A1B2C3</span>) to immediately jump into a shared IDE and interactive whiteboard.</p>
+            </div>
+            <div class="col-lg-5">
+                <form method="post" action="{% url 'collaboration:join_room' %}" class="d-flex gap-2">
+                    {% csrf_token %}
+                    <input type="text" name="room_code" class="form-control bg-dark text-white border-secondary font-monospace text-uppercase" placeholder="SPHERE-XXXXXX" required style="letter-spacing: 0.1em; font-weight: bold;">
+                    <button type="submit" class="btn btn-primary-custom text-nowrap d-flex align-items-center gap-1">
+                        <i data-lucide="arrow-right" style="width: 16px; height: 16px;"></i> Join Room
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- My Hosted & Joined Rooms -->
+    {% if my_hosted_rooms or my_joined_rooms %}
+    <div class="mb-5">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+            <h2 class="h5 fw-bold text-white mb-0 d-flex align-items-center gap-2">
+                <i data-lucide="clock" class="text-warning" style="width: 20px; height: 20px;"></i>
+                <span>Your Active &amp; Recent Rooms</span>
+            </h2>
+            <span class="text-secondary small font-monospace">{{ my_hosted_rooms|length|add:my_joined_rooms|length }} Sessions</span>
+        </div>
+
+        <div class="row g-3">
+            {% for room in my_hosted_rooms %}
+            <div class="col-md-6 col-xl-4">
+                <div class="custom-card p-4 h-100 d-flex flex-column justify-content-between" style="background: rgba(17, 24, 39, 0.85); border: 1px solid rgba(79, 70, 229, 0.4); border-radius: 12px;">
+                    <div>
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="badge bg-primary-subtle text-primary border border-primary font-monospace" style="font-size: 0.75rem;">
+                                Host: You
+                            </span>
+                            <span class="badge bg-dark border border-secondary text-secondary font-monospace" style="font-size: 0.75rem;">
+                                {{ room.room_code }}
+                            </span>
+                        </div>
+                        <h3 class="h6 fw-bold text-white mb-2">{{ room.title }}</h3>
+                        <p class="text-secondary small mb-3">
+                            <i data-lucide="user-check" class="d-inline-block align-middle me-1" style="width: 14px; height: 14px;"></i>
+                            Collaborator: <span class="text-white">{% if room.collaborator %}@{{ room.collaborator.username }}{% else %}Waiting for peer...{% endif %}</span>
+                        </p>
+                    </div>
+                    <div class="pt-3 border-top border-secondary d-flex align-items-center justify-content-between">
+                        <span class="badge bg-dark border border-secondary text-info font-monospace text-uppercase">{{ room.language }}</span>
+                        <a href="{% url 'collaboration:pair_room' room.room_code %}" class="btn btn-sm btn-primary-custom d-flex align-items-center gap-1">
+                            <i data-lucide="play" style="width: 14px; height: 14px;"></i> Enter Lounge
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+
+            {% for room in my_joined_rooms %}
+            <div class="col-md-6 col-xl-4">
+                <div class="custom-card p-4 h-100 d-flex flex-column justify-content-between" style="background: rgba(17, 24, 39, 0.85); border: 1px solid rgba(6, 182, 212, 0.4); border-radius: 12px;">
+                    <div>
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="badge bg-info-subtle text-info border border-info font-monospace" style="font-size: 0.75rem;">
+                                Collaborator
+                            </span>
+                            <span class="badge bg-dark border border-secondary text-secondary font-monospace" style="font-size: 0.75rem;">
+                                {{ room.room_code }}
+                            </span>
+                        </div>
+                        <h3 class="h6 fw-bold text-white mb-2">{{ room.title }}</h3>
+                        <p class="text-secondary small mb-3">
+                            <i data-lucide="user" class="d-inline-block align-middle me-1" style="width: 14px; height: 14px;"></i>
+                            Host: <span class="text-white">@{{ room.host.username }}</span>
+                        </p>
+                    </div>
+                    <div class="pt-3 border-top border-secondary d-flex align-items-center justify-content-between">
+                        <span class="badge bg-dark border border-secondary text-info font-monospace text-uppercase">{{ room.language }}</span>
+                        <a href="{% url 'collaboration:pair_room' room.room_code %}" class="btn btn-sm btn-info text-white d-flex align-items-center gap-1">
+                            <i data-lucide="play" style="width: 14px; height: 14px;"></i> Rejoin Session
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Community Open Lounge Rooms -->
+    <div>
+        <div class="d-flex align-items-center justify-content-between mb-3">
+            <h2 class="h5 fw-bold text-white mb-0 d-flex align-items-center gap-2">
+                <i data-lucide="globe" class="text-info" style="width: 20px; height: 20px;"></i>
+                <span>Open Community Architecture &amp; Coding Rooms</span>
+            </h2>
+            <span class="text-secondary small font-monospace">{{ public_rooms|length }} Available</span>
+        </div>
+
+        {% if public_rooms %}
+        <div class="row g-3">
+            {% for room in public_rooms %}
+            <div class="col-md-6 col-xl-4">
+                <div class="custom-card p-4 h-100 d-flex flex-column justify-content-between" style="background: rgba(17, 24, 39, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px;">
+                    <div>
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="badge bg-dark border border-secondary text-secondary font-monospace" style="font-size: 0.75rem;">
+                                {{ room.room_code }}
+                            </span>
+                            <span class="badge bg-success-subtle text-success border border-success font-monospace" style="font-size: 0.7rem;">
+                                Open
+                            </span>
+                        </div>
+                        <h3 class="h6 fw-bold text-white mb-2">{{ room.title }}</h3>
+                        <p class="text-secondary small mb-3">
+                            <i data-lucide="user" class="d-inline-block align-middle me-1" style="width: 14px; height: 14px;"></i>
+                            Host: <span class="text-white">@{{ room.host.username }}</span>
+                        </p>
+                    </div>
+                    <div class="pt-3 border-top border-secondary d-flex align-items-center justify-content-between">
+                        <span class="badge bg-dark border border-secondary text-info font-monospace text-uppercase">{{ room.language }}</span>
+                        <a href="{% url 'collaboration:pair_room' room.room_code %}" class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1">
+                            <i data-lucide="log-in" style="width: 14px; height: 14px;"></i> Join Room
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="custom-card p-5 text-center" style="background: rgba(17, 24, 39, 0.5); border: 1px dashed rgba(255, 255, 255, 0.15);">
+            <i data-lucide="coffee" class="text-secondary mx-auto mb-3" style="width: 48px; height: 48px;"></i>
+            <h3 class="h5 fw-bold text-white mb-2">No Open Public Rooms Right Now</h3>
+            <p class="text-secondary mb-3">Be the first to launch a pair programming and system design whiteboard session!</p>
+            <button type="button" class="btn btn-primary-custom" data-bs-toggle="modal" data-bs-target="#createRoomModal">
+                <i data-lucide="plus-circle" style="width: 16px; height: 16px;"></i> Create Lounge Room
+            </button>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Create Lounge Room Modal -->
+<div class="modal fade" id="createRoomModal" tabindex="-1" aria-labelledby="createRoomModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-white border-secondary">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title fw-bold d-flex align-items-center gap-2" id="createRoomModalLabel">
+                    <i data-lucide="layout" class="text-primary" style="width: 18px; height: 18px;"></i>
+                    Create Pair Programming Lounge Room
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="{% url 'collaboration:create_room' %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label text-secondary small fw-semibold">Session Title *</label>
+                        <input type="text" name="title" class="form-control bg-dark text-white border-secondary" placeholder="e.g. Distributed Rate Limiter & LeetCode Pair Practice" required value="Distributed System Design &amp; Algorithm Pair Session">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-secondary small fw-semibold">Primary Coding Language</label>
+                        <select name="language" class="form-select bg-dark text-white border-secondary">
+                            <option value="python">Python 3 (Standard)</option>
+                            <option value="javascript">JavaScript (Node / ES6)</option>
+                            <option value="sql">PostgreSQL / SQL</option>
+                        </select>
+                    </div>
+                    <p class="text-secondary small mb-0">
+                        <i data-lucide="sparkles" class="d-inline-block text-warning me-1" style="width: 14px; height: 14px;"></i>
+                        Your room will instantly include a split real-time code editor, live architecture whiteboard canvas, and team chat.
+                    </p>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary-custom d-flex align-items-center gap-1">
+                        <i data-lucide="check-circle" style="width: 16px; height: 16px;"></i> Launch Lounge
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    lucide.createIcons();
+});
+</script>
+{% endblock %}

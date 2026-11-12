@@ -87,3 +87,111 @@ class CollaborationTests(TestCase):
         self.assertEqual(req2.status, 'pending')
         self.assertFalse(CollaborationMembership.objects.filter(project=self.project, user=self.applicant).exists())
 
+    def test_lounge_hub_view(self):
+        client = Client()
+        client.login(username='collabowner', password='Password123!')
+        response = client.get(reverse('collaboration:lounge_hub'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Collaborative Pair Programming')
+
+    def test_create_and_join_lounge_room(self):
+        client = Client()
+        client.login(username='collabowner', password='Password123!')
+        
+        # Create room
+        res = client.post(reverse('collaboration:create_room'), {
+            'title': 'High Scale Distributed Sharding',
+            'language': 'python'
+        })
+        self.assertEqual(res.status_code, 302)
+        
+        from collaboration.models import PairProgrammingRoom
+        room = PairProgrammingRoom.objects.filter(host=self.owner).first()
+        self.assertIsNotNone(room)
+        self.assertTrue(room.room_code.startswith('SPHERE-'))
+        self.assertEqual(room.title, 'High Scale Distributed Sharding')
+
+        # Applicant joins room
+        client_app = Client()
+        client_app.login(username='applicant', password='Password123!')
+        res_join = client_app.post(reverse('collaboration:join_room'), {
+            'room_code': room.room_code
+        })
+        self.assertEqual(res_join.status_code, 302)
+        room.refresh_from_db()
+        self.assertEqual(room.collaborator, self.applicant)
+
+    def test_pair_room_view(self):
+        from collaboration.models import PairProgrammingRoom
+        room = PairProgrammingRoom.objects.create(
+            room_code='SPHERE-TEST1',
+            title='Test Session',
+            host=self.owner,
+            language='python'
+        )
+        client = Client()
+        client.login(username='collabowner', password='Password123!')
+        res = client.get(reverse('collaboration:pair_room', kwargs={'room_code': 'SPHERE-TEST1'}))
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(response=res, text='SPHERE-TEST1')
+        self.assertContains(response=res, text='Run Shared Code')
+
+    def test_room_sync_api(self):
+        from collaboration.models import PairProgrammingRoom
+        room = PairProgrammingRoom.objects.create(
+            room_code='SPHERE-SYNC1',
+            title='Sync Session',
+            host=self.owner,
+            language='python'
+        )
+        client = Client()
+        client.login(username='collabowner', password='Password123!')
+        
+        # POST sync update
+        sync_payload = {
+            'code': 'print("Synced distributed execution")',
+            'language': 'python',
+            'whiteboard': {'nodes': [{'id': 'n1', 'type': 'db', 'label': 'Master DB', 'x': 50, 'y': 50}], 'connections': []},
+            'chat_message': 'Hey, check out the new PostgreSQL primary cluster!'
+        }
+        res = client.post(
+            reverse('collaboration:room_sync', kwargs={'room_code': 'SPHERE-SYNC1'}),
+            data=sync_payload,
+            content_type='application/json'
+        )
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data['status'], 'success')
+        self.assertIn('Master DB', str(data['whiteboard']))
+
+        # GET sync fetch
+        res_get = client.get(reverse('collaboration:room_sync', kwargs={'room_code': 'SPHERE-SYNC1'}))
+        self.assertEqual(res_get.status_code, 200)
+        data_get = res_get.json()
+        self.assertEqual(len(data_get['chat_messages']), 1)
+        self.assertEqual(data_get['chat_messages'][0]['sender'], 'collabowner')
+
+    def test_run_room_code_api(self):
+        from collaboration.models import PairProgrammingRoom
+        room = PairProgrammingRoom.objects.create(
+            room_code='SPHERE-RUN1',
+            title='Execution Test',
+            host=self.owner,
+            language='python'
+        )
+        client = Client()
+        client.login(username='collabowner', password='Password123!')
+        run_payload = {
+            'code': 'x = 10 * 42\nprint(f"Computed: {x}")',
+            'language': 'python'
+        }
+        res = client.post(
+            reverse('collaboration:run_room_code', kwargs={'room_code': 'SPHERE-RUN1'}),
+            data=run_payload,
+            content_type='application/json'
+        )
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data['status'], 'success')
+        self.assertIn('Computed: 420', data['output'])
+

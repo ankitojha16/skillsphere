@@ -1,0 +1,419 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Candidate Dossier: @{{ candidate.username }} - SkillSphere Recruiter Portal{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <!-- Breadcrumb & Back -->
+    <div class="d-flex align-items-center gap-2 mb-4">
+        <a href="{% url 'opportunities:talent_portal' %}" class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1">
+            <i data-lucide="arrow-left" style="width: 14px; height: 14px;"></i> Back to Candidate Search
+        </a>
+        <span class="text-secondary">/</span>
+        <span class="text-white fw-semibold">Candidate Dossier: @{{ candidate.username }}</span>
+    </div>
+
+    <!-- Candidate Profile Banner -->
+    <div class="custom-card p-4 mb-4 position-relative" style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.95)); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 16px;">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-4">
+            <div class="d-flex align-items-center gap-4">
+                <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold text-white fs-2" style="width: 80px; height: 80px; background: linear-gradient(135deg, #4f46e5, #06b6d4); box-shadow: 0 8px 24px rgba(79, 70, 229, 0.4);">
+                    {{ candidate.username|make_list|first|upper }}
+                </div>
+                <div>
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <h1 class="h3 fw-bold text-white mb-0">
+                            {% if candidate.get_full_name %}{{ candidate.get_full_name }}{% else %}@{{ candidate.username }}{% endif %}
+                        </h1>
+                        <span class="badge bg-success-subtle text-success border border-success font-monospace" style="font-size: 0.75rem;">
+                            <i data-lucide="shield-check" class="d-inline-block align-middle me-1" style="width: 12px; height: 12px;"></i> Verified Talent
+                        </span>
+                    </div>
+                    <p class="text-white mb-2 fs-6">
+                        {% if profile and profile.career_goal %}
+                            {{ profile.career_goal }}
+                        {% else %}
+                            Full Stack Software Engineer
+                        {% endif %}
+                    </p>
+                    <div class="d-flex flex-wrap gap-3 text-secondary small">
+                        <span><i data-lucide="user" class="d-inline-block me-1" style="width: 14px; height: 14px;"></i> @{{ candidate.username }}</span>
+                        <span><i data-lucide="mail" class="d-inline-block me-1" style="width: 14px; height: 14px;"></i> {{ candidate.email }}</span>
+                        <span><i data-lucide="calendar" class="d-inline-block me-1" style="width: 14px; height: 14px;"></i> Member since {{ candidate.date_joined|date:"M Y" }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action CTAs -->
+            <div class="d-flex align-items-center gap-2">
+                <button type="button" id="shortlistBtn" class="btn {% if is_shortlisted %}btn-warning text-dark{% else %}btn-outline-secondary text-white{% endif %} d-flex align-items-center gap-2" data-username="{{ candidate.username }}">
+                    <i data-lucide="bookmark" style="width: 18px; height: 18px;"></i>
+                    <span id="shortlistText">{% if is_shortlisted %}Shortlisted{% else %}Add to Shortlist{% endif %}</span>
+                </button>
+                <button type="button" class="btn btn-primary-custom d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#inviteModal">
+                    <i data-lucide="send" style="width: 18px; height: 18px;"></i>
+                    <span>Send Interview Invite</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Proof of Work KPIs -->
+    <div class="row g-4 mb-4">
+        <!-- Arena ELO Card -->
+        <div class="col-md-4">
+            <div class="custom-card p-4 h-100" style="background: rgba(17, 24, 39, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px;">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <span class="text-secondary small fw-bold text-uppercase">1v1 Code Arena Elo</span>
+                    <span class="badge bg-warning text-dark fw-bold font-monospace">
+                        {% if arena_rating %}{{ arena_rating.tier }}{% else %}Bronze{% endif %}
+                    </span>
+                </div>
+                <div class="d-flex align-items-baseline gap-2 mb-2">
+                    <span class="display-6 fw-bold text-warning font-monospace">{% if arena_rating %}{{ arena_rating.elo }}{% else %}1200{% endif %}</span>
+                    <span class="text-secondary small">Elo points</span>
+                </div>
+                <div class="row g-2 mt-2 pt-2 border-top border-secondary text-center small">
+                    <div class="col-4">
+                        <div class="text-secondary">Duels</div>
+                        <div class="fw-bold text-white font-monospace">{% if arena_rating %}{{ arena_rating.matches_played }}{% else %}0{% endif %}</div>
+                    </div>
+                    <div class="col-4">
+                        <div class="text-secondary">Victories</div>
+                        <div class="fw-bold text-success font-monospace">{% if arena_rating %}{{ arena_rating.matches_won }}{% else %}0{% endif %}</div>
+                    </div>
+                    <div class="col-4">
+                        <div class="text-secondary">Streak</div>
+                        <div class="fw-bold text-info font-monospace">{% if arena_rating %}{{ arena_rating.current_win_streak }}{% else %}0{% endif %} W</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Algorithmic Judge Card -->
+        <div class="col-md-4">
+            <div class="custom-card p-4 h-100" style="background: rgba(17, 24, 39, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px;">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <span class="text-secondary small fw-bold text-uppercase">Code Judge Verified</span>
+                    <span class="badge bg-success-subtle text-success border border-success font-monospace">Automated Tests</span>
+                </div>
+                <div class="d-flex align-items-baseline gap-2 mb-2">
+                    <span class="display-6 fw-bold text-success font-monospace">{{ solved_challenges|length }}</span>
+                    <span class="text-secondary small">Problems solved</span>
+                </div>
+                <div class="text-secondary small mt-3">
+                    <i data-lucide="check-circle" class="d-inline-block text-success me-1" style="width: 14px; height: 14px;"></i>
+                    Code solutions tested against comprehensive edge cases and benchmark suites.
+                </div>
+            </div>
+        </div>
+
+        <!-- ATS Resume Score Card -->
+        <div class="col-md-4">
+            <div class="custom-card p-4 h-100" style="background: rgba(17, 24, 39, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px;">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <span class="text-secondary small fw-bold text-uppercase">Harvard ATS Benchmark</span>
+                    <span class="badge bg-info-subtle text-info border border-info font-monospace">Resume Studio</span>
+                </div>
+                <div class="d-flex align-items-baseline gap-2 mb-2">
+                    <span class="display-6 fw-bold text-info font-monospace">{% if resume and resume.ats_score %}{{ resume.ats_score }}%{% else %}N/A{% endif %}</span>
+                    <span class="text-secondary small">ATS match</span>
+                </div>
+                <div class="text-secondary small mt-3">
+                    <i data-lucide="file-text" class="d-inline-block text-info me-1" style="width: 14px; height: 14px;"></i>
+                    {% if resume %}
+                        Targeting: <span class="text-white fw-semibold">{{ resume.target_role|default:"Full Stack Engineer" }}</span>
+                    {% else %}
+                        No published primary resume yet.
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Tabs / Two-Column Section -->
+    <div class="row g-4">
+        <!-- Left: Code Judge Track Record & Resume Details -->
+        <div class="col-lg-8">
+            <!-- Solved Coding Challenges -->
+            <div class="custom-card p-4 mb-4" style="background: rgba(17, 24, 39, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px;">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <h2 class="h5 fw-bold text-white mb-0 d-flex align-items-center gap-2">
+                        <i data-lucide="code-2" class="text-primary" style="width: 20px; height: 20px;"></i>
+                        <span>Recent Solved Coding Challenges</span>
+                    </h2>
+                    <span class="text-secondary small font-monospace">{{ solved_challenges|length }} verified submissions</span>
+                </div>
+
+                {% if solved_challenges %}
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover align-middle mb-0" style="background: transparent;">
+                        <thead>
+                            <tr class="text-secondary small text-uppercase">
+                                <th scope="col">Challenge</th>
+                                <th scope="col">Difficulty</th>
+                                <th scope="col">Language</th>
+                                <th scope="col">Runtime</th>
+                                <th scope="col">Solved At</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sub in solved_challenges %}
+                            <tr>
+                                <td>
+                                    <span class="fw-bold text-white">{{ sub.challenge.title }}</span>
+                                </td>
+                                <td>
+                                    <span class="badge {% if sub.challenge.difficulty == 'Easy' %}bg-success-subtle text-success border border-success{% elif sub.challenge.difficulty == 'Medium' %}bg-warning-subtle text-warning border border-warning{% else %}bg-danger-subtle text-danger border border-danger{% endif %} font-monospace">
+                                        {{ sub.challenge.difficulty }}
+                                    </span>
+                                </td>
+                                <td><span class="font-monospace text-info small">{{ sub.language|upper }}</span></td>
+                                <td><span class="font-monospace text-secondary small">{{ sub.runtime_ms }} ms</span></td>
+                                <td><span class="text-secondary small">{{ sub.created_at|date:"M d, Y" }}</span></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="p-4 text-center text-secondary">
+                    <p class="mb-0">No coding challenge submissions recorded yet.</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Resume Skills Breakdown -->
+            {% if resume %}
+            <div class="custom-card p-4 mb-4" style="background: rgba(17, 24, 39, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px;">
+                <h2 class="h5 fw-bold text-white mb-3 d-flex align-items-center gap-2">
+                    <i data-lucide="file-check" class="text-info" style="width: 20px; height: 20px;"></i>
+                    <span>Candidate Resume &amp; Technical Skills</span>
+                </h2>
+                <div class="mb-3">
+                    <div class="text-secondary small text-uppercase fw-semibold mb-2">Target Role</div>
+                    <div class="text-white fw-bold fs-6">{{ resume.target_role|default:"Software Engineer" }}</div>
+                </div>
+                <div class="mb-3">
+                    <div class="text-secondary small text-uppercase fw-semibold mb-2">Technical Skills &amp; Stack</div>
+                    <div class="d-flex flex-wrap gap-2">
+                        {% for s in resume.get_skills_list %}
+                        <span class="badge bg-dark border border-secondary text-white px-2 py-1 font-monospace">{{ s }}</span>
+                        {% empty %}
+                        <span class="text-secondary small">No skill keywords specified.</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% if resume.summary %}
+                <div>
+                    <div class="text-secondary small text-uppercase fw-semibold mb-2">Professional Summary</div>
+                    <p class="text-light small mb-0 p-3 rounded bg-dark border border-secondary">{{ resume.summary }}</p>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Right: Verified Certificates & Interview History -->
+        <div class="col-lg-4">
+            <!-- Verified Certificates -->
+            <div class="custom-card p-4 mb-4" style="background: rgba(17, 24, 39, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px;">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <h2 class="h6 fw-bold text-white mb-0 d-flex align-items-center gap-2">
+                        <i data-lucide="award" class="text-warning" style="width: 18px; height: 18px;"></i>
+                        <span>Verified Certificates</span>
+                    </h2>
+                    <span class="badge bg-dark border border-secondary text-white font-monospace">{{ certificates|length }}</span>
+                </div>
+
+                {% if certificates %}
+                <div class="d-flex flex-column gap-3">
+                    {% for cert in certificates %}
+                    <div class="p-3 rounded bg-dark border border-secondary">
+                        <div class="fw-bold text-white small mb-1">{{ cert.title }}</div>
+                        <div class="d-flex justify-content-between align-items-center text-secondary small font-monospace" style="font-size: 0.7rem;">
+                            <span>ID: {{ cert.certificate_id|default:cert.id }}</span>
+                            <span>{{ cert.issued_at|date:"M Y" }}</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-secondary small mb-0">No certificates issued yet.</p>
+                {% endif %}
+            </div>
+
+            <!-- Dispatched Interview Invitations -->
+            <div class="custom-card p-4" style="background: rgba(17, 24, 39, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px;">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <h2 class="h6 fw-bold text-white mb-0 d-flex align-items-center gap-2">
+                        <i data-lucide="mail-check" class="text-success" style="width: 18px; height: 18px;"></i>
+                        <span>Dispatched Invitations</span>
+                    </h2>
+                    <span class="badge bg-dark border border-secondary text-white font-monospace">{{ invitations|length }}</span>
+                </div>
+
+                {% if invitations %}
+                <div class="d-flex flex-column gap-3">
+                    {% for inv in invitations %}
+                    <div class="p-3 rounded bg-dark border border-secondary">
+                        <div class="d-flex justify-content-between align-items-start mb-1">
+                            <span class="fw-bold text-white small">{{ inv.role_title }}</span>
+                            <span class="badge bg-primary-subtle text-primary border border-primary font-monospace" style="font-size: 0.65rem;">
+                                {{ inv.status|upper }}
+                            </span>
+                        </div>
+                        <div class="text-secondary small mb-2">{{ inv.company_name }}</div>
+                        <div class="text-secondary small font-monospace" style="font-size: 0.7rem;">Sent {{ inv.created_at|date:"M d, Y" }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-secondary small mb-0">You have not invited this candidate yet. Click "Send Interview Invite" to connect!</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Send Interview Invitation Modal -->
+<div class="modal fade" id="inviteModal" tabindex="-1" aria-labelledby="inviteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-white border-secondary">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title fw-bold d-flex align-items-center gap-2" id="inviteModalLabel">
+                    <i data-lucide="send" class="text-primary" style="width: 18px; height: 18px;"></i>
+                    Invite @{{ candidate.username }} to Interview
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="inviteForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label text-secondary small fw-semibold">Role / Opportunity Title *</label>
+                        <input type="text" id="roleTitle" class="form-control bg-dark text-white border-secondary" placeholder="e.g. Senior Backend Engineer" required value="Software Engineering Role">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-secondary small fw-semibold">Hiring Organization / Company *</label>
+                        <input type="text" id="companyName" class="form-control bg-dark text-white border-secondary" placeholder="e.g. Acme Tech Labs" required value="Hiring Partner">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-secondary small fw-semibold">Video Meeting Link (Google Meet / Zoom)</label>
+                        <input type="url" id="meetingLink" class="form-control bg-dark text-white border-secondary" placeholder="https://meet.google.com/xyz-abc-def">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-secondary small fw-semibold">Personalized Message</label>
+                        <textarea id="inviteMessage" rows="3" class="form-control bg-dark text-white border-secondary" placeholder="We were impressed by your algorithmic scores and Harvard ATS resume..."></textarea>
+                    </div>
+                    <div id="inviteAlert" class="alert d-none small"></div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" id="submitInviteBtn" class="btn btn-primary-custom d-flex align-items-center gap-2">
+                        <i data-lucide="send" style="width: 16px; height: 16px;"></i> Dispatch Invitation
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    lucide.createIcons();
+
+    const getCsrfToken = () => {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, 10) === ('csrftoken=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(10));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    };
+
+    // Shortlist button toggle
+    const shortlistBtn = document.getElementById('shortlistBtn');
+    const shortlistText = document.getElementById('shortlistText');
+    if (shortlistBtn) {
+        shortlistBtn.addEventListener('click', async () => {
+            const username = shortlistBtn.dataset.username;
+            try {
+                const res = await fetch(`/opportunities/talent/candidate/${username}/shortlist/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCsrfToken(),
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    if (data.is_shortlisted) {
+                        shortlistBtn.className = 'btn btn-warning text-dark d-flex align-items-center gap-2';
+                        shortlistText.textContent = 'Shortlisted';
+                    } else {
+                        shortlistBtn.className = 'btn btn-outline-secondary text-white d-flex align-items-center gap-2';
+                        shortlistText.textContent = 'Add to Shortlist';
+                    }
+                }
+            } catch (err) {
+                console.error("Shortlist error:", err);
+            }
+        });
+    }
+
+    // Interview Invitation submission
+    const inviteForm = document.getElementById('inviteForm');
+    const inviteAlert = document.getElementById('inviteAlert');
+    const submitInviteBtn = document.getElementById('submitInviteBtn');
+
+    if (inviteForm) {
+        inviteForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            submitInviteBtn.disabled = true;
+            inviteAlert.className = 'alert d-none small';
+
+            const payload = {
+                role_title: document.getElementById('roleTitle').value.trim(),
+                company_name: document.getElementById('companyName').value.trim(),
+                meeting_link: document.getElementById('meetingLink').value.trim(),
+                message: document.getElementById('inviteMessage').value.trim(),
+            };
+
+            try {
+                const res = await fetch('/opportunities/talent/candidate/{{ candidate.username }}/invite/', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCsrfToken(),
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    inviteAlert.className = 'alert alert-success small';
+                    inviteAlert.textContent = data.message;
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1200);
+                } else {
+                    inviteAlert.className = 'alert alert-danger small';
+                    inviteAlert.textContent = data.message || 'Failed to send invitation.';
+                    submitInviteBtn.disabled = false;
+                }
+            } catch (err) {
+                inviteAlert.className = 'alert alert-danger small';
+                inviteAlert.textContent = 'Network error occurred. Please try again.';
+                submitInviteBtn.disabled = false;
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
