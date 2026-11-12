@@ -1,15 +1,19 @@
 import json
 import random
 from datetime import timedelta
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponse
 from django.utils import timezone
-from django.db.models import Sum
+from django.db.models import Sum, Q
 from django.contrib.auth.models import User
 
-from .models import Badge, UserBadge, UserGamification, XPTransaction, League, LeagueMembership, SkillDuel
+from .models import (
+    Badge, UserBadge, UserGamification, XPTransaction, League, LeagueMembership,
+    SkillDuel, UserArenaRating, CodeArenaMatch
+)
 from .services import get_or_create_gamification, award_user_xp
+from assessments.models import CodingChallenge
 
 DUEL_QUESTIONS = {
     'python': [
@@ -665,6 +669,238 @@ def public_user_badge_svg(request, username: str):
     response['Cache-Control'] = 'public, max-age=300, stale-while-revalidate=600'
     response['Access-Control-Allow-Origin'] = '*'
     return response
+
+
+# ==========================================
+# 1v1 REAL-TIME CODE ARENA (MULTIPLAYER DUELS)
+# ==========================================
+
+def calculate_elo_change(rating_a, rating_b, score_a, k_factor=32):
+    """FIDE Standard Elo calculation."""
+    expected_a = 1.0 / (1.0 + 10.0 ** ((rating_b - rating_a) / 400.0))
+    return int(round(k_factor * (score_a - expected_a)))
+
+
+@login_required
+def code_arena_hub_view(request):
+    rating, _ = UserArenaRating.objects.get_or_create(user=request.user)
+    leaderboard = UserArenaRating.objects.select_related('user').order_by('-elo')[:10]
+    
+    recent_matches = CodeArenaMatch.objects.filter(
+        Q(player_one=request.user) | Q(player_two=request.user)
+    ).select_related('challenge', 'winner').order_by('-created_at')[:8]
+
+    return render(request, 'gamification/arena_hub.html', {
+        'rating': rating,
+        'leaderboard': leaderboard,
+        'recent_matches': recent_matches,
+    })
+
+
+@login_required
+def start_arena_match_api(request):
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'POST required'}, status=400)
+
+    p1_rating, _ = UserArenaRating.objects.get_or_create(user=request.user)
+
+    # Check for waiting human match
+    waiting = CodeArenaMatch.objects.filter(status='WAITING').exclude(player_one=request.user).first()
+    if waiting:
+        waiting.player_two = request.user
+        waiting.player_two_name = request.user.username
+        waiting.player_two_elo_before = p1_rating.elo
+        waiting.status = 'IN_PROGRESS'
+        waiting.save()
+        return JsonResponse({
+            'status': 'success',
+            'match_id': waiting.id,
+            'redirect_url': f'/achievements/arena/match/{waiting.id}/'
+        })
+
+    challenge = CodingChallenge.objects.filter(is_active=True).order_by('?').first()
+    if not challenge:
+        challenge, _ = CodingChallenge.objects.get_or_create(
+            slug='two-sum-arena',
+            defaults={
+                'title': 'Two Sum Blitz',
+                'difficulty': 'Easy',
+                'function_name': 'two_sum',
+                'description': 'Given an array of integers and target, return indices that add up to target.',
+                'python_starter': 'def two_sum(nums, target):\n    pass'
+            }
+        )
+
+    bot_names = ['Grandmaster Bot', 'CyberAlgo Bot', 'Quantum Coder', 'NeuralDev AI']
+    bot_name = random.choice(bot_names)
+    bot_elo = random.choice([1140, 1220, 1290, 1360, 1420])
+    total_test_cases = challenge.test_cases.count() or 5
+
+    match = CodeArenaMatch.objects.create(
+        player_one=request.user,
+        player_two=None,
+        player_two_name=bot_name,
+        is_bot_match=True,
+        challenge=challenge,
+        player_one_elo_before=p1_rating.elo,
+        player_two_elo_before=bot_elo,
+        total_cases=total_test_cases,
+        status='IN_PROGRESS'
+    )
+
+    return JsonResponse({
+        'status': 'success',
+        'match_id': match.id,
+        'redirect_url': f'/achievements/arena/match/{match.id}/'
+    })
+
+
+@login_required
+def code_arena_match_view(request, match_id):
+    match = get_object_or_404(CodeArenaMatch, id=match_id)
+    if match.player_one != request.user and match.player_two != request.user:
+        return redirect('gamification:arena_hub')
+
+    challenge = match.challenge
+    visible_cases = challenge.test_cases.filter(is_hidden=False).order_by('order')
+
+    visible_cases_json = []
+    for tc in visible_cases:
+        try:
+            inp = json.loads(tc.input_data)
+        except Exception:
+            inp = tc.input_data
+        try:
+            out = json.loads(tc.expected_output)
+        except Exception:
+            out = tc.expected_output
+        visible_cases_json.append({
+            'order': tc.order,
+            'input': inp,
+            'output': out
+        })
+
+    is_player_one = (match.player_one == request.user)
+    user_elo = match.player_one_elo_before if is_player_one else match.player_two_elo_before
+    opponent_name = match.player_two_name if is_player_one else match.player_one.username
+    opponent_elo = match.player_two_elo_before if is_player_one else match.player_one_elo_before
+
+    return render(request, 'gamification/arena_match.html', {
+        'match': match,
+        'challenge': challenge,
+        'visible_cases_json': json.dumps(visible_cases_json),
+        'user_elo': user_elo,
+        'opponent_name': opponent_name,
+        'opponent_elo': opponent_elo,
+        'is_player_one': is_player_one,
+    })
+
+
+@login_required
+def arena_match_progress_api(request, match_id):
+    match = get_object_or_404(CodeArenaMatch, id=match_id)
+    
+    if request.method == 'POST':
+        try:
+            body = json.loads(request.body.decode('utf-8'))
+            cases_passed = int(body.get('cases_passed', 0))
+            if match.player_one == request.user:
+                match.player_one_cases_passed = max(match.player_one_cases_passed, cases_passed)
+            elif match.player_two == request.user:
+                match.player_two_cases_passed = max(match.player_two_cases_passed, cases_passed)
+        except Exception:
+            pass
+
+    if match.is_bot_match and match.status == 'IN_PROGRESS':
+        elapsed = (timezone.now() - match.created_at).total_seconds()
+        bot_solved = min(match.total_cases - 1, int(elapsed // 35))
+        match.player_two_cases_passed = max(match.player_two_cases_passed, bot_solved)
+
+    match.save(update_fields=['player_one_cases_passed', 'player_two_cases_passed'])
+
+    return JsonResponse({
+        'status': match.status,
+        'p1_passed': match.player_one_cases_passed,
+        'p2_passed': match.player_two_cases_passed,
+        'total_cases': match.total_cases,
+    })
+
+
+@login_required
+def submit_arena_match_api(request, match_id):
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'POST required'}, status=400)
+
+    match = get_object_or_404(CodeArenaMatch, id=match_id)
+    try:
+        body = json.loads(request.body.decode('utf-8'))
+    except Exception:
+        body = {}
+
+    cases_passed = int(body.get('cases_passed', 0))
+    time_remaining = int(body.get('time_remaining', 0))
+
+    is_p1 = (match.player_one == request.user)
+    if is_p1:
+        match.player_one_cases_passed = max(match.player_one_cases_passed, cases_passed)
+    else:
+        match.player_two_cases_passed = max(match.player_two_cases_passed, cases_passed)
+
+    p1_rating, _ = UserArenaRating.objects.get_or_create(user=match.player_one)
+    
+    if cases_passed >= match.total_cases:
+        score_p1 = 1.0 if is_p1 else 0.0
+        winner_user = request.user
+    elif time_remaining <= 0:
+        if match.player_one_cases_passed > match.player_two_cases_passed:
+            score_p1 = 1.0
+            winner_user = match.player_one
+        elif match.player_one_cases_passed < match.player_two_cases_passed:
+            score_p1 = 0.0
+            winner_user = match.player_two if not match.is_bot_match else None
+        else:
+            score_p1 = 0.5
+            winner_user = None
+    else:
+        score_p1 = 1.0 if is_p1 else 0.0
+        winner_user = request.user
+
+    elo_change_p1 = calculate_elo_change(match.player_one_elo_before, match.player_two_elo_before, score_p1)
+
+    p1_rating.elo = max(100, p1_rating.elo + elo_change_p1)
+    p1_rating.peak_elo = max(p1_rating.peak_elo, p1_rating.elo)
+    p1_rating.matches_played += 1
+    if score_p1 == 1.0:
+        p1_rating.matches_won += 1
+        p1_rating.current_streak = max(1, p1_rating.current_streak + 1)
+    elif score_p1 == 0.0:
+        p1_rating.matches_lost += 1
+        p1_rating.current_streak = min(-1, p1_rating.current_streak - 1)
+    p1_rating.save()
+
+    match.player_one_elo_change = elo_change_p1
+    match.player_two_elo_change = -elo_change_p1
+    match.status = 'COMPLETED'
+    match.winner = winner_user
+    match.save()
+
+    xp_awarded = 75 if winner_user == request.user else 25
+    award_user_xp(request.user, xp_awarded, f"Arena 1v1 Match: vs {match.player_two_name}")
+
+    user_elo_change = elo_change_p1 if is_p1 else -elo_change_p1
+
+    return JsonResponse({
+        'status': 'success',
+        'is_winner': (winner_user == request.user),
+        'winner_name': winner_user.username if winner_user else ('Draw' if score_p1 == 0.5 else match.player_two_name),
+        'user_elo_change': user_elo_change,
+        'new_elo': p1_rating.elo if is_p1 else match.player_two_elo_before,
+        'xp_awarded': xp_awarded,
+        'p1_passed': match.player_one_cases_passed,
+        'p2_passed': match.player_two_cases_passed,
+        'total_cases': match.total_cases,
+    })
+
 
 
 

@@ -1,0 +1,397 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}LIVE 1v1 ARENA: {{ challenge.title }} vs {{ opponent_name }} | SkillSphere{% endblock %}
+
+{% block extra_css %}
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+<style>
+    .match-container {
+        height: calc(100vh - 130px);
+        min-height: 650px;
+    }
+    .combat-panel {
+        background: #0B0F19;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+    .code-editor-arena {
+        background: #060911;
+        color: #E6EDF3;
+        font-family: 'Fira Code', 'JetBrains Mono', 'Consolas', monospace;
+        font-size: 14px;
+        line-height: 1.6;
+        border: none;
+        resize: none;
+        outline: none;
+        padding: 1rem;
+        width: 100%;
+        flex: 1;
+        white-space: pre;
+        tab-size: 4;
+    }
+    .timer-badge {
+        font-size: 1.25rem;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        background: rgba(239, 68, 68, 0.15);
+        color: #EF4444;
+        border: 1px solid rgba(239, 68, 68, 0.4);
+        padding: 4px 14px;
+        border-radius: 8px;
+    }
+    .telemetry-bar {
+        height: 10px;
+        background: rgba(255, 255, 255, 0.08);
+        border-radius: 999px;
+        overflow: hidden;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 py-2">
+    <!-- Top Match Header: Combatants & Blitz Timer -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 p-3 rounded-3 mb-2" style="background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(255,255,255,0.1);">
+        <!-- Player 1 (You) -->
+        <div class="d-flex align-items-center gap-3">
+            <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold" style="width: 42px; height: 42px; background: linear-gradient(135deg, #4F46E5, #06B6D4);">
+                {{ request.user.username|slice:":2"|upper }}
+            </div>
+            <div>
+                <div class="fw-bold text-white mb-0 d-flex align-items-center gap-2">
+                    <span>{{ request.user.username }}</span>
+                    <span class="badge bg-success small py-0.5 px-2">YOU</span>
+                </div>
+                <span class="text-secondary small font-monospace" style="color: #94A3B8;">{{ user_elo }} ELO</span>
+            </div>
+        </div>
+
+        <!-- Center: Blitz Clock & Versus Badge -->
+        <div class="text-center">
+            <div class="timer-badge font-monospace mb-1" id="blitzClock">03:00</div>
+            <span class="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-30 small">LIVE COMBAT</span>
+        </div>
+
+        <!-- Player 2 (Opponent) -->
+        <div class="d-flex align-items-center gap-3 text-end">
+            <div>
+                <div class="fw-bold text-white mb-0 d-flex align-items-center justify-content-end gap-2">
+                    <span class="badge bg-warning text-dark small py-0.5 px-2">RIVAL</span>
+                    <span>{{ opponent_name }}</span>
+                </div>
+                <span class="text-secondary small font-monospace" style="color: #94A3B8;">{{ opponent_elo }} ELO</span>
+            </div>
+            <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold" style="width: 42px; height: 42px; background: linear-gradient(135deg, #EF4444, #F59E0B);">
+                <i data-lucide="bot" style="width: 22px; height: 22px;"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live Telemetry Comparison Bar -->
+    <div class="row g-2 mb-2 p-2 rounded bg-black bg-opacity-40 border border-secondary border-opacity-25">
+        <div class="col-6">
+            <div class="d-flex justify-content-between text-secondary small mb-1" style="font-size: 0.78rem;">
+                <span class="text-info fw-semibold">Your Progress</span>
+                <span id="yourCasesText" class="font-monospace text-white">0 / {{ match.total_cases }} cases</span>
+            </div>
+            <div class="telemetry-bar">
+                <div class="progress-bar bg-info" id="yourProgressBar" style="width: 0%; height: 100%; transition: width 0.3s ease;"></div>
+            </div>
+        </div>
+        <div class="col-6">
+            <div class="d-flex justify-content-between text-secondary small mb-1" style="font-size: 0.78rem;">
+                <span class="text-danger fw-semibold">{{ opponent_name }}'s Progress</span>
+                <span id="opponentCasesText" class="font-monospace text-white">0 / {{ match.total_cases }} cases</span>
+            </div>
+            <div class="telemetry-bar">
+                <div class="progress-bar bg-danger" id="opponentProgressBar" style="width: 0%; height: 100%; transition: width 0.3s ease;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Split Battlefield -->
+    <div class="row g-3 match-container">
+        <!-- Left: Problem Description -->
+        <div class="col-lg-5 col-md-6 h-100 d-flex flex-column">
+            <div class="combat-panel h-100 p-3 overflow-y-auto">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <h5 class="fw-bold text-white mb-0">{{ challenge.title }}</h5>
+                    <span class="badge bg-secondary bg-opacity-25 text-light border border-secondary border-opacity-25 small">{{ challenge.difficulty }}</span>
+                </div>
+
+                <div class="problem-body small text-light mb-3" style="color: #CBD5E1 !important;">
+                    {{ challenge.description|linebreaksbr }}
+                </div>
+
+                <div class="p-2 rounded bg-black bg-opacity-40 border border-secondary border-opacity-25 small mb-2">
+                    <span class="text-secondary">Target Function:</span>
+                    <code class="text-info ms-1">{{ challenge.function_name }}()</code>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Code Editor & Combat Controls -->
+        <div class="col-lg-7 col-md-6 h-100 d-flex flex-column">
+            <div class="combat-panel h-100">
+                <!-- Editor Top Header -->
+                <div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom border-secondary border-opacity-25" style="background: #111624;">
+                    <span class="badge bg-secondary bg-opacity-25 text-light small">Python 3 (Pyodide)</span>
+
+                    <div class="d-flex align-items-center gap-2">
+                        <button id="runTestsBtn" class="btn btn-sm btn-outline-info d-flex align-items-center gap-1 py-1 px-3">
+                            <i data-lucide="play" style="width: 14px; height: 14px;"></i>
+                            <span>Run Tests</span>
+                        </button>
+                        <button id="buzzerSubmitBtn" class="btn btn-sm btn-danger d-flex align-items-center gap-1 py-1 px-4 fw-bold">
+                            <i data-lucide="zap" style="width: 14px; height: 14px;"></i>
+                            <span>BUZZER SUBMIT</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Code Editor Area -->
+                <textarea id="arenaEditor" class="code-editor-arena" spellcheck="false">{{ challenge.python_starter }}</textarea>
+
+                <!-- Console Output Tray -->
+                <div class="p-2 border-top border-secondary border-opacity-25 font-monospace small text-secondary" id="arenaConsole" style="background: #090D15; max-height: 100px; overflow-y: auto;">
+                    Ready for battle. Press "Run Tests" to evaluate your solution.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MATCH FINALE MODAL -->
+<div class="modal fade" id="finaleModal" tabindex="-1" data-bs-backdrop="static" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark border text-white text-center p-4" id="finaleModalContent" style="background: #0F172A !important;">
+            <div class="my-3" id="finaleIconContainer"></div>
+            <h3 class="fw-bold mb-1" id="finaleTitle">VICTORY!</h3>
+            <p class="text-secondary small mb-3" id="finaleSubtitle">You defeated your opponent in the Arena!</p>
+
+            <div class="row g-2 mb-3">
+                <div class="col-6">
+                    <div class="p-3 rounded bg-black bg-opacity-30 border border-secondary border-opacity-25">
+                        <span class="text-secondary small">ELO Rating Swing</span>
+                        <h4 class="fw-bold mb-0" id="finaleEloChange">+24 ELO</h4>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="p-3 rounded bg-black bg-opacity-30 border border-secondary border-opacity-25">
+                        <span class="text-secondary small">XP Earned</span>
+                        <h4 class="fw-bold text-warning mb-0" id="finaleXp">+75 XP</h4>
+                    </div>
+                </div>
+            </div>
+
+            <a href="{% url 'gamification:arena_hub' %}" class="btn btn-primary w-100 py-2 fw-semibold">
+                Back to Arena Lobby
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js"></script>
+
+<script>
+    const matchId = {{ match.id }};
+    const totalCases = {{ match.total_cases }};
+    const functionName = "{{ challenge.function_name }}";
+    const visibleCases = JSON.parse('{{ visible_cases_json|escapejs }}');
+    const csrfToken = '{{ csrf_token }}';
+
+    let timeRemaining = 180; // 3 minutes
+    let clockInterval = null;
+    let telemetryInterval = null;
+    let pyodideInstance = null;
+    let matchEnded = false;
+
+    // Clock Countdown
+    clockInterval = setInterval(() => {
+        if (timeRemaining <= 0) {
+            clearInterval(clockInterval);
+            timeRemaining = 0;
+            triggerMatchConclusion();
+            return;
+        }
+        timeRemaining--;
+        const mins = String(Math.floor(timeRemaining / 60)).padStart(2, '0');
+        const secs = String(timeRemaining % 60).padStart(2, '0');
+        const clockEl = document.getElementById('blitzClock');
+        clockEl.textContent = `${mins}:${secs}`;
+
+        if (timeRemaining < 30) {
+            clockEl.classList.add('bg-danger', 'text-white');
+        }
+    }, 1000);
+
+    // Pyodide Loader
+    async function getPyodide() {
+        if (!pyodideInstance) {
+            pyodideInstance = await loadPyodide({
+                indexURL: "https://cdn.jsdelivr.net/pyodide/v0.25.1/full/"
+            });
+        }
+        return pyodideInstance;
+    }
+
+    // Telemetry Poller
+    telemetryInterval = setInterval(async () => {
+        if (matchEnded) return;
+        try {
+            const resp = await fetch(`{% url 'gamification:arena_progress' match_id=match.id %}`);
+            const data = await resp.json();
+            
+            // Update Opponent Progress
+            const oppPct = Math.round((data.p2_passed / totalCases) * 100);
+            document.getElementById('opponentProgressBar').style.width = `${oppPct}%`;
+            document.getElementById('opponentCasesText').textContent = `${data.p2_passed} / ${totalCases} cases`;
+
+            if (data.p2_passed >= totalCases && !matchEnded) {
+                // Opponent finished first!
+                triggerMatchConclusion();
+            }
+        } catch (e) {
+            console.error("Telemetry failed:", e);
+        }
+    }, 2500);
+
+    // Evaluate solution locally
+    async function testSolution(code) {
+        const py = await getPyodide();
+        await py.runPythonAsync(code);
+
+        let passed = 0;
+        for (const tc of visibleCases) {
+            py.globals.set('__args', tc.input);
+            const script = `
+import json
+try:
+    fn = globals().get('${functionName}')
+    if isinstance(__args, list):
+        out = fn(*__args)
+    else:
+        out = fn(__args)
+    res_val = json.dumps(out)
+except Exception as e:
+    res_val = json.dumps({"err": str(e)})
+`;
+            await py.runPythonAsync(script);
+            const outJson = py.globals.get('res_val');
+            const parsed = JSON.parse(outJson);
+            if (JSON.stringify(parsed) === JSON.stringify(tc.output)) {
+                passed++;
+            }
+        }
+        return passed;
+    }
+
+    // Run Tests Button
+    document.getElementById('runTestsBtn').addEventListener('click', async () => {
+        const btn = document.getElementById('runTestsBtn');
+        btn.disabled = true;
+        btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Testing...`;
+
+        try {
+            const code = document.getElementById('arenaEditor').value;
+            const passed = await testSolution(code);
+            const pct = Math.round((passed / totalCases) * 100);
+            
+            document.getElementById('yourProgressBar').style.width = `${pct}%`;
+            document.getElementById('yourCasesText').textContent = `${passed} / ${totalCases} cases`;
+            document.getElementById('arenaConsole').textContent = `Passed ${passed}/${visibleCases.length} visible test cases.`;
+
+            // Push progress
+            await fetch(`{% url 'gamification:arena_progress' match_id=match.id %}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                body: JSON.stringify({ cases_passed: passed })
+            });
+
+            if (passed >= totalCases) {
+                triggerMatchConclusion(passed);
+            }
+        } catch (err) {
+            document.getElementById('arenaConsole').textContent = "Execution Error: " + err.message;
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = `<i data-lucide="play" style="width: 14px; height: 14px;"></i> Run Tests`;
+            lucide.createIcons();
+        }
+    });
+
+    // Buzzer Submit Button
+    document.getElementById('buzzerSubmitBtn').addEventListener('click', async () => {
+        const code = document.getElementById('arenaEditor').value;
+        try {
+            const passed = await testSolution(code);
+            triggerMatchConclusion(passed);
+        } catch (err) {
+            triggerMatchConclusion(0);
+        }
+    });
+
+    async function triggerMatchConclusion(passedCount = 0) {
+        if (matchEnded) return;
+        matchEnded = true;
+        clearInterval(clockInterval);
+        clearInterval(telemetryInterval);
+
+        try {
+            const resp = await fetch(`{% url 'gamification:arena_submit' match_id=match.id %}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                body: JSON.stringify({
+                    cases_passed: passedCount,
+                    time_remaining: timeRemaining
+                })
+            });
+            const data = await resp.json();
+
+            const finaleModal = new bootstrap.Modal(document.getElementById('finaleModal'));
+            const modalContent = document.getElementById('finaleModalContent');
+            const iconContainer = document.getElementById('finaleIconContainer');
+            const titleEl = document.getElementById('finaleTitle');
+            const subEl = document.getElementById('finaleSubtitle');
+            const eloEl = document.getElementById('finaleEloChange');
+            const xpEl = document.getElementById('finaleXp');
+
+            if (data.is_winner) {
+                confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
+                modalContent.style.borderColor = 'rgba(16, 185, 129, 0.5)';
+                iconContainer.innerHTML = `<div class="rounded-circle p-3 d-inline-flex" style="background: rgba(16,185,129,0.15); color: #10B981;"><i data-lucide="trophy" style="width: 42px; height: 42px;"></i></div>`;
+                titleEl.textContent = "VICTORY!";
+                titleEl.className = "fw-bold mb-1 text-success";
+                subEl.textContent = "You completely crushed your opponent in the Code Arena!";
+                eloEl.textContent = `+${data.user_elo_change} ELO`;
+                eloEl.className = "fw-bold text-success mb-0";
+            } else {
+                modalContent.style.borderColor = 'rgba(239, 68, 68, 0.5)';
+                iconContainer.innerHTML = `<div class="rounded-circle p-3 d-inline-flex" style="background: rgba(239,68,68,0.15); color: #EF4444;"><i data-lucide="shield-alert" style="width: 42px; height: 42px;"></i></div>`;
+                titleEl.textContent = "DEFEAT";
+                titleEl.className = "fw-bold mb-1 text-danger";
+                subEl.textContent = `${data.winner_name} solved the problem faster. Practice and strike back!`;
+                eloEl.textContent = `${data.user_elo_change} ELO`;
+                eloEl.className = "fw-bold text-danger mb-0";
+            }
+
+            xpEl.textContent = `+${data.xp_awarded} XP`;
+            lucide.createIcons();
+            finaleModal.show();
+        } catch (err) {
+            console.error("Failed to submit match:", err);
+            alert("Match concluded.");
+            window.location.href = "{% url 'gamification:arena_hub' %}";
+        }
+    }
+
+    lucide.createIcons();
+</script>
+{% endblock %}

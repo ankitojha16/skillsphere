@@ -152,3 +152,75 @@ class SkillDuel(models.Model):
         return f"{self.challenger.username} vs {self.opponent_name} ({self.topic}) - Winner: {self.winner.username if self.winner else 'Draw'}"
 
 
+class UserArenaRating(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='arena_rating')
+    elo = models.PositiveIntegerField(default=1200)
+    matches_played = models.PositiveIntegerField(default=0)
+    matches_won = models.PositiveIntegerField(default=0)
+    matches_lost = models.PositiveIntegerField(default=0)
+    current_streak = models.IntegerField(default=0)
+    peak_elo = models.PositiveIntegerField(default=1200)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-elo']
+
+    def __str__(self):
+        return f"{self.user.username} - {self.elo} ELO ({self.tier_name})"
+
+    @property
+    def tier_name(self):
+        if self.elo >= 1800:
+            return 'Grandmaster'
+        elif self.elo >= 1500:
+            return 'Diamond'
+        elif self.elo >= 1300:
+            return 'Gold'
+        elif self.elo >= 1050:
+            return 'Silver'
+        return 'Bronze'
+
+    @property
+    def win_rate(self):
+        if self.matches_played == 0:
+            return 0.0
+        return round((self.matches_won / self.matches_played) * 100, 1)
+
+
+class CodeArenaMatch(models.Model):
+    STATUS_CHOICES = [
+        ('WAITING', 'Waiting for Opponent'),
+        ('IN_PROGRESS', 'Battle in Progress'),
+        ('COMPLETED', 'Completed'),
+        ('EXPIRED', 'Expired'),
+    ]
+
+    player_one = models.ForeignKey(User, related_name='arena_matches_as_p1', on_delete=models.CASCADE)
+    player_two = models.ForeignKey(User, related_name='arena_matches_as_p2', on_delete=models.SET_NULL, null=True, blank=True)
+    player_two_name = models.CharField(max_length=100, default='Grandmaster Bot')
+    is_bot_match = models.BooleanField(default=False)
+    
+    challenge = models.ForeignKey('assessments.CodingChallenge', on_delete=models.CASCADE, related_name='arena_matches')
+
+    player_one_elo_before = models.PositiveIntegerField(default=1200)
+    player_two_elo_before = models.PositiveIntegerField(default=1200)
+    player_one_elo_change = models.IntegerField(default=0)
+    player_two_elo_change = models.IntegerField(default=0)
+
+    player_one_cases_passed = models.PositiveIntegerField(default=0)
+    player_two_cases_passed = models.PositiveIntegerField(default=0)
+    total_cases = models.PositiveIntegerField(default=5)
+
+    winner = models.ForeignKey(User, related_name='arena_victories', on_delete=models.SET_NULL, null=True, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='IN_PROGRESS')
+    duration_seconds = models.PositiveIntegerField(default=180)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Match #{self.id}: {self.player_one.username} vs {self.player_two_name} ({self.challenge.title})"
+
+
+

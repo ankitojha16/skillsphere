@@ -1,0 +1,377 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}1v1 Code Arena - Ranked Blitz Duels | SkillSphere{% endblock %}
+
+{% block extra_css %}
+<style>
+    .arena-hero {
+        background: radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.25) 0%, rgba(15, 23, 42, 0) 70%),
+                    linear-gradient(180deg, rgba(15, 23, 42, 0.8) 0%, rgba(11, 15, 25, 0.95) 100%);
+        border: 1px solid rgba(99, 102, 241, 0.25);
+        border-radius: 18px;
+        position: relative;
+        overflow: hidden;
+    }
+    .elo-card {
+        background: rgba(18, 24, 38, 0.85);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 14px;
+        backdrop-filter: blur(12px);
+    }
+    .badge-tier-grandmaster {
+        background: linear-gradient(135deg, #EF4444, #F59E0B);
+        color: #FFFFFF;
+        font-weight: 700;
+        padding: 4px 12px;
+        border-radius: 999px;
+        letter-spacing: 0.05em;
+    }
+    .badge-tier-diamond {
+        background: linear-gradient(135deg, #06B6D4, #3B82F6);
+        color: #FFFFFF;
+        font-weight: 700;
+        padding: 4px 12px;
+        border-radius: 999px;
+    }
+    .badge-tier-gold {
+        background: linear-gradient(135deg, #F59E0B, #D97706);
+        color: #000000;
+        font-weight: 700;
+        padding: 4px 12px;
+        border-radius: 999px;
+    }
+    .badge-tier-silver {
+        background: linear-gradient(135deg, #94A3B8, #64748B);
+        color: #FFFFFF;
+        font-weight: 700;
+        padding: 4px 12px;
+        border-radius: 999px;
+    }
+    .badge-tier-bronze {
+        background: linear-gradient(135deg, #B45309, #78350F);
+        color: #FFFFFF;
+        font-weight: 700;
+        padding: 4px 12px;
+        border-radius: 999px;
+    }
+    .queue-pulse-btn {
+        box-shadow: 0 0 25px rgba(99, 102, 241, 0.5);
+        animation: arenaPulse 2s infinite;
+    }
+    @keyframes arenaPulse {
+        0% { box-shadow: 0 0 15px rgba(99, 102, 241, 0.4); }
+        50% { box-shadow: 0 0 35px rgba(99, 102, 241, 0.85); }
+        100% { box-shadow: 0 0 15px rgba(99, 102, 241, 0.4); }
+    }
+    .match-row {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        transition: background-color 0.15s ease;
+    }
+    .match-row:hover {
+        background: rgba(99, 102, 241, 0.06);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <!-- Breadcrumb & Top Hub Nav -->
+    <div class="d-flex align-items-center gap-3 mb-4">
+        <a href="{% url 'gamification:leagues' %}" class="btn btn-sm btn-outline-secondary py-1 px-2">
+            <i data-lucide="arrow-left" style="width: 14px; height: 14px;"></i>
+        </a>
+        <div class="d-flex align-items-center gap-2">
+            <h4 class="fw-bold text-white mb-0">1v1 Multiplayer Code Arena</h4>
+            <span class="badge bg-danger text-white rounded-pill px-2 py-0.5 small" style="font-size: 0.72rem;">LIVE BLITZ</span>
+        </div>
+    </div>
+
+    <!-- Arena Hero Banner -->
+    <div class="arena-hero p-4 p-md-5 mb-4 text-center">
+        <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill mb-3" style="background: rgba(99, 102, 241, 0.2); border: 1px solid rgba(99, 102, 241, 0.4);">
+            <i data-lucide="swords" style="width: 16px; height: 16px;" class="text-warning"></i>
+            <span class="text-white small fw-semibold">Competitive Ranked Matchmaking</span>
+        </div>
+        <h1 class="display-5 fw-bold text-white mb-2" style="letter-spacing: -0.02em;">3-Minute Algorithmic Blitz Duels</h1>
+        <p class="text-secondary mx-auto mb-4" style="max-width: 650px; color: #94A3B8 !important;">
+            Face off head-to-head in real time. First developer to write optimal code and pass all test cases takes the ELO rating and crowns the leaderboard.
+        </p>
+
+        <button id="findMatchBtn" class="btn btn-primary btn-lg queue-pulse-btn px-5 py-3 fw-bold d-inline-flex align-items-center gap-2" style="background: linear-gradient(135deg, #4F46E5, #7C3AED); border: none;">
+            <i data-lucide="zap" style="width: 20px; height: 20px;"></i>
+            <span>Find Ranked Match</span>
+        </button>
+    </div>
+
+    <div class="row g-4">
+        <!-- User ELO & Combat Stats Card -->
+        <div class="col-lg-4 col-md-5">
+            <div class="elo-card p-4 h-100">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <span class="text-secondary small fw-semibold" style="color: #94A3B8 !important;">Your Arena Standing</span>
+                    <span class="badge-tier-{{ rating.tier_name|lower }}">{{ rating.tier_name }}</span>
+                </div>
+
+                <div class="text-center py-3 border-bottom border-secondary border-opacity-25 mb-4">
+                    <div class="display-3 fw-bold text-white mb-1" style="letter-spacing: -0.03em;">{{ rating.elo }}</div>
+                    <div class="text-secondary small fw-medium" style="color: #94A3B8 !important;">FIDE Competitive ELO Rating</div>
+                </div>
+
+                <div class="row g-3 text-center mb-3">
+                    <div class="col-6">
+                        <div class="p-2 rounded bg-black bg-opacity-30 border border-secondary border-opacity-25">
+                            <span class="text-secondary small" style="font-size: 0.75rem; color: #94A3B8 !important;">Win Rate</span>
+                            <div class="h5 fw-bold text-success mb-0" style="color: #10B981 !important;">{{ rating.win_rate }}%</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-2 rounded bg-black bg-opacity-30 border border-secondary border-opacity-25">
+                            <span class="text-secondary small" style="font-size: 0.75rem; color: #94A3B8 !important;">Peak Rating</span>
+                            <div class="h5 fw-bold text-white mb-0">{{ rating.peak_elo }}</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-2 rounded bg-black bg-opacity-30 border border-secondary border-opacity-25">
+                            <span class="text-secondary small" style="font-size: 0.75rem; color: #94A3B8 !important;">Total Duels</span>
+                            <div class="h5 fw-bold text-white mb-0">{{ rating.matches_played }}</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-2 rounded bg-black bg-opacity-30 border border-secondary border-opacity-25">
+                            <span class="text-secondary small" style="font-size: 0.75rem; color: #94A3B8 !important;">Current Streak</span>
+                            <div class="h5 fw-bold {% if rating.current_streak > 0 %}text-warning{% elif rating.current_streak < 0 %}text-danger{% else %}text-secondary{% endif %} mb-0">
+                                {% if rating.current_streak > 0 %}+{{ rating.current_streak }}W{% elif rating.current_streak < 0 %}{{ rating.current_streak }}L{% else %}0{% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-3 rounded bg-dark border border-secondary border-opacity-25 small" style="background: rgba(15, 23, 42, 0.7) !important;">
+                    <div class="d-flex justify-content-between text-secondary mb-1" style="font-size: 0.78rem;">
+                        <span>Next Tier:</span>
+                        <strong class="text-white">
+                            {% if rating.tier_name == 'Bronze' %}Silver (1050 ELO)
+                            {% elif rating.tier_name == 'Silver' %}Gold (1300 ELO)
+                            {% elif rating.tier_name == 'Gold' %}Diamond (1500 ELO)
+                            {% else %}Grandmaster (1800 ELO){% endif %}
+                        </strong>
+                    </div>
+                    <div class="progress" style="height: 6px; background: rgba(255,255,255,0.08);">
+                        <div class="progress-bar bg-primary" style="width: {% widthratio rating.elo 2000 100 %}%;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Leaderboard & Recent Matches -->
+        <div class="col-lg-8 col-md-7">
+            <!-- Top Grandmaster Leaderboard -->
+            <div class="elo-card p-4 mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold text-white mb-0 d-flex align-items-center gap-2">
+                        <i data-lucide="trophy" style="width: 18px; height: 18px;" class="text-warning"></i>
+                        <span>Arena Top Ranked Grandmasters</span>
+                    </h5>
+                    <span class="badge bg-secondary bg-opacity-25 text-light border border-secondary border-opacity-25 small">Global</span>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover mb-0" style="--bs-table-bg: transparent; font-size: 0.85rem;">
+                        <thead>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1); color: #94A3B8;">
+                                <th style="width: 60px;">Rank</th>
+                                <th>Developer</th>
+                                <th>Tier</th>
+                                <th>Win Rate</th>
+                                <th class="text-end">Rating</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for player in leaderboard %}
+                            <tr class="align-middle">
+                                <td>
+                                    {% if forloop.counter == 1 %}
+                                        <span class="badge bg-warning text-dark fw-bold px-2">#1</span>
+                                    {% elif forloop.counter == 2 %}
+                                        <span class="badge bg-light text-dark fw-bold px-2">#2</span>
+                                    {% elif forloop.counter == 3 %}
+                                        <span class="badge bg-danger text-white fw-bold px-2">#3</span>
+                                    {% else %}
+                                        <span class="text-secondary fw-semibold ps-1">#{{ forloop.counter }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="fw-semibold text-white d-flex align-items-center gap-2">
+                                        <span>{{ player.user.username }}</span>
+                                        {% if player.user == request.user %}
+                                            <span class="badge bg-indigo-subtle text-indigo border border-indigo-subtle small px-1.5 py-0" style="background: rgba(99,102,241,0.2); color: #818CF8;">YOU</span>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge-tier-{{ player.tier_name|lower }}" style="font-size: 0.72rem; padding: 2px 8px;">
+                                        {{ player.tier_name }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="text-success fw-medium">{{ player.win_rate }}%</span>
+                                    <span class="text-secondary small font-monospace">({{ player.matches_won }}/{{ player.matches_played }})</span>
+                                </td>
+                                <td class="text-end">
+                                    <span class="fw-bold text-white fs-6">{{ player.elo }}</span>
+                                    <span class="text-secondary small">ELO</span>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center py-4 text-secondary">
+                                    Be the first developer to enter the Arena and claim Rank #1!
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Recent Battle History -->
+            <div class="elo-card p-4">
+                <h5 class="fw-bold text-white mb-3 d-flex align-items-center gap-2">
+                    <i data-lucide="history" style="width: 18px; height: 18px;" class="text-info"></i>
+                    <span>Your Recent Battles</span>
+                </h5>
+
+                {% if recent_matches %}
+                <div class="table-responsive">
+                    <table class="table table-dark table-sm mb-0" style="--bs-table-bg: transparent; font-size: 0.82rem;">
+                        <thead>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1); color: #94A3B8;">
+                                <th>Result</th>
+                                <th>Opponent</th>
+                                <th>Challenge</th>
+                                <th>Score</th>
+                                <th>Rating Swing</th>
+                                <th class="text-end">Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for match in recent_matches %}
+                            <tr class="match-row align-middle">
+                                <td>
+                                    {% if match.winner == request.user %}
+                                        <span class="badge bg-success bg-opacity-25 text-success border border-success-subtle px-2 py-1" style="color: #34D399 !important;">VICTORY</span>
+                                    {% elif match.winner %}
+                                        <span class="badge bg-danger bg-opacity-25 text-danger border border-danger-subtle px-2 py-1" style="color: #F43F5E !important;">DEFEAT</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary bg-opacity-25 text-secondary border border-secondary-subtle px-2 py-1">DRAW</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-white fw-semibold">
+                                    {% if match.player_one == request.user %}{{ match.player_two_name }}{% else %}{{ match.player_one.username }}{% endif %}
+                                </td>
+                                <td>
+                                    <span class="text-light">{{ match.challenge.title }}</span>
+                                </td>
+                                <td>
+                                    <span class="font-monospace text-secondary">
+                                        {% if match.player_one == request.user %}{{ match.player_one_cases_passed }}{% else %}{{ match.player_two_cases_passed }}{% endif %}/{{ match.total_cases }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if match.player_one == request.user %}
+                                        <span class="fw-bold {% if match.player_one_elo_change > 0 %}text-success{% elif match.player_one_elo_change < 0 %}text-danger{% else %}text-secondary{% endif %}">
+                                            {% if match.player_one_elo_change > 0 %}+{{ match.player_one_elo_change }}{% else %}{{ match.player_one_elo_change }}{% endif %}
+                                        </span>
+                                    {% else %}
+                                        <span class="fw-bold {% if match.player_two_elo_change > 0 %}text-success{% elif match.player_two_elo_change < 0 %}text-danger{% else %}text-secondary{% endif %}">
+                                            {% if match.player_two_elo_change > 0 %}+{{ match.player_two_elo_change }}{% else %}{{ match.player_two_elo_change }}{% endif %}
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end text-secondary small">
+                                    {{ match.created_at|date:"M d, H:i" }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4 text-secondary small">
+                    <p class="mb-0">No matches recorded yet. Click "Find Ranked Match" to begin your first duel!</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MATCHMAKING SEARCH MODAL -->
+<div class="modal fade" id="matchmakingModal" tabindex="-1" data-bs-backdrop="static" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark border border-secondary border-opacity-50 text-white text-center p-4" style="background: #0F172A !important;">
+            <div class="spinner-grow text-primary my-3" style="width: 3.5rem; height: 3.5rem;" role="status"></div>
+            <h4 class="fw-bold mb-1">Searching for Opponent...</h4>
+            <p class="text-secondary small mb-3">Matching across competitive skill tier (±150 ELO)...</p>
+            <div class="progress mb-3" style="height: 6px; background: rgba(255,255,255,0.08);">
+                <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" style="width: 100%;"></div>
+            </div>
+            <span class="text-secondary small font-monospace" id="matchTimer">00:02</span>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const csrfToken = '{{ csrf_token }}';
+    const findMatchBtn = document.getElementById('findMatchBtn');
+    let matchModal = null;
+    let timerInterval = null;
+    let elapsed = 0;
+
+    findMatchBtn.addEventListener('click', async () => {
+        if (!matchModal) {
+            matchModal = new bootstrap.Modal(document.getElementById('matchmakingModal'));
+        }
+        matchModal.show();
+        elapsed = 0;
+        document.getElementById('matchTimer').textContent = "00:00";
+        timerInterval = setInterval(() => {
+            elapsed++;
+            const s = String(elapsed).padStart(2, '0');
+            document.getElementById('matchTimer').textContent = `00:${s}`;
+        }, 1000);
+
+        try {
+            // Artificial 1.5s search delay for maximum excitement
+            await new Promise(r => setTimeout(r, 1500));
+
+            const resp = await fetch('{% url "gamification:arena_start" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                }
+            });
+            const data = await resp.json();
+            if (data.status === 'success' && data.redirect_url) {
+                clearInterval(timerInterval);
+                window.location.href = data.redirect_url;
+            } else {
+                alert("Matchmaking error: " + (data.message || "Failed to start match"));
+                matchModal.hide();
+                clearInterval(timerInterval);
+            }
+        } catch (err) {
+            console.error("Matchmaking error:", err);
+            alert("Matchmaking error: " + err.message);
+            matchModal.hide();
+            clearInterval(timerInterval);
+        }
+    });
+
+    lucide.createIcons();
+</script>
+{% endblock %}

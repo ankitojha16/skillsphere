@@ -302,6 +302,11 @@
                     <i data-lucide="qr-code" style="width: 18px; height: 18px;"></i>
                     <span>Verify Credential (QR)</span>
                 </a>
+                <a href="{% url 'gamification:arena_hub' %}" class="sidebar-link {% if 'arena' in request.path %}active{% endif %}">
+                    <i data-lucide="swords" style="width: 18px; height: 18px;"></i>
+                    <span>1v1 Code Arena</span>
+                    <span class="badge bg-danger text-white rounded-pill px-2 py-0 ms-auto" style="font-size: 0.65rem;">Ranked</span>
+                </a>
                 <a href="{% url 'gamification:leagues' %}" class="sidebar-link {% if 'leagues' in request.path %}active{% endif %}">
                     <i data-lucide="trophy" style="width: 18px; height: 18px;"></i>
                     <span>Competitive Leagues</span>
