@@ -155,11 +155,14 @@ class DashboardTests(TestCase):
         self.assertEqual(len(data_get['cards']), 3)
         self.assertNotIn('correct', data_get['cards'][0])  # ensure answers aren't leaked
 
-        # Test POST submit drill answers
+        # Test POST submit drill answers with user confidence rating
         card_id = data_get['cards'][0]['id']
         resp_post = self.client.post(
             reverse('dashboard:daily_drill_submit'),
-            data=json.dumps({'answers': {card_id: 1}}),
+            data=json.dumps({
+                'answers': {card_id: 1},
+                'confidences': {card_id: 4}
+            }),
             content_type='application/json'
         )
         self.assertEqual(resp_post.status_code, 200)
@@ -167,6 +170,7 @@ class DashboardTests(TestCase):
         self.assertTrue(data_post['success'])
         self.assertIn('correct_count', data_post)
         self.assertEqual(data_post['total_cards'], 3)
+        self.assertIn('streak_bonus', data_post)
         self.assertIn('sm2', data_post['results'][0])
 
 

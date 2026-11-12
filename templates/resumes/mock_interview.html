@@ -77,6 +77,11 @@
                         Question 1 of {{ role_data.technical|length }}
                     </span>
                     <div class="d-flex align-items-center gap-1.5">
+                        <select id="speechRateSelect" class="form-select form-select-sm bg-dark text-white border-secondary py-0.5 px-2 rounded-pill" style="font-size: 0.75rem; width: auto;" title="AI Speech Speed">
+                            <option value="0.85">0.85x (Slow)</option>
+                            <option value="1.0" selected>1.0x (Normal)</option>
+                            <option value="1.2">1.2x (Fast)</option>
+                        </select>
                         <button type="button" class="btn btn-sm btn-outline-info rounded-pill py-1 px-3 d-inline-flex align-items-center gap-1.5" onclick="speakCurrentQuestion()">
                             <i data-lucide="volume-2" style="width: 14px; height: 14px;"></i>
                             <span id="speechBtnText">Listen to AI</span>
@@ -106,6 +111,8 @@
                         <span>Your Response:</span>
                     </label>
                     <div class="d-flex align-items-center gap-2">
+                        <!-- Soundwave Visualizer Canvas -->
+                        <canvas id="voiceVisualizerCanvas" width="130" height="26" class="rounded border border-secondary border-opacity-50" style="background: rgba(0,0,0,0.6);"></canvas>
                         <button type="button" id="voiceRecordBtn" class="btn btn-sm btn-outline-danger py-1 px-3 rounded-pill d-inline-flex align-items-center gap-1.5" onclick="toggleVoiceRecording()">
                             <i data-lucide="mic" style="width: 13px; height: 13px;"></i>
                             <span id="voiceRecordBtnText">Speak Answer</span>
@@ -221,6 +228,11 @@
                     </div>
 
                     <div class="p-2 rounded-2 bg-dark text-secondary small font-monospace" style="font-size: 0.75rem;" id="resSummaryText"></div>
+
+                    <!-- FAANG Readiness Report Download Button -->
+                    <button type="button" class="btn btn-outline-info btn-sm w-100 py-2 d-flex align-items-center justify-content-center gap-2 mt-3 fw-semibold" onclick="downloadReadinessReport()">
+                        <i data-lucide="download" style="width: 14px; height: 14px;"></i> Download FAANG Interview Readiness Report (.txt)
+                    </button>
                 </div>
             </div>
         </div>
@@ -233,6 +245,48 @@
     let currentIndex = 0;
     let recognition = null;
     let isRecording = false;
+    let isSpeaking = false;
+    let lastEvaluationResult = null;
+    let lastEvaluatedQuestion = '';
+
+    // Soundwave Visualizer Canvas Loop
+    let wavePhase = 0;
+    function initSoundwaveVisualizer() {
+        const canvas = document.getElementById('voiceVisualizerCanvas');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+
+        function drawWave() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const isActive = isRecording || isSpeaking;
+
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = isActive ? (isRecording ? '#ef4444' : '#38bdf8') : 'rgba(255, 255, 255, 0.25)';
+            ctx.beginPath();
+
+            const width = canvas.width;
+            const height = canvas.height;
+            const centerY = height / 2;
+            const amplitude = isActive ? (isRecording ? 9 : 6) : 1.5;
+            const frequency = isActive ? 0.09 : 0.04;
+
+            for (let x = 0; x < width; x++) {
+                const y = centerY + Math.sin(x * frequency + wavePhase) * amplitude * Math.sin((x / width) * Math.PI);
+                if (x === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            wavePhase += isActive ? 0.18 : 0.03;
+            requestAnimationFrame(drawWave);
+        }
+        requestAnimationFrame(drawWave);
+    }
+    document.addEventListener('DOMContentLoaded', initSoundwaveVisualizer);
+    // Also run immediately if already loaded
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        initSoundwaveVisualizer();
+    }
 
     function changeRole(roleKey) {
         window.location.href = `?role=${encodeURIComponent(roleKey)}`;
@@ -282,7 +336,7 @@
         renderCurrentQuestion();
     }
 
-    // Web Speech API: Speech Synthesis
+    // Web Speech API: Speech Synthesis with selectable speech rate
     function speakCurrentQuestion() {
         const text = document.getElementById('activeQuestionText').innerText;
         if (!('speechSynthesis' in window)) {
@@ -291,12 +345,25 @@
         }
         window.speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(text);
-        utterance.rate = 0.95;
+        
+        const rateSelect = document.getElementById('speechRateSelect');
+        const selectedRate = rateSelect ? parseFloat(rateSelect.value) : 1.0;
+        utterance.rate = selectedRate || 1.0;
         utterance.pitch = 1.0;
+
         const btnText = document.getElementById('speechBtnText');
-        utterance.onstart = () => { if (btnText) btnText.innerText = 'Speaking...'; };
-        utterance.onend = () => { if (btnText) btnText.innerText = 'Listen to AI'; };
-        utterance.onerror = () => { if (btnText) btnText.innerText = 'Listen to AI'; };
+        utterance.onstart = () => { 
+            isSpeaking = true; 
+            if (btnText) btnText.innerText = 'Speaking...'; 
+        };
+        utterance.onend = () => { 
+            isSpeaking = false; 
+            if (btnText) btnText.innerText = 'Listen to AI'; 
+        };
+        utterance.onerror = () => { 
+            isSpeaking = false; 
+            if (btnText) btnText.innerText = 'Listen to AI'; 
+        };
         window.speechSynthesis.speak(utterance);
     }
 
@@ -409,6 +476,7 @@
 
             const data = await resp.json();
             if (data.success && data.analysis) {
+                lastEvaluatedQuestion = question;
                 renderEvaluationResults(data.analysis);
             } else {
                 alert(data.error || 'Evaluation failed. Please try again.');
@@ -422,6 +490,7 @@
     }
 
     function renderEvaluationResults(res) {
+        lastEvaluationResult = res;
         document.getElementById('evalPlaceholder').classList.add('d-none');
         document.getElementById('evalResults').classList.remove('d-none');
 
@@ -430,7 +499,7 @@
         document.getElementById('resAccuracyScore').innerText = `${res.accuracy_score || 0}%`;
         document.getElementById('resClarityScore').innerText = `${res.clarity_score || 0}%`;
         document.getElementById('resStarScore').innerText = `${res.star_adherence || 0}%`;
-        
+
         const scaleScore = res.edge_case_score || Math.min(95, Math.max(60, Math.round(((res.accuracy_score || 80) + (res.star_adherence || 75)) / 2)));
         const scaleEl = document.getElementById('resScaleScore');
         if (scaleEl) scaleEl.innerText = `${scaleScore}%`;
@@ -470,6 +539,62 @@
             navigator.clipboard.writeText(text);
             alert('Copied recommended talking points to clipboard!');
         }
+    }
+
+    function downloadReadinessReport() {
+        if (!lastEvaluationResult) {
+            alert('Please submit your response for evaluation first to generate the report.');
+            return;
+        }
+        if (window.SkillSphereSFX) SkillSphereSFX.play('victory');
+        const role = document.getElementById('roleSelector').selectedOptions[0].text;
+        const res = lastEvaluationResult;
+        const reportText = `===============================================================
+SKILLSPHERE FAANG-CALIBER INTERVIEW READINESS REPORT
+===============================================================
+Generated On    : ${new Date().toUTCString()}
+Candidate Track : ${role}
+Question Track  : ${currentCategory.toUpperCase()}
+
+INTERVIEW PROMPT:
+${lastEvaluatedQuestion || document.getElementById('activeQuestionText').innerText}
+
+---------------------------------------------------------------
+PERFORMANCE & RUBRIC SCORECARD:
+---------------------------------------------------------------
+Overall Candidate Score : ${res.overall_score || 0}%
+Technical Accuracy      : ${res.accuracy_score || 0}%
+Communication Clarity   : ${res.clarity_score || 0}%
+STAR Adherence (STAR)   : ${res.star_adherence || 0}%
+Edge Cases & Scale      : ${res.edge_case_score || 80}%
+
+EXECUTIVE SUMMARY:
+${res.summary || 'Solid engineering response demonstrating core conceptual fundamentals.'}
+
+KEY STRENGTHS DEMONSTRATED:
+${(res.strengths || []).map((s, idx) => `  ${idx + 1}. ${s}`).join('\n')}
+
+ACTIONABLE AREAS FOR IMPROVEMENT:
+${(res.improvements || []).map((i, idx) => `  ${idx + 1}. ${i}`).join('\n')}
+
+MODEL STAR BENCHMARK TALKING POINTS:
+${res.model_answer || 'N/A'}
+
+===============================================================
+Verified by SkillSphere AI Evaluation Engine
+Practice daily to reach 90%+ readiness before FAANG / Tier-1 screens!
+===============================================================
+`;
+
+        const blob = new Blob([reportText], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `SkillSphere_FAANG_Readiness_Report_${role.replace(/\s+/g, '_')}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
     }
 </script>
 {% endblock %}

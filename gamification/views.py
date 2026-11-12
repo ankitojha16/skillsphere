@@ -648,12 +648,17 @@ def public_user_badge_svg(request, username: str):
         streak = 1
         duels_won = 0
 
+    theme = request.GET.get('theme', 'dark')
+    style = request.GET.get('style', 'card')
+
     svg_content = generate_github_badge_svg(
         username=username,
         tier=tier,
         total_xp=total_xp,
         streak=streak,
         duels_won=duels_won,
+        theme=theme,
+        style=style,
     )
     
     response = HttpResponse(svg_content, content_type='image/svg+xml')

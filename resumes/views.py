@@ -288,6 +288,88 @@ def tailor_resume_ajax(request):
         return JsonResponse({'error': str(e)}, status=500)
 
 
+@login_required
+def apply_tailored_to_resume_ajax(request):
+    """
+    Applies AI-tailored headline, summary, and bullet points directly
+    into the user's primary Resume model instance.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=400)
+    try:
+        body = json.loads(request.body.decode('utf-8'))
+        tailored_summary = body.get('tailored_summary', '').strip()
+        tailored_headline = body.get('tailored_headline', '').strip()
+        tailored_bullets = body.get('tailored_bullets', [])
+        match_score = body.get('match_score')
+        target_role = body.get('target_role', '')
+        target_company = body.get('target_company', '')
+
+        # Locate or initialize primary resume
+        resume = Resume.objects.filter(user=request.user, is_primary=True).first()
+        if not resume:
+            resume = Resume.objects.filter(user=request.user).first()
+        if not resume:
+            resume = Resume.objects.create(
+                user=request.user,
+                title=f"{target_role or 'Primary'} Resume",
+                is_primary=True,
+                resume_data={}
+            )
+
+        data = dict(resume.resume_data or {})
+
+        # 1. Update summary
+        if tailored_summary:
+            data['summary'] = tailored_summary
+
+        # 2. Update contact headline
+        if tailored_headline:
+            contact = dict(data.get('contact', {}))
+            contact['headline'] = tailored_headline
+            data['contact'] = contact
+
+        # 3. Update bullets into first experience or project if provided
+        if tailored_bullets and isinstance(tailored_bullets, list):
+            experiences = list(data.get('experience', []))
+            if experiences and isinstance(experiences[0], dict):
+                experiences[0]['bullets'] = tailored_bullets
+                data['experience'] = experiences
+            else:
+                projects = list(data.get('projects', []))
+                if projects and isinstance(projects[0], dict):
+                    projects[0]['bullets'] = tailored_bullets
+                    data['projects'] = projects
+                else:
+                    company_label = target_company or 'Engineering Experience'
+                    role_label = target_role or 'Software Engineer'
+                    data['experience'] = [{
+                        'role': role_label,
+                        'company': company_label,
+                        'period': 'Present',
+                        'bullets': tailored_bullets,
+                    }]
+
+        # 4. Update ATS score if provided
+        if match_score is not None:
+            try:
+                score_int = int(match_score)
+                resume.ats_score = max(0, min(100, score_int))
+            except (ValueError, TypeError):
+                pass
+
+        resume.resume_data = data
+        resume.save()
+
+        return JsonResponse({
+            'success': True,
+            'resume_id': resume.id,
+            'message': 'Successfully applied tailored summary and bullet points to your primary resume.'
+        })
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
 
 # Standard Curated Interview Question Bank
 INTERVIEW_QUESTION_BANK = {

@@ -10,6 +10,7 @@ urlpatterns = [
     path('resume-builder/<int:pk>/pdf/', views.export_resume_pdf_view, name='export_pdf'),
     path('resume-builder/ai/improve/', views.ai_improve_view, name='ai_improve'),
     path('resume-builder/tailor-for-job/', views.tailor_resume_ajax, name='tailor_for_job'),
+    path('resume-builder/apply-tailored/', views.apply_tailored_to_resume_ajax, name='apply_tailored'),
     path('career/mock-interview-studio/', views.mock_interview_view, name='mock_interview'),
     path('career/mock-interview-studio/evaluate/', views.evaluate_interview_answer_view, name='mock_interview_evaluate'),
 ]

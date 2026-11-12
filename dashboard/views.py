@@ -491,6 +491,7 @@ def submit_daily_micro_drill_api(request):
         return JsonResponse({'error': 'Invalid JSON'}, status=400)
 
     user_answers = data.get('answers', {})  # {'drill_id': selected_index}
+    user_confidences = data.get('confidences', {})  # {'drill_id': 1..5}
     cards = get_personalized_daily_drills(request.user, count=3)
 
     results = []
@@ -502,8 +503,10 @@ def submit_daily_micro_drill_api(request):
         is_correct = (selected == card['correct'])
         if is_correct:
             correct_count += 1
-            
-        quality = 5 if is_correct else 1
+            quality = int(user_confidences.get(card_id, 5))
+        else:
+            quality = int(user_confidences.get(card_id, 1))
+
         sm2_metrics = calculate_sm2(
             repetitions=1 if is_correct else 0,
             easiness_factor=2.5,
@@ -524,14 +527,22 @@ def submit_daily_micro_drill_api(request):
             'sm2': sm2_metrics,
         })
 
-    # Award XP once per day for micro drill
+    # Award XP once per day for micro drill with streak multiplier
     today_str = timezone.now().strftime('%Y-%m-%d')
     done_cache_key = f"user_drill_completed_{request.user.id}_{today_str}"
     already_done = cache.get(done_cache_key)
 
     xp_awarded = 0
+    streak_bonus = False
     if not already_done:
-        xp_awarded = 15 if correct_count >= 2 else 5
+        base_xp = 15 if correct_count >= 2 else 5
+        gamification = getattr(request.user, 'gamification', None)
+        if gamification and gamification.current_streak >= 3:
+            xp_awarded = int(round(base_xp * 1.33))  # 15 * 1.33 = 20 XP
+            streak_bonus = True
+        else:
+            xp_awarded = base_xp
+
         award_user_xp(request.user, xp_awarded, "Daily Knowledge Micro-Drill (SM-2)")
         cache.set(done_cache_key, True, timeout=86400)
 
@@ -541,6 +552,7 @@ def submit_daily_micro_drill_api(request):
         'total_cards': len(cards),
         'score_percentage': int(round((correct_count / len(cards)) * 100)),
         'xp_awarded': xp_awarded,
+        'streak_bonus': streak_bonus,
         'already_done_today': bool(already_done),
         'results': results,
     })

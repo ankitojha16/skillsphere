@@ -1066,6 +1066,7 @@
                     drillCards = data.cards;
                     currentDrillIdx = 0;
                     drillAnswers = {};
+                    drillConfidences = {};
                     document.getElementById('drillLoadingView').classList.add('d-none');
                     document.getElementById('drillActiveView').classList.remove('d-none');
                     renderDrillCard();
@@ -1076,6 +1077,12 @@
             .catch(err => {
                 document.getElementById('drillLoadingView').innerHTML = '<div class="text-danger py-4">Failed to load daily drills. Please try again.</div>';
             });
+    }
+
+    function setDrillConfidence(cardId, val) {
+        if (window.SkillSphereSFX) SkillSphereSFX.play('click');
+        drillConfidences[cardId] = val;
+        renderDrillCard();
     }
 
     function renderDrillCard() {
@@ -1104,10 +1111,53 @@
             btn.onclick = () => {
                 if (window.SkillSphereSFX) SkillSphereSFX.play('click');
                 drillAnswers[card.id] = optIdx;
+                if (!drillConfidences[card.id]) {
+                    drillConfidences[card.id] = 4; // default to Good
+                }
                 renderDrillCard();
             };
             optionsContainer.appendChild(btn);
         });
+
+        // SM-2 Recall Confidence Rating Picker
+        if (drillAnswers[card.id] !== undefined) {
+            const currentConf = drillConfidences[card.id] || 4;
+            const confBox = document.createElement('div');
+            confBox.className = 'mt-3 p-3 rounded-3 bg-dark bg-opacity-75 border border-warning border-opacity-30';
+            confBox.innerHTML = `
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="small text-secondary fw-semibold">SM-2 Recall Confidence:</span>
+                    <span class="badge bg-warning bg-opacity-20 text-warning font-monospace small">Recalibrates Interval</span>
+                </div>
+                <div class="row g-2">
+                    <div class="col-3">
+                        <button type="button" class="btn btn-sm w-100 py-2 rounded-2 ${currentConf === 1 ? 'btn-danger fw-bold' : 'btn-outline-danger'}" onclick="setDrillConfidence('${card.id}', 1)">
+                            <div class="small">🔴 Forgot</div>
+                            <div style="font-size: 0.65rem; opacity: 0.85;">Blackout</div>
+                        </button>
+                    </div>
+                    <div class="col-3">
+                        <button type="button" class="btn btn-sm w-100 py-2 rounded-2 ${currentConf === 3 ? 'btn-warning text-dark fw-bold' : 'btn-outline-warning'}" onclick="setDrillConfidence('${card.id}', 3)">
+                            <div class="small">🟠 Hard</div>
+                            <div style="font-size: 0.65rem; opacity: 0.85;">Hesitant</div>
+                        </button>
+                    </div>
+                    <div class="col-3">
+                        <button type="button" class="btn btn-sm w-100 py-2 rounded-2 ${currentConf === 4 ? 'btn-primary fw-bold' : 'btn-outline-primary'}" onclick="setDrillConfidence('${card.id}', 4)">
+                            <div class="small">🔵 Good</div>
+                            <div style="font-size: 0.65rem; opacity: 0.85;">Solid</div>
+                        </button>
+                    </div>
+                    <div class="col-3">
+                        <button type="button" class="btn btn-sm w-100 py-2 rounded-2 ${currentConf === 5 ? 'btn-success fw-bold' : 'btn-outline-success'}" onclick="setDrillConfidence('${card.id}', 5)">
+                            <div class="small">🟢 Instant</div>
+                            <div style="font-size: 0.65rem; opacity: 0.85;">Mastered</div>
+                        </button>
+                    </div>
+                </div>
+            `;
+            optionsContainer.appendChild(confBox);
+        }
 
         // Toggle nav buttons
         document.getElementById('drillPrevBtn').disabled = (currentDrillIdx === 0);
@@ -1142,7 +1192,7 @@
                 'Content-Type': 'application/json',
                 'X-CSRFToken': getCookie('csrftoken')
             },
-            body: JSON.stringify({ answers: drillAnswers })
+            body: JSON.stringify({ answers: drillAnswers, confidences: drillConfidences })
         })
         .then(res => res.json())
         .then(data => {
@@ -1172,7 +1222,14 @@
         resultsView.classList.remove('d-none');
 
         document.getElementById('drillResultScore').innerText = `${data.correct_count}/${data.total_cards} Correct`;
-        document.getElementById('drillResultXp').innerText = data.xp_awarded > 0 ? `+${data.xp_awarded} XP Earned!` : 'Daily Drill Reviewed';
+        if (data.streak_bonus) {
+            document.getElementById('drillResultXp').innerHTML = `
+                +${data.xp_awarded} XP Earned! 
+                <span class="badge bg-danger text-white ms-2 px-2 py-1 rounded-pill small">🔥 3+ Day Streak Multiplier Active!</span>
+            `;
+        } else {
+            document.getElementById('drillResultXp').innerText = data.xp_awarded > 0 ? `+${data.xp_awarded} XP Earned!` : 'Daily Drill Reviewed';
+        }
 
         const listEl = document.getElementById('drillResultsList');
         listEl.innerHTML = '';

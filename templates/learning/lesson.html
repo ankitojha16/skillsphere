@@ -711,6 +711,15 @@ print(f"Total topics completed: {total}")
                                             </div>
                                         </div>
 
+                                        <!-- Active Line Pointer Glyph Banner -->
+                                        <div id="visActiveLineBanner" class="p-2.5 rounded-3 bg-black bg-opacity-80 border border-info border-opacity-40 font-monospace small mb-3 d-flex align-items-center justify-content-between shadow-sm">
+                                            <div class="d-flex align-items-center gap-2 text-truncate me-2">
+                                                <span class="badge bg-info text-dark fw-bold px-2 py-1 font-monospace" id="visActiveLineBadge">▶ Line 1</span>
+                                                <code class="text-light text-truncate" id="visActiveLineCode" style="font-size: 0.85rem;">Initializing execution trace...</code>
+                                            </div>
+                                            <span class="badge bg-secondary bg-opacity-30 text-info font-monospace small px-2 py-1" id="visScopeBadge">&lt;global&gt;</span>
+                                        </div>
+
                                         <!-- Memory Canvas Layout: Stack vs Heap -->
                                         <div class="row g-3">
                                             <!-- Call Stack & Local Variables (Left) -->
@@ -2510,6 +2519,23 @@ function renderVisualizerStep(idx) {
     document.getElementById('visCurrentLineBadge').innerText = step.line > 0 ? `Line ${step.line}` : 'Complete';
     document.getElementById('visFrameScope').innerText = step.func;
 
+    // Active Code Line Pointer Glyph
+    const editor = document.getElementById('wasmPythonEditor');
+    const userLines = (editor ? editor.value : '').split('\n');
+    const lineNum = step.line;
+    const lineCode = (lineNum > 0 && lineNum <= userLines.length) ? userLines[lineNum - 1] : '(end of script)';
+    
+    const activeBadgeEl = document.getElementById('visActiveLineBadge');
+    if (activeBadgeEl) activeBadgeEl.innerText = lineNum > 0 ? `▶ Line ${lineNum}` : '▶ Finished';
+    const activeLineEl = document.getElementById('visActiveLineCode');
+    if (activeLineEl) activeLineEl.textContent = lineCode.trim() || '# pass';
+    const scopeBadgeEl = document.getElementById('visScopeBadge');
+    if (scopeBadgeEl) scopeBadgeEl.innerText = step.func === '<global>' ? 'Scope: <global>' : `Frame: ${step.func}()`;
+
+    // Detect variable mutations vs previous step
+    const prevStep = (idx > 0) ? visualizerTraceSteps[idx - 1] : null;
+    const prevLocals = prevStep ? (prevStep.locals || {}) : {};
+
     // Render variables table
     const tableBody = document.getElementById('visVariablesTableBody');
     tableBody.innerHTML = '';
@@ -2519,18 +2545,32 @@ function renderVisualizerStep(idx) {
         tableBody.innerHTML = '<tr><td colspan="3" class="text-muted text-center py-2">No local variables initialized yet</td></tr>';
     } else {
         varEntries.forEach(([name, meta]) => {
+            const isNew = !(name in prevLocals);
+            const isMutated = !isNew && (prevLocals[name].val !== meta.val);
+
+            let changeBadge = '';
+            let rowHighlight = '';
+            if (isNew && idx > 0) {
+                changeBadge = '<span class="badge bg-success bg-opacity-25 text-success ms-1 small px-1.5 py-0.5">NEW</span>';
+                rowHighlight = 'style="background: rgba(16, 185, 129, 0.08);"';
+            } else if (isMutated) {
+                changeBadge = '<span class="badge bg-warning bg-opacity-25 text-warning ms-1 small px-1.5 py-0.5">MUTATED</span>';
+                rowHighlight = 'style="background: rgba(245, 158, 11, 0.1);"';
+            }
+
             const row = document.createElement('tr');
+            if (rowHighlight) row.setAttribute('style', rowHighlight.replace('style="', '').replace('"', ''));
             const typeBadgeClass = (meta.type === 'int' || meta.type === 'float') ? 'text-warning' : (meta.type === 'str' ? 'text-success' : 'text-info');
             row.innerHTML = `
-                <td class="fw-bold text-white">${name}</td>
+                <td class="fw-bold text-white">${name} ${changeBadge}</td>
                 <td><span class="badge bg-secondary bg-opacity-25 ${typeBadgeClass} px-2 py-0.5">${meta.type}</span></td>
-                <td class="text-light text-truncate" style="max-width: 160px;" title="${meta.val}">${meta.val}</td>
+                <td class="text-light text-truncate font-monospace" style="max-width: 160px;" title="${meta.val}">${meta.val}</td>
             `;
             tableBody.appendChild(row);
         });
     }
 
-    // Render Heap structures (lists, dicts)
+    // Render Heap structures (lists, dicts, tuples, sets)
     const heapContainer = document.getElementById('visHeapContainer');
     heapContainer.innerHTML = '';
     let hasCompound = false;
@@ -2538,21 +2578,57 @@ function renderVisualizerStep(idx) {
     varEntries.forEach(([name, meta]) => {
         if (meta.type === 'list' || meta.type === 'dict' || meta.type === 'set' || meta.type === 'tuple') {
             hasCompound = true;
+            const memAddr = '0x' + (Math.abs(name.split('').reduce((a,b)=>((a<<5)-a)+b.charCodeAt(0),0)) % 65535).toString(16).padStart(4, '0');
             const heapCard = document.createElement('div');
-            heapCard.className = 'p-2.5 rounded bg-dark border border-secondary border-opacity-50 font-monospace small';
-            heapCard.innerHTML = `
-                <div class="d-flex align-items-center justify-content-between mb-1 text-secondary" style="font-size: 0.72rem;">
-                    <span class="text-white fw-bold">${name} &rarr; &lt;${meta.type} object at 0x${(Math.abs(name.split('').reduce((a,b)=>((a<<5)-a)+b.charCodeAt(0),0)) % 65535).toString(16)}&gt;</span>
+            heapCard.className = 'p-3 rounded-3 bg-dark border border-secondary border-opacity-50 font-monospace small shadow-sm';
+            
+            // Pointer Header
+            let headerHtml = `
+                <div class="d-flex align-items-center justify-content-between mb-2 pb-1 border-bottom border-secondary border-opacity-25" style="font-size: 0.75rem;">
+                    <div class="d-flex align-items-center gap-1.5">
+                        <span class="text-info fw-bold">stack:${name}</span>
+                        <span class="text-warning">──▶</span>
+                        <span class="text-white fw-bold">&lt;${meta.type} at ${memAddr}&gt;</span>
+                    </div>
                     <span class="badge bg-primary bg-opacity-25 text-primary">${meta.type.toUpperCase()}</span>
                 </div>
-                <div class="p-2 rounded bg-black text-info border border-secondary border-opacity-25 text-break">${meta.val}</div>
             `;
+
+            // Decompose List or Dict elements into visual memory slots
+            let contentHtml = '';
+            if (meta.type === 'list' || meta.type === 'tuple') {
+                try {
+                    // Try parsing array content representation
+                    const cleanVal = meta.val.replace(/^\[/, '').replace(/\]$/, '').trim();
+                    const items = cleanVal ? cleanVal.split(',').map(s => s.trim()) : [];
+                    if (items.length > 0) {
+                        contentHtml = '<div class="d-flex flex-wrap gap-1.5">';
+                        items.forEach((item, itemIdx) => {
+                            contentHtml += `
+                                <div class="px-2 py-1 rounded bg-black border border-secondary border-opacity-50 text-center" style="min-width: 44px;">
+                                    <div class="text-secondary" style="font-size: 0.65rem;">[${itemIdx}]</div>
+                                    <div class="text-info fw-bold">${item}</div>
+                                </div>
+                            `;
+                        });
+                        contentHtml += '</div>';
+                    } else {
+                        contentHtml = `<div class="p-2 rounded bg-black text-secondary">empty ${meta.type} []</div>`;
+                    }
+                } catch {
+                    contentHtml = `<div class="p-2 rounded bg-black text-info border border-secondary border-opacity-25 text-break">${meta.val}</div>`;
+                }
+            } else {
+                contentHtml = `<div class="p-2 rounded bg-black text-info border border-secondary border-opacity-25 text-break">${meta.val}</div>`;
+            }
+
+            heapCard.innerHTML = headerHtml + contentHtml;
             heapContainer.appendChild(heapCard);
         }
     });
 
     if (!hasCompound) {
-        heapContainer.innerHTML = '<div class="text-muted small text-center py-3">Primitive variables are stored in stack memory. Lists & dictionaries will render here.</div>';
+        heapContainer.innerHTML = '<div class="text-muted small text-center py-4">Primitive values (integers, strings, booleans) live in stack frame memory. Compound objects (lists, dicts, instances) are allocated on the Heap with pointer references.</div>';
     }
 
     if (window.lucide) lucide.createIcons();

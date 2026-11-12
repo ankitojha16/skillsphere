@@ -26,3 +26,27 @@ class Resume(models.Model):
 
     def __str__(self):
         return f"{self.title} - {self.user.username}"
+
+    @property
+    def skills(self):
+        if isinstance(self.resume_data, dict):
+            return self.resume_data.get('skills', [])
+        return []
+
+    @property
+    def summary(self):
+        if isinstance(self.resume_data, dict):
+            return self.resume_data.get('summary', '')
+        return ''
+
+    @property
+    def projects(self):
+        if isinstance(self.resume_data, dict):
+            return self.resume_data.get('projects', [])
+        return []
+
+    @property
+    def experience(self):
+        if isinstance(self.resume_data, dict):
+            return self.resume_data.get('experience', [])
+        return []

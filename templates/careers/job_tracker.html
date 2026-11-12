@@ -414,13 +414,24 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-4">
-                <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom border-secondary border-opacity-25">
+                <div class="d-flex align-items-center justify-content-between mb-3 pb-3 border-bottom border-secondary border-opacity-25">
                     <div>
                         <div class="fs-6 fw-bold text-white" id="tailorTargetTitle">Target: Role</div>
                         <div class="text-secondary small" id="tailorTargetCompany">Company</div>
                     </div>
-                    <div id="tailorScoreBadge" class="badge bg-primary fs-6 px-3 py-2 rounded-pill d-none">
-                        92% ATS Match
+                    <!-- Master Circular ATS Scoreometer -->
+                    <div id="tailorScoreGaugeContainer" class="d-none d-flex align-items-center gap-2.5">
+                        <div class="position-relative" style="width: 52px; height: 52px;">
+                            <svg viewBox="0 0 36 36" style="width: 52px; height: 52px; transform: rotate(-90deg);">
+                                <path stroke="rgba(255,255,255,0.08)" stroke-width="3.5" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                <path id="tailorGaugeCircle" stroke="#10b981" stroke-dasharray="0, 100" stroke-width="3.5" stroke-linecap="round" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" style="transition: stroke-dasharray 0.8s ease;" />
+                            </svg>
+                            <div id="tailorGaugePercent" class="position-absolute top-50 start-50 translate-middle small fw-bold text-white font-monospace" style="font-size: 0.72rem;">0%</div>
+                        </div>
+                        <div class="text-start">
+                            <div class="small fw-bold text-white mb-0" id="tailorScoreBadge">85% ATS Match</div>
+                            <div class="text-secondary" style="font-size: 0.7rem;">FAANG Keyword Match</div>
+                        </div>
                     </div>
                 </div>
 
@@ -432,9 +443,21 @@
 
                 <!-- Tailored Content View -->
                 <div id="tailorContent" class="d-none">
+                    <!-- Apply Feedback Alert -->
+                    <div id="tailorApplyAlert" class="alert alert-success d-none py-2 px-3 small rounded-3 mb-3 d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center gap-2">
+                            <i data-lucide="check-circle" style="width: 16px; height: 16px;" class="text-success"></i>
+                            <span id="tailorApplyAlertMsg">Applied tailored summary & bullets to your primary resume!</span>
+                        </div>
+                        <a href="/resume-builder/" class="text-success fw-bold text-decoration-none small">View Resume &rarr;</a>
+                    </div>
+
                     <!-- Keyword Match / Gap Chips -->
                     <div class="mb-4">
-                        <div class="text-muted small fw-bold text-uppercase mb-2">Keyword Alignment</div>
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="text-muted small fw-bold text-uppercase">Keyword Alignment & Density</span>
+                            <span class="badge bg-secondary bg-opacity-25 text-white font-monospace small" id="tailorKeywordCountBadge">0 Matched</span>
+                        </div>
                         <div class="d-flex flex-wrap gap-2 mb-2" id="tailorMatchedKeywords"></div>
                         <div class="d-flex flex-wrap gap-2" id="tailorMissingKeywords"></div>
                     </div>
@@ -457,7 +480,7 @@
                     </div>
 
                     <!-- Interview Talking Points -->
-                    <div class="p-3 rounded-3 bg-primary bg-opacity-10 border border-primary border-opacity-25">
+                    <div class="p-3 rounded-3 bg-primary bg-opacity-10 border border-primary border-opacity-25 mb-3">
                         <div class="d-flex align-items-center gap-2 mb-2 text-primary small fw-bold">
                             <i data-lucide="sparkles" style="width: 15px; height: 15px;"></i> Interview Talking Points
                         </div>
@@ -465,11 +488,18 @@
                     </div>
                 </div>
             </div>
-            <div class="modal-footer border-top border-secondary border-opacity-25">
-                <a href="/resume-builder/" class="btn btn-outline-light btn-sm px-3">
-                    <i data-lucide="edit-3" style="width: 14px; height: 14px;" class="me-1"></i> Open Resume Studio
-                </a>
-                <button type="button" class="btn btn-secondary-custom btn-sm px-3" data-bs-dismiss="modal">Close</button>
+            <div class="modal-footer border-top border-secondary border-opacity-25 d-flex justify-content-between">
+                <div>
+                    <button type="button" id="tailorApplyResumeBtn" class="btn btn-success btn-sm px-3 fw-semibold d-none" onclick="applyTailoredToPrimaryResume()">
+                        <i data-lucide="check" style="width: 14px; height: 14px;" class="me-1"></i> Apply to Primary Resume
+                    </button>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <a href="/resume-builder/" class="btn btn-outline-light btn-sm px-3">
+                        <i data-lucide="edit-3" style="width: 14px; height: 14px;" class="me-1"></i> Open Resume Studio
+                    </a>
+                    <button type="button" class="btn btn-secondary-custom btn-sm px-3" data-bs-dismiss="modal">Close</button>
+                </div>
             </div>
         </div>
     </div>
@@ -481,6 +511,7 @@
 <script>
 let currentJobId = null;
 let currentOutreachType = 'linkedin';
+let activeTailoredPayload = null;
 
 function openTailorResumeModal(role, company, notes) {
     if (window.SkillSphereSFX) SkillSphereSFX.play('click');
@@ -488,7 +519,12 @@ function openTailorResumeModal(role, company, notes) {
     document.getElementById('tailorTargetCompany').textContent = company;
     document.getElementById('tailorLoading').classList.remove('d-none');
     document.getElementById('tailorContent').classList.add('d-none');
-    document.getElementById('tailorScoreBadge').classList.add('d-none');
+    document.getElementById('tailorScoreGaugeContainer').classList.add('d-none');
+    document.getElementById('tailorApplyAlert').classList.add('d-none');
+    const applyBtn = document.getElementById('tailorApplyResumeBtn');
+    applyBtn.classList.add('d-none');
+    applyBtn.disabled = false;
+    applyBtn.innerHTML = '<i data-lucide="check" style="width: 14px; height: 14px;" class="me-1"></i> Apply to Primary Resume';
 
     const modalEl = document.getElementById('tailorResumeModal');
     const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
@@ -512,12 +548,36 @@ function openTailorResumeModal(role, company, notes) {
         if (data.success && data.tailored) {
             if (window.SkillSphereSFX) SkillSphereSFX.play('success');
             const t = data.tailored;
-            document.getElementById('tailorContent').classList.remove('d-none');
+            activeTailoredPayload = {
+                tailored_summary: t.tailored_summary || '',
+                tailored_headline: t.tailored_headline || '',
+                tailored_bullets: t.tailored_bullets || [],
+                match_score: t.match_score || 85,
+                target_role: role,
+                target_company: company
+            };
 
-            // Score Badge
-            const scoreEl = document.getElementById('tailorScoreBadge');
-            scoreEl.textContent = `${t.match_score || 85}% ATS Match`;
-            scoreEl.classList.remove('d-none');
+            document.getElementById('tailorContent').classList.remove('d-none');
+            applyBtn.classList.remove('d-none');
+
+            // Animated Scoreometer Gauge
+            const score = Math.max(10, Math.min(100, t.match_score || 85));
+            const gaugeContainer = document.getElementById('tailorScoreGaugeContainer');
+            const gaugeCircle = document.getElementById('tailorGaugeCircle');
+            const gaugePercent = document.getElementById('tailorGaugePercent');
+            const scoreBadge = document.getElementById('tailorScoreBadge');
+
+            const strokeColor = score >= 80 ? '#10b981' : (score >= 60 ? '#f59e0b' : '#ef4444');
+            gaugeCircle.setAttribute('stroke', strokeColor);
+            gaugeCircle.setAttribute('stroke-dasharray', `${score}, 100`);
+            gaugePercent.textContent = `${score}%`;
+            scoreBadge.textContent = `${score}% ATS Match`;
+            gaugeContainer.classList.remove('d-none');
+
+            // Keyword count summary badge
+            const matchedCount = (t.matched_keywords || []).length;
+            const missingCount = (t.missing_keywords || []).length;
+            document.getElementById('tailorKeywordCountBadge').textContent = `${matchedCount} Aligned / ${missingCount} Gaps`;
 
             // Matched keywords
             const matchedContainer = document.getElementById('tailorMatchedKeywords');
@@ -568,6 +628,45 @@ function openTailorResumeModal(role, company, notes) {
     .catch(err => {
         document.getElementById('tailorLoading').classList.add('d-none');
         alert('Network error tailoring resume.');
+    });
+}
+
+function applyTailoredToPrimaryResume() {
+    if (!activeTailoredPayload) return;
+    const applyBtn = document.getElementById('tailorApplyResumeBtn');
+    applyBtn.disabled = true;
+    applyBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Applying...';
+
+    fetch('/resume-builder/apply-tailored/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify(activeTailoredPayload)
+    })
+    .then(res => res.json())
+    .then(data => {
+        applyBtn.disabled = false;
+        if (data.success) {
+            if (window.SkillSphereSFX) SkillSphereSFX.play('victory');
+            applyBtn.innerHTML = '<i data-lucide="check-check" style="width: 14px; height: 14px;" class="me-1"></i> Applied to Primary!';
+            applyBtn.classList.remove('btn-success');
+            applyBtn.classList.add('btn-outline-success');
+
+            const alertEl = document.getElementById('tailorApplyAlert');
+            document.getElementById('tailorApplyAlertMsg').textContent = data.message || 'Applied tailored summary & bullets to your primary resume!';
+            alertEl.classList.remove('d-none');
+            if (window.lucide) lucide.createIcons();
+        } else {
+            applyBtn.innerHTML = '<i data-lucide="check" style="width: 14px; height: 14px;" class="me-1"></i> Apply to Primary Resume';
+            alert(data.error || 'Failed to apply to resume.');
+        }
+    })
+    .catch(err => {
+        applyBtn.disabled = false;
+        applyBtn.innerHTML = '<i data-lucide="check" style="width: 14px; height: 14px;" class="me-1"></i> Apply to Primary Resume';
+        alert('Network error applying tailored resume.');
     });
 }
 

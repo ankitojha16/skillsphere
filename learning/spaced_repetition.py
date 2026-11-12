@@ -101,6 +101,61 @@ CURATED_DRILL_DECK = [
         'explanation': 'The GIL ensures memory safety in CPython by allowing only one thread to hold the Python interpreter at any given moment.',
         'key_takeaway': 'Use the `multiprocessing` module or native C extensions for CPU-intensive parallel computing in Python.'
     },
+    {
+        'id': 'drill_db_acid',
+        'category': 'Distributed Databases & ACID',
+        'question': 'Which ACID property guarantees that concurrent database transactions yield the same state as serial execution?',
+        'options': ['Atomicity', 'Consistency', 'Isolation', 'Durability'],
+        'correct': 2,
+        'explanation': 'Isolation ensures concurrent transactions execute without interfering with one another, preventing dirty or phantom reads.',
+        'key_takeaway': 'Adjust transaction isolation levels (Read Committed vs Serializable) based on consistency vs throughput tradeoffs.'
+    },
+    {
+        'id': 'drill_sys_cache_patterns',
+        'category': 'System Architecture & Caching',
+        'question': 'In a Cache-Aside (Lazy Loading) caching pattern, what occurs when a cache miss happens?',
+        'options': [
+            'The cache directly queries the database and updates itself transparently',
+            'The application reads from the database and writes the data into the cache',
+            'The request is rejected with a 404',
+            'The database automatically invalidates stale entries'
+        ],
+        'correct': 1,
+        'explanation': 'In Cache-Aside, the application code orchestrates fetching from the primary database and populating the cache on demand.',
+        'key_takeaway': 'Cache-Aside is resilient to cache crashes and only caches actively requested data.'
+    },
+    {
+        'id': 'drill_web_cors',
+        'category': 'Web Architecture & Security',
+        'question': 'When does a web browser send an HTTP OPTIONS Preflight request during cross-origin AJAX calls?',
+        'options': [
+            'Only on HTTP GET requests with no custom headers',
+            'When the request uses non-simple methods (PUT, DELETE, PATCH) or custom headers',
+            'Only when HTTPS is disabled',
+            'On every single cross-origin request without exception'
+        ],
+        'correct': 1,
+        'explanation': 'Browsers automatically dispatch an OPTIONS preflight to verify server CORS headers before executing potentially state-modifying requests.',
+        'key_takeaway': 'Configure Access-Control-Allow-Methods and Access-Control-Allow-Headers to prevent preflight rejection.'
+    },
+    {
+        'id': 'drill_algo_quickselect',
+        'category': 'Algorithms & Complexity',
+        'question': 'What is the average time complexity of finding the k-th smallest element using the Quickselect algorithm?',
+        'options': ['O(1)', 'O(log n)', 'O(n)', 'O(n log n)'],
+        'correct': 2,
+        'explanation': 'Quickselect discards half the array after each partition on average ($n + n/2 + n/4 + ...$), achieving linear O(n) average time.',
+        'key_takeaway': 'Quickselect is strictly faster than full sorting O(n log n) for top-K problems.'
+    },
+    {
+        'id': 'drill_devops_k8s',
+        'category': 'Cloud Infrastructure & SRE',
+        'question': 'Which Kubernetes probe determines whether a container has started and is ready to accept incoming network traffic?',
+        'options': ['Liveness Probe', 'Readiness Probe', 'Startup Probe', 'Healthcheck Hook'],
+        'correct': 1,
+        'explanation': 'A failed Readiness Probe temporarily removes the Pod from Service endpoints so it stops receiving traffic without being restarted.',
+        'key_takeaway': 'Use Readiness Probes for warmup/cache loading and Liveness Probes strictly for detecting deadlocks.'
+    },
 ]
 
 

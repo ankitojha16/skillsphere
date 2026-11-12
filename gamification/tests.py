@@ -143,6 +143,17 @@ class LeagueAndDuelTests(TestCase):
         self.assertEqual(resp_fallback['Content-Type'], 'image/svg+xml')
         self.assertIn('ghost_developer', resp_fallback.content.decode('utf-8'))
 
+        # Test Cyberpunk Theme
+        resp_cyber = self.client.get(reverse('gamification:user_badge', kwargs={'username': self.user.username}) + '?theme=cyberpunk')
+        self.assertEqual(resp_cyber.status_code, 200)
+        self.assertIn('#ec4899', resp_cyber.content.decode('utf-8'))
+
+        # Test Compact Shield Style
+        resp_compact = self.client.get(reverse('gamification:user_badge', kwargs={'username': self.user.username}) + '?style=compact')
+        self.assertEqual(resp_compact.status_code, 200)
+        self.assertIn('width="350" height="68"', resp_compact.content.decode('utf-8'))
+
+
 
 
 

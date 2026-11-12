@@ -339,6 +339,47 @@ class ResumeTests(TestCase):
         self.assertGreaterEqual(len(tailored['tailored_bullets']), 2)
         self.assertIn('matched_keywords', tailored)
 
+    def test_apply_tailored_to_primary_resume_api(self):
+        """Verify applying tailored content updates the primary resume model."""
+        resume = Resume.objects.create(
+            user=self.user,
+            title='Primary Software Resume',
+            template='ats',
+            is_primary=True,
+            resume_data={
+                'contact': {'full_name': 'Tester', 'headline': 'Software Intern'},
+                'summary': 'Original summary',
+                'skills': ['Python'],
+                'experience': [{'role': 'Intern', 'company': 'Acme', 'bullets': ['Old bullet']}]
+            }
+        )
+
+        resp = self.client.post(
+            reverse('resumes:apply_tailored'),
+            data=json.dumps({
+                'tailored_summary': 'Upgraded senior engineer summary for FAANG application.',
+                'tailored_headline': 'Senior Backend Engineer',
+                'tailored_bullets': [
+                    'Architected asynchronous Celery pipeline reducing processing time by 45%.',
+                    'Spearheaded PostgreSQL schema optimization handling 20,000 req/sec.'
+                ],
+                'match_score': 94,
+                'target_role': 'Senior Backend Engineer',
+                'target_company': 'Stripe'
+            }),
+            content_type='application/json'
+        )
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertTrue(data.get('success'))
+        self.assertEqual(data.get('resume_id'), resume.id)
+
+        resume.refresh_from_db()
+        self.assertEqual(resume.summary, 'Upgraded senior engineer summary for FAANG application.')
+        self.assertEqual(resume.resume_data['contact']['headline'], 'Senior Backend Engineer')
+        self.assertEqual(len(resume.experience[0]['bullets']), 2)
+        self.assertEqual(resume.ats_score, 94)
+
 
 
 
