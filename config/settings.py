@@ -3,6 +3,7 @@ Django settings for SkillSphere project.
 """
 
 import os
+import sys
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -126,7 +127,14 @@ DB_PORT = os.getenv('DB_PORT', '5432')
 USE_SQLITE_FALLBACK = os.getenv('USE_SQLITE_FALLBACK', 'True') == 'True'
 
 # Check if PostgreSQL connection can be configured, or fallback gracefully
-if os.getenv('DATABASE_URL'):
+if 'test' in sys.argv:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': ':memory:',
+        }
+    }
+elif os.getenv('DATABASE_URL'):
     import dj_database_url
     DATABASES = {
         'default': dj_database_url.config(

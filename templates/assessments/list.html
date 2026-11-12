@@ -5,6 +5,19 @@
 
 {% block content %}
 <div class="container-fluid p-4">
+    <!-- Hub Navigation Switcher -->
+    <div class="d-flex align-items-center gap-4 mb-4 border-bottom border-secondary border-opacity-25 pb-2">
+        <a href="{% url 'assessments:challenge_list' %}" class="pb-2 text-decoration-none d-flex align-items-center gap-2" style="color: #94A3B8;">
+            <i data-lucide="code-2" style="width: 18px; height: 18px;"></i>
+            <span>Coding Challenges & Test Judge</span>
+            <span class="badge bg-primary text-white rounded-pill px-2 py-0 ms-1" style="font-size: 0.7rem;">LeetCode Grade</span>
+        </a>
+        <a href="{% url 'assessments:list' %}" class="pb-2 text-decoration-none d-flex align-items-center gap-2" style="color: #FFFFFF; border-bottom: 2px solid #6366F1; font-weight: 600;">
+            <i data-lucide="help-circle" style="width: 18px; height: 18px;"></i>
+            <span>MCQ Skill Quizzes</span>
+        </a>
+    </div>
+
     <!-- Header -->
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <div>

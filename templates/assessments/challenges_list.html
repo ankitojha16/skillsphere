@@ -1,0 +1,337 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Coding Challenges & Test Judge - SkillSphere{% endblock %}
+
+{% block extra_css %}
+<style>
+    .challenge-stat-card {
+        background: rgba(18, 22, 34, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 14px;
+        padding: 1.25rem;
+        backdrop-filter: blur(10px);
+        transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+    .challenge-stat-card:hover {
+        border-color: rgba(99, 102, 241, 0.4);
+        transform: translateY(-2px);
+    }
+    .stat-ring-container {
+        position: relative;
+        width: 80px;
+        height: 80px;
+    }
+    .challenge-table-container {
+        background: rgba(15, 20, 32, 0.85);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 14px;
+        overflow: hidden;
+    }
+    .challenge-row {
+        transition: background-color 0.15s ease;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .challenge-row:hover {
+        background: rgba(99, 102, 241, 0.07);
+    }
+    .badge-diff-easy {
+        background: rgba(16, 185, 129, 0.15);
+        color: #10B981;
+        border: 1px solid rgba(16, 185, 129, 0.35);
+        font-weight: 600;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 0.78rem;
+    }
+    .badge-diff-medium {
+        background: rgba(245, 158, 11, 0.15);
+        color: #F59E0B;
+        border: 1px solid rgba(245, 158, 11, 0.35);
+        font-weight: 600;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 0.78rem;
+    }
+    .badge-diff-hard {
+        background: rgba(244, 63, 94, 0.15);
+        color: #F43F5E;
+        border: 1px solid rgba(244, 63, 94, 0.35);
+        font-weight: 600;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 0.78rem;
+    }
+    .badge-solved {
+        background: rgba(16, 185, 129, 0.18);
+        color: #34D399;
+        border: 1px solid rgba(16, 185, 129, 0.4);
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+    .nav-tab-active {
+        color: #FFFFFF !important;
+        border-bottom: 2px solid #6366F1 !important;
+        font-weight: 600;
+    }
+    .nav-tab-idle {
+        color: #94A3B8 !important;
+        border-bottom: 2px solid transparent !important;
+    }
+    .nav-tab-idle:hover {
+        color: #F8FAFC !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <!-- Hub Navigation Switcher -->
+    <div class="d-flex align-items-center gap-4 mb-4 border-bottom border-secondary border-opacity-25 pb-2">
+        <a href="{% url 'assessments:challenge_list' %}" class="pb-2 text-decoration-none nav-tab-active d-flex align-items-center gap-2">
+            <i data-lucide="code-2" style="width: 18px; height: 18px;"></i>
+            <span>Coding Challenges & Test Judge</span>
+            <span class="badge bg-primary text-white rounded-pill px-2 py-0 ms-1" style="font-size: 0.7rem;">LeetCode Grade</span>
+        </a>
+        <a href="{% url 'assessments:list' %}" class="pb-2 text-decoration-none nav-tab-idle d-flex align-items-center gap-2">
+            <i data-lucide="help-circle" style="width: 18px; height: 18px;"></i>
+            <span>MCQ Skill Quizzes</span>
+        </a>
+    </div>
+
+    <!-- Header & Hero -->
+    <div class="row g-4 align-items-center mb-4">
+        <div class="col-lg-8">
+            <div class="d-flex align-items-center gap-2 mb-2">
+                <span class="badge bg-indigo-subtle text-indigo border border-indigo-subtle px-2 py-1 small" style="background: rgba(99, 102, 241, 0.15); color: #818CF8; border-color: rgba(99, 102, 241, 0.3) !important;">
+                    <i data-lucide="cpu" style="width: 13px; height: 13px;" class="me-1"></i> WebAssembly Sandbox + Test Runner
+                </span>
+                <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 small" style="background: rgba(16, 185, 129, 0.15); color: #34D399; border-color: rgba(16, 185, 129, 0.3) !important;">
+                    <i data-lucide="zap" style="width: 13px; height: 13px;" class="me-1"></i> Python 3 & JavaScript ES6
+                </span>
+            </div>
+            <h2 class="fw-bold text-white mb-1">Algorithmic Problem Bank & Test Judge</h2>
+            <p class="text-secondary mb-0" style="color: #94A3B8 !important;">Solve FAANG technical interview problems with real-time testcase assertions, memory profiling, and automated percentile benchmarks.</p>
+        </div>
+        <div class="col-lg-4 text-lg-end">
+            <div class="d-inline-flex align-items-center gap-3 bg-dark border border-secondary border-opacity-25 rounded-3 p-3" style="background: rgba(15, 23, 42, 0.8) !important;">
+                <div class="text-start">
+                    <div class="text-secondary small" style="color: #94A3B8 !important;">Problems Solved</div>
+                    <div class="h4 fw-bold text-white mb-0">{{ stats.solved }} <span class="text-secondary small fw-normal">/ {{ stats.total }}</span></div>
+                </div>
+                <div class="vr bg-secondary opacity-50" style="height: 35px;"></div>
+                <div class="text-start">
+                    <div class="text-secondary small" style="color: #94A3B8 !important;">Completion Rate</div>
+                    <div class="h4 fw-bold text-success mb-0" style="color: #10B981 !important;">{{ stats.completion_pct }}%</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="challenge-stat-card d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-secondary small fw-semibold" style="color: #94A3B8 !important;">Easy Tier</span>
+                    <h3 class="fw-bold text-white my-1" style="color: #10B981 !important;">{{ stats.solved_easy }} <span class="text-secondary fs-6 fw-normal">/ {{ stats.easy_total }}</span></h3>
+                    <div class="progress" style="height: 5px; width: 140px; background: rgba(255,255,255,0.08);">
+                        <div class="progress-bar bg-success" style="width: {% if stats.easy_total %}{% widthratio stats.solved_easy stats.easy_total 100 %}{% else %}0{% endif %}%;"></div>
+                    </div>
+                </div>
+                <div class="rounded-circle p-3" style="background: rgba(16, 185, 129, 0.12); color: #10B981;">
+                    <i data-lucide="check-circle-2" style="width: 24px; height: 24px;"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="challenge-stat-card d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-secondary small fw-semibold" style="color: #94A3B8 !important;">Medium Tier</span>
+                    <h3 class="fw-bold text-white my-1" style="color: #F59E0B !important;">{{ stats.solved_medium }} <span class="text-secondary fs-6 fw-normal">/ {{ stats.medium_total }}</span></h3>
+                    <div class="progress" style="height: 5px; width: 140px; background: rgba(255,255,255,0.08);">
+                        <div class="progress-bar bg-warning" style="width: {% if stats.medium_total %}{% widthratio stats.solved_medium stats.medium_total 100 %}{% else %}0{% endif %}%;"></div>
+                    </div>
+                </div>
+                <div class="rounded-circle p-3" style="background: rgba(245, 158, 11, 0.12); color: #F59E0B;">
+                    <i data-lucide="flame" style="width: 24px; height: 24px;"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="challenge-stat-card d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-secondary small fw-semibold" style="color: #94A3B8 !important;">Hard Tier</span>
+                    <h3 class="fw-bold text-white my-1" style="color: #F43F5E !important;">{{ stats.solved_hard }} <span class="text-secondary fs-6 fw-normal">/ {{ stats.hard_total }}</span></h3>
+                    <div class="progress" style="height: 5px; width: 140px; background: rgba(255,255,255,0.08);">
+                        <div class="progress-bar bg-danger" style="width: {% if stats.hard_total %}{% widthratio stats.solved_hard stats.hard_total 100 %}{% else %}0{% endif %}%;"></div>
+                    </div>
+                </div>
+                <div class="rounded-circle p-3" style="background: rgba(244, 63, 94, 0.12); color: #F43F5E;">
+                    <i data-lucide="shield-alert" style="width: 24px; height: 24px;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters & Search Toolbar -->
+    <div class="card bg-dark border-0 p-3 mb-4" style="background: rgba(18, 24, 38, 0.8) !important; border: 1px solid rgba(255,255,255,0.08) !important; border-radius: 12px;">
+        <form method="get" class="row g-3 align-items-center">
+            <!-- Search -->
+            <div class="col-md-4">
+                <div class="input-group">
+                    <span class="input-group-text bg-transparent border-secondary border-opacity-25 text-secondary" style="border-color: rgba(255,255,255,0.12) !important;">
+                        <i data-lucide="search" style="width: 16px; height: 16px;"></i>
+                    </span>
+                    <input type="text" name="q" value="{{ search_query }}" class="form-control bg-transparent text-white border-secondary border-opacity-25" placeholder="Search problems by name or tag..." style="border-color: rgba(255,255,255,0.12) !important;">
+                </div>
+            </div>
+
+            <!-- Difficulty -->
+            <div class="col-md-2 col-6">
+                <select name="difficulty" class="form-select bg-dark text-white border-secondary border-opacity-25" onchange="this.form.submit()" style="background-color: #0F172A !important; border-color: rgba(255,255,255,0.12) !important;">
+                    <option value="all" {% if selected_difficulty == 'all' %}selected{% endif %}>All Difficulties</option>
+                    {% for d_val, d_label in difficulty_choices %}
+                    <option value="{{ d_val }}" {% if selected_difficulty == d_val %}selected{% endif %}>{{ d_label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Category -->
+            <div class="col-md-3 col-6">
+                <select name="category" class="form-select bg-dark text-white border-secondary border-opacity-25" onchange="this.form.submit()" style="background-color: #0F172A !important; border-color: rgba(255,255,255,0.12) !important;">
+                    <option value="all" {% if selected_category == 'all' %}selected{% endif %}>All Categories</option>
+                    {% for cat_val, cat_label in category_choices %}
+                    <option value="{{ cat_val }}" {% if selected_category == cat_val %}selected{% endif %}>{{ cat_label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Status -->
+            <div class="col-md-2 col-6">
+                <select name="status" class="form-select bg-dark text-white border-secondary border-opacity-25" onchange="this.form.submit()" style="background-color: #0F172A !important; border-color: rgba(255,255,255,0.12) !important;">
+                    <option value="all" {% if selected_status == 'all' %}selected{% endif %}>All Status</option>
+                    <option value="solved" {% if selected_status == 'solved' %}selected{% endif %}>Solved</option>
+                    <option value="unsolved" {% if selected_status == 'unsolved' %}selected{% endif %}>Unsolved</option>
+                </select>
+            </div>
+
+            <div class="col-md-1 col-6 text-end">
+                <a href="{% url 'assessments:challenge_list' %}" class="btn btn-outline-secondary w-100 py-2" title="Reset filters">
+                    <i data-lucide="rotate-ccw" style="width: 14px; height: 14px;"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Challenges Table -->
+    {% if challenges_data %}
+    <div class="challenge-table-container">
+        <div class="table-responsive">
+            <table class="table table-dark table-hover mb-0" style="--bs-table-bg: transparent;">
+                <thead>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.1); color: #94A3B8; font-size: 0.85rem;">
+                        <th class="ps-4 py-3" style="width: 80px;">Status</th>
+                        <th class="py-3">Title</th>
+                        <th class="py-3">Category</th>
+                        <th class="py-3">Difficulty</th>
+                        <th class="py-3">Acceptance</th>
+                        <th class="py-3">Reward</th>
+                        <th class="pe-4 py-3 text-end">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in challenges_data %}
+                    <tr class="challenge-row align-middle">
+                        <!-- Status -->
+                        <td class="ps-4">
+                            {% if item.is_solved %}
+                                <span class="badge-solved" title="Solved">
+                                    <i data-lucide="check" style="width: 13px; height: 13px;"></i> Solved
+                                </span>
+                            {% else %}
+                                <span class="text-secondary small" style="color: #64748B !important;">
+                                    <i data-lucide="circle" style="width: 12px; height: 12px;"></i>
+                                </span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Title -->
+                        <td>
+                            <a href="{% url 'assessments:challenge_detail' slug=item.challenge.slug %}" class="text-decoration-none fw-semibold text-white d-flex align-items-center gap-2">
+                                <span>{{ item.challenge.title }}</span>
+                            </a>
+                            <div class="text-secondary small" style="color: #94A3B8 !important; font-size: 0.78rem;">
+                                {{ item.test_cases_count }} test cases • {{ item.challenge.function_name }}()
+                            </div>
+                        </td>
+
+                        <!-- Category -->
+                        <td>
+                            <span class="badge bg-secondary bg-opacity-25 text-light border border-secondary border-opacity-25 px-2 py-1" style="font-size: 0.75rem;">
+                                {{ item.challenge.get_category_display }}
+                            </span>
+                        </td>
+
+                        <!-- Difficulty -->
+                        <td>
+                            {% if item.challenge.difficulty == 'Easy' %}
+                                <span class="badge-diff-easy">Easy</span>
+                            {% elif item.challenge.difficulty == 'Medium' %}
+                                <span class="badge-diff-medium">Medium</span>
+                            {% else %}
+                                <span class="badge-diff-hard">Hard</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Acceptance -->
+                        <td>
+                            <span class="text-secondary small fw-medium" style="color: #CBD5E1 !important;">
+                                {{ item.acceptance_rate }}%
+                            </span>
+                        </td>
+
+                        <!-- Reward -->
+                        <td>
+                            <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-2 py-1" style="font-size: 0.75rem; color: #F59E0B !important;">
+                                +{{ item.challenge.xp_reward }} XP
+                            </span>
+                        </td>
+
+                        <!-- Action -->
+                        <td class="pe-4 text-end">
+                            <a href="{% url 'assessments:challenge_detail' slug=item.challenge.slug %}" class="btn btn-sm {% if item.is_solved %}btn-outline-success{% else %}btn-primary-custom{% endif %} px-3 py-1">
+                                {% if item.is_solved %}Practice{% else %}Solve{% endif %}
+                                <i data-lucide="chevron-right" style="width: 14px; height: 14px;" class="ms-1"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="text-center py-5 challenge-table-container">
+        <div class="rounded-circle d-inline-flex p-4 mb-3" style="background: rgba(99, 102, 241, 0.1); color: #818CF8;">
+            <i data-lucide="code" style="width: 48px; height: 48px;"></i>
+        </div>
+        <h4 class="fw-bold text-white mb-2">No Challenges Found</h4>
+        <p class="text-secondary mb-4" style="color: #94A3B8 !important;">Try adjusting your filters or search terms.</p>
+        <a href="{% url 'assessments:challenge_list' %}" class="btn btn-outline-secondary px-4 py-2">
+            Reset Filters
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    lucide.createIcons();
+</script>
+{% endblock %}

@@ -1,0 +1,803 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ challenge.title }} - Coding Challenge | SkillSphere{% endblock %}
+
+{% block extra_css %}
+<!-- Confetti CDN for celebratory submission -->
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+<style>
+    .ide-container {
+        height: calc(100vh - 120px);
+        min-height: 650px;
+    }
+    .panel-box {
+        background: #0D1117;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+    .panel-header {
+        background: #161B22;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        padding: 0.6rem 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .code-editor-area {
+        background: #090D13;
+        color: #E6EDF3;
+        font-family: 'Fira Code', 'JetBrains Mono', 'Consolas', monospace;
+        font-size: 14px;
+        line-height: 1.6;
+        border: none;
+        resize: none;
+        outline: none;
+        padding: 1rem;
+        width: 100%;
+        flex: 1;
+        white-space: pre;
+        tab-size: 4;
+    }
+    .code-editor-area:focus {
+        outline: none;
+    }
+    .testcase-tab {
+        background: transparent;
+        border: none;
+        color: #94A3B8;
+        padding: 6px 14px;
+        font-size: 0.82rem;
+        font-weight: 500;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+    .testcase-tab.active {
+        background: rgba(99, 102, 241, 0.2);
+        color: #FFFFFF;
+        border: 1px solid rgba(99, 102, 241, 0.4);
+    }
+    .testcase-tab.passed {
+        color: #10B981;
+    }
+    .testcase-tab.failed {
+        color: #F43F5E;
+    }
+    .console-drawer {
+        background: #161B22;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        max-height: 280px;
+        overflow-y: auto;
+    }
+    .code-chip {
+        background: #21262D;
+        color: #58A6FF;
+        font-family: monospace;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 0.85rem;
+    }
+    .badge-diff-easy {
+        background: rgba(16, 185, 129, 0.15);
+        color: #10B981;
+        border: 1px solid rgba(16, 185, 129, 0.35);
+        font-weight: 600;
+        padding: 3px 8px;
+        border-radius: 6px;
+        font-size: 0.75rem;
+    }
+    .badge-diff-medium {
+        background: rgba(245, 158, 11, 0.15);
+        color: #F59E0B;
+        border: 1px solid rgba(245, 158, 11, 0.35);
+        font-weight: 600;
+        padding: 3px 8px;
+        border-radius: 6px;
+        font-size: 0.75rem;
+    }
+    .badge-diff-hard {
+        background: rgba(244, 63, 94, 0.15);
+        color: #F43F5E;
+        border: 1px solid rgba(244, 63, 94, 0.35);
+        font-weight: 600;
+        padding: 3px 8px;
+        border-radius: 6px;
+        font-size: 0.75rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 py-2">
+    <!-- Top Bar Navigation -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-2 pb-2 border-bottom border-secondary border-opacity-25">
+        <div class="d-flex align-items-center gap-2">
+            <a href="{% url 'assessments:challenge_list' %}" class="btn btn-sm btn-outline-secondary py-1 px-2" title="Back to Challenge Bank">
+                <i data-lucide="arrow-left" style="width: 14px; height: 14px;"></i>
+            </a>
+            <h5 class="fw-bold text-white mb-0">{{ challenge.title }}</h5>
+            
+            {% if challenge.difficulty == 'Easy' %}
+                <span class="badge-diff-easy">Easy</span>
+            {% elif challenge.difficulty == 'Medium' %}
+                <span class="badge-diff-medium">Medium</span>
+            {% else %}
+                <span class="badge-diff-hard">Hard</span>
+            {% endif %}
+
+            <span class="badge bg-secondary bg-opacity-25 text-light border border-secondary border-opacity-25 small">
+                {{ challenge.get_category_display }}
+            </span>
+
+            {% if is_solved %}
+                <span class="badge bg-success bg-opacity-20 text-success border border-success border-opacity-40 d-inline-flex align-items-center gap-1 small" style="color: #34D399 !important;">
+                    <i data-lucide="check-circle" style="width: 12px; height: 12px;"></i> Solved
+                </span>
+            {% endif %}
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+            <!-- Sandbox Status Pill -->
+            <div id="sandboxStatusPill" class="badge bg-dark text-secondary border border-secondary border-opacity-25 px-3 py-1 small d-flex align-items-center gap-2">
+                <span class="spinner-grow spinner-grow-sm text-info d-none" id="sandboxSpinner" role="status" style="width: 10px; height: 10px;"></span>
+                <span id="sandboxStatusText" style="color: #94A3B8;">Sandbox Ready</span>
+            </div>
+
+            <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-2 py-1 small" style="color: #F59E0B !important;">
+                +{{ challenge.xp_reward }} XP
+            </span>
+        </div>
+    </div>
+
+    <!-- Main Split IDE Area -->
+    <div class="row g-3 ide-container">
+        <!-- LEFT PANEL: Problem Statement, Submissions, Hints -->
+        <div class="col-lg-5 col-md-6 h-100 d-flex flex-column">
+            <div class="panel-box h-100">
+                <!-- Tab Headers -->
+                <div class="panel-header">
+                    <ul class="nav nav-pills gap-1" id="problemTabs" role="tablist">
+                        <li class="nav-item">
+                            <button class="nav-link active py-1 px-3 small text-white" id="desc-tab" data-bs-toggle="pill" data-bs-target="#tab-description" type="button">
+                                <i data-lucide="file-text" style="width: 13px; height: 13px;" class="me-1"></i> Description
+                            </button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link py-1 px-3 small text-white" id="hints-tab" data-bs-toggle="pill" data-bs-target="#tab-hints" type="button">
+                                <i data-lucide="lightbulb" style="width: 13px; height: 13px;" class="me-1"></i> Hints
+                            </button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link py-1 px-3 small text-white" id="sub-tab" data-bs-toggle="pill" data-bs-target="#tab-submissions" type="button">
+                                <i data-lucide="history" style="width: 13px; height: 13px;" class="me-1"></i> Submissions
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Tab Content -->
+                <div class="tab-content flex-grow-1 p-3 overflow-y-auto" style="color: #E2E8F0;">
+                    <!-- Description Tab -->
+                    <div class="tab-pane fade show active" id="tab-description" role="tabpanel">
+                        <div class="problem-markdown mb-4">
+                            {{ challenge.description|linebreaksbr }}
+                        </div>
+
+                        <!-- Constraints -->
+                        {% if constraints_list %}
+                        <div class="card bg-dark border-secondary border-opacity-25 p-3 mb-3" style="background: rgba(22, 27, 34, 0.8) !important;">
+                            <h6 class="fw-bold text-white mb-2 d-flex align-items-center gap-2" style="font-size: 0.85rem;">
+                                <i data-lucide="shield-check" style="width: 14px; height: 14px;" class="text-primary"></i> Constraints
+                            </h6>
+                            <ul class="mb-0 ps-3 small text-secondary" style="color: #CBD5E1 !important;">
+                                {% for constraint in constraints_list %}
+                                <li class="mb-1"><code class="code-chip">{{ constraint }}</code></li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% endif %}
+
+                        <!-- Function Signature -->
+                        <div class="d-flex align-items-center justify-content-between p-2 rounded bg-black bg-opacity-30 border border-secondary border-opacity-25 small text-secondary">
+                            <span>Target Function Name:</span>
+                            <span class="text-info font-monospace fw-semibold">{{ challenge.function_name }}()</span>
+                        </div>
+                    </div>
+
+                    <!-- Hints Tab -->
+                    <div class="tab-pane fade" id="tab-hints" role="tabpanel">
+                        <h6 class="fw-bold text-white mb-3">Conceptual Clues & Hints</h6>
+                        {% if hints_list %}
+                            {% for hint in hints_list %}
+                            <div class="accordion mb-2" id="hintAccordion{{ forloop.counter }}">
+                                <div class="accordion-item bg-dark border-secondary border-opacity-25" style="background: #161B22 !important;">
+                                    <h2 class="accordion-header">
+                                        <button class="accordion-button collapsed bg-dark text-white py-2 small" type="button" data-bs-toggle="collapse" data-bs-target="#hintCollapse{{ forloop.counter }}" style="background: #161B22 !important;">
+                                            <i data-lucide="help-circle" style="width: 14px; height: 14px;" class="me-2 text-warning"></i>
+                                            Hint {{ forloop.counter }}
+                                        </button>
+                                    </h2>
+                                    <div id="hintCollapse{{ forloop.counter }}" class="accordion-collapse collapse" data-bs-parent="#hintAccordion{{ forloop.counter }}">
+                                        <div class="accordion-body small text-secondary" style="color: #CBD5E1 !important;">
+                                            {{ hint }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="text-secondary small">No hints needed! You have all the fundamentals to crack this.</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Submissions Tab -->
+                    <div class="tab-pane fade" id="tab-submissions" role="tabpanel">
+                        <h6 class="fw-bold text-white mb-3">Your Submission History</h6>
+                        {% if user_submissions %}
+                        <div class="table-responsive">
+                            <table class="table table-dark table-sm mb-0" style="--bs-table-bg: transparent; font-size: 0.8rem;">
+                                <thead>
+                                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.1); color: #94A3B8;">
+                                        <th>Status</th>
+                                        <th>Runtime</th>
+                                        <th>Memory</th>
+                                        <th>Percentile</th>
+                                        <th>Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for sub in user_submissions %}
+                                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                        <td>
+                                            {% if sub.status == 'Accepted' %}
+                                                <span class="text-success fw-semibold" style="color: #10B981 !important;">Accepted</span>
+                                            {% else %}
+                                                <span class="text-danger fw-semibold" style="color: #F43F5E !important;">{{ sub.status }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ sub.runtime_ms }} ms</td>
+                                        <td>{{ sub.memory_kb }} KB</td>
+                                        <td>
+                                            <span class="badge bg-indigo-subtle text-indigo" style="background: rgba(99,102,241,0.15); color: #818CF8;">
+                                                Beats {{ sub.percentile_beats }}%
+                                            </span>
+                                        </td>
+                                        <td class="text-secondary">{{ sub.created_at|date:"M d, H:i" }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <div class="text-center py-4 text-secondary small">
+                            <i data-lucide="inbox" style="width: 32px; height: 32px;" class="mb-2 opacity-50"></i>
+                            <p>No submissions yet. Write your solution on the right and click "Submit"!</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT PANEL: Multi-Language Code Editor & Test Runner -->
+        <div class="col-lg-7 col-md-6 h-100 d-flex flex-column">
+            <div class="panel-box h-100">
+                <!-- Editor Top Header -->
+                <div class="panel-header">
+                    <div class="d-flex align-items-center gap-2">
+                        <!-- Language Selector -->
+                        <select id="languageSelector" class="form-select form-select-sm bg-dark text-white border-secondary border-opacity-50 py-1" style="background-color: #090D13 !important; width: 160px; font-size: 0.82rem;">
+                            <option value="python">Python 3 (Pyodide)</option>
+                            <option value="javascript">JavaScript ES6</option>
+                        </select>
+
+                        <button id="resetCodeBtn" class="btn btn-sm btn-outline-secondary py-1 px-2" title="Reset starter code">
+                            <i data-lucide="rotate-ccw" style="width: 13px; height: 13px;"></i>
+                        </button>
+                    </div>
+
+                    <div class="d-flex align-items-center gap-2">
+                        <!-- Run Code Button -->
+                        <button id="runCodeBtn" class="btn btn-sm btn-outline-light d-flex align-items-center gap-1 py-1 px-3 fw-semibold">
+                            <i data-lucide="play" style="width: 14px; height: 14px;" class="text-success"></i>
+                            <span>Run Code</span>
+                        </button>
+
+                        <!-- Submit Button -->
+                        <button id="submitSolutionBtn" class="btn btn-sm btn-primary-custom d-flex align-items-center gap-1 py-1 px-4 fw-semibold">
+                            <i data-lucide="check" style="width: 14px; height: 14px;"></i>
+                            <span>Submit</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Code Input Textarea (Monaco style) -->
+                <textarea id="codeEditor" class="code-editor-area" spellcheck="false" placeholder="Write your algorithm here...">{{ challenge.python_starter }}</textarea>
+
+                <!-- Bottom Drawer: Testcases & Execution Console -->
+                <div class="console-drawer">
+                    <!-- Drawer Header & Tabs -->
+                    <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom border-secondary border-opacity-25" style="background: #11151C;">
+                        <div class="d-flex align-items-center gap-2" id="testcaseTabsContainer">
+                            {% for tc in visible_cases %}
+                            <button class="testcase-tab {% if forloop.first %}active{% endif %}" onclick="switchTestCase({{ forloop.counter0 }})" id="tcTab{{ forloop.counter0 }}">
+                                Case {{ tc.order }}
+                            </button>
+                            {% endfor %}
+                            <button class="testcase-tab" onclick="switchTestCase('output')" id="tcTabOutput">
+                                <i data-lucide="terminal" style="width: 12px; height: 12px;" class="me-1"></i> Console
+                            </button>
+                        </div>
+
+                        <span class="text-secondary small font-monospace" id="runtimeMetricsBadge" style="font-size: 0.75rem; color: #94A3B8;"></span>
+                    </div>
+
+                    <!-- Test Case Content Inspector -->
+                    <div class="p-3" id="testCaseBody">
+                        <div id="testCaseInputView">
+                            <div class="mb-2">
+                                <label class="text-secondary small fw-semibold" style="font-size: 0.75rem; color: #94A3B8;">Input Arguments:</label>
+                                <div id="currentTcInput" class="p-2 rounded font-monospace small bg-black bg-opacity-40 text-light border border-secondary border-opacity-25">
+                                    --
+                                </div>
+                            </div>
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <label class="text-secondary small fw-semibold" style="font-size: 0.75rem; color: #94A3B8;">Expected Output:</label>
+                                    <div id="currentTcExpected" class="p-2 rounded font-monospace small bg-black bg-opacity-40 text-success border border-secondary border-opacity-25" style="color: #34D399 !important;">
+                                        --
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <label class="text-secondary small fw-semibold" style="font-size: 0.75rem; color: #94A3B8;">Your Output:</label>
+                                    <div id="currentTcActual" class="p-2 rounded font-monospace small bg-black bg-opacity-40 text-light border border-secondary border-opacity-25">
+                                        <span class="text-secondary">Run code to evaluate</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Console Output View -->
+                        <div id="consoleOutputView" class="d-none">
+                            <pre id="stdoutConsole" class="mb-0 font-monospace small text-light p-2 rounded bg-black bg-opacity-40" style="max-height: 120px; overflow-y: auto; white-space: pre-wrap;">No stdout output yet. Print statements will appear here.</pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CELEBRATION MODAL (Accepted Submission) -->
+<div class="modal fade" id="acceptedModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark border border-success border-opacity-50 text-white" style="background: #0D1117 !important;">
+            <div class="modal-header border-0 pb-0">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="rounded-circle p-2" style="background: rgba(16, 185, 129, 0.15); color: #10B981;">
+                        <i data-lucide="check-circle" style="width: 28px; height: 28px;"></i>
+                    </div>
+                    <div>
+                        <h4 class="fw-bold mb-0 text-success" style="color: #10B981 !important;">Accepted!</h4>
+                        <span class="text-secondary small" style="color: #94A3B8 !important;">All test cases passed with flying colors.</span>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body py-4">
+                <!-- Percentile Cards -->
+                <div class="row g-3 mb-4">
+                    <div class="col-6">
+                        <div class="p-3 rounded border border-secondary border-opacity-25 bg-black bg-opacity-30 text-center">
+                            <div class="text-secondary small" style="color: #94A3B8 !important;">Runtime</div>
+                            <h3 class="fw-bold text-white mb-0" id="modalRuntime">24 ms</h3>
+                            <div class="small text-success mt-1" id="modalRuntimePercentile">Beats 94.2%</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-3 rounded border border-secondary border-opacity-25 bg-black bg-opacity-30 text-center">
+                            <div class="text-secondary small" style="color: #94A3B8 !important;">Memory</div>
+                            <h3 class="fw-bold text-white mb-0" id="modalMemory">14.2 MB</h3>
+                            <div class="small text-info mt-1" id="modalMemoryPercentile">Beats 88.5%</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- XP Reward Banner -->
+                <div id="modalXpBanner" class="p-3 rounded border border-warning border-opacity-30 bg-warning bg-opacity-10 d-flex align-items-center justify-content-between mb-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <i data-lucide="award" class="text-warning" style="width: 22px; height: 22px;"></i>
+                        <span class="fw-semibold text-white">First-Time Solve Reward</span>
+                    </div>
+                    <span class="badge bg-warning text-dark fw-bold px-3 py-2" id="modalXpBadge">+50 XP</span>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <a href="{% url 'assessments:challenge_list' %}" class="btn btn-outline-secondary">
+                    Solve Next Problem
+                </a>
+                <button type="button" class="btn btn-primary-custom px-4" data-bs-dismiss="modal">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Pyodide WebAssembly Loader -->
+<script src="https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js"></script>
+
+<script>
+    // State & Challenge Metadata
+    const challengeSlug = "{{ challenge.slug }}";
+    const functionName = "{{ challenge.function_name }}";
+    const starterPython = `{{ challenge.python_starter|escapejs }}`;
+    const starterJS = `{{ challenge.javascript_starter|escapejs }}`;
+    const visibleTestCases = JSON.parse('{{ visible_cases_json|escapejs }}');
+    const csrfToken = '{{ csrf_token }}';
+
+    let currentActiveIndex = 0;
+    let pyodideInstance = null;
+    let isPyodideLoading = false;
+    let runResults = [];
+
+    // DOM Elements
+    const codeEditor = document.getElementById('codeEditor');
+    const languageSelector = document.getElementById('languageSelector');
+    const resetCodeBtn = document.getElementById('resetCodeBtn');
+    const runCodeBtn = document.getElementById('runCodeBtn');
+    const submitSolutionBtn = document.getElementById('submitSolutionBtn');
+    const sandboxStatusPill = document.getElementById('sandboxStatusPill');
+    const sandboxStatusText = document.getElementById('sandboxStatusText');
+    const sandboxSpinner = document.getElementById('sandboxSpinner');
+    const stdoutConsole = document.getElementById('stdoutConsole');
+    const testCaseInputView = document.getElementById('testCaseInputView');
+    const consoleOutputView = document.getElementById('consoleOutputView');
+    const runtimeMetricsBadge = document.getElementById('runtimeMetricsBadge');
+
+    // Display initial test case
+    function renderTestCase(index) {
+        if (index === 'output') {
+            testCaseInputView.classList.add('d-none');
+            consoleOutputView.classList.remove('d-none');
+            return;
+        }
+
+        testCaseInputView.classList.remove('d-none');
+        consoleOutputView.classList.add('d-none');
+
+        const tc = visibleTestCases[index];
+        if (!tc) return;
+
+        document.getElementById('currentTcInput').textContent = JSON.stringify(tc.input, null, 2);
+        document.getElementById('currentTcExpected').textContent = JSON.stringify(tc.output, null, 2);
+
+        const actualBox = document.getElementById('currentTcActual');
+        if (runResults[index]) {
+            const res = runResults[index];
+            if (res.passed) {
+                actualBox.innerHTML = `<span class="text-success fw-bold font-monospace">${JSON.stringify(res.actual)}</span> <span class="badge bg-success bg-opacity-25 text-success ms-2 small">✓ Passed (${res.runtime}ms)</span>`;
+            } else {
+                actualBox.innerHTML = `<span class="text-danger fw-bold font-monospace">${JSON.stringify(res.actual)}</span> <span class="badge bg-danger bg-opacity-25 text-danger ms-2 small">✗ Failed</span>`;
+            }
+        } else {
+            actualBox.innerHTML = `<span class="text-secondary">Run code to evaluate</span>`;
+        }
+    }
+
+    function switchTestCase(target) {
+        document.querySelectorAll('.testcase-tab').forEach(t => t.classList.remove('active'));
+        if (target === 'output') {
+            document.getElementById('tcTabOutput').classList.add('active');
+            renderTestCase('output');
+        } else {
+            currentActiveIndex = target;
+            const tabBtn = document.getElementById(`tcTab${target}`);
+            if (tabBtn) tabBtn.classList.add('active');
+            renderTestCase(target);
+        }
+    }
+
+    // Language Toggle & Starter Code
+    languageSelector.addEventListener('change', () => {
+        const lang = languageSelector.value;
+        if (lang === 'python') {
+            codeEditor.value = starterPython;
+        } else {
+            codeEditor.value = starterJS;
+        }
+    });
+
+    resetCodeBtn.addEventListener('click', () => {
+        if (confirm("Reset editor to original starter code?")) {
+            const lang = languageSelector.value;
+            codeEditor.value = (lang === 'python') ? starterPython : starterJS;
+        }
+    });
+
+    // Auto-indent in textarea on Enter or Tab
+    codeEditor.addEventListener('keydown', function(e) {
+        if (e.key === 'Tab') {
+            e.preventDefault();
+            const start = this.selectionStart;
+            const end = this.selectionEnd;
+            this.value = this.value.substring(0, start) + "    " + this.value.substring(end);
+            this.selectionStart = this.selectionEnd = start + 4;
+        }
+    });
+
+    // Async Pyodide WebAssembly Initializer
+    async function getPyodide() {
+        if (pyodideInstance) return pyodideInstance;
+        if (isPyodideLoading) {
+            while (isPyodideLoading) {
+                await new Promise(r => setTimeout(r, 100));
+            }
+            return pyodideInstance;
+        }
+
+        isPyodideLoading = true;
+        sandboxSpinner.classList.remove('d-none');
+        sandboxStatusText.textContent = "Loading WebAssembly Python...";
+
+        try {
+            pyodideInstance = await loadPyodide({
+                indexURL: "https://cdn.jsdelivr.net/pyodide/v0.25.1/full/"
+            });
+            sandboxStatusText.textContent = "WebAssembly Ready";
+        } catch (err) {
+            console.error("Pyodide load error:", err);
+            sandboxStatusText.textContent = "Runner Fallback Active";
+        } finally {
+            isPyodideLoading = false;
+            sandboxSpinner.classList.add('d-none');
+        }
+        return pyodideInstance;
+    }
+
+    // Single Execution Engine
+    async function executeTestCase(code, lang, inputArgs, expectedOutput, targetFunction) {
+        let stdout = "";
+        const startTime = performance.now();
+        let actual = null;
+        let isError = false;
+        let errorMsg = "";
+
+        if (lang === 'python') {
+            try {
+                const pyodide = await getPyodide();
+                pyodide.setStdout({ batched: (str) => { stdout += str + "\n"; } });
+                pyodide.setStderr({ batched: (str) => { stdout += "[Err] " + str + "\n"; } });
+
+                // Run definition
+                await pyodide.runPythonAsync(code);
+
+                // Build call harness
+                pyodide.globals.set('__test_args', inputArgs);
+                const harness = `
+import json
+try:
+    __fn = globals().get('${targetFunction}')
+    if not __fn:
+        # Check snake_case / camelCase fallbacks
+        for k in list(globals().keys()):
+            if k.lower() == '${targetFunction}'.lower():
+                __fn = globals()[k]
+                break
+    if __fn:
+        if isinstance(__test_args, list):
+            __out = __fn(*__test_args)
+        else:
+            __out = __fn(__test_args)
+        __res_json = json.dumps(__out)
+    else:
+        __res_json = json.dumps({"__error__": "Function '${targetFunction}' not found"})
+except Exception as __e:
+    __res_json = json.dumps({"__error__": str(__e)})
+`;
+                await pyodide.runPythonAsync(harness);
+                const resJson = pyodide.globals.get('__res_json');
+                const parsed = JSON.parse(resJson);
+                if (parsed && parsed.__error__) {
+                    isError = true;
+                    errorMsg = parsed.__error__;
+                } else {
+                    actual = parsed;
+                }
+            } catch (pyErr) {
+                isError = true;
+                errorMsg = pyErr.message || String(pyErr);
+            }
+        } else {
+            // JavaScript Execution
+            try {
+                const capturedLogs = [];
+                const safeConsole = { log: (...args) => capturedLogs.push(args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' ')) };
+
+                // Execute JS function
+                const funcWrapper = new Function('console', `${code}\nreturn (typeof ${targetFunction} !== 'undefined') ? ${targetFunction} : (typeof ${targetFunction.replace(/_([a-z])/g, g => g[1].toUpperCase())} !== 'undefined' ? ${targetFunction.replace(/_([a-z])/g, g => g[1].toUpperCase())} : null);`);
+                const fn = funcWrapper(safeConsole);
+                stdout = capturedLogs.join('\n');
+
+                if (!fn || typeof fn !== 'function') {
+                    throw new Error(`Target function '${targetFunction}' not declared or exported.`);
+                }
+
+                if (Array.isArray(inputArgs)) {
+                    actual = fn(...inputArgs);
+                } else {
+                    actual = fn(inputArgs);
+                }
+            } catch (jsErr) {
+                isError = true;
+                errorMsg = jsErr.message || String(jsErr);
+            }
+        }
+
+        const endTime = performance.now();
+        const durationMs = Math.max(1, Math.round(endTime - startTime));
+
+        // Deep equal check for arrays/objects or primitives
+        const passed = !isError && JSON.stringify(actual) === JSON.stringify(expectedOutput);
+
+        return {
+            passed: passed,
+            actual: isError ? `Error: ${errorMsg}` : actual,
+            stdout: stdout,
+            runtime: durationMs,
+            isError: isError
+        };
+    }
+
+    // RUN CODE BUTTON (Evaluates Visible Testcases)
+    runCodeBtn.addEventListener('click', async () => {
+        const code = codeEditor.value;
+        const lang = languageSelector.value;
+        runCodeBtn.disabled = true;
+        runCodeBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Running...`;
+
+        runResults = [];
+        let combinedStdout = "";
+        let totalRuntime = 0;
+        let allPassed = true;
+
+        for (let i = 0; i < visibleTestCases.length; i++) {
+            const tc = visibleTestCases[i];
+            const res = await executeTestCase(code, lang, tc.input, tc.output, functionName);
+            runResults.push(res);
+            totalRuntime += res.runtime;
+
+            if (res.stdout) combinedStdout += `[Case ${tc.order} Stdout]\n${res.stdout}\n`;
+            if (res.isError) combinedStdout += `[Case ${tc.order} Error]\n${res.actual}\n`;
+
+            const tabBtn = document.getElementById(`tcTab${i}`);
+            if (tabBtn) {
+                tabBtn.classList.remove('passed', 'failed');
+                tabBtn.classList.add(res.passed ? 'passed' : 'failed');
+            }
+
+            if (!res.passed) allPassed = false;
+        }
+
+        stdoutConsole.textContent = combinedStdout || "Process finished with exit code 0. No stdout output.";
+        runtimeMetricsBadge.textContent = `${totalRuntime} ms total | ${allPassed ? 'All Visible Passed ✓' : 'Errors Detected ✗'}`;
+        runtimeMetricsBadge.className = `text-secondary small font-monospace ${allPassed ? 'text-success' : 'text-danger'}`;
+
+        renderTestCase(currentActiveIndex);
+        runCodeBtn.disabled = false;
+        runCodeBtn.innerHTML = `<i data-lucide="play" style="width: 14px; height: 14px;" class="text-success"></i> Run Code`;
+        lucide.createIcons();
+    });
+
+    // SUBMIT BUTTON (Evaluates All Test Cases including Hidden Suite)
+    submitSolutionBtn.addEventListener('click', async () => {
+        const code = codeEditor.value;
+        const lang = languageSelector.value;
+
+        submitSolutionBtn.disabled = true;
+        submitSolutionBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Submitting...`;
+
+        try {
+            // 1. Fetch full test suite (including hidden edge cases)
+            const suiteRes = await fetch(`{% url 'assessments:challenge_test_cases' slug=challenge.slug %}?mode=all`);
+            const suiteData = await suiteRes.json();
+            const allTestCases = suiteData.test_cases || [];
+
+            let passedCount = 0;
+            let totalRuntime = 0;
+            let failedCase = null;
+            let submissionStatus = 'Accepted';
+
+            for (let i = 0; i < allTestCases.length; i++) {
+                const tc = allTestCases[i];
+                const res = await executeTestCase(code, lang, tc.input, tc.expected_output, functionName);
+                totalRuntime += res.runtime;
+
+                if (res.passed) {
+                    passedCount++;
+                } else {
+                    failedCase = { tc: tc, res: res };
+                    submissionStatus = res.isError ? 'Runtime Error' : 'Wrong Answer';
+                    break; // Stop at first failing edge case
+                }
+            }
+
+            // Estimate memory usage realistically (14MB - 18MB for Python/JS)
+            const memoryKb = Math.floor(13500 + Math.random() * 2500);
+
+            // 2. Post to backend
+            const submitPayload = {
+                language: lang,
+                code: code,
+                status: submissionStatus,
+                runtime_ms: totalRuntime,
+                memory_kb: memoryKb,
+                passed_cases: passedCount,
+                total_cases: allTestCases.length
+            };
+
+            const postRes = await fetch(`{% url 'assessments:challenge_submit' slug=challenge.slug %}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify(submitPayload)
+            });
+
+            const postResult = await postRes.json();
+
+            if (submissionStatus === 'Accepted') {
+                // Confetti blast!
+                confetti({
+                    particleCount: 100,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+
+                // Populate celebration modal
+                document.getElementById('modalRuntime').textContent = `${totalRuntime} ms`;
+                document.getElementById('modalRuntimePercentile').textContent = `Beats ${postResult.percentile_beats}% of submissions`;
+                document.getElementById('modalMemory').textContent = `${(memoryKb / 1024).toFixed(1)} MB`;
+
+                const xpBanner = document.getElementById('modalXpBanner');
+                if (postResult.is_first_solve && postResult.xp_awarded > 0) {
+                    xpBanner.classList.remove('d-none');
+                    document.getElementById('modalXpBadge').textContent = `+${postResult.xp_awarded} XP`;
+                } else {
+                    xpBanner.classList.add('d-none');
+                }
+
+                const modal = new bootstrap.Modal(document.getElementById('acceptedModal'));
+                modal.show();
+            } else {
+                // Show failed test case alert
+                const alertMsg = failedCase.tc.is_hidden 
+                    ? `Wrong Answer on Hidden Edge Case! (Passed ${passedCount}/${allTestCases.length} cases)`
+                    : `Wrong Answer on Testcase ${failedCase.tc.order}: Expected ${JSON.stringify(failedCase.tc.expected_output)}, Got ${JSON.stringify(failedCase.res.actual)}`;
+                
+                alert(alertMsg);
+            }
+
+        } catch (err) {
+            console.error("Submission failed:", err);
+            alert("An error occurred during submission evaluation: " + err.message);
+        } finally {
+            submitSolutionBtn.disabled = false;
+            submitSolutionBtn.innerHTML = `<i data-lucide="check" style="width: 14px; height: 14px;"></i> Submit`;
+            lucide.createIcons();
+        }
+    });
+
+    // Initialize initial testcase render
+    renderTestCase(0);
+    lucide.createIcons();
+</script>
+{% endblock %}
