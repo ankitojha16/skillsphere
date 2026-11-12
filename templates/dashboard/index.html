@@ -955,7 +955,7 @@
                     You're in the top 5% of active learners this week. Keep building your daily momentum!
                 </p>
 
-                <div class="row g-2 mb-4 p-3 rounded-3" style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08);">
+                <div class="row g-2 mb-3 p-3 rounded-3" style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08);">
                     <div class="col-4 text-center border-end border-secondary border-opacity-25">
                         <div class="text-warning fw-bold fs-4" id="milestoneStat1">{{ gamification.current_streak|default:1 }}d</div>
                         <div class="text-secondary" style="font-size: 0.72rem;">Streak</div>
@@ -970,17 +970,43 @@
                     </div>
                 </div>
 
+                <!-- Verified Picture Card Preview -->
+                <div class="mb-3 text-start">
+                    <div class="d-flex align-items-center justify-content-between mb-1">
+                        <span class="text-secondary small fw-semibold" style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em;">Attached Preview Picture (1200×630):</span>
+                        <span class="badge bg-success-subtle text-success border border-success font-monospace" style="font-size: 0.65rem;">Auto-Carried</span>
+                    </div>
+                    <div class="position-relative rounded overflow-hidden border border-secondary shadow-sm" style="max-height: 140px; background: #0b1120;">
+                        <img id="milestoneCardPreviewImg" src="/static/images/social-preview.png" alt="Milestone Social Preview" class="w-100 h-100" style="object-fit: cover; max-height: 140px;">
+                    </div>
+                </div>
+
+                <!-- Post Textarea -->
+                <div class="mb-3 text-start">
+                    <div class="d-flex align-items-center justify-content-between mb-1">
+                        <span class="text-secondary small fw-semibold" style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em;">Announcement Text & Verified Link:</span>
+                        <button type="button" class="btn btn-link text-info p-0 text-decoration-none small" style="font-size: 0.75rem;" onclick="copyMilestonePost()">
+                            <i data-lucide="copy" style="width: 12px; height: 12px;"></i> Copy
+                        </button>
+                    </div>
+                    <textarea id="milestonePostTextarea" rows="3" class="form-control bg-dark text-white border-secondary font-monospace small" style="font-size: 0.78rem; line-height: 1.5; resize: none;"></textarea>
+                </div>
+
+                <!-- Notification Feedback Banner -->
+                <div id="shareNoticeBanner" class="alert py-2 px-3 small d-none mb-3 text-start" style="background: rgba(6, 182, 212, 0.15); border: 1px solid rgba(6, 182, 212, 0.4); color: #a5f3fc; font-size: 0.78rem;">
+                    <i data-lucide="check-circle" class="d-inline-block align-middle me-1" style="width: 14px; height: 14px;"></i>
+                    <span id="shareNoticeText">Post text & link copied!</span>
+                </div>
+
+                <!-- Action Share Buttons -->
                 <div class="d-flex flex-column gap-2">
-                    <button type="button" class="btn btn-warning fw-bold py-2.5 rounded-pill shadow-sm d-flex align-items-center justify-content-center gap-2" onclick="launchConfettiCannon()">
-                        <span>🎉 Blast More Confetti!</span>
-                    </button>
                     <div class="d-flex flex-wrap gap-2">
-                        <a id="milestoneShareTwitter" href="https://twitter.com/intent/tweet" target="_blank" rel="noopener noreferrer" class="btn btn-dark border border-secondary text-white flex-grow-1 py-2 rounded-pill small d-flex align-items-center justify-content-center gap-1.5" title="Post on X with picture card, text & verified link">
+                        <button type="button" id="btnShareToTwitter" class="btn btn-dark border border-secondary text-white flex-grow-1 py-2 rounded-pill small d-flex align-items-center justify-content-center gap-1.5" onclick="executeShareToTwitter()" title="Open X composer with prefilled text, link & card preview">
                             <i data-lucide="twitter" style="width: 14px; height: 14px;"></i> Post on X
-                        </a>
-                        <a id="milestoneShareLinkedIn" href="https://www.linkedin.com/sharing/share-offsite/" target="_blank" rel="noopener noreferrer" class="btn btn-outline-info flex-grow-1 py-2 rounded-pill small d-flex align-items-center justify-content-center gap-1.5" title="Post on LinkedIn with verified picture card, title & link">
+                        </button>
+                        <button type="button" id="btnShareToLinkedIn" class="btn btn-outline-info flex-grow-1 py-2 rounded-pill small d-flex align-items-center justify-content-center gap-1.5" onclick="executeShareToLinkedIn()" title="Open LinkedIn with card picture, link & copied text">
                             <i data-lucide="linkedin" style="width: 14px; height: 14px;"></i> Post on LinkedIn
-                        </a>
+                        </button>
                         <button type="button" id="copyMilestonePostBtn" class="btn btn-outline-warning flex-grow-1 py-2 rounded-pill small d-flex align-items-center justify-content-center gap-1.5" onclick="copyMilestonePost()">
                             <i data-lucide="copy" style="width: 14px; height: 14px;"></i> Copy Post
                         </button>
@@ -1015,20 +1041,60 @@
     }
 
     window._activeMilestonePost = "";
+    window._activeTargetUrl = "";
+    window._activeCardImg = "";
 
     function copyMilestonePost() {
-        const title = document.getElementById("milestoneCelebrationTitle")?.innerText || "Learning Milestone";
-        const streak = "{{ gamification.current_streak|default:1 }}";
-        const post = window._activeMilestonePost || `🚀 Milestone Unlocked on SkillSphere!\n\n${title}\n🔥 Continuous Study Streak: ${streak} Days\n⚡ Total XP: {{ gamification.total_xp|default:0 }}\n\nContinuous deliberate practice is how great software engineers are forged.\n\n#SkillSphere #LearnInPublic #SoftwareEngineering #CareerGrowth`;
-        navigator.clipboard.writeText(post).then(() => {
-            const btn = document.getElementById("copyMilestonePostBtn");
-            if (btn) {
-                const orig = btn.innerHTML;
-                btn.innerHTML = `<i data-lucide="check" style="width: 14px; height: 14px;"></i> Copied!`;
-                setTimeout(() => { btn.innerHTML = orig; if (window.lucide) lucide.createIcons(); }, 2000);
-            }
-        });
+        const textarea = document.getElementById("milestonePostTextarea");
+        const post = textarea ? textarea.value : (window._activeMilestonePost || `🚀 Milestone Unlocked on SkillSphere!\n\n🔥 Continuous Study Streak: {{ gamification.current_streak|default:1 }} Days\n⚡ Total XP: {{ gamification.total_xp|default:0 }}\n\n#SkillSphere #LearnInPublic #SoftwareEngineering`);
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(post).then(() => {
+                showShareNotice("✔ Post announcement text & link copied to clipboard!");
+            });
+        }
+        const btn = document.getElementById("copyMilestonePostBtn");
+        if (btn) {
+            const orig = btn.innerHTML;
+            btn.innerHTML = `<i data-lucide="check" style="width: 14px; height: 14px;"></i> Copied!`;
+            setTimeout(() => { btn.innerHTML = orig; if (window.lucide) lucide.createIcons(); }, 2000);
+        }
     }
+
+    function showShareNotice(msg) {
+        const banner = document.getElementById("shareNoticeBanner");
+        const textSpan = document.getElementById("shareNoticeText");
+        if (banner && textSpan) {
+            textSpan.innerHTML = msg;
+            banner.classList.remove("d-none");
+            if (window.lucide) lucide.createIcons();
+        }
+    }
+
+    function executeShareToTwitter() {
+        const textarea = document.getElementById("milestonePostTextarea");
+        const postText = textarea ? textarea.value : window._activeMilestonePost;
+        const twUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(postText)}`;
+        window.open(twUrl, '_blank');
+    }
+
+    function executeShareToLinkedIn() {
+        const textarea = document.getElementById("milestonePostTextarea");
+        const postText = textarea ? textarea.value : window._activeMilestonePost;
+        const targetUrl = window._activeTargetUrl || `${window.location.origin}/courses/`;
+
+        // 1. Copy text to clipboard so user can immediately press Cmd+V / Ctrl+V
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(postText).catch(() => {});
+        }
+
+        // 2. Show helpful banner
+        showShareNotice("📋 <strong>Copied to clipboard!</strong> LinkedIn is opening — press <strong>⌘V / Ctrl+V</strong> in the post box to paste your text, and your picture card is already attached!");
+
+        // 3. Open LinkedIn share dialog which carries the verified picture card and link
+        const lnUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(targetUrl)}`;
+        window.open(lnUrl, '_blank');
+    }
+
     function launchConfettiCannon() {
         if (typeof confetti === 'function') {
             confetti({ particleCount: 90, spread: 70, origin: { y: 0.6 } });
@@ -1045,16 +1111,22 @@
         const descEl = document.getElementById('milestoneCelebrationDesc');
         const badgeEl = document.getElementById('milestoneTagBadge');
         const emojiEl = document.getElementById('milestoneEmojiBadge');
-        const twShare = document.getElementById('milestoneShareTwitter');
-        const lnShare = document.getElementById('milestoneShareLinkedIn');
+        const textarea = document.getElementById('milestonePostTextarea');
+        const cardImg = document.getElementById('milestoneCardPreviewImg');
+        const banner = document.getElementById('shareNoticeBanner');
+
+        if (banner) banner.classList.add('d-none');
 
         let postText = '';
         let targetUrl = '';
+        let cardImgUrl = '/static/images/social-preview.png';
 
         if (type === 'certificate') {
-            const certCode = certId || '';
+            const certCode = certId || '{{ user_first_cert_id|default:"SS-CERT-2026-A737B1DF" }}';
             targetUrl = certCode ? `${window.location.origin}/verify/${encodeURIComponent(certCode)}/` : `${window.location.origin}/courses/`;
-            postText = `🎓 Proud to earn my verified certificate for "${title || 'Software Engineering'}" on @SkillSphere! 🚀\n\nVerified Credential ID: ${certCode || 'VERIFIED'}\nVerify Authenticity & View Credential:\n${targetUrl}\n\n#SkillSphere #SoftwareEngineering #Certification #LearnInPublic`;
+            cardImgUrl = certCode ? `${window.location.origin}/verify/${encodeURIComponent(certCode)}/card.png` : '/static/images/social-preview.png';
+            
+            postText = `🎓 Excited to share that I have officially earned my Verified Certificate for "${title || 'Software Engineering'}" on @SkillSphere! 🚀\n\n📜 Verified Credential ID: ${certCode || 'VERIFIED'}\n🔗 Verify Authenticity & View Credential:\n${targetUrl}\n\n#SkillSphere #SoftwareEngineering #Certification #LearnInPublic #TechCareers`;
 
             if (emojiEl) emojiEl.innerText = '🎓';
             if (badgeEl) badgeEl.innerText = 'Verified Certificate Earned';
@@ -1062,8 +1134,9 @@
             if (descEl) descEl.innerText = 'Outstanding achievement! You have officially verified your skill proficiency on SkillSphere.';
         } else {
             targetUrl = `${window.location.origin}/courses/`;
+            cardImgUrl = '/static/images/social-preview.png';
             const streakVal = '{{ gamification.current_streak|default:1 }}';
-            postText = `🔥 Milestone Unlocked: Just achieved a ${streakVal}-day continuous engineering streak on @SkillSphere with {{ gamification.total_xp|default:0 }} XP! ⚡\n\nContinuous deliberate practice builds world-class software engineers. Level up with me:\n${targetUrl}\n\n#SkillSphere #100DaysOfCode #LearnInPublic #SoftwareEngineering`;
+            postText = `🔥 Milestone Unlocked: Just achieved a ${streakVal}-day continuous engineering streak on @SkillSphere with {{ gamification.total_xp|default:0 }} XP! ⚡\n\nContinuous deliberate practice builds world-class software engineers. Level up with me:\n${targetUrl}\n\n#SkillSphere #100DaysOfCode #LearnInPublic #SoftwareEngineering #CareerGrowth`;
 
             if (emojiEl) emojiEl.innerText = '🔥';
             if (badgeEl) badgeEl.innerText = 'Streak Milestone';
@@ -1072,19 +1145,11 @@
         }
 
         window._activeMilestonePost = postText;
+        window._activeTargetUrl = targetUrl;
+        window._activeCardImg = cardImgUrl;
 
-        if (twShare) {
-            twShare.href = `https://twitter.com/intent/tweet?text=${encodeURIComponent(postText)}&url=${encodeURIComponent(targetUrl)}`;
-        }
-
-        if (lnShare) {
-            lnShare.href = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(targetUrl)}`;
-            lnShare.onclick = () => {
-                if (navigator.clipboard) {
-                    navigator.clipboard.writeText(postText).catch(() => {});
-                }
-            };
-        }
+        if (textarea) textarea.value = postText;
+        if (cardImg) cardImg.src = cardImgUrl;
 
         if (window.bootstrap && bootstrap.Modal) {
             const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
