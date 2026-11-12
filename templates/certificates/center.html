@@ -140,8 +140,19 @@
                                 <a href="{{ cert.get_verify_url }}" target="_blank" class="btn btn-sm btn-outline-light" title="Public Verification Page">
                                     <i data-lucide="shield-check" style="width: 14px; height: 14px;"></i> Verify
                                 </a>
-                                <a href="https://www.linkedin.com/profile/add?startTask=CERTIFICATION_NAME&name={{ cert.course.title|default:cert.title|urlencode }}&organizationName=SkillSphere&issueYear={{ cert.issued_at|date:'Y' }}&issueMonth={{ cert.issued_at|date:'n' }}&certUrl={{ request.scheme }}://{{ request.get_host }}{{ cert.get_verify_url }}&certId={{ cert.certificate_id }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-info" title="Add to LinkedIn Profile">
-                                    <i data-lucide="linkedin" style="width: 14px; height: 14px;"></i> LinkedIn
+                                <a href="https://twitter.com/intent/tweet?text={{ 'Proud to earn my verified certificate for '|urlencode }}{{ cert.course.title|default:cert.title|urlencode }}{{ ' on @SkillSphere! 🚀 ID: '|urlencode }}{{ cert.certificate_id|urlencode }}&url={{ request.scheme }}://{{ request.get_host }}{{ cert.get_verify_url|urlencode }}&hashtags=SkillSphere,LearnInPublic" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-light" title="Post on X with picture card & link">
+                                    <i data-lucide="twitter" style="width: 14px; height: 14px;"></i>
+                                </a>
+                                <a href="https://www.linkedin.com/sharing/share-offsite/?url={{ request.scheme }}://{{ request.get_host }}{{ cert.get_verify_url|urlencode }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-info" title="Post on LinkedIn with verified picture card & link" onclick="if(navigator.clipboard){navigator.clipboard.writeText('🎓 Proud to earn my verified certificate for {{ cert.course.title|default:cert.title|escapejs }} on SkillSphere! 🚀
+
+Verified Credential ID: {{ cert.certificate_id }}
+Verify Authenticity: {{ request.scheme }}://{{ request.get_host }}{{ cert.get_verify_url }}
+
+#SkillSphere #SoftwareEngineering #Certification #LearnInPublic');}">
+                                    <i data-lucide="linkedin" style="width: 14px; height: 14px;"></i>
+                                </a>
+                                <a href="https://www.linkedin.com/profile/add?startTask=CERTIFICATION_NAME&name={{ cert.course.title|default:cert.title|urlencode }}&organizationName=SkillSphere&issueYear={{ cert.issued_at|date:'Y' }}&issueMonth={{ cert.issued_at|date:'n' }}&certUrl={{ request.scheme }}://{{ request.get_host }}{{ cert.get_verify_url }}&certId={{ cert.certificate_id }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-secondary text-light" title="Add to LinkedIn Profile">
+                                    <i data-lucide="plus-circle" style="width: 14px; height: 14px;"></i> Add
                                 </a>
                                 <button type="button" class="btn btn-sm btn-outline-secondary text-white" onclick="copyCertBadgeMarkdown('{{ cert.title|escapejs }}', '{{ request.scheme }}://{{ request.get_host }}{{ cert.get_verify_url }}')" title="Copy GitHub README Badge Markdown">
                                     <i data-lucide="code" style="width: 14px; height: 14px;"></i> Badge

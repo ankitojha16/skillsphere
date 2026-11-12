@@ -4,6 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Verify Certificate {{ verify_id }} - SkillSphere</title>
+
+    <!-- OpenGraph & Social Sharing Meta (Carries Picture, Link & Description) -->
+    <meta property="og:site_name" content="SkillSphere">
+    <meta property="og:type" content="article">
+    <meta property="og:title" content="Verified Certificate: {{ course_name }} - {{ recipient_display_name }}">
+    <meta property="og:description" content="Technical mastery verified and issued on SkillSphere. Certificate ID: {{ verify_id }}. Verified Tamper-Proof Credential.">
+    <meta property="og:url" content="{{ request.build_absolute_uri }}">
+    <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}/verify/{{ verify_id }}/card.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+
+    <!-- Twitter / X Card Meta (Carries Large Picture Card & Preview) -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:site" content="@SkillSphere">
+    <meta name="twitter:creator" content="@SkillSphere">
+    <meta name="twitter:title" content="Verified Certificate: {{ course_name }}">
+    <meta name="twitter:description" content="Technical mastery officially issued to {{ recipient_display_name }} on SkillSphere (ID: {{ verify_id }}).">
+    <meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}/verify/{{ verify_id }}/card.png">
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -292,9 +311,22 @@
             <i data-lucide="download" style="width: 18px; height: 18px;"></i>
             <span>Download Official PDF</span>
         </a>
-        <a href="https://www.linkedin.com/profile/add?startTask=CERTIFICATION_NAME&name={{ course_name|urlencode }}&organizationName=SkillSphere&issueYear={{ issued_date|date:'Y' }}&issueMonth={{ issued_date|date:'n' }}&certUrl={{ request.build_absolute_uri|urlencode }}&certId={{ verify_id }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-info d-inline-flex align-items-center gap-2 px-4 py-2 fw-semibold" id="addToLinkedInBtn" title="Add this credential to your LinkedIn profile">
-            <i data-lucide="linkedin" style="width: 18px; height: 18px;"></i>
-            <span>Add to LinkedIn</span>
+        <a id="shareTwitterBtn" href="https://twitter.com/intent/tweet?text={{ 'Proud to earn my verified certificate for '|urlencode }}{{ course_name|urlencode }}{{ ' on @SkillSphere! 🚀 Verified ID: '|urlencode }}{{ verify_id|urlencode }}&url={{ request.build_absolute_uri|urlencode }}&hashtags=SkillSphere,LearnInPublic" target="_blank" rel="noopener noreferrer" class="btn btn-dark border border-secondary d-inline-flex align-items-center gap-2 px-3 py-2 fw-semibold text-white" title="Post on X with picture card & link">
+            <i data-lucide="twitter" style="width: 16px; height: 16px;"></i>
+            <span>Post on X</span>
+        </a>
+        <a id="shareLinkedInPostBtn" href="https://www.linkedin.com/sharing/share-offsite/?url={{ request.build_absolute_uri|urlencode }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-info d-inline-flex align-items-center gap-2 px-3 py-2 fw-semibold" title="Post to LinkedIn with picture card & link" onclick="navigator.clipboard.writeText('🎓 Excited to share that I have officially earned my Verified Certificate for {{ course_name|escapejs }} on SkillSphere! 🚀
+
+Verified Credential ID: {{ verify_id }}
+Verify Authenticity: {{ request.build_absolute_uri }}
+
+#SkillSphere #SoftwareEngineering #Certification #LearnInPublic');">
+            <i data-lucide="linkedin" style="width: 16px; height: 16px;"></i>
+            <span>Post on LinkedIn</span>
+        </a>
+        <a href="https://www.linkedin.com/profile/add?startTask=CERTIFICATION_NAME&name={{ course_name|urlencode }}&organizationName=SkillSphere&issueYear={{ issued_date|date:'Y' }}&issueMonth={{ issued_date|date:'n' }}&certUrl={{ request.build_absolute_uri|urlencode }}&certId={{ verify_id }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary d-inline-flex align-items-center gap-1.5 px-3 py-2 small text-light" id="addToLinkedInBtn" title="Add this credential to your LinkedIn profile">
+            <i data-lucide="plus-circle" style="width: 15px; height: 15px;"></i>
+            <span>Add to Profile</span>
         </a>
         <button type="button" id="copyVerifyLinkBtn" class="btn btn-outline-light d-inline-flex align-items-center gap-2 px-4 py-2" title="Copy public verification link">
             <i data-lucide="share-2" style="width: 18px; height: 18px;"></i>

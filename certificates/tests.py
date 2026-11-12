@@ -292,6 +292,31 @@ class CertificateTests(TestCase):
         self.assertEqual(resp3.status_code, 302)
         self.assertEqual(resp3['Location'], f'/verify/{cert.certificate_id}/')
 
+    def test_certificate_social_card_and_meta_tags(self):
+        """Verify dynamic 1200x630 social card generation and OpenGraph meta tags."""
+        cert = Certificate.objects.create(
+            user=self.user,
+            course=self.course,
+            title=self.course.title,
+            certificate_id='SS-CERT-2026-SOCIAL1',
+            recipient_name='Alex Rivera'
+        )
+
+        # 1. Social card image endpoint returns valid PNG
+        card_resp = self.client.get(f'/verify/{cert.certificate_id}/card.png')
+        self.assertEqual(card_resp.status_code, 200)
+        self.assertEqual(card_resp['Content-Type'], 'image/png')
+        self.assertTrue(len(card_resp.content) > 1000)
+
+        # 2. Public verification page renders OpenGraph and Twitter card meta tags
+        verify_resp = self.client.get(f'/verify/{cert.certificate_id}/')
+        self.assertEqual(verify_resp.status_code, 200)
+        self.assertContains(verify_resp, 'property="og:image"')
+        self.assertContains(verify_resp, f'/verify/{cert.certificate_id}/card.png')
+        self.assertContains(verify_resp, 'name="twitter:card" content="summary_large_image"')
+        self.assertContains(verify_resp, 'Post on X')
+        self.assertContains(verify_resp, 'Post on LinkedIn')
+
 
 
 

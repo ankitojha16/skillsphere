@@ -401,3 +401,62 @@ def verify_portal_view(request):
     return render(request, 'certificates/verify_portal.html')
 
 
+def certificate_social_card_view(request, certificate_id):
+    """
+    Generates a high-resolution 1200x630 OpenGraph / Twitter Card social preview image
+    for the verified certificate, rendered dynamically with PIL.
+    """
+    cert = Certificate.objects.filter(certificate_id__iexact=certificate_id).select_related('course').first()
+    if not cert:
+        raise Http404("Certificate not found.")
+
+    from PIL import Image, ImageDraw
+    import io
+
+    img = Image.new("RGBA", (1200, 630), color=(11, 17, 32, 255))
+    draw = ImageDraw.Draw(img)
+
+    # Gradient background
+    for y in range(630):
+        ratio = y / 630.0
+        r = int(11 * (1 - ratio) + 20 * ratio)
+        g = int(17 * (1 - ratio) + 30 * ratio)
+        b = int(32 * (1 - ratio) + 55 * ratio)
+        draw.line([(0, y), (1200, y)], fill=(r, g, b, 255))
+
+    # Gold and navy borders
+    draw.rounded_rectangle([(30, 30), (1170, 600)], radius=20, outline=(199, 164, 90, 255), width=3)
+    draw.rounded_rectangle([(38, 38), (1162, 592)], radius=16, outline=(36, 87, 167, 180), width=1)
+
+    # Header badge
+    draw.rounded_rectangle([(80, 70), (460, 116)], radius=23, fill=(36, 87, 167, 70), outline=(109, 159, 232, 200))
+    draw.text((105, 83), "★ SKILLSPHERE VERIFIED CREDENTIAL ★", fill=(219, 234, 254, 255))
+
+    # Certificate details
+    recipient = cert.recipient_name or cert.user.username
+    course_name = cert.course.title if cert.course else cert.title
+    issue_date = cert.issued_at.strftime('%B %d, %Y')
+
+    draw.text((80, 150), "CERTIFICATE OF PROFICIENCY & MASTERY", fill=(199, 164, 90, 255))
+    draw.text((80, 195), "Proudly Presented To:", fill=(148, 163, 184, 255))
+    draw.text((80, 235), f"{recipient}", fill=(255, 255, 255, 255))
+
+    draw.text((80, 310), "For successfully demonstrating technical mastery in:", fill=(148, 163, 184, 255))
+    draw.text((80, 345), f"{course_name[:65]}", fill=(165, 243, 252, 255))
+
+    # Details Box
+    draw.rounded_rectangle([(80, 430), (1120, 515)], radius=12, fill=(30, 41, 59, 180), outline=(71, 85, 105, 120))
+    draw.text((105, 450), f"Certificate ID: {cert.certificate_id}", fill=(255, 255, 255, 255))
+    draw.text((105, 480), f"Issued Date: {issue_date}   |   Status: Verified & Tamper-Proof", fill=(148, 163, 184, 255))
+    draw.text((820, 465), "✔ Verified by SkillSphere", fill=(34, 197, 94, 255))
+
+    # Footer
+    draw.text((80, 545), f"Verify online: {request.scheme}://{request.get_host()}/verify/{cert.certificate_id}/", fill=(100, 116, 139, 255))
+
+    buf = io.BytesIO()
+    img.save(buf, "PNG")
+    response = HttpResponse(buf.getvalue(), content_type='image/png')
+    response['Cache-Control'] = 'public, max-age=86400'
+    return response
+
+

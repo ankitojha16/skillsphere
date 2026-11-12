@@ -743,7 +743,10 @@
                                 <button type="button" class="btn btn-outline-warning btn-sm py-1.5 px-2.5" onclick="triggerMilestoneCelebration('certificate', '{{ cert.course.title|default:cert.title|escapejs }}', '{{ cert.certificate_id|escapejs }}')" title="Celebrate Certificate Achievement 🎉">
                                     <i data-lucide="sparkles" style="width: 14px; height: 14px;"></i>
                                 </button>
-                                <a href="https://www.linkedin.com/profile/add?startTask=CERTIFICATION_NAME&name={{ cert.course.title|default:cert.title|urlencode }}&organizationName=SkillSphere&issueYear={{ cert.issued_at|date:'Y' }}&issueMonth={{ cert.issued_at|date:'n' }}&certUrl={{ request.scheme }}://{{ request.get_host }}{{ cert.get_verify_url }}&certId={{ cert.certificate_id }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-info btn-sm py-1.5 px-2.5" title="Add to LinkedIn Profile">
+                                <a href="https://twitter.com/intent/tweet?text={{ 'Proud to earn my verified certificate for '|urlencode }}{{ cert.course.title|default:cert.title|urlencode }}{{ ' on @SkillSphere! 🚀 ID: '|urlencode }}{{ cert.certificate_id|urlencode }}&url={{ request.scheme }}://{{ request.get_host }}{{ cert.get_verify_url|urlencode }}&hashtags=SkillSphere,LearnInPublic" target="_blank" rel="noopener noreferrer" class="btn btn-outline-light btn-sm py-1.5 px-2" title="Post on X (Carries picture card & link)">
+                                    <i data-lucide="twitter" style="width: 14px; height: 14px;"></i>
+                                </a>
+                                <a href="https://www.linkedin.com/sharing/share-offsite/?url={{ request.scheme }}://{{ request.get_host }}{{ cert.get_verify_url|urlencode }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-info btn-sm py-1.5 px-2" title="Post on LinkedIn (Carries verified picture card & link)" onclick="if(navigator.clipboard){navigator.clipboard.writeText('🎓 Proud to earn my verified certificate for {{ cert.course.title|default:cert.title|escapejs }} on SkillSphere! 🚀\n\nVerified Credential ID: {{ cert.certificate_id }}\nVerify Authenticity: {{ request.scheme }}://{{ request.get_host }}{{ cert.get_verify_url }}\n\n#SkillSphere #SoftwareEngineering #Certification #LearnInPublic');}">
                                     <i data-lucide="linkedin" style="width: 14px; height: 14px;"></i>
                                 </a>
                                 <a href="{% url 'certificates:verify' certificate_id=cert.certificate_id %}" target="_blank" class="btn btn-secondary-custom btn-sm py-1.5 px-2.5" title="Verify Certificate Publicly">
@@ -972,11 +975,11 @@
                         <span>🎉 Blast More Confetti!</span>
                     </button>
                     <div class="d-flex flex-wrap gap-2">
-                        <a id="milestoneShareLinkedIn" href="https://www.linkedin.com/sharing/share-offsite/?url={{ request.build_absolute_uri }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-info flex-grow-1 py-2 rounded-pill small d-flex align-items-center justify-content-center gap-1.5">
-                            <i data-lucide="linkedin" style="width: 14px; height: 14px;"></i> LinkedIn
+                        <a id="milestoneShareTwitter" href="https://twitter.com/intent/tweet" target="_blank" rel="noopener noreferrer" class="btn btn-dark border border-secondary text-white flex-grow-1 py-2 rounded-pill small d-flex align-items-center justify-content-center gap-1.5" title="Post on X with picture card, text & verified link">
+                            <i data-lucide="twitter" style="width: 14px; height: 14px;"></i> Post on X
                         </a>
-                        <a id="milestoneShareTwitter" href="https://twitter.com/intent/tweet?text=I%20just%20unlocked%20a%20new%20learning%20milestone%20on%20SkillSphere!%20%F0%9F%9A%80" target="_blank" rel="noopener noreferrer" class="btn btn-outline-light flex-grow-1 py-2 rounded-pill small d-flex align-items-center justify-content-center gap-1.5">
-                            <i data-lucide="twitter" style="width: 14px; height: 14px;"></i> X
+                        <a id="milestoneShareLinkedIn" href="https://www.linkedin.com/sharing/share-offsite/" target="_blank" rel="noopener noreferrer" class="btn btn-outline-info flex-grow-1 py-2 rounded-pill small d-flex align-items-center justify-content-center gap-1.5" title="Post on LinkedIn with verified picture card, title & link">
+                            <i data-lucide="linkedin" style="width: 14px; height: 14px;"></i> Post on LinkedIn
                         </a>
                         <button type="button" id="copyMilestonePostBtn" class="btn btn-outline-warning flex-grow-1 py-2 rounded-pill small d-flex align-items-center justify-content-center gap-1.5" onclick="copyMilestonePost()">
                             <i data-lucide="copy" style="width: 14px; height: 14px;"></i> Copy Post
@@ -1011,12 +1014,14 @@
         return cookieValue;
     }
 
+    window._activeMilestonePost = "";
+
     function copyMilestonePost() {
-        const title = document.getElementById('milestoneCelebrationTitle')?.innerText || 'Learning Milestone';
-        const streak = '{{ gamification.current_streak|default:1 }}';
-        const post = `🚀 Milestone Unlocked on SkillSphere!\n\n${title}\n🔥 Continuous Study Streak: ${streak} Days\n⚡ Total XP: {{ gamification.total_xp|default:0 }}\n\nContinuous deliberate practice is how great software engineers are forged.\n\n#SkillSphere #LearnInPublic #SoftwareEngineering #CareerGrowth`;
+        const title = document.getElementById("milestoneCelebrationTitle")?.innerText || "Learning Milestone";
+        const streak = "{{ gamification.current_streak|default:1 }}";
+        const post = window._activeMilestonePost || `🚀 Milestone Unlocked on SkillSphere!\n\n${title}\n🔥 Continuous Study Streak: ${streak} Days\n⚡ Total XP: {{ gamification.total_xp|default:0 }}\n\nContinuous deliberate practice is how great software engineers are forged.\n\n#SkillSphere #LearnInPublic #SoftwareEngineering #CareerGrowth`;
         navigator.clipboard.writeText(post).then(() => {
-            const btn = document.getElementById('copyMilestonePostBtn');
+            const btn = document.getElementById("copyMilestonePostBtn");
             if (btn) {
                 const orig = btn.innerHTML;
                 btn.innerHTML = `<i data-lucide="check" style="width: 14px; height: 14px;"></i> Copied!`;
@@ -1024,7 +1029,6 @@
             }
         });
     }
-
     function launchConfettiCannon() {
         if (typeof confetti === 'function') {
             confetti({ particleCount: 90, spread: 70, origin: { y: 0.6 } });
@@ -1042,23 +1046,44 @@
         const badgeEl = document.getElementById('milestoneTagBadge');
         const emojiEl = document.getElementById('milestoneEmojiBadge');
         const twShare = document.getElementById('milestoneShareTwitter');
+        const lnShare = document.getElementById('milestoneShareLinkedIn');
+
+        let postText = '';
+        let targetUrl = '';
 
         if (type === 'certificate') {
+            const certCode = certId || '';
+            targetUrl = certCode ? `${window.location.origin}/verify/${encodeURIComponent(certCode)}/` : `${window.location.origin}/courses/`;
+            postText = `🎓 Proud to earn my verified certificate for "${title || 'Software Engineering'}" on @SkillSphere! 🚀\n\nVerified Credential ID: ${certCode || 'VERIFIED'}\nVerify Authenticity & View Credential:\n${targetUrl}\n\n#SkillSphere #SoftwareEngineering #Certification #LearnInPublic`;
+
             if (emojiEl) emojiEl.innerText = '🎓';
             if (badgeEl) badgeEl.innerText = 'Verified Certificate Earned';
             if (titleEl) titleEl.innerText = title || 'Certificate Unlocked!';
             if (descEl) descEl.innerText = 'Outstanding achievement! You have officially verified your skill proficiency on SkillSphere.';
-            if (twShare) {
-                twShare.href = `https://twitter.com/intent/tweet?text=${encodeURIComponent('Proud to earn my verified certificate for ' + (title || 'engineering') + ' on @SkillSphere! 🚀')}`;
-            }
         } else {
+            targetUrl = `${window.location.origin}/courses/`;
+            const streakVal = '{{ gamification.current_streak|default:1 }}';
+            postText = `🔥 Milestone Unlocked: Just achieved a ${streakVal}-day continuous engineering streak on @SkillSphere with {{ gamification.total_xp|default:0 }} XP! ⚡\n\nContinuous deliberate practice builds world-class software engineers. Level up with me:\n${targetUrl}\n\n#SkillSphere #100DaysOfCode #LearnInPublic #SoftwareEngineering`;
+
             if (emojiEl) emojiEl.innerText = '🔥';
             if (badgeEl) badgeEl.innerText = 'Streak Milestone';
-            if (titleEl) titleEl.innerText = '{{ gamification.current_streak|default:1 }}-Day Streak Unlocked!';
+            if (titleEl) titleEl.innerText = `${streakVal}-Day Streak Unlocked!`;
             if (descEl) descEl.innerText = 'Consistency is the superpower of great engineers. Keep the momentum going strong!';
-            if (twShare) {
-                twShare.href = `https://twitter.com/intent/tweet?text=${encodeURIComponent('I just maintained a {{ gamification.current_streak|default:1 }}-day continuous learning streak on SkillSphere! 🔥')}`;
-            }
+        }
+
+        window._activeMilestonePost = postText;
+
+        if (twShare) {
+            twShare.href = `https://twitter.com/intent/tweet?text=${encodeURIComponent(postText)}&url=${encodeURIComponent(targetUrl)}`;
+        }
+
+        if (lnShare) {
+            lnShare.href = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(targetUrl)}`;
+            lnShare.onclick = () => {
+                if (navigator.clipboard) {
+                    navigator.clipboard.writeText(postText).catch(() => {});
+                }
+            };
         }
 
         if (window.bootstrap && bootstrap.Modal) {
@@ -1068,7 +1093,6 @@
         launchConfettiCannon();
         if (window.lucide) { lucide.createIcons(); }
     }
-
     // Auto-pop celebration once per session if user has a 7+ day streak or has earned certificates
     document.addEventListener('DOMContentLoaded', () => {
         const streak = Number('{{ gamification.current_streak|default:0 }}');

@@ -15,9 +15,11 @@ urlpatterns = [
     path('certificates/<int:pk>/preview/', views.preview_certificate_pdf_view, name='preview_pdf'),
     path('certificates/verify/', views.verify_portal_view, name='verify_portal'),
     path('certificates/verify/<str:certificate_id>/', views.verify_certificate_view, name='verify_full'),
+    path('certificates/verify/<str:certificate_id>/card.png', views.certificate_social_card_view, name='verify_card_full'),
     path('certificates/verify/<str:certificate_id>/pdf/', views.public_verify_pdf_view, name='verify_pdf'),
     path('verify/', views.verify_portal_view, name='verify_portal_short'),
     path('verify/<str:certificate_id>/', views.verify_certificate_view, name='verify'),
+    path('verify/<str:certificate_id>/card.png', views.certificate_social_card_view, name='verify_card'),
     path('verify/<str:certificate_id>/pdf/', views.public_verify_pdf_view, name='verify_pdf_short'),
 ]
 
