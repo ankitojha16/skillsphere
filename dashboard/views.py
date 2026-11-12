@@ -443,3 +443,106 @@ def log_focus_session_view(request):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
+
+@login_required
+def get_daily_micro_drill_api(request):
+    """
+    Returns today's 3 personalized micro-drill flashcards for daily knowledge retention.
+    """
+    from learning.spaced_repetition import get_personalized_daily_drills
+    cards = get_personalized_daily_drills(request.user, count=3)
+    
+    # Hide the correct answers from the client payload during questioning
+    client_cards = []
+    for c in cards:
+        client_cards.append({
+            'id': c['id'],
+            'category': c['category'],
+            'question': c['question'],
+            'options': c['options'],
+        })
+        
+    today_str = timezone.now().strftime('%Y-%m-%d')
+    done_cache_key = f"user_drill_completed_{request.user.id}_{today_str}"
+    is_completed_today = bool(cache.get(done_cache_key))
+
+    return JsonResponse({
+        'success': True,
+        'cards': client_cards,
+        'is_completed_today': is_completed_today,
+        'xp_reward': 15,
+    })
+
+
+@login_required
+def submit_daily_micro_drill_api(request):
+    """
+    Validates micro-drill answers, calculates SM-2 memory retention metrics,
+    and awards +15 XP and maintains streak progression.
+    """
+    from learning.spaced_repetition import get_personalized_daily_drills, calculate_sm2
+    
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=400)
+
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+    except Exception:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    user_answers = data.get('answers', {})  # {'drill_id': selected_index}
+    cards = get_personalized_daily_drills(request.user, count=3)
+
+    results = []
+    correct_count = 0
+
+    for card in cards:
+        card_id = card['id']
+        selected = user_answers.get(card_id)
+        is_correct = (selected == card['correct'])
+        if is_correct:
+            correct_count += 1
+            
+        quality = 5 if is_correct else 1
+        sm2_metrics = calculate_sm2(
+            repetitions=1 if is_correct else 0,
+            easiness_factor=2.5,
+            interval_days=1,
+            quality=quality
+        )
+
+        results.append({
+            'id': card_id,
+            'category': card['category'],
+            'question': card['question'],
+            'is_correct': is_correct,
+            'user_selected': selected,
+            'correct_index': card['correct'],
+            'correct_text': card['options'][card['correct']],
+            'explanation': card['explanation'],
+            'key_takeaway': card['key_takeaway'],
+            'sm2': sm2_metrics,
+        })
+
+    # Award XP once per day for micro drill
+    today_str = timezone.now().strftime('%Y-%m-%d')
+    done_cache_key = f"user_drill_completed_{request.user.id}_{today_str}"
+    already_done = cache.get(done_cache_key)
+
+    xp_awarded = 0
+    if not already_done:
+        xp_awarded = 15 if correct_count >= 2 else 5
+        award_user_xp(request.user, xp_awarded, "Daily Knowledge Micro-Drill (SM-2)")
+        cache.set(done_cache_key, True, timeout=86400)
+
+    return JsonResponse({
+        'success': True,
+        'correct_count': correct_count,
+        'total_cards': len(cards),
+        'score_percentage': int(round((correct_count / len(cards)) * 100)),
+        'xp_awarded': xp_awarded,
+        'already_done_today': bool(already_done),
+        'results': results,
+    })
+
+

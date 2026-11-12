@@ -225,7 +225,10 @@
                         </span>
                         <div class="d-flex gap-1">
                             <button class="btn btn-xs btn-outline-info rounded-pill px-2 py-1" style="font-size: 0.75rem;" onclick="openOutreachModal({{ app.id }}, '{{ app.role_title|escapejs }}', '{{ app.company_name|escapejs }}')">
-                                <i data-lucide="sparkles" style="width: 12px; height: 12px;" class="me-1"></i> AI Outreach
+                                <i data-lucide="sparkles" style="width: 12px; height: 12px;" class="me-1"></i> Outreach
+                            </button>
+                            <button class="btn btn-xs btn-outline-primary rounded-pill px-2 py-1" style="font-size: 0.75rem;" onclick="openTailorResumeModal('{{ app.role_title|escapejs }}', '{{ app.company_name|escapejs }}', '{{ app.notes|default:''|escapejs }}')">
+                                <i data-lucide="file-text" style="width: 12px; height: 12px;" class="me-1"></i> Tailor CV
                             </button>
                             {% if app.job_url %}
                             <a href="{{ app.job_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-xs btn-outline-secondary rounded-circle p-1" title="View Job Post">
@@ -399,12 +402,174 @@
     </div>
 </div>
 
+<!-- AI Tailored Resume & ATS Matcher Modal -->
+<div class="modal fade" id="tailorResumeModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content custom-card bg-dark text-white border border-secondary border-opacity-25 shadow-2xl" style="background-color: #0f172a; border: 1px solid rgba(99, 102, 241, 0.4) !important;">
+            <div class="modal-header border-bottom border-secondary border-opacity-25">
+                <div class="d-flex align-items-center gap-2">
+                    <i data-lucide="file-check" class="text-primary" style="width: 22px; height: 22px;"></i>
+                    <h5 class="modal-title fw-bold mb-0">ATS Resume Tailor & Keyword Matcher</h5>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom border-secondary border-opacity-25">
+                    <div>
+                        <div class="fs-6 fw-bold text-white" id="tailorTargetTitle">Target: Role</div>
+                        <div class="text-secondary small" id="tailorTargetCompany">Company</div>
+                    </div>
+                    <div id="tailorScoreBadge" class="badge bg-primary fs-6 px-3 py-2 rounded-pill d-none">
+                        92% ATS Match
+                    </div>
+                </div>
+
+                <!-- Loading State -->
+                <div id="tailorLoading" class="text-center py-5">
+                    <div class="spinner-border text-primary mb-2" role="status"></div>
+                    <div class="text-secondary small">Synthesizing ATS keyword matches & tailored Google XYZ bullets...</div>
+                </div>
+
+                <!-- Tailored Content View -->
+                <div id="tailorContent" class="d-none">
+                    <!-- Keyword Match / Gap Chips -->
+                    <div class="mb-4">
+                        <div class="text-muted small fw-bold text-uppercase mb-2">Keyword Alignment</div>
+                        <div class="d-flex flex-wrap gap-2 mb-2" id="tailorMatchedKeywords"></div>
+                        <div class="d-flex flex-wrap gap-2" id="tailorMissingKeywords"></div>
+                    </div>
+
+                    <!-- Tailored Summary -->
+                    <div class="mb-4">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <label class="form-label text-muted small fw-bold text-uppercase mb-0">Tailored Professional Summary</label>
+                            <button type="button" class="btn btn-link text-primary p-0 small text-decoration-none" onclick="copyOutreachField('tailorSummaryText')">
+                                <i data-lucide="copy" style="width: 13px; height: 13px;"></i> Copy Summary
+                            </button>
+                        </div>
+                        <textarea id="tailorSummaryText" class="form-control bg-secondary bg-opacity-25 text-white border-secondary border-opacity-25 small" rows="3" readonly></textarea>
+                    </div>
+
+                    <!-- Tailored Google-XYZ Bullets -->
+                    <div class="mb-4">
+                        <div class="text-muted small fw-bold text-uppercase mb-2">Tailored Accomplishment Bullets (STAR / XYZ)</div>
+                        <div id="tailorBulletsList" class="d-flex flex-column gap-2"></div>
+                    </div>
+
+                    <!-- Interview Talking Points -->
+                    <div class="p-3 rounded-3 bg-primary bg-opacity-10 border border-primary border-opacity-25">
+                        <div class="d-flex align-items-center gap-2 mb-2 text-primary small fw-bold">
+                            <i data-lucide="sparkles" style="width: 15px; height: 15px;"></i> Interview Talking Points
+                        </div>
+                        <ul class="mb-0 text-secondary small ps-3" id="tailorTalkingPointsList"></ul>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-top border-secondary border-opacity-25">
+                <a href="/resume-builder/" class="btn btn-outline-light btn-sm px-3">
+                    <i data-lucide="edit-3" style="width: 14px; height: 14px;" class="me-1"></i> Open Resume Studio
+                </a>
+                <button type="button" class="btn btn-secondary-custom btn-sm px-3" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
 <script>
 let currentJobId = null;
 let currentOutreachType = 'linkedin';
+
+function openTailorResumeModal(role, company, notes) {
+    if (window.SkillSphereSFX) SkillSphereSFX.play('click');
+    document.getElementById('tailorTargetTitle').textContent = `Target: ${role}`;
+    document.getElementById('tailorTargetCompany').textContent = company;
+    document.getElementById('tailorLoading').classList.remove('d-none');
+    document.getElementById('tailorContent').classList.add('d-none');
+    document.getElementById('tailorScoreBadge').classList.add('d-none');
+
+    const modalEl = document.getElementById('tailorResumeModal');
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    modal.show();
+
+    fetch('/resume-builder/tailor-for-job/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            job_title: role,
+            company_name: company,
+            job_description: notes
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        document.getElementById('tailorLoading').classList.add('d-none');
+        if (data.success && data.tailored) {
+            if (window.SkillSphereSFX) SkillSphereSFX.play('success');
+            const t = data.tailored;
+            document.getElementById('tailorContent').classList.remove('d-none');
+
+            // Score Badge
+            const scoreEl = document.getElementById('tailorScoreBadge');
+            scoreEl.textContent = `${t.match_score || 85}% ATS Match`;
+            scoreEl.classList.remove('d-none');
+
+            // Matched keywords
+            const matchedContainer = document.getElementById('tailorMatchedKeywords');
+            matchedContainer.innerHTML = '<span class="text-secondary small me-1">Matched:</span>';
+            (t.matched_keywords || []).forEach(kw => {
+                matchedContainer.innerHTML += `<span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-50 small rounded-pill px-2 py-1">${kw}</span>`;
+            });
+
+            // Missing keywords
+            const missingContainer = document.getElementById('tailorMissingKeywords');
+            missingContainer.innerHTML = '<span class="text-secondary small me-1">Target to add:</span>';
+            (t.missing_keywords || []).forEach(kw => {
+                missingContainer.innerHTML += `<span class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-50 small rounded-pill px-2 py-1">${kw}</span>`;
+            });
+
+            // Summary
+            document.getElementById('tailorSummaryText').value = t.tailored_summary || '';
+
+            // Bullets
+            const bulletsList = document.getElementById('tailorBulletsList');
+            bulletsList.innerHTML = '';
+            (t.tailored_bullets || []).forEach(bullet => {
+                const item = document.createElement('div');
+                item.className = 'p-2.5 rounded bg-secondary bg-opacity-25 text-light small d-flex align-items-start justify-content-between gap-2';
+                item.innerHTML = `
+                    <span>• ${bullet}</span>
+                    <button class="btn btn-link text-primary p-0 flex-shrink-0" onclick="navigator.clipboard.writeText('${bullet.replace(/'/g, "\\'")}'); if(window.SkillSphereSFX) SkillSphereSFX.play('patch');" title="Copy bullet">
+                        <i data-lucide="copy" style="width: 13px; height: 13px;"></i>
+                    </button>
+                `;
+                bulletsList.appendChild(item);
+            });
+
+            // Talking Points
+            const talkingList = document.getElementById('tailorTalkingPointsList');
+            talkingList.innerHTML = '';
+            (t.interview_talking_points || []).forEach(tp => {
+                const li = document.createElement('li');
+                li.textContent = tp;
+                talkingList.appendChild(li);
+            });
+
+            if (window.lucide) lucide.createIcons();
+        } else {
+            alert(data.error || 'Failed to tailor resume.');
+        }
+    })
+    .catch(err => {
+        document.getElementById('tailorLoading').classList.add('d-none');
+        alert('Network error tailoring resume.');
+    });
+}
 
 function openOutreachModal(jobId, role, company) {
     currentJobId = jobId;

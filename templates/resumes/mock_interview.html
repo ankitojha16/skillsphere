@@ -165,24 +165,30 @@
                         <div class="text-secondary small font-monospace">Overall Readiness Score</div>
                     </div>
 
-                    <!-- 3 Dimension Gauges -->
+                    <!-- 4-Pillar FAANG Rubric Scorecard -->
                     <div class="row g-2 mb-3">
-                        <div class="col-4">
+                        <div class="col-3">
                             <div class="p-2 rounded-2 text-center" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);">
                                 <div class="text-info fw-bold mb-0" id="resAccuracyScore">85%</div>
-                                <div class="text-secondary" style="font-size: 0.7rem;">Accuracy</div>
+                                <div class="text-secondary" style="font-size: 0.68rem;">Accuracy</div>
                             </div>
                         </div>
-                        <div class="col-4">
+                        <div class="col-3">
                             <div class="p-2 rounded-2 text-center" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);">
                                 <div class="text-success fw-bold mb-0" id="resClarityScore">90%</div>
-                                <div class="text-secondary" style="font-size: 0.7rem;">Clarity</div>
+                                <div class="text-secondary" style="font-size: 0.68rem;">Clarity</div>
                             </div>
                         </div>
-                        <div class="col-4">
+                        <div class="col-3">
                             <div class="p-2 rounded-2 text-center" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);">
                                 <div class="text-warning fw-bold mb-0" id="resStarScore">75%</div>
-                                <div class="text-secondary" style="font-size: 0.7rem;">STAR Fit</div>
+                                <div class="text-secondary" style="font-size: 0.68rem;">STAR Fit</div>
+                            </div>
+                        </div>
+                        <div class="col-3">
+                            <div class="p-2 rounded-2 text-center" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);">
+                                <div class="text-primary fw-bold mb-0" id="resScaleScore">82%</div>
+                                <div class="text-secondary" style="font-size: 0.68rem;">Edge/Scale</div>
                             </div>
                         </div>
                     </div>
@@ -424,6 +430,15 @@
         document.getElementById('resAccuracyScore').innerText = `${res.accuracy_score || 0}%`;
         document.getElementById('resClarityScore').innerText = `${res.clarity_score || 0}%`;
         document.getElementById('resStarScore').innerText = `${res.star_adherence || 0}%`;
+        
+        const scaleScore = res.edge_case_score || Math.min(95, Math.max(60, Math.round(((res.accuracy_score || 80) + (res.star_adherence || 75)) / 2)));
+        const scaleEl = document.getElementById('resScaleScore');
+        if (scaleEl) scaleEl.innerText = `${scaleScore}%`;
+
+        if (window.SkillSphereSFX) {
+            if (overall >= 75) SkillSphereSFX.play('victory');
+            else SkillSphereSFX.play('combo');
+        }
 
         const tierBadge = document.getElementById('scoreTierBadge');
         if (overall >= 85) {

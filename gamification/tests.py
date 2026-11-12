@@ -125,5 +125,24 @@ class LeagueAndDuelTests(TestCase):
         self.assertEqual(len(data.get('questions', [])), 5)
         self.assertIn('Clickjacking', data['questions'][0]['question'])
 
+    def test_public_user_badge_svg_endpoint(self):
+        self.client.logout()
+        # Test badge generation for existing user
+        resp = self.client.get(reverse('gamification:user_badge', kwargs={'username': self.user.username}))
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp['Content-Type'], 'image/svg+xml')
+        content = resp.content.decode('utf-8')
+        self.assertIn(f'aria-label="SkillSphere Badge for {self.user.username}"', content)
+        self.assertIn('Bronze League', content)
+        self.assertIn('Experience', content)
+        self.assertIn('Streak', content)
+
+        # Test fallback for non-existent username
+        resp_fallback = self.client.get(reverse('gamification:user_badge', kwargs={'username': 'ghost_developer'}))
+        self.assertEqual(resp_fallback.status_code, 200)
+        self.assertEqual(resp_fallback['Content-Type'], 'image/svg+xml')
+        self.assertIn('ghost_developer', resp_fallback.content.decode('utf-8'))
+
+
 
 

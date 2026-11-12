@@ -91,6 +91,32 @@
     </div>
     {% endif %}
 
+    <!-- Daily Knowledge Micro-Drill (SM-2 Spaced Repetition Engine) Banner -->
+    <div class="custom-card p-3 mb-4" style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(30, 41, 59, 0.7) 100%); border: 1px solid rgba(245, 158, 11, 0.35);">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 44px; height: 44px; background: rgba(245, 158, 11, 0.2); border: 1px solid rgba(245, 158, 11, 0.4);">
+                    <i data-lucide="zap" class="text-warning" style="width: 22px; height: 22px;"></i>
+                </div>
+                <div>
+                    <div class="d-flex align-items-center gap-2">
+                        <h5 class="fw-bold text-white mb-0">Daily Knowledge Warm-Up</h5>
+                        <span class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-50 small rounded-pill px-2 py-0.5">+15 XP SM-2 Spaced Repetition</span>
+                    </div>
+                    <p class="text-secondary small mb-0">
+                        3 rapid micro-cards scheduled by the SuperMemo SM-2 algorithm to prevent knowledge decay and boost retention.
+                    </p>
+                </div>
+            </div>
+            <div>
+                <button type="button" class="btn btn-warning px-4 py-2 rounded-pill fw-bold d-inline-flex align-items-center gap-2 text-dark shadow-sm" onclick="openDailyDrillModal()">
+                    <i data-lucide="play-circle" style="width: 17px; height: 17px;"></i>
+                    <span>Start 2-Min Warm-Up</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- 4 Statistics Cards (Phase 1 Baseline) -->
     <div class="row g-4 mb-4">
         <div class="col-sm-6 col-xl-3">
@@ -1011,5 +1037,231 @@
             }, 1200);
         }
     });
+
+    // ==========================================
+    // Daily Micro-Drill (SM-2 Spaced Repetition)
+    // ==========================================
+    let drillCards = [];
+    let currentDrillIdx = 0;
+    let drillAnswers = {};
+
+    function openDailyDrillModal() {
+        if (window.SkillSphereSFX) SkillSphereSFX.play('click');
+        const modalEl = document.getElementById('dailyDrillModal');
+        if (!modalEl) return;
+
+        // Reset view
+        document.getElementById('drillLoadingView').classList.remove('d-none');
+        document.getElementById('drillActiveView').classList.add('d-none');
+        document.getElementById('drillResultsView').classList.add('d-none');
+
+        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        modal.show();
+
+        // Fetch daily cards
+        fetch('{% url "dashboard:daily_drill_get" %}')
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.cards && data.cards.length > 0) {
+                    drillCards = data.cards;
+                    currentDrillIdx = 0;
+                    drillAnswers = {};
+                    document.getElementById('drillLoadingView').classList.add('d-none');
+                    document.getElementById('drillActiveView').classList.remove('d-none');
+                    renderDrillCard();
+                } else {
+                    document.getElementById('drillLoadingView').innerHTML = '<div class="text-secondary py-4">No drill cards scheduled for today. Check back tomorrow!</div>';
+                }
+            })
+            .catch(err => {
+                document.getElementById('drillLoadingView').innerHTML = '<div class="text-danger py-4">Failed to load daily drills. Please try again.</div>';
+            });
+    }
+
+    function renderDrillCard() {
+        const card = drillCards[currentDrillIdx];
+        if (!card) return;
+
+        document.getElementById('drillCardCounter').innerText = `Card ${currentDrillIdx + 1} of ${drillCards.length}`;
+        document.getElementById('drillCategoryBadge').innerText = card.category;
+        document.getElementById('drillQuestionText').innerText = card.question;
+
+        const optionsContainer = document.getElementById('drillOptionsContainer');
+        optionsContainer.innerHTML = '';
+
+        card.options.forEach((optText, optIdx) => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            const isSelected = (drillAnswers[card.id] === optIdx);
+            btn.className = `btn w-100 text-start p-3 rounded-3 mb-2 d-flex align-items-center justify-content-between transition-all ${isSelected ? 'btn-warning text-dark fw-bold' : 'btn-dark border border-secondary border-opacity-50 text-white'}`;
+            btn.innerHTML = `
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge ${isSelected ? 'bg-dark text-warning' : 'bg-secondary bg-opacity-25 text-white'} rounded-circle px-2 py-1">${String.fromCharCode(65 + optIdx)}</span>
+                    <span>${optText}</span>
+                </div>
+                ${isSelected ? '<i data-lucide="check-circle" style="width: 18px; height: 18px;"></i>' : ''}
+            `;
+            btn.onclick = () => {
+                if (window.SkillSphereSFX) SkillSphereSFX.play('click');
+                drillAnswers[card.id] = optIdx;
+                renderDrillCard();
+            };
+            optionsContainer.appendChild(btn);
+        });
+
+        // Toggle nav buttons
+        document.getElementById('drillPrevBtn').disabled = (currentDrillIdx === 0);
+        const nextBtn = document.getElementById('drillNextBtn');
+        const submitBtn = document.getElementById('drillSubmitBtn');
+
+        if (currentDrillIdx === drillCards.length - 1) {
+            nextBtn.classList.add('d-none');
+            submitBtn.classList.remove('d-none');
+        } else {
+            nextBtn.classList.remove('d-none');
+            submitBtn.classList.add('d-none');
+        }
+
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function navigateDrill(step) {
+        if (window.SkillSphereSFX) SkillSphereSFX.play('click');
+        currentDrillIdx = Math.max(0, Math.min(drillCards.length - 1, currentDrillIdx + step));
+        renderDrillCard();
+    }
+
+    function submitDailyDrill() {
+        const submitBtn = document.getElementById('drillSubmitBtn');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Evaluating SM-2...';
+
+        fetch('{% url "dashboard:daily_drill_submit" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({ answers: drillAnswers })
+        })
+        .then(res => res.json())
+        .then(data => {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'Complete Warm-Up';
+            if (data.success) {
+                renderDrillResults(data);
+            } else {
+                alert(data.error || 'Evaluation failed.');
+            }
+        })
+        .catch(err => {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'Complete Warm-Up';
+            alert('Network error submitting drill.');
+        });
+    }
+
+    function renderDrillResults(data) {
+        if (window.SkillSphereSFX) {
+            if (data.correct_count >= 2) SkillSphereSFX.play('victory');
+            else SkillSphereSFX.play('combo');
+        }
+
+        document.getElementById('drillActiveView').classList.add('d-none');
+        const resultsView = document.getElementById('drillResultsView');
+        resultsView.classList.remove('d-none');
+
+        document.getElementById('drillResultScore').innerText = `${data.correct_count}/${data.total_cards} Correct`;
+        document.getElementById('drillResultXp').innerText = data.xp_awarded > 0 ? `+${data.xp_awarded} XP Earned!` : 'Daily Drill Reviewed';
+
+        const listEl = document.getElementById('drillResultsList');
+        listEl.innerHTML = '';
+
+        data.results.forEach((r, idx) => {
+            const cardEl = document.createElement('div');
+            cardEl.className = `p-3 rounded-3 mb-2 border ${r.is_correct ? 'bg-success bg-opacity-10 border-success border-opacity-30' : 'bg-danger bg-opacity-10 border-danger border-opacity-30'}`;
+            cardEl.innerHTML = `
+                <div class="d-flex align-items-center justify-content-between mb-1">
+                    <span class="small fw-bold ${r.is_correct ? 'text-success' : 'text-danger'}">Card ${idx + 1}: ${r.is_correct ? 'Optimal Recall ✓' : 'Review Needed ✗'}</span>
+                    <span class="badge bg-dark border border-secondary border-opacity-50 text-white font-monospace small">Next Review: In ${r.sm2.interval_days} Day(s)</span>
+                </div>
+                <div class="text-white small fw-semibold mb-1">${r.question}</div>
+                <div class="small text-secondary mb-2">${r.explanation}</div>
+                <div class="p-2 rounded bg-dark small text-warning font-monospace" style="font-size: 0.76rem;">💡 Takeaway: ${r.key_takeaway}</div>
+            `;
+            listEl.appendChild(cardEl);
+        });
+
+        if (window.lucide) lucide.createIcons();
+    }
 </script>
+
+<!-- Daily Knowledge Micro-Drill Modal (SM-2 Spaced Repetition) -->
+<div class="modal fade" id="dailyDrillModal" tabindex="-1" aria-labelledby="dailyDrillModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content custom-card border-0 shadow-2xl" style="background-color: #0f172a; border: 1px solid rgba(245, 158, 11, 0.4) !important;">
+            <div class="modal-header border-bottom border-secondary border-opacity-25 pb-3">
+                <div class="d-flex align-items-center gap-2">
+                    <i data-lucide="zap" class="text-warning" style="width: 22px; height: 22px;"></i>
+                    <h5 class="modal-title fw-bold text-white mb-0" id="dailyDrillModalLabel">Daily Knowledge Warm-Up (SM-2 Spaced Repetition)</h5>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <!-- Loading State -->
+                <div id="drillLoadingView" class="text-center py-5">
+                    <div class="spinner-border text-warning mb-2" role="status"></div>
+                    <div class="text-secondary small">Synthesizing personalized micro-drill deck...</div>
+                </div>
+
+                <!-- Active Question View -->
+                <div id="drillActiveView" class="d-none">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <span class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-50 small rounded-pill px-2.5 py-1" id="drillCategoryBadge">Category</span>
+                        <span class="text-secondary small fw-bold font-monospace" id="drillCardCounter">Card 1 of 3</span>
+                    </div>
+
+                    <div class="p-4 rounded-4 bg-dark bg-opacity-60 border border-secondary border-opacity-25 mb-4 shadow-sm">
+                        <h5 class="text-white fw-bold mb-0 lh-base" id="drillQuestionText">Question text here...</h5>
+                    </div>
+
+                    <div id="drillOptionsContainer" class="mb-4">
+                        <!-- Options injected dynamically -->
+                    </div>
+
+                    <div class="d-flex align-items-center justify-content-between pt-2 border-top border-secondary border-opacity-25">
+                        <button type="button" id="drillPrevBtn" class="btn btn-outline-secondary px-3" onclick="navigateDrill(-1)">
+                            <i data-lucide="arrow-left" style="width: 15px; height: 15px;"></i> Previous
+                        </button>
+                        <div>
+                            <button type="button" id="drillNextBtn" class="btn btn-primary-custom px-4" onclick="navigateDrill(1)">
+                                Next Card <i data-lucide="arrow-right" style="width: 15px; height: 15px;"></i>
+                            </button>
+                            <button type="button" id="drillSubmitBtn" class="btn btn-warning px-4 fw-bold text-dark d-none" onclick="submitDailyDrill()">
+                                <i data-lucide="check-circle" style="width: 15px; height: 15px;"></i> Complete Warm-Up
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Results & SM-2 Explanation View -->
+                <div id="drillResultsView" class="d-none text-center">
+                    <div class="display-6 fw-bold text-warning mb-1" id="drillResultScore">3/3 Correct</div>
+                    <div class="fs-5 text-white fw-semibold mb-3" id="drillResultXp">+15 XP Earned!</div>
+                    <p class="text-secondary small mb-4">
+                        The SuperMemo SM-2 engine has recalibrated your memory intervals. Next review dates have been scheduled for these concepts.
+                    </p>
+
+                    <div class="text-start mb-4" id="drillResultsList">
+                        <!-- Result cards injected dynamically -->
+                    </div>
+
+                    <button type="button" class="btn btn-secondary-custom px-4" data-bs-dismiss="modal" onclick="window.location.reload()">
+                        Return to Dashboard
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}

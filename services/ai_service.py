@@ -1603,6 +1603,119 @@ class AIService:
             cls._cache_set(cache_key, data, timeout=3600)
         return data
 
+    @classmethod
+    def tailor_resume_for_job(
+        cls,
+        resume_data: Dict[str, Any],
+        job_title: str,
+        company_name: str,
+        job_description: str,
+        user_id: Optional[int] = None
+    ) -> Dict[str, Any]:
+        """
+        Synthesizes an ATS-tailored resume draft, keyword alignment analysis,
+        and high-impact STAR/Google-XYZ bullet points specifically tuned for a target job.
+        Strictly user-scoped caching ensures candidate privacy.
+        """
+        candidate_skills = resume_data.get('skills', [])
+        skills_str = ', '.join(candidate_skills) if isinstance(candidate_skills, list) else str(candidate_skills)
+        summary = resume_data.get('summary', '')
+        projects = resume_data.get('projects', [])
+
+        scope = f"user_{user_id}" if user_id else "anonymous"
+        content_hash = f"{job_title}:{company_name}:{skills_str}:{summary[:200]}"
+        cache_key = cls._build_cache_key("res_tailor", scope, content_hash)
+        cached = cls._cache_get(cache_key)
+        if cached:
+            return cached
+
+        ai_prompt = (
+            f"Candidate Skills: {skills_str}\n"
+            f"Current Summary: {summary[:400]}\n"
+            f"Target Company: {company_name or 'Tech Company'}\n"
+            f"Target Role: {job_title or 'Software Engineer'}\n"
+            f"Job Description / Key Requirements:\n{(job_description or 'Python, SQL, REST APIs, System Design')[:1500]}\n"
+        )
+
+        system_prompt = (
+            "You are a Senior Technical Recruiter and Career Coach at a top-tier tech firm. "
+            "Tailor the candidate's profile specifically to the target role and company without fabricating qualifications. "
+            "Return ONLY a valid raw JSON object with the following keys:\n"
+            "- `match_score` (integer 60-100): ATS alignment percentage\n"
+            "- `tailored_headline` (string): high-impact target job headline\n"
+            "- `tailored_summary` (string): 3-sentence action-oriented summary tailored to this company and role\n"
+            "- `matched_keywords` (list of strings): relevant keywords found in both job and candidate profile\n"
+            "- `missing_keywords` (list of strings): important keywords from the job description the candidate should study\n"
+            "- `tailored_bullets` (list of 3 strings): accomplishment-driven bullet points using the Google XYZ formula (Accomplished [X], measured by [Y], by doing [Z])\n"
+            "- `interview_talking_points` (list of 2-3 strings): concrete project discussion hooks to mention during interviews"
+        )
+
+        def validate_tailor_schema(data: Any) -> bool:
+            if not isinstance(data, dict):
+                return False
+            required_keys = ['match_score', 'tailored_headline', 'tailored_summary', 'matched_keywords', 'missing_keywords', 'tailored_bullets']
+            return all(k in data for k in required_keys)
+
+        def get_fallback_tailor() -> Dict[str, Any]:
+            comp = company_name or "the engineering team"
+            role = job_title or "Software Engineer"
+            clean_skills = candidate_skills if isinstance(candidate_skills, list) and candidate_skills else ["Python", "SQL", "Git", "REST APIs"]
+            
+            # Simple keyword matching
+            jd_lower = (job_description + " " + job_title).lower()
+            matched = [s for s in clean_skills if s.lower() in jd_lower]
+            if not matched:
+                matched = clean_skills[:3]
+                
+            industry_common = ["Docker", "Kubernetes", "AWS", "CI/CD", "PostgreSQL", "Redis", "TypeScript"]
+            missing = [kw for kw in industry_common if kw.lower() in jd_lower and kw not in matched][:4]
+            if not missing:
+                missing = ["CI/CD Pipelines", "System Architecture"]
+
+            match_score = min(96, max(68, 65 + len(matched) * 6))
+
+            headline = f"{role} | Specializing in {', '.join(matched[:2])}"
+            summary_tailored = (
+                f"Results-oriented {role} with verified proficiency in {', '.join(matched[:3])}. "
+                f"Passionate about building scalable, maintainable distributed systems and solving high-impact problems at {comp}. "
+                f"Proven track record of shipping end-to-end applications with rigorous automated testing and clean software architecture."
+            )
+
+            bullets = [
+                f"Architected modular applications utilizing {matched[0] if matched else 'modern frameworks'}, improving system testability and reducing code complexity.",
+                f"Optimized database queries and API endpoints across core services, achieving sub-100ms response times for high-volume transactions.",
+                f"Implemented automated CI/CD pipelines with comprehensive unit and integration test coverage, accelerating deployment cycle reliability."
+            ]
+
+            talking_points = [
+                f"Walk through your architectural design decisions when implementing {matched[0] if matched else 'core services'}.",
+                f"Highlight how your SkillSphere capstone project solves real-world data bottlenecks relevant to {comp}'s mission.",
+                f"Discuss trade-offs you evaluated when optimizing API performance and handling concurrent database writes."
+            ]
+
+            return {
+                "match_score": match_score,
+                "tailored_headline": headline,
+                "tailored_summary": summary_tailored,
+                "matched_keywords": matched,
+                "missing_keywords": missing,
+                "tailored_bullets": bullets,
+                "interview_talking_points": talking_points,
+                "is_fallback": True
+            }
+
+        data, meta = cls.generate_structured_json(
+            prompt=ai_prompt,
+            system_instruction=system_prompt,
+            validator_fn=validate_tailor_schema,
+            fallback_fn=get_fallback_tailor
+        )
+
+        if not meta.get('is_fallback'):
+            data['is_fallback'] = False
+            cls._cache_set(cache_key, data, timeout=3600)
+        return data
+
     # ------------------------------------------------------------------------
     # Feature 6: Resume Copy Generators (User-Isolated Caching)
     # ------------------------------------------------------------------------

@@ -3,7 +3,7 @@ import random
 from datetime import timedelta
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.utils import timezone
 from django.db.models import Sum
 from django.contrib.auth.models import User
@@ -616,5 +616,50 @@ def submit_duel_api(request):
         'xp_awarded': xp_awarded,
         'feedback': feedback,
     })
+
+
+def public_user_badge_svg(request, username: str):
+    """
+    Public dynamic SVG badge generator for GitHub READMEs, personal portfolios, and blogs.
+    Caches for 5 minutes with stale-while-revalidate for fast GitHub asset proxy loads.
+    """
+    from .badges import generate_github_badge_svg
+    
+    try:
+        target_user = User.objects.get(username=username)
+        gamification = get_or_create_gamification(target_user)
+        
+        # Calculate tier
+        if gamification.total_xp >= 3000:
+            tier = 'DIAMOND'
+        elif gamification.total_xp >= 1500:
+            tier = 'GOLD'
+        elif gamification.total_xp >= 500:
+            tier = 'SILVER'
+        else:
+            tier = 'BRONZE'
+            
+        duels_won = SkillDuel.objects.filter(winner=target_user).count()
+        total_xp = gamification.total_xp
+        streak = gamification.current_streak
+    except User.DoesNotExist:
+        tier = 'BRONZE'
+        total_xp = 0
+        streak = 1
+        duels_won = 0
+
+    svg_content = generate_github_badge_svg(
+        username=username,
+        tier=tier,
+        total_xp=total_xp,
+        streak=streak,
+        duels_won=duels_won,
+    )
+    
+    response = HttpResponse(svg_content, content_type='image/svg+xml')
+    response['Cache-Control'] = 'public, max-age=300, stale-while-revalidate=600'
+    response['Access-Control-Allow-Origin'] = '*'
+    return response
+
 
 

@@ -1,3 +1,4 @@
+import json
 from django.test import TestCase, Client
 from django.contrib.auth.models import User
 from django.urls import reverse
@@ -127,6 +128,47 @@ class DashboardTests(TestCase):
         self.assertContains(response, 'splash-stage')
         self.assertContains(response, 'opening-animation.css')
         self.assertContains(response, 'opening-animation.js')
+        # Check daily micro drill SM-2 UI components
+        self.assertContains(response, 'Daily Knowledge Warm-Up')
+        self.assertContains(response, 'dailyDrillModal')
+
+    def test_daily_micro_drill_apis_and_sm2(self):
+        from learning.spaced_repetition import calculate_sm2
+        
+        # Test SM-2 calculation
+        sm2_perfect = calculate_sm2(repetitions=0, easiness_factor=2.5, interval_days=1, quality=5)
+        self.assertEqual(sm2_perfect['repetitions'], 1)
+        self.assertEqual(sm2_perfect['interval_days'], 1)
+        self.assertEqual(sm2_perfect['status'], 'memorized')
+
+        sm2_fail = calculate_sm2(repetitions=2, easiness_factor=2.5, interval_days=6, quality=1)
+        self.assertEqual(sm2_fail['repetitions'], 0)
+        self.assertEqual(sm2_fail['interval_days'], 1)
+        self.assertEqual(sm2_fail['status'], 'relearning')
+
+        self.client.force_login(self.user)
+        # Test GET drill cards
+        resp_get = self.client.get(reverse('dashboard:daily_drill_get'))
+        self.assertEqual(resp_get.status_code, 200)
+        data_get = resp_get.json()
+        self.assertTrue(data_get['success'])
+        self.assertEqual(len(data_get['cards']), 3)
+        self.assertNotIn('correct', data_get['cards'][0])  # ensure answers aren't leaked
+
+        # Test POST submit drill answers
+        card_id = data_get['cards'][0]['id']
+        resp_post = self.client.post(
+            reverse('dashboard:daily_drill_submit'),
+            data=json.dumps({'answers': {card_id: 1}}),
+            content_type='application/json'
+        )
+        self.assertEqual(resp_post.status_code, 200)
+        data_post = resp_post.json()
+        self.assertTrue(data_post['success'])
+        self.assertIn('correct_count', data_post)
+        self.assertEqual(data_post['total_cards'], 3)
+        self.assertIn('sm2', data_post['results'][0])
+
 
 
 

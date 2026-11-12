@@ -317,5 +317,28 @@ class ResumeTests(TestCase):
         )
         self.assertEqual(resp.status_code, 400)
 
+    def test_tailor_resume_for_job_api(self):
+        """Verify the AI Resume Tailor generates keyword alignments and STAR bullets."""
+        resp = self.client.post(
+            reverse('resumes:tailor_for_job'),
+            data=json.dumps({
+                'job_title': 'Senior Backend Engineer',
+                'company_name': 'Stripe',
+                'job_description': 'Seeking an engineer skilled in Python, SQL, REST APIs, and Docker.'
+            }),
+            content_type='application/json'
+        )
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertTrue(data.get('success'))
+        tailored = data.get('tailored', {})
+        self.assertIn('match_score', tailored)
+        self.assertIn('tailored_headline', tailored)
+        self.assertIn('tailored_summary', tailored)
+        self.assertIn('tailored_bullets', tailored)
+        self.assertGreaterEqual(len(tailored['tailored_bullets']), 2)
+        self.assertIn('matched_keywords', tailored)
+
+
 
 

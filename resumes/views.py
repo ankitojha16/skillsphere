@@ -217,9 +217,76 @@ def ai_improve_view(request):
             analysis = AIService.check_ats_readability(resume_data, job_desc, user_id=request.user.id)
             return JsonResponse({'success': True, 'analysis': analysis})
 
+        elif action_type == 'tailor_for_job':
+            resume_data = body.get('resume_data')
+            if not resume_data:
+                primary_res = Resume.objects.filter(user=request.user, is_primary=True).first() or Resume.objects.filter(user=request.user).first()
+                if primary_res:
+                    resume_data = {
+                        'skills': primary_res.skills,
+                        'summary': primary_res.summary,
+                        'projects': primary_res.projects,
+                        'experience': primary_res.experience,
+                    }
+                else:
+                    resume_data = {'skills': ['Python', 'SQL', 'Git'], 'summary': '', 'projects': []}
+
+            job_title = body.get('job_title', 'Software Engineer')
+            company_name = body.get('company_name', '')
+            job_description = body.get('job_description', '')
+
+            result = AIService.tailor_resume_for_job(
+                resume_data=resume_data,
+                job_title=job_title,
+                company_name=company_name,
+                job_description=job_description,
+                user_id=request.user.id
+            )
+            return JsonResponse({'success': True, 'tailored': result})
+
         return JsonResponse({'error': 'Unknown action type'}, status=400)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required
+def tailor_resume_ajax(request):
+    """
+    Dedicated endpoint for the Kanban Job Tracker to generate ATS-tailored
+    resume summaries, matching keywords, and bullet points on-the-fly.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=400)
+    try:
+        body = json.loads(request.body.decode('utf-8'))
+        job_title = body.get('job_title', 'Software Engineer')
+        company_name = body.get('company_name', '')
+        job_description = body.get('job_description', '')
+
+        primary_res = Resume.objects.filter(user=request.user, is_primary=True).first() or Resume.objects.filter(user=request.user).first()
+        if primary_res:
+            resume_data = {
+                'skills': primary_res.skills,
+                'summary': primary_res.summary,
+                'projects': primary_res.projects,
+                'experience': primary_res.experience,
+            }
+        else:
+            profile = getattr(request.user, 'profile', None)
+            skills = profile.get_interests_list() if profile else ['Python', 'SQL', 'Git']
+            resume_data = {'skills': skills, 'summary': '', 'projects': []}
+
+        result = AIService.tailor_resume_for_job(
+            resume_data=resume_data,
+            job_title=job_title,
+            company_name=company_name,
+            job_description=job_description,
+            user_id=request.user.id
+        )
+        return JsonResponse({'success': True, 'tailored': result})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
 
 
 # Standard Curated Interview Question Bank

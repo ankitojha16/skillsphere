@@ -592,6 +592,10 @@ print(f"Total topics completed: {total}")
                                                 <i data-lucide="help-circle" style="width: 14px; height: 14px;"></i>
                                                 <span id="socraticDebugBtnText">Explain Bug & Guide Me</span>
                                             </button>
+                                            <button type="button" id="visualizeCodeBtn" class="btn btn-outline-info btn-sm py-1.5 px-3 d-inline-flex align-items-center gap-1.5" onclick="toggleMemoryVisualizer()" title="Step-by-step visual execution & memory diagram">
+                                                <i data-lucide="eye" style="width: 14px; height: 14px;"></i>
+                                                <span id="visualizeBtnText">Memory Visualizer</span>
+                                            </button>
                                         </div>
                                         <div id="wasmMeter" class="text-secondary small font-monospace" style="font-size: 0.78rem;">
                                             ⚡ Zero Server Load • 100% In-Browser
@@ -663,6 +667,84 @@ print(f"Total topics completed: {total}")
                                                         <button type="button" class="btn btn-outline-secondary btn-sm py-1 px-2.5 text-white" onclick="copyPatchedCode()">
                                                             <span>Copy Code</span>
                                                         </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Live Memory & Variable Visualizer Drawer -->
+                                    <div id="memoryVisualizerContainer" class="d-none mt-3 p-3 rounded-3 border" style="background-color: #0b1120; border-color: rgba(6, 182, 212, 0.4) !important;">
+                                        <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 pb-2 border-bottom border-secondary border-opacity-25 gap-2">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <span class="badge bg-info bg-opacity-20 text-info px-2.5 py-1 font-monospace">Python Execution Tracer</span>
+                                                <span class="text-white small fw-bold">Live Memory & Stack Frames</span>
+                                                <span class="badge bg-dark border border-secondary text-secondary small font-monospace" id="visCurrentLineBadge">Line 1</span>
+                                            </div>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <span class="text-secondary small font-monospace" id="visStepCounter">Step 1 of 1</span>
+                                                <button type="button" class="btn-close btn-close-white btn-sm" onclick="toggleMemoryVisualizer()" aria-label="Close"></button>
+                                            </div>
+                                        </div>
+
+                                        <!-- Stepper Navigation Toolbar -->
+                                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 p-2 rounded bg-dark border border-secondary border-opacity-25 mb-3">
+                                            <div class="d-flex align-items-center gap-1.5">
+                                                <button type="button" class="btn btn-outline-secondary btn-sm px-2.5 py-1 text-white" onclick="stepVisualizer('first')" title="Jump to start">
+                                                    <i data-lucide="chevrons-left" style="width: 14px; height: 14px;"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-outline-info btn-sm px-3 py-1" onclick="stepVisualizer(-1)" title="Previous Step">
+                                                    <i data-lucide="chevron-left" style="width: 14px; height: 14px;"></i> Prev
+                                                </button>
+                                                <button type="button" class="btn btn-primary-custom btn-sm px-3 py-1" onclick="stepVisualizer(1)" title="Next Step">
+                                                    Next <i data-lucide="chevron-right" style="width: 14px; height: 14px;"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-outline-secondary btn-sm px-2.5 py-1 text-white" onclick="stepVisualizer('last')" title="Jump to end">
+                                                    <i data-lucide="chevrons-right" style="width: 14px; height: 14px;"></i>
+                                                </button>
+                                            </div>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <button type="button" id="visAutoPlayBtn" class="btn btn-outline-success btn-sm px-3 py-1" onclick="toggleAutoPlayVisualizer()">
+                                                    <i data-lucide="play" style="width: 13px; height: 13px;"></i> Auto-Step
+                                                </button>
+                                                <span class="text-muted font-monospace small" style="font-size: 0.72rem;">AST Frame Inspection</span>
+                                            </div>
+                                        </div>
+
+                                        <!-- Memory Canvas Layout: Stack vs Heap -->
+                                        <div class="row g-3">
+                                            <!-- Call Stack & Local Variables (Left) -->
+                                            <div class="col-md-5">
+                                                <div class="p-3 rounded-3 bg-dark bg-opacity-75 border border-secondary border-opacity-25 h-100">
+                                                    <div class="text-muted small fw-bold text-uppercase mb-2 d-flex justify-content-between">
+                                                        <span>Call Stack Frames</span>
+                                                        <span id="visFrameScope" class="text-info font-monospace">&lt;global&gt;</span>
+                                                    </div>
+                                                    <div class="table-responsive">
+                                                        <table class="table table-dark table-sm table-borderless align-middle mb-0 font-monospace small">
+                                                            <thead>
+                                                                <tr class="text-secondary border-bottom border-secondary border-opacity-25" style="font-size: 0.72rem;">
+                                                                    <th>Variable</th>
+                                                                    <th>Type</th>
+                                                                    <th>Value</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody id="visVariablesTableBody">
+                                                                <tr><td colspan="3" class="text-muted text-center py-2">Click Next Step to begin execution trace</td></tr>
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Object Heap & Data Structures (Right) -->
+                                            <div class="col-md-7">
+                                                <div class="p-3 rounded-3 bg-dark bg-opacity-75 border border-secondary border-opacity-25 h-100">
+                                                    <div class="text-muted small fw-bold text-uppercase mb-2">
+                                                        <span>Object Heap & Memory Structures</span>
+                                                    </div>
+                                                    <div id="visHeapContainer" class="d-flex flex-column gap-2" style="max-height: 280px; overflow-y: auto;">
+                                                        <div class="text-muted small text-center py-4">Compound data structures (lists, dicts, objects) appear here in real-time.</div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -2301,6 +2383,211 @@ function switchSandboxEngine(lang) {
         badge.className = 'badge bg-info-subtle text-info border border-info-subtle small font-monospace';
         renderWebLabPreview();
     }
+}
+
+// -------------------------------------------------------------
+// Live Memory & Variable Visualizer (Python Tutor Canvas)
+// -------------------------------------------------------------
+let visualizerTraceSteps = [];
+let currentVisStepIndex = 0;
+let visAutoPlayTimer = null;
+
+async function toggleMemoryVisualizer() {
+    if (window.SkillSphereSFX) SkillSphereSFX.play('click');
+    const container = document.getElementById('memoryVisualizerContainer');
+    if (!container) return;
+
+    if (container.classList.contains('d-none')) {
+        container.classList.remove('d-none');
+        await traceAndVisualizePythonCode();
+    } else {
+        container.classList.add('d-none');
+        if (visAutoPlayTimer) {
+            clearInterval(visAutoPlayTimer);
+            visAutoPlayTimer = null;
+            const playBtn = document.getElementById('visAutoPlayBtn');
+            if (playBtn) playBtn.innerHTML = '<i data-lucide="play" style="width: 13px; height: 13px;"></i> Auto-Step';
+        }
+    }
+    if (window.lucide) lucide.createIcons();
+}
+
+async function traceAndVisualizePythonCode() {
+    const editor = document.getElementById('wasmPythonEditor');
+    const tableBody = document.getElementById('visVariablesTableBody');
+    const heapContainer = document.getElementById('visHeapContainer');
+    if (!editor || !tableBody) return;
+
+    const userCode = editor.value || '';
+    tableBody.innerHTML = '<tr><td colspan="3" class="text-info text-center py-2"><span class="spinner-border spinner-border-sm me-1"></span> Tracing execution frames...</td></tr>';
+
+    try {
+        const pyodide = await loadPyodideEngine();
+        
+        // Python tracer wrapper script
+        const tracerScript = `
+import sys, json
+
+_vis_steps = []
+def _vis_tracer(frame, event, arg):
+    if event == 'line':
+        locs = {}
+        for k, v in frame.f_locals.items():
+            if not k.startswith('_') and k != 'tracerScript':
+                t_name = type(v).__name__
+                try:
+                    v_repr = repr(v)
+                    if len(v_repr) > 100: v_repr = v_repr[:97] + '...'
+                except:
+                    v_repr = str(v)
+                locs[k] = {'val': v_repr, 'type': t_name}
+        _vis_steps.append({
+            'line': frame.f_lineno,
+            'func': frame.f_code.co_name,
+            'locals': locs
+        })
+    return _vis_tracer
+
+_orig_trace = sys.gettrace()
+sys.settrace(_vis_tracer)
+try:
+    exec('''${userCode.replace(/\\/g, '\\\\').replace(/'''/g, "\\'\\'\\'")}''')
+except Exception as _e:
+    _vis_steps.append({
+        'line': -1,
+        'func': '<exception>',
+        'locals': {'__error__': {'val': str(_e), 'type': 'Exception'}}
+    })
+finally:
+    sys.settrace(_orig_trace)
+
+import json
+__vis_trace_output = json.dumps(_vis_steps[:50])
+`;
+        await pyodide.runPythonAsync(tracerScript);
+        const jsonStr = pyodide.globals.get('__vis_trace_output');
+        visualizerTraceSteps = JSON.parse(jsonStr || '[]');
+    } catch (err) {
+        // Deterministic fallback: inspect line-by-line assignments
+        visualizerTraceSteps = [];
+        const lines = userCode.split('\n');
+        let simulatedLocals = {};
+        lines.forEach((line, idx) => {
+            const trimmed = line.trim();
+            if (trimmed.includes('=') && !trimmed.startsWith('#')) {
+                const parts = trimmed.split('=');
+                const varName = parts[0].trim();
+                const rawVal = parts[1].trim();
+                simulatedLocals[varName] = { val: rawVal.substring(0, 60), type: 'inferred' };
+                visualizerTraceSteps.push({
+                    line: idx + 1,
+                    func: '<global>',
+                    locals: { ...simulatedLocals }
+                });
+            }
+        });
+    }
+
+    if (visualizerTraceSteps.length === 0) {
+        visualizerTraceSteps = [{
+            line: 1,
+            func: '<global>',
+            locals: { 'status': { val: "'Ready to step'", type: 'str' } }
+        }];
+    }
+
+    currentVisStepIndex = 0;
+    renderVisualizerStep(0);
+}
+
+function renderVisualizerStep(idx) {
+    if (!visualizerTraceSteps || visualizerTraceSteps.length === 0) return;
+    idx = Math.max(0, Math.min(visualizerTraceSteps.length - 1, idx));
+    currentVisStepIndex = idx;
+
+    const step = visualizerTraceSteps[idx];
+    document.getElementById('visStepCounter').innerText = `Step ${idx + 1} of ${visualizerTraceSteps.length}`;
+    document.getElementById('visCurrentLineBadge').innerText = step.line > 0 ? `Line ${step.line}` : 'Complete';
+    document.getElementById('visFrameScope').innerText = step.func;
+
+    // Render variables table
+    const tableBody = document.getElementById('visVariablesTableBody');
+    tableBody.innerHTML = '';
+
+    const varEntries = Object.entries(step.locals || {});
+    if (varEntries.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="3" class="text-muted text-center py-2">No local variables initialized yet</td></tr>';
+    } else {
+        varEntries.forEach(([name, meta]) => {
+            const row = document.createElement('tr');
+            const typeBadgeClass = (meta.type === 'int' || meta.type === 'float') ? 'text-warning' : (meta.type === 'str' ? 'text-success' : 'text-info');
+            row.innerHTML = `
+                <td class="fw-bold text-white">${name}</td>
+                <td><span class="badge bg-secondary bg-opacity-25 ${typeBadgeClass} px-2 py-0.5">${meta.type}</span></td>
+                <td class="text-light text-truncate" style="max-width: 160px;" title="${meta.val}">${meta.val}</td>
+            `;
+            tableBody.appendChild(row);
+        });
+    }
+
+    // Render Heap structures (lists, dicts)
+    const heapContainer = document.getElementById('visHeapContainer');
+    heapContainer.innerHTML = '';
+    let hasCompound = false;
+
+    varEntries.forEach(([name, meta]) => {
+        if (meta.type === 'list' || meta.type === 'dict' || meta.type === 'set' || meta.type === 'tuple') {
+            hasCompound = true;
+            const heapCard = document.createElement('div');
+            heapCard.className = 'p-2.5 rounded bg-dark border border-secondary border-opacity-50 font-monospace small';
+            heapCard.innerHTML = `
+                <div class="d-flex align-items-center justify-content-between mb-1 text-secondary" style="font-size: 0.72rem;">
+                    <span class="text-white fw-bold">${name} &rarr; &lt;${meta.type} object at 0x${(Math.abs(name.split('').reduce((a,b)=>((a<<5)-a)+b.charCodeAt(0),0)) % 65535).toString(16)}&gt;</span>
+                    <span class="badge bg-primary bg-opacity-25 text-primary">${meta.type.toUpperCase()}</span>
+                </div>
+                <div class="p-2 rounded bg-black text-info border border-secondary border-opacity-25 text-break">${meta.val}</div>
+            `;
+            heapContainer.appendChild(heapCard);
+        }
+    });
+
+    if (!hasCompound) {
+        heapContainer.innerHTML = '<div class="text-muted small text-center py-3">Primitive variables are stored in stack memory. Lists & dictionaries will render here.</div>';
+    }
+
+    if (window.lucide) lucide.createIcons();
+}
+
+function stepVisualizer(action) {
+    if (window.SkillSphereSFX) SkillSphereSFX.play('click');
+    if (action === 'first') {
+        currentVisStepIndex = 0;
+    } else if (action === 'last') {
+        currentVisStepIndex = visualizerTraceSteps.length - 1;
+    } else if (typeof action === 'number') {
+        currentVisStepIndex += action;
+    }
+    renderVisualizerStep(currentVisStepIndex);
+}
+
+function toggleAutoPlayVisualizer() {
+    const playBtn = document.getElementById('visAutoPlayBtn');
+    if (visAutoPlayTimer) {
+        clearInterval(visAutoPlayTimer);
+        visAutoPlayTimer = null;
+        if (playBtn) playBtn.innerHTML = '<i data-lucide="play" style="width: 13px; height: 13px;"></i> Auto-Step';
+    } else {
+        if (window.SkillSphereSFX) SkillSphereSFX.play('patch');
+        if (playBtn) playBtn.innerHTML = '<i data-lucide="pause" style="width: 13px; height: 13px;"></i> Pause';
+        visAutoPlayTimer = setInterval(() => {
+            if (currentVisStepIndex >= visualizerTraceSteps.length - 1) {
+                toggleAutoPlayVisualizer(); // Stop at end
+            } else {
+                stepVisualizer(1);
+            }
+        }, 1200);
+    }
+    if (window.lucide) lucide.createIcons();
 }
 
 // -------------------------------------------------------------
