@@ -640,13 +640,13 @@
         <div class="table-responsive" style="overflow-x: auto; padding-bottom: 6px;">
             <div style="min-width: 780px;">
                 <!-- Month Labels Row -->
-                <div id="studyHeatmapMonths" class="d-flex text-secondary font-monospace mb-1" style="font-size: 0.72rem; padding-left: 28px; justify-content: space-between; user-select: none;">
+                <div id="studyHeatmapMonths" class="d-flex text-white font-monospace mb-1" style="font-size: 0.72rem; padding-left: 28px; justify-content: space-between; user-select: none;">
                     <span>Nov</span><span>Dec</span><span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span><span>Jul</span><span>Aug</span><span>Sep</span><span>Oct</span><span>Nov</span>
                 </div>
                 <!-- Grid Row with Day Labels -->
                 <div class="d-flex align-items-center gap-1.5">
                     <!-- Day Labels (Mon, Wed, Fri) -->
-                    <div class="d-flex flex-column justify-content-between text-secondary font-monospace pe-1" style="height: 102px; font-size: 0.68rem; line-height: 1; user-select: none;">
+                    <div class="d-flex flex-column justify-content-between text-white font-monospace pe-1" style="height: 102px; font-size: 0.68rem; line-height: 1; user-select: none;">
                         <span>Mon</span>
                         <span>Wed</span>
                         <span>Fri</span>
@@ -659,9 +659,9 @@
             </div>
         </div>
 
-        <div class="d-flex flex-wrap justify-content-between align-items-center mt-2 pt-2 border-top border-secondary border-opacity-10 text-muted small">
-            <span id="heatmapHoverInfo" class="text-secondary">Hover over any day to inspect completed lessons & activity</span>
-            <span class="text-secondary d-none d-sm-inline">Consistent daily learning accelerates career readiness</span>
+        <div class="d-flex flex-wrap justify-content-between align-items-center mt-2 pt-2 border-top border-secondary border-opacity-10 text-white small">
+            <span id="heatmapHoverInfo" class="text-white">Hover over any day to inspect completed lessons & activity</span>
+            <span class="text-white d-none d-sm-inline" style="opacity: 0.85;">Consistent daily learning accelerates career readiness</span>
         </div>
 
         <script id="heatmapDaysData" type="application/json">{{ heatmap_days_json|safe }}</script>
@@ -1104,7 +1104,7 @@
             btn.innerHTML = `
                 <div class="d-flex align-items-center gap-2">
                     <span class="badge ${isSelected ? 'bg-dark text-warning' : 'bg-secondary bg-opacity-25 text-white'} rounded-circle px-2 py-1">${String.fromCharCode(65 + optIdx)}</span>
-                    <span>${optText}</span>
+                    <span class="${isSelected ? 'text-dark fw-bold' : 'text-white'}">${optText}</span>
                 </div>
                 ${isSelected ? '<i data-lucide="check-circle" style="width: 18px; height: 18px;"></i>' : ''}
             `;
@@ -1126,32 +1126,32 @@
             confBox.className = 'mt-3 p-3 rounded-3 bg-dark bg-opacity-75 border border-warning border-opacity-30';
             confBox.innerHTML = `
                 <div class="d-flex align-items-center justify-content-between mb-2">
-                    <span class="small text-secondary fw-semibold">SM-2 Recall Confidence:</span>
+                    <span class="small text-white fw-bold">SM-2 Recall Confidence:</span>
                     <span class="badge bg-warning bg-opacity-20 text-warning font-monospace small">Recalibrates Interval</span>
                 </div>
                 <div class="row g-2">
                     <div class="col-3">
-                        <button type="button" class="btn btn-sm w-100 py-2 rounded-2 ${currentConf === 1 ? 'btn-danger fw-bold' : 'btn-outline-danger'}" onclick="setDrillConfidence('${card.id}', 1)">
-                            <div class="small">🔴 Forgot</div>
-                            <div style="font-size: 0.65rem; opacity: 0.85;">Blackout</div>
+                        <button type="button" class="btn btn-sm w-100 py-2 rounded-2 ${currentConf === 1 ? 'btn-danger text-white fw-bold' : 'btn-outline-danger text-white'}" onclick="setDrillConfidence('${card.id}', 1)">
+                            <div class="small fw-bold text-white">🔴 Forgot</div>
+                            <div class="text-white text-opacity-80" style="font-size: 0.65rem;">Blackout</div>
                         </button>
                     </div>
                     <div class="col-3">
-                        <button type="button" class="btn btn-sm w-100 py-2 rounded-2 ${currentConf === 3 ? 'btn-warning text-dark fw-bold' : 'btn-outline-warning'}" onclick="setDrillConfidence('${card.id}', 3)">
-                            <div class="small">🟠 Hard</div>
-                            <div style="font-size: 0.65rem; opacity: 0.85;">Hesitant</div>
+                        <button type="button" class="btn btn-sm w-100 py-2 rounded-2 ${currentConf === 3 ? 'btn-warning text-dark fw-bold' : 'btn-outline-warning text-white'}" onclick="setDrillConfidence('${card.id}', 3)">
+                            <div class="small fw-bold ${currentConf === 3 ? 'text-dark' : 'text-white'}">🟠 Hard</div>
+                            <div class="${currentConf === 3 ? 'text-dark' : 'text-white text-opacity-80'}" style="font-size: 0.65rem;">Hesitant</div>
                         </button>
                     </div>
                     <div class="col-3">
-                        <button type="button" class="btn btn-sm w-100 py-2 rounded-2 ${currentConf === 4 ? 'btn-primary fw-bold' : 'btn-outline-primary'}" onclick="setDrillConfidence('${card.id}', 4)">
-                            <div class="small">🔵 Good</div>
-                            <div style="font-size: 0.65rem; opacity: 0.85;">Solid</div>
+                        <button type="button" class="btn btn-sm w-100 py-2 rounded-2 ${currentConf === 4 ? 'btn-primary text-white fw-bold' : 'btn-outline-primary text-white'}" onclick="setDrillConfidence('${card.id}', 4)">
+                            <div class="small fw-bold text-white">🔵 Good</div>
+                            <div class="text-white text-opacity-80" style="font-size: 0.65rem;">Solid</div>
                         </button>
                     </div>
                     <div class="col-3">
-                        <button type="button" class="btn btn-sm w-100 py-2 rounded-2 ${currentConf === 5 ? 'btn-success fw-bold' : 'btn-outline-success'}" onclick="setDrillConfidence('${card.id}', 5)">
-                            <div class="small">🟢 Instant</div>
-                            <div style="font-size: 0.65rem; opacity: 0.85;">Mastered</div>
+                        <button type="button" class="btn btn-sm w-100 py-2 rounded-2 ${currentConf === 5 ? 'btn-success text-white fw-bold' : 'btn-outline-success text-white'}" onclick="setDrillConfidence('${card.id}', 5)">
+                            <div class="small fw-bold text-white">🟢 Instant</div>
+                            <div class="text-white text-opacity-80" style="font-size: 0.65rem;">Mastered</div>
                         </button>
                     </div>
                 </div>
@@ -1243,7 +1243,7 @@
                     <span class="badge bg-dark border border-secondary border-opacity-50 text-white font-monospace small">Next Review: In ${r.sm2.interval_days} Day(s)</span>
                 </div>
                 <div class="text-white small fw-semibold mb-1">${r.question}</div>
-                <div class="small text-secondary mb-2">${r.explanation}</div>
+                <div class="small text-white mb-2" style="line-height: 1.5;">${r.explanation}</div>
                 <div class="p-2 rounded bg-dark small text-warning font-monospace" style="font-size: 0.76rem;">💡 Takeaway: ${r.key_takeaway}</div>
             `;
             listEl.appendChild(cardEl);
@@ -1268,14 +1268,14 @@
                 <!-- Loading State -->
                 <div id="drillLoadingView" class="text-center py-5">
                     <div class="spinner-border text-warning mb-2" role="status"></div>
-                    <div class="text-secondary small">Synthesizing personalized micro-drill deck...</div>
+                    <div class="text-white small">Synthesizing personalized micro-drill deck...</div>
                 </div>
 
                 <!-- Active Question View -->
                 <div id="drillActiveView" class="d-none">
                     <div class="d-flex align-items-center justify-content-between mb-3">
                         <span class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-50 small rounded-pill px-2.5 py-1" id="drillCategoryBadge">Category</span>
-                        <span class="text-secondary small fw-bold font-monospace" id="drillCardCounter">Card 1 of 3</span>
+                        <span class="text-white small fw-bold font-monospace" id="drillCardCounter">Card 1 of 3</span>
                     </div>
 
                     <div class="p-4 rounded-4 bg-dark bg-opacity-60 border border-secondary border-opacity-25 mb-4 shadow-sm">
@@ -1305,7 +1305,7 @@
                 <div id="drillResultsView" class="d-none text-center">
                     <div class="display-6 fw-bold text-warning mb-1" id="drillResultScore">3/3 Correct</div>
                     <div class="fs-5 text-white fw-semibold mb-3" id="drillResultXp">+15 XP Earned!</div>
-                    <p class="text-secondary small mb-4">
+                    <p class="text-white small mb-4" style="opacity: 0.85;">
                         The SuperMemo SM-2 engine has recalibrated your memory intervals. Next review dates have been scheduled for these concepts.
                     </p>
 

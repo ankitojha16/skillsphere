@@ -428,14 +428,14 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-4 text-center">
-                <p class="text-secondary small mb-3">
+                <p class="text-white small mb-3">
                     Showcase your real-time SkillSphere League tier, streak, and 1v1 duel victories on your GitHub profile. Automatically updates whenever your stats change!
                 </p>
 
                 <!-- Customizer Controls -->
                 <div class="d-flex flex-wrap justify-content-center gap-3 mb-3 p-2.5 rounded-3 bg-dark border border-secondary border-opacity-25">
                     <div class="d-flex align-items-center gap-2">
-                        <label for="badgeThemeSelect" class="text-secondary small mb-0 fw-semibold">Theme:</label>
+                        <label for="badgeThemeSelect" class="text-white small mb-0 fw-semibold">Theme:</label>
                         <select id="badgeThemeSelect" class="form-select form-select-sm bg-dark text-white border-secondary py-1 px-2.5 rounded-pill" onchange="updateBadgeCustomizer()">
                             <option value="dark" selected>🌌 Dark Obsidian</option>
                             <option value="cyberpunk">⚡ Cyberpunk Neon</option>
@@ -444,7 +444,7 @@
                         </select>
                     </div>
                     <div class="d-flex align-items-center gap-2">
-                        <label for="badgeStyleSelect" class="text-secondary small mb-0 fw-semibold">Layout:</label>
+                        <label for="badgeStyleSelect" class="text-white small mb-0 fw-semibold">Layout:</label>
                         <select id="badgeStyleSelect" class="form-select form-select-sm bg-dark text-white border-secondary py-1 px-2.5 rounded-pill" onchange="updateBadgeCustomizer()">
                             <option value="card" selected>Full Showcase Card (460×150)</option>
                             <option value="compact">Compact Shield Banner (350×68)</option>
@@ -670,7 +670,7 @@ function renderDuelResults(data) {
                 <div class="fw-bold ${item.is_correct ? 'text-success' : 'text-danger'} mb-1">
                     Question ${idx + 1}: ${item.is_correct ? 'Correct ✓' : 'Incorrect ✗'}
                 </div>
-                <div class="text-secondary">${item.explanation}</div>
+                <div class="text-white">${item.explanation}</div>
             `;
             explanationsList.appendChild(card);
         });

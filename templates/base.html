@@ -105,7 +105,7 @@
             box-sizing: border-box !important;
         }
         .text-muted, [data-bs-theme="dark"] .text-muted {
-            color: #F8FAFC !important;
+            color: #FFFFFF !important;
             --bs-text-opacity: 1 !important;
         }
         .text-secondary, [data-bs-theme="dark"] .text-secondary {
@@ -113,7 +113,7 @@
             --bs-text-opacity: 1 !important;
         }
         .text-body-secondary, [data-bs-theme="dark"] .text-body-secondary {
-            color: #F1F5F9 !important;
+            color: #FFFFFF !important;
             --bs-text-opacity: 1 !important;
         }
         .text-light, [data-bs-theme="dark"] .text-light, .text-white, [data-bs-theme="dark"] .text-white {
@@ -121,6 +121,22 @@
         }
         .small, small {
             color: inherit;
+        }
+
+        /* Form Controls, Inputs, Selects & Options Contrast */
+        select.bg-dark, select.form-select.bg-dark,
+        input.bg-dark, input.form-control.bg-dark,
+        textarea.bg-dark, textarea.form-control.bg-dark {
+            color: #FFFFFF !important;
+        }
+        select.bg-dark option, select.form-select.bg-dark option {
+            background-color: #0f172a !important;
+            color: #FFFFFF !important;
+        }
+        .form-control:read-only, .form-control[readonly],
+        textarea:read-only, textarea[readonly] {
+            color: #FFFFFF !important;
+            opacity: 1 !important;
         }
 
         /* PWA Install Floating Banner */

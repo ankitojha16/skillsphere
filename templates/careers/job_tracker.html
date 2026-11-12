@@ -417,7 +417,7 @@
                 <div class="d-flex align-items-center justify-content-between mb-3 pb-3 border-bottom border-secondary border-opacity-25">
                     <div>
                         <div class="fs-6 fw-bold text-white" id="tailorTargetTitle">Target: Role</div>
-                        <div class="text-secondary small" id="tailorTargetCompany">Company</div>
+                        <div class="text-white small" style="opacity: 0.85;" id="tailorTargetCompany">Company</div>
                     </div>
                     <!-- Master Circular ATS Scoreometer -->
                     <div id="tailorScoreGaugeContainer" class="d-none d-flex align-items-center gap-2.5">
@@ -430,7 +430,7 @@
                         </div>
                         <div class="text-start">
                             <div class="small fw-bold text-white mb-0" id="tailorScoreBadge">85% ATS Match</div>
-                            <div class="text-secondary" style="font-size: 0.7rem;">FAANG Keyword Match</div>
+                            <div class="text-white" style="font-size: 0.7rem; opacity: 0.85;">FAANG Keyword Match</div>
                         </div>
                     </div>
                 </div>
@@ -438,7 +438,7 @@
                 <!-- Loading State -->
                 <div id="tailorLoading" class="text-center py-5">
                     <div class="spinner-border text-primary mb-2" role="status"></div>
-                    <div class="text-secondary small">Synthesizing ATS keyword matches & tailored Google XYZ bullets...</div>
+                    <div class="text-white small">Synthesizing ATS keyword matches & tailored Google XYZ bullets...</div>
                 </div>
 
                 <!-- Tailored Content View -->
@@ -447,7 +447,7 @@
                     <div id="tailorApplyAlert" class="alert alert-success d-none py-2 px-3 small rounded-3 mb-3 d-flex align-items-center justify-content-between">
                         <div class="d-flex align-items-center gap-2">
                             <i data-lucide="check-circle" style="width: 16px; height: 16px;" class="text-success"></i>
-                            <span id="tailorApplyAlertMsg">Applied tailored summary & bullets to your primary resume!</span>
+                            <span id="tailorApplyAlertMsg" class="text-white">Applied tailored summary & bullets to your primary resume!</span>
                         </div>
                         <a href="/resume-builder/" class="text-success fw-bold text-decoration-none small">View Resume &rarr;</a>
                     </div>
@@ -455,7 +455,7 @@
                     <!-- Keyword Match / Gap Chips -->
                     <div class="mb-4">
                         <div class="d-flex align-items-center justify-content-between mb-2">
-                            <span class="text-muted small fw-bold text-uppercase">Keyword Alignment & Density</span>
+                            <span class="text-white small fw-bold text-uppercase">Keyword Alignment & Density</span>
                             <span class="badge bg-secondary bg-opacity-25 text-white font-monospace small" id="tailorKeywordCountBadge">0 Matched</span>
                         </div>
                         <div class="d-flex flex-wrap gap-2 mb-2" id="tailorMatchedKeywords"></div>
@@ -465,17 +465,17 @@
                     <!-- Tailored Summary -->
                     <div class="mb-4">
                         <div class="d-flex align-items-center justify-content-between mb-2">
-                            <label class="form-label text-muted small fw-bold text-uppercase mb-0">Tailored Professional Summary</label>
+                            <label class="form-label text-white small fw-bold text-uppercase mb-0">Tailored Professional Summary</label>
                             <button type="button" class="btn btn-link text-primary p-0 small text-decoration-none" onclick="copyOutreachField('tailorSummaryText')">
                                 <i data-lucide="copy" style="width: 13px; height: 13px;"></i> Copy Summary
                             </button>
                         </div>
-                        <textarea id="tailorSummaryText" class="form-control bg-secondary bg-opacity-25 text-white border-secondary border-opacity-25 small" rows="3" readonly></textarea>
+                        <textarea id="tailorSummaryText" class="form-control bg-dark text-white border-secondary border-opacity-50 small" style="background-color: #0b1120 !important; color: #ffffff !important;" rows="3" readonly></textarea>
                     </div>
 
                     <!-- Tailored Google-XYZ Bullets -->
                     <div class="mb-4">
-                        <div class="text-muted small fw-bold text-uppercase mb-2">Tailored Accomplishment Bullets (STAR / XYZ)</div>
+                        <div class="text-white small fw-bold text-uppercase mb-2">Tailored Accomplishment Bullets (STAR / XYZ)</div>
                         <div id="tailorBulletsList" class="d-flex flex-column gap-2"></div>
                     </div>
 
@@ -484,7 +484,7 @@
                         <div class="d-flex align-items-center gap-2 mb-2 text-primary small fw-bold">
                             <i data-lucide="sparkles" style="width: 15px; height: 15px;"></i> Interview Talking Points
                         </div>
-                        <ul class="mb-0 text-secondary small ps-3" id="tailorTalkingPointsList"></ul>
+                        <ul class="mb-0 text-white small ps-3" id="tailorTalkingPointsList"></ul>
                     </div>
                 </div>
             </div>
@@ -581,14 +581,14 @@ function openTailorResumeModal(role, company, notes) {
 
             // Matched keywords
             const matchedContainer = document.getElementById('tailorMatchedKeywords');
-            matchedContainer.innerHTML = '<span class="text-secondary small me-1">Matched:</span>';
+            matchedContainer.innerHTML = '<span class="text-white small fw-bold me-1">Matched:</span>';
             (t.matched_keywords || []).forEach(kw => {
                 matchedContainer.innerHTML += `<span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-50 small rounded-pill px-2 py-1">${kw}</span>`;
             });
 
             // Missing keywords
             const missingContainer = document.getElementById('tailorMissingKeywords');
-            missingContainer.innerHTML = '<span class="text-secondary small me-1">Target to add:</span>';
+            missingContainer.innerHTML = '<span class="text-white small fw-bold me-1">Target to add:</span>';
             (t.missing_keywords || []).forEach(kw => {
                 missingContainer.innerHTML += `<span class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-50 small rounded-pill px-2 py-1">${kw}</span>`;
             });
@@ -601,9 +601,9 @@ function openTailorResumeModal(role, company, notes) {
             bulletsList.innerHTML = '';
             (t.tailored_bullets || []).forEach(bullet => {
                 const item = document.createElement('div');
-                item.className = 'p-2.5 rounded bg-secondary bg-opacity-25 text-light small d-flex align-items-start justify-content-between gap-2';
+                item.className = 'p-2.5 rounded bg-dark border border-secondary border-opacity-50 text-white small d-flex align-items-start justify-content-between gap-2';
                 item.innerHTML = `
-                    <span>• ${bullet}</span>
+                    <span class="text-white">• ${bullet}</span>
                     <button class="btn btn-link text-primary p-0 flex-shrink-0" onclick="navigator.clipboard.writeText('${bullet.replace(/'/g, "\\'")}'); if(window.SkillSphereSFX) SkillSphereSFX.play('patch');" title="Copy bullet">
                         <i data-lucide="copy" style="width: 13px; height: 13px;"></i>
                     </button>
@@ -616,6 +616,7 @@ function openTailorResumeModal(role, company, notes) {
             talkingList.innerHTML = '';
             (t.interview_talking_points || []).forEach(tp => {
                 const li = document.createElement('li');
+                li.className = 'text-white mb-1.5';
                 li.textContent = tp;
                 talkingList.appendChild(li);
             });

@@ -36,10 +36,10 @@
                 </span>
             </div>
             <h1 class="h3 fw-bold text-white mb-0">AI Technical & Behavioral Mock Interviewer</h1>
-            <p class="text-secondary small mb-0 mt-1">Practice realistic voice interview scenarios with real-time speech transcription and instant FAANG-caliber candidate scoring.</p>
+            <p class="text-white small mb-0 mt-1">Practice realistic voice interview scenarios with real-time speech transcription and instant FAANG-caliber candidate scoring.</p>
         </div>
         <div class="d-flex align-items-center gap-2">
-            <label for="roleSelector" class="text-secondary small mb-0 fw-semibold">Target Role:</label>
+            <label for="roleSelector" class="text-white small mb-0 fw-semibold">Target Role:</label>
             <select id="roleSelector" class="form-select form-select-sm bg-dark text-white border-secondary py-1.5 px-3 rounded-pill" onchange="changeRole(this.value)">
                 {% for r_key, r_info in all_roles.items %}
                     <option value="{{ r_key }}" {% if r_key == selected_role %}selected{% endif %}>{{ r_info.title }}</option>
@@ -98,7 +98,7 @@
                 <h4 class="fw-bold text-white mb-2 lh-base" id="activeQuestionText">
                     {{ role_data.technical.0 }}
                 </h4>
-                <div class="text-secondary small" id="categoryHint">
+                <div class="text-white small" id="categoryHint">
                     Focus on technical precision, trade-offs, and production considerations.
                 </div>
             </div>
@@ -117,14 +117,14 @@
                             <i data-lucide="mic" style="width: 13px; height: 13px;"></i>
                             <span id="voiceRecordBtnText">Speak Answer</span>
                         </button>
-                        <span id="answerWordCount" class="text-secondary small font-monospace">0 words</span>
+                        <span id="answerWordCount" class="text-white small font-monospace">0 words</span>
                     </div>
                 </div>
 
                 <textarea id="candidateAnswerInput" rows="7" class="form-control text-light p-3 mb-3 font-monospace" style="background-color: #030712; border: 1px solid rgba(255,255,255,0.15); font-size: 0.9rem; line-height: 1.6;" placeholder="Speak using the 'Speak Answer' microphone button or type your structured response here..." oninput="updateWordCount()"></textarea>
 
                 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
-                    <div class="text-secondary small font-monospace" style="font-size: 0.76rem;">
+                    <div class="text-white small font-monospace" style="font-size: 0.76rem;">
                         <span class="text-info">💡 Tip:</span> Use Situation → Task → Action → Result (STAR).
                     </div>
                     <div class="d-flex align-items-center gap-2">
@@ -149,7 +149,7 @@
                         <i data-lucide="activity" style="width: 38px; height: 38px;"></i>
                     </div>
                     <h5 class="fw-bold text-white mb-2">Awaiting Candidate Response</h5>
-                    <p class="text-secondary small mb-0 px-3">
+                    <p class="text-white small mb-0 px-3">
                         Speak or type your answer on the left and tap <strong>"Evaluate with AI"</strong>. You will receive an immediate breakdown across technical accuracy, communication clarity, and STAR framework adherence.
                     </p>
                 </div>
@@ -169,7 +169,7 @@
                     <!-- Overall Score Progress Gauge -->
                     <div class="p-3 rounded-3 mb-3 text-center" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.08);">
                         <div class="display-6 fw-bold text-white mb-0" id="resOverallScore">88%</div>
-                        <div class="text-secondary small font-monospace">Overall Readiness Score</div>
+                        <div class="text-white small font-monospace">Overall Readiness Score</div>
                     </div>
 
                     <!-- 4-Pillar FAANG Rubric Scorecard -->
@@ -177,25 +177,25 @@
                         <div class="col-3">
                             <div class="p-2 rounded-2 text-center" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);">
                                 <div class="text-info fw-bold mb-0" id="resAccuracyScore">85%</div>
-                                <div class="text-secondary" style="font-size: 0.68rem;">Accuracy</div>
+                                <div class="text-white fw-bold" style="font-size: 0.68rem;">Accuracy</div>
                             </div>
                         </div>
                         <div class="col-3">
                             <div class="p-2 rounded-2 text-center" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);">
                                 <div class="text-success fw-bold mb-0" id="resClarityScore">90%</div>
-                                <div class="text-secondary" style="font-size: 0.68rem;">Clarity</div>
+                                <div class="text-white fw-bold" style="font-size: 0.68rem;">Clarity</div>
                             </div>
                         </div>
                         <div class="col-3">
                             <div class="p-2 rounded-2 text-center" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);">
                                 <div class="text-warning fw-bold mb-0" id="resStarScore">75%</div>
-                                <div class="text-secondary" style="font-size: 0.68rem;">STAR Fit</div>
+                                <div class="text-white fw-bold" style="font-size: 0.68rem;">STAR Fit</div>
                             </div>
                         </div>
                         <div class="col-3">
                             <div class="p-2 rounded-2 text-center" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);">
                                 <div class="text-primary fw-bold mb-0" id="resScaleScore">82%</div>
-                                <div class="text-secondary" style="font-size: 0.68rem;">Edge/Scale</div>
+                                <div class="text-white fw-bold" style="font-size: 0.68rem;">Edge/Scale</div>
                             </div>
                         </div>
                     </div>
@@ -205,7 +205,7 @@
                         <h6 class="text-success small fw-bold mb-1.5 d-flex align-items-center gap-1">
                             <i data-lucide="check-circle-2" style="width: 14px; height: 14px;"></i> Key Strengths:
                         </h6>
-                        <ul class="text-secondary small ps-3 mb-0" id="resStrengthsList"></ul>
+                        <ul class="text-white small ps-3 mb-0" id="resStrengthsList"></ul>
                     </div>
 
                     <!-- Actionable Improvements -->
@@ -213,7 +213,7 @@
                         <h6 class="text-warning small fw-bold mb-1.5 d-flex align-items-center gap-1">
                             <i data-lucide="lightbulb" style="width: 14px; height: 14px;"></i> Areas for Improvement:
                         </h6>
-                        <ul class="text-secondary small ps-3 mb-0" id="resImprovementsList"></ul>
+                        <ul class="text-white small ps-3 mb-0" id="resImprovementsList"></ul>
                     </div>
 
                     <!-- Model Talking Points Box -->
@@ -227,7 +227,7 @@
                         <p class="text-light small mb-0 font-monospace" style="font-size: 0.78rem; line-height: 1.5;" id="resModelAnswerText"></p>
                     </div>
 
-                    <div class="p-2 rounded-2 bg-dark text-secondary small font-monospace" style="font-size: 0.75rem;" id="resSummaryText"></div>
+                    <div class="p-2 rounded-2 bg-dark text-white small font-monospace" style="font-size: 0.75rem;" id="resSummaryText"></div>
 
                     <!-- FAANG Readiness Report Download Button -->
                     <button type="button" class="btn btn-outline-info btn-sm w-100 py-2 d-flex align-items-center justify-content-center gap-2 mt-3 fw-semibold" onclick="downloadReadinessReport()">
@@ -522,10 +522,10 @@
         }
 
         const strList = document.getElementById('resStrengthsList');
-        strList.innerHTML = (res.strengths || []).map(s => `<li class="mb-1">${s}</li>`).join('');
+        strList.innerHTML = (res.strengths || []).map(s => `<li class="mb-1 text-white">${s}</li>`).join('');
 
         const impList = document.getElementById('resImprovementsList');
-        impList.innerHTML = (res.improvements || []).map(i => `<li class="mb-1">${i}</li>`).join('');
+        impList.innerHTML = (res.improvements || []).map(i => `<li class="mb-1 text-white">${i}</li>`).join('');
 
         document.getElementById('resModelAnswerText').innerText = res.model_answer || '';
         document.getElementById('resSummaryText').innerText = res.summary || '';
