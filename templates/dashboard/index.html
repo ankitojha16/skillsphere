@@ -996,6 +996,21 @@
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
 <script src="{% static 'js/dashboard.js' %}"></script>
 <script>
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
     function copyMilestonePost() {
         const title = document.getElementById('milestoneCelebrationTitle')?.innerText || 'Learning Milestone';
         const streak = '{{ gamification.current_streak|default:1 }}';
@@ -1113,12 +1128,6 @@
             });
     }
 
-    function setDrillConfidence(cardId, val) {
-        if (window.SkillSphereSFX) SkillSphereSFX.play('click');
-        drillConfidences[cardId] = val;
-        renderDrillCard();
-    }
-
     function renderDrillCard() {
         const card = drillCards[currentDrillIdx];
         if (!card) return;
@@ -1145,53 +1154,10 @@
             btn.onclick = () => {
                 if (window.SkillSphereSFX) SkillSphereSFX.play('click');
                 drillAnswers[card.id] = optIdx;
-                if (!drillConfidences[card.id]) {
-                    drillConfidences[card.id] = 4; // default to Good
-                }
                 renderDrillCard();
             };
             optionsContainer.appendChild(btn);
         });
-
-        // SM-2 Recall Confidence Rating Picker
-        if (drillAnswers[card.id] !== undefined) {
-            const currentConf = drillConfidences[card.id] || 4;
-            const confBox = document.createElement('div');
-            confBox.className = 'mt-3 p-3 rounded-3 bg-dark bg-opacity-75 border border-warning border-opacity-30';
-            confBox.innerHTML = `
-                <div class="d-flex align-items-center justify-content-between mb-2">
-                    <span class="small text-white fw-bold">SM-2 Recall Confidence:</span>
-                    <span class="badge font-monospace small fw-bold px-2.5 py-1" style="background-color: rgba(251, 191, 36, 0.16) !important; color: #FBBF24 !important; border: 1px solid rgba(251, 191, 36, 0.5) !important;">Recalibrates Interval</span>
-                </div>
-                <div class="row g-2">
-                    <div class="col-3">
-                        <button type="button" class="btn btn-sm w-100 py-2 rounded-2 ${currentConf === 1 ? 'btn-danger text-white fw-bold' : 'btn-outline-danger text-white'}" onclick="setDrillConfidence('${card.id}', 1)">
-                            <div class="small fw-bold text-white">🔴 Forgot</div>
-                            <div class="text-white text-opacity-80" style="font-size: 0.65rem;">Blackout</div>
-                        </button>
-                    </div>
-                    <div class="col-3">
-                        <button type="button" class="btn btn-sm w-100 py-2 rounded-2 ${currentConf === 3 ? 'btn-warning text-dark fw-bold' : 'btn-outline-warning text-white'}" onclick="setDrillConfidence('${card.id}', 3)">
-                            <div class="small fw-bold ${currentConf === 3 ? 'text-dark' : 'text-white'}">🟠 Hard</div>
-                            <div class="${currentConf === 3 ? 'text-dark' : 'text-white text-opacity-80'}" style="font-size: 0.65rem;">Hesitant</div>
-                        </button>
-                    </div>
-                    <div class="col-3">
-                        <button type="button" class="btn btn-sm w-100 py-2 rounded-2 ${currentConf === 4 ? 'btn-primary text-white fw-bold' : 'btn-outline-primary text-white'}" onclick="setDrillConfidence('${card.id}', 4)">
-                            <div class="small fw-bold text-white">🔵 Good</div>
-                            <div class="text-white text-opacity-80" style="font-size: 0.65rem;">Solid</div>
-                        </button>
-                    </div>
-                    <div class="col-3">
-                        <button type="button" class="btn btn-sm w-100 py-2 rounded-2 ${currentConf === 5 ? 'btn-success text-white fw-bold' : 'btn-outline-success text-white'}" onclick="setDrillConfidence('${card.id}', 5)">
-                            <div class="small fw-bold text-white">🟢 Instant</div>
-                            <div class="text-white text-opacity-80" style="font-size: 0.65rem;">Mastered</div>
-                        </button>
-                    </div>
-                </div>
-            `;
-            optionsContainer.appendChild(confBox);
-        }
 
         // Toggle nav buttons
         document.getElementById('drillPrevBtn').disabled = (currentDrillIdx === 0);
@@ -1218,30 +1184,36 @@
     function submitDailyDrill() {
         const submitBtn = document.getElementById('drillSubmitBtn');
         submitBtn.disabled = true;
-        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Evaluating SM-2...';
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Submitting Warm-Up...';
+
+        const csrfToken = getCookie('csrftoken') || '{{ csrf_token }}';
 
         fetch('{% url "dashboard:daily_drill_submit" %}', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken')
+                'X-CSRFToken': csrfToken
             },
-            body: JSON.stringify({ answers: drillAnswers, confidences: drillConfidences })
+            body: JSON.stringify({ answers: drillAnswers })
         })
-        .then(res => res.json())
+        .then(res => {
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            return res.json();
+        })
         .then(data => {
             submitBtn.disabled = false;
             submitBtn.innerHTML = 'Complete Warm-Up';
             if (data.success) {
                 renderDrillResults(data);
             } else {
-                alert(data.error || 'Evaluation failed.');
+                alert(data.error || 'Evaluation failed. Please try again.');
             }
         })
         .catch(err => {
             submitBtn.disabled = false;
             submitBtn.innerHTML = 'Complete Warm-Up';
-            alert('Network error submitting drill.');
+            console.error('Drill submission error:', err);
+            alert('Submission error. Please check your connection and try again.');
         });
     }
 

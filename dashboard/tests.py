@@ -173,6 +173,17 @@ class DashboardTests(TestCase):
         self.assertIn('streak_bonus', data_post)
         self.assertIn('sm2', data_post['results'][0])
 
+        # Test POST submit drill answers without confidences (pure answer picking)
+        resp_post_no_conf = self.client.post(
+            reverse('dashboard:daily_drill_submit'),
+            data=json.dumps({
+                'answers': {card_id: 1}
+            }),
+            content_type='application/json'
+        )
+        self.assertEqual(resp_post_no_conf.status_code, 200)
+        self.assertTrue(resp_post_no_conf.json()['success'])
+
 
 
 
