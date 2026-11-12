@@ -1,0 +1,45 @@
+{% load static %}
+<!-- SkillSphere Cinematic Opening Splash Overlay -->
+<div id="skillsphereIntroSplash" class="splash-overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Welcome to SkillSphere">
+    <!-- Ambient Cosmic Particle Canvas & Radiant Glow Orbs -->
+    <div class="splash-backdrop">
+        <div class="splash-glow-orb splash-glow-orb-1"></div>
+        <div class="splash-glow-orb splash-glow-orb-2"></div>
+        <canvas id="splashStarsCanvas" class="splash-stars-canvas"></canvas>
+    </div>
+
+    <!-- Skip Intro Button (Escape key supported) -->
+    <button type="button" class="splash-skip-btn" onclick="window.dismissSkillSphereSplash(true)" aria-label="Skip introductory animation">
+        <span>Skip Intro</span>
+        <kbd>Esc</kbd>
+    </button>
+
+    <!-- Central Stage -->
+    <div class="splash-content">
+        <!-- 3D Gyroscopic Hologram Stage -->
+        <div class="splash-stage">
+            <div class="splash-orbital-system">
+                <div class="splash-shockwave"></div>
+                <div class="splash-ring splash-ring-1"></div>
+                <div class="splash-ring splash-ring-2"></div>
+                <!-- Razor-Sharp Vector Sphere Mark -->
+                <div class="splash-core-mark">
+                    <img src="{% static 'images/logo-icon.svg' %}" alt="SkillSphere Orbital Sphere" width="90" height="90">
+                </div>
+            </div>
+        </div>
+
+        <!-- Typography & Tagline Reveal -->
+        <div class="splash-brand">
+            <h1 class="splash-title">
+                <span class="splash-word-skill">Skill</span><span class="splash-word-sphere">Sphere</span>
+            </h1>
+            <p class="splash-tagline">Autonomous Learning &amp; Engineering Career Platform</p>
+        </div>
+
+        <!-- Cybernetic Progress Indicator -->
+        <div class="splash-progress-track">
+            <div id="splashProgressFill" class="splash-progress-fill"></div>
+        </div>
+    </div>
+</div>

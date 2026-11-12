@@ -1,0 +1,376 @@
+/* SkillSphere Cinematic Opening Splash & Brand Animation */
+
+#skillsphereIntroSplash {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  z-index: 999999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(ellipse at center, #111827 0%, #090D16 60%, #030712 100%);
+  overflow: hidden;
+  user-select: none;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1), 
+              transform 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              visibility 0.45s ease;
+  will-change: opacity, transform;
+}
+
+#skillsphereIntroSplash.splash-hiding {
+  opacity: 0;
+  transform: scale(1.06);
+  pointer-events: none;
+}
+
+#skillsphereIntroSplash.splash-hidden {
+  display: none !important;
+}
+
+/* Ambient Cosmic Background */
+.splash-backdrop {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.splash-stars-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.6;
+}
+
+.splash-glow-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.35;
+  animation: splashOrbFloat 4s ease-in-out infinite alternate;
+}
+
+.splash-glow-orb-1 {
+  width: 380px;
+  height: 380px;
+  background: radial-gradient(circle, #6366F1 0%, rgba(99, 102, 241, 0) 70%);
+  top: 20%;
+  left: 25%;
+}
+
+.splash-glow-orb-2 {
+  width: 320px;
+  height: 320px;
+  background: radial-gradient(circle, #06B6D4 0%, rgba(6, 182, 212, 0) 70%);
+  bottom: 20%;
+  right: 25%;
+  animation-delay: -2s;
+}
+
+@keyframes splashOrbFloat {
+  0% { transform: translate(0, 0) scale(0.95); opacity: 0.25; }
+  100% { transform: translate(25px, -20px) scale(1.15); opacity: 0.45; }
+}
+
+/* Central Content Container */
+.splash-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 2rem;
+  max-width: 520px;
+}
+
+/* 3D Holographic Sphere Stage */
+.splash-stage {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  margin-bottom: 1.5rem;
+  perspective: 900px;
+}
+
+.splash-orbital-system {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform-style: preserve-3d;
+}
+
+/* Outer Shockwave Pulse */
+.splash-shockwave {
+  position: absolute;
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  border: 2px solid rgba(99, 102, 241, 0.6);
+  box-shadow: 0 0 25px rgba(99, 102, 241, 0.5);
+  animation: splashShockwavePulse 1.8s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+
+@keyframes splashShockwavePulse {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.9;
+  }
+  70% {
+    transform: scale(1.9);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(2.1);
+    opacity: 0;
+  }
+}
+
+/* 3D Rotating Rings */
+.splash-ring {
+  position: absolute;
+  border-radius: 50%;
+  border-style: solid;
+  pointer-events: none;
+}
+
+.splash-ring-1 {
+  width: 130px;
+  height: 130px;
+  border-width: 2.5px;
+  border-color: #38BDF8 transparent #8B5CF6 transparent;
+  transform: rotateX(68deg) rotateY(18deg) rotateZ(0deg);
+  animation: splashSpinRing1 2.8s linear infinite;
+  box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
+}
+
+.splash-ring-2 {
+  width: 118px;
+  height: 118px;
+  border-width: 2px;
+  border-color: #F43F5E transparent #6366F1 transparent;
+  transform: rotateX(65deg) rotateY(-35deg) rotateZ(0deg);
+  animation: splashSpinRing2 2.2s linear infinite reverse;
+  box-shadow: 0 0 15px rgba(244, 63, 94, 0.4);
+}
+
+@keyframes splashSpinRing1 {
+  0% { transform: rotateX(68deg) rotateY(18deg) rotateZ(0deg); }
+  100% { transform: rotateX(68deg) rotateY(18deg) rotateZ(360deg); }
+}
+
+@keyframes splashSpinRing2 {
+  0% { transform: rotateX(65deg) rotateY(-35deg) rotateZ(0deg); }
+  100% { transform: rotateX(65deg) rotateY(-35deg) rotateZ(360deg); }
+}
+
+/* Core Sphere Vector Mark */
+.splash-core-mark {
+  position: relative;
+  z-index: 5;
+  width: 90px;
+  height: 90px;
+  filter: drop-shadow(0 0 24px rgba(99, 102, 241, 0.75));
+  animation: splashCoreEntrance 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes splashCoreEntrance {
+  0% {
+    transform: scale(0.3) rotate(-30deg);
+    opacity: 0;
+    filter: drop-shadow(0 0 4px rgba(99, 102, 241, 0.2)) blur(6px);
+  }
+  70% {
+    transform: scale(1.08) rotate(6deg);
+    opacity: 1;
+    filter: drop-shadow(0 0 32px rgba(129, 140, 248, 0.9)) blur(0px);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+    filter: drop-shadow(0 0 24px rgba(99, 102, 241, 0.75)) blur(0px);
+  }
+}
+
+/* Brand Text Reveal */
+.splash-brand {
+  margin-top: 0.5rem;
+}
+
+.splash-title {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 2.25rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin-bottom: 0.35rem;
+  line-height: 1.1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.splash-word-skill {
+  color: #FFFFFF;
+  opacity: 0;
+  transform: translateY(16px);
+  filter: blur(4px);
+  animation: splashWordReveal 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards;
+}
+
+.splash-word-sphere {
+  background: linear-gradient(135deg, #818CF8 0%, #C084FC 50%, #38BDF8 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  opacity: 0;
+  transform: translateY(16px);
+  filter: blur(4px);
+  animation: splashWordReveal 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.32s forwards,
+             splashShimmer 2.5s ease-in-out infinite alternate;
+}
+
+@keyframes splashWordReveal {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0px);
+  }
+}
+
+@keyframes splashShimmer {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 100% 50%; }
+}
+
+.splash-tagline {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #94A3B8;
+  letter-spacing: 0.05em;
+  margin-bottom: 1.75rem;
+  opacity: 0;
+  transform: translateY(12px);
+  animation: splashWordReveal 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.45s forwards;
+}
+
+/* Cybernetic Progress Bar */
+.splash-progress-track {
+  width: 220px;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  animation: splashFadeIn 0.3s ease 0.4s forwards;
+}
+
+.splash-progress-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #6366F1 0%, #A855F7 50%, #38BDF8 100%);
+  border-radius: 999px;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.8);
+  transition: width 0.75s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes splashFadeIn {
+  to { opacity: 1; }
+}
+
+/* Skip Intro Button */
+.splash-skip-btn {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #94A3B8;
+  padding: 0.4rem 0.85rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  backdrop-filter: blur(8px);
+  transition: all 0.2s ease;
+  z-index: 10;
+  opacity: 0.75;
+}
+
+.splash-skip-btn kbd {
+  background: rgba(255, 255, 255, 0.12);
+  color: #E2E8F0;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-family: inherit;
+  border: none;
+}
+
+.splash-skip-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #FFFFFF;
+  opacity: 1;
+  border-color: rgba(99, 102, 241, 0.4);
+}
+
+/* Logo Global Style Enhancements */
+.brand-icon-sphere {
+  border-radius: 12px;
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.35s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.brand-sphere-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 0 10px rgba(99, 102, 241, 0.45));
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.3s ease;
+}
+
+.brand-logo:hover .brand-sphere-img {
+  transform: rotate(20deg) scale(1.1);
+  filter: drop-shadow(0 0 18px rgba(129, 140, 248, 0.85));
+}
+
+.brand-gradient-text {
+  background: linear-gradient(135deg, #818CF8 0%, #C084FC 50%, #38BDF8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+@media (max-width: 576px) {
+  .splash-stage {
+    width: 110px;
+    height: 110px;
+    margin-bottom: 1.25rem;
+  }
+  .splash-core-mark {
+    width: 72px;
+    height: 72px;
+  }
+  .splash-title {
+    font-size: 1.85rem;
+  }
+  .splash-tagline {
+    font-size: 0.78rem;
+    margin-bottom: 1.25rem;
+  }
+  .splash-progress-track {
+    width: 180px;
+  }
+}

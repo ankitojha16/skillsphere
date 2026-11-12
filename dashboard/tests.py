@@ -115,4 +115,18 @@ class DashboardTests(TestCase):
             ).exists()
         )
 
+    def test_brand_logo_and_opening_splash_rendered(self):
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('dashboard:index'))
+        self.assertEqual(response.status_code, 200)
+        # Check brand logo SVG asset
+        self.assertContains(response, 'logo-icon.svg')
+        self.assertContains(response, 'brand-sphere-img')
+        # Check opening splash intro animation elements
+        self.assertContains(response, 'skillsphereIntroSplash')
+        self.assertContains(response, 'splash-stage')
+        self.assertContains(response, 'opening-animation.css')
+        self.assertContains(response, 'opening-animation.js')
+
+
 

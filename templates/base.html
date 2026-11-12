@@ -32,6 +32,7 @@
     <meta name="application-name" content="SkillSphere">
     <link rel="manifest" href="{% url 'pwa_manifest' %}">
     <link rel="apple-touch-icon" sizes="180x180" href="{% static 'images/pwa/icon-180.png' %}">
+    <link rel="icon" type="image/svg+xml" href="{% static 'images/logo-icon.svg' %}">
     <link rel="icon" type="image/png" sizes="192x192" href="{% static 'images/pwa/icon-192.png' %}">
     <link rel="icon" type="image/png" sizes="32x32" href="{% static 'images/pwa/icon-32.png' %}">
 
@@ -47,6 +48,9 @@
 
     <!-- SkillSphere Master Stylesheet with Cache Buster -->
     <link rel="stylesheet" href="{% static 'css/style.css' %}?v=20261110_v103">
+    <!-- SkillSphere Cinematic Opening Animation Stylesheet -->
+    <link rel="stylesheet" href="{% static 'css/opening-animation.css' %}?v=20261112_v1">
+
     
     <!-- Critical Layout, Mobile Viewport & Contrast Overrides -->
     <style>
@@ -153,19 +157,23 @@
     {% block extra_css %}{% endblock %}
 </head>
 <body>
+    <!-- SkillSphere Cinematic Opening Splash Animation Overlay -->
+    {% include 'includes/opening_splash.html' %}
+
     <div class="app-wrapper">
         {% block sidebar %}
         {% if user.is_authenticated %}
         <!-- Desktop & Mobile Sidebar -->
         <aside class="app-sidebar">
             <div class="sidebar-header">
-                <a href="{% url 'dashboard:index' %}" class="brand-logo">
-                    <div class="brand-icon">
-                        <i data-lucide="layers" style="width: 20px; height: 20px;"></i>
+                <a href="{% url 'dashboard:index' %}" class="brand-logo" title="SkillSphere - Home (Alt+Click to replay intro animation)" onclick="if(event.altKey||event.shiftKey){event.preventDefault();window.playSkillSphereIntro();}">
+                    <div class="brand-icon-sphere" style="width: 36px; height: 36px;">
+                        <img src="{% static 'images/logo-icon.svg' %}" alt="SkillSphere" class="brand-sphere-img" width="36" height="36">
                     </div>
-                    <span>SkillSphere</span>
+                    <span class="d-flex align-items-center"><span class="text-white">Skill</span><span class="brand-gradient-text">Sphere</span></span>
                 </a>
             </div>
+
 
             <div class="sidebar-nav">
                 <div class="nav-section-title">Learning Core</div>
@@ -303,13 +311,14 @@
                         <i data-lucide="menu" style="width: 24px; height: 24px;"></i>
                     </button>
                     {% else %}
-                    <a href="{% url 'home' %}" class="brand-logo text-white d-flex align-items-center gap-2">
-                        <div class="brand-icon">
-                            <i data-lucide="layers" style="width: 20px; height: 20px;"></i>
+                    <a href="{% url 'home' %}" class="brand-logo text-white d-flex align-items-center gap-2" title="SkillSphere - Home (Alt+Click to replay intro animation)" onclick="if(event.altKey||event.shiftKey){event.preventDefault();window.playSkillSphereIntro();}">
+                        <div class="brand-icon-sphere" style="width: 32px; height: 32px;">
+                            <img src="{% static 'images/logo-icon.svg' %}" alt="SkillSphere" class="brand-sphere-img" width="32" height="32">
                         </div>
-                        <span class="fw-bold">SkillSphere</span>
+                        <span class="fw-bold d-flex align-items-center"><span class="text-white">Skill</span><span class="brand-gradient-text">Sphere</span></span>
                     </a>
                     {% endif %}
+
 
                     {% block navbar_search %}
                     <form action="{% url 'courses:list' %}" method="get" class="navbar-search d-none d-md-block">
@@ -481,6 +490,8 @@
     <script src="{% static 'js/main.js' %}"></script>
     <!-- PWA Install Controller & Service Worker Registration -->
     <script src="{% static 'js/pwa-install.js' %}"></script>
+    <!-- SkillSphere Cinematic Opening Animation Script -->
+    <script src="{% static 'js/opening-animation.js' %}"></script>
     {% block extra_js %}{% endblock %}
     <script>
         if (typeof lucide !== 'undefined') {
