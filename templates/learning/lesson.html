@@ -619,7 +619,7 @@ print(f"Total topics completed: {total}")
                                     <div id="socraticDebugContainer" class="d-none mt-3 p-3 rounded-3 border" style="background-color: #0b1120; border-color: rgba(245, 158, 11, 0.4) !important;">
                                         <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom border-secondary border-opacity-25">
                                             <div class="d-flex align-items-center gap-2">
-                                                <span class="badge bg-warning bg-opacity-20 text-warning px-2 py-1" id="socraticErrorType">Debugging Assistant</span>
+                                                <span class="badge border px-2.5 py-1 fw-bold" id="socraticErrorType" style="background-color: rgba(251, 191, 36, 0.16) !important; color: #FBBF24 !important; border-color: rgba(251, 191, 36, 0.45) !important;">Debugging Assistant</span>
                                                 <span class="text-white small fw-bold" id="socraticSummary">Analyzing your code...</span>
                                             </div>
                                             <button type="button" class="btn-close btn-close-white btn-sm" onclick="closeSocraticDebugger()" aria-label="Close"></button>
@@ -677,7 +677,7 @@ print(f"Total topics completed: {total}")
                                     <div id="memoryVisualizerContainer" class="d-none mt-3 p-3 rounded-3 border" style="background-color: #0b1120; border-color: rgba(6, 182, 212, 0.4) !important;">
                                         <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 pb-2 border-bottom border-secondary border-opacity-25 gap-2">
                                             <div class="d-flex align-items-center gap-2">
-                                                <span class="badge bg-info bg-opacity-20 text-info px-2.5 py-1 font-monospace">Python Execution Tracer</span>
+                                                <span class="badge border px-2.5 py-1 font-monospace fw-bold" style="background-color: rgba(6, 182, 212, 0.16) !important; color: #38bdf8 !important; border-color: rgba(6, 182, 212, 0.45) !important;">Python Execution Tracer</span>
                                                 <span class="text-white small fw-bold">Live Memory & Stack Frames</span>
                                                 <span class="badge bg-dark border border-secondary text-secondary small font-monospace" id="visCurrentLineBadge">Line 1</span>
                                             </div>
@@ -3192,11 +3192,11 @@ function playCurrentPodcastLine() {
     const alexBadge = document.getElementById('alexSpeakerBadge');
     const morganBadge = document.getElementById('morganSpeakerBadge');
     if (isAlex) {
-        alexBadge?.classList.add('bg-info', 'bg-opacity-20');
-        morganBadge?.classList.remove('bg-purple', 'bg-opacity-20');
+        alexBadge?.classList.add('bg-info', 'bg-opacity-25');
+        morganBadge?.classList.remove('bg-purple', 'bg-opacity-25');
     } else {
-        morganBadge?.classList.add('bg-secondary', 'bg-opacity-20');
-        alexBadge?.classList.remove('bg-info', 'bg-opacity-20');
+        morganBadge?.classList.add('bg-secondary', 'bg-opacity-25');
+        alexBadge?.classList.remove('bg-info', 'bg-opacity-25');
     }
 
     // Scroll active line into view

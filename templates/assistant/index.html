@@ -567,7 +567,7 @@
                                     {% if msg.role == 'assistant' %}
                                     <div class="d-flex align-items-center gap-1.5">
                                         {% if not msg.is_fallback %}
-                                        <span class="badge bg-primary bg-opacity-20 text-primary border border-primary border-opacity-40 px-2 py-0.5 rounded-pill" style="font-size: 0.72rem;">
+                                        <span class="badge bg-primary bg-opacity-25 text-primary border border-primary border-opacity-40 px-2 py-0.5 rounded-pill" style="font-size: 0.72rem;">
                                             <i data-lucide="zap" style="width: 11px; height: 11px;" class="me-1"></i>{{ msg.provider|upper }}
                                         </span>
                                         {% else %}
@@ -987,7 +987,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     aiRow.className = 'message-row d-flex gap-3 assistant-bubble';
 
                     const badgeHtml = !data.is_fallback
-                        ? `<span class="badge bg-primary bg-opacity-20 text-primary border border-primary border-opacity-40 px-2 py-0.5 rounded-pill" style="font-size: 0.72rem;"><i data-lucide="zap" style="width: 11px; height: 11px;" class="me-1"></i>${(data.provider || 'GEMINI').toUpperCase()}</span>`
+                        ? `<span class="badge bg-primary bg-opacity-25 text-primary border border-primary border-opacity-40 px-2 py-0.5 rounded-pill" style="font-size: 0.72rem;"><i data-lucide="zap" style="width: 11px; height: 11px;" class="me-1"></i>${(data.provider || 'GEMINI').toUpperCase()}</span>`
                         : `<span class="badge bg-secondary bg-opacity-25 text-secondary border border-secondary border-opacity-40 px-2 py-0.5 rounded-pill" style="font-size: 0.72rem;"><i data-lucide="database" style="width: 11px; height: 11px;" class="me-1"></i>Knowledge Engine</span>`;
 
                     const sanitizedContent = renderSafeMarkdown(data.ai_message);
