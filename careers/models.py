@@ -19,3 +19,37 @@ class CareerProfile(models.Model):
 
     def __str__(self):
         return f"{self.user.username}'s Career Profile"
+
+
+class JobApplication(models.Model):
+    STATUS_CHOICES = [
+        ('WISHLIST', 'Wishlist'),
+        ('APPLIED', 'Applied'),
+        ('SCREENING', 'Screening / HR'),
+        ('TECHNICAL', 'Technical / Interview'),
+        ('OFFER', 'Offer Extended 🎉'),
+        ('REJECTED', 'Archived / Rejected'),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='job_applications')
+    company_name = models.CharField(max_length=150)
+    role_title = models.CharField(max_length=150)
+    job_url = models.URLField(blank=True)
+    job_description = models.TextField(blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='WISHLIST')
+    target_salary = models.CharField(max_length=80, blank=True)
+    location = models.CharField(max_length=100, blank=True)
+    ats_match_score = models.PositiveIntegerField(default=0)
+    notes = models.TextField(blank=True)
+    applied_date = models.DateField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-updated_at']
+        verbose_name = 'Job Application'
+        verbose_name_plural = 'Job Applications'
+
+    def __str__(self):
+        return f"{self.role_title} at {self.company_name} ({self.status})"
+

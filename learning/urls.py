@@ -10,7 +10,11 @@ urlpatterns = [
     path('flashcards/review/', views.flashcards_record_review_view, name='flashcards_record_review'),
     path('flashcards/<int:course_id>/auto-generate/', views.flashcards_auto_generate_view, name='flashcards_auto_generate'),
 
+    # Socratic Code Debugger & Hint Ladder Route
+    path('debug-socratic/', views.socratic_debug_api, name='socratic_debug'),
+
     path('<slug:course_slug>/<int:lesson_id>/', views.lesson_view, name='lesson_detail'),
+    path('<slug:course_slug>/<int:lesson_id>/podcast/', views.lesson_podcast_api, name='lesson_podcast'),
     path('<slug:course_slug>/<int:lesson_id>/toggle/', views.complete_lesson_toggle, name='complete_toggle'),
     path('<slug:course_slug>/<int:lesson_id>/video-progress/', views.video_progress_api, name='video_progress'),
     path('<slug:course_slug>/<int:lesson_id>/bookmark/', views.bookmark_toggle_api, name='bookmark_toggle'),
@@ -19,3 +23,4 @@ urlpatterns = [
     path('<slug:course_slug>/<int:lesson_id>/exercise/<int:exercise_id>/submit/', views.exercise_submit_api, name='exercise_submit'),
     path('<slug:course_slug>/<int:lesson_id>/ai-assist/', views.ai_notes_assist_api, name='ai_notes_assist'),
 ]
+

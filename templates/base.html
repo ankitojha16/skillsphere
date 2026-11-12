@@ -225,9 +225,13 @@
                 </a>
 
                 <div class="nav-section-title">Career & Showcase</div>
-                <a href="{% url 'careers:hub' %}" class="sidebar-link {% if request.resolver_match.app_name == 'careers' %}active{% endif %}">
+                <a href="{% url 'careers:hub' %}" class="sidebar-link {% if request.resolver_match.app_name == 'careers' and 'tracker' not in request.path %}active{% endif %}">
                     <i data-lucide="target" style="width: 18px; height: 18px;"></i>
                     <span>Career Hub</span>
+                </a>
+                <a href="{% url 'careers:job_tracker' %}" class="sidebar-link {% if 'tracker' in request.path %}active{% endif %}">
+                    <i data-lucide="kanban" style="width: 18px; height: 18px;"></i>
+                    <span>Job Tracker & AI Co-Pilot</span>
                 </a>
                 <a href="{% url 'resumes:builder' %}" class="sidebar-link {% if request.resolver_match.app_name == 'resumes' and 'mock-interview-studio' not in request.path %}active{% endif %}">
                     <i data-lucide="file-text" style="width: 18px; height: 18px;"></i>
@@ -265,7 +269,11 @@
                     <i data-lucide="qr-code" style="width: 18px; height: 18px;"></i>
                     <span>Verify Credential (QR)</span>
                 </a>
-                <a href="{% url 'gamification:achievements' %}" class="sidebar-link {% if request.resolver_match.app_name == 'gamification' %}active{% endif %}">
+                <a href="{% url 'gamification:leagues' %}" class="sidebar-link {% if 'leagues' in request.path %}active{% endif %}">
+                    <i data-lucide="trophy" style="width: 18px; height: 18px;"></i>
+                    <span>Competitive Leagues</span>
+                </a>
+                <a href="{% url 'gamification:achievements' %}" class="sidebar-link {% if request.resolver_match.app_name == 'gamification' and 'leagues' not in request.path %}active{% endif %}">
                     <i data-lucide="award" style="width: 18px; height: 18px;"></i>
                     <span>Achievements</span>
                 </a>
@@ -273,6 +281,7 @@
                     <i data-lucide="settings" style="width: 18px; height: 18px;"></i>
                     <span>Settings & Profile</span>
                 </a>
+
                 <a href="javascript:void(0)" onclick="triggerPWAInstall()" class="sidebar-link pwa-install-trigger text-info" style="display: none;">
                     <i data-lucide="smartphone" style="width: 18px; height: 18px;"></i>
                     <span>Install App</span>

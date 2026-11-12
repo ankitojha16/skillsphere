@@ -403,6 +403,10 @@
                                 <p class="text-secondary small mb-0">High-yield revision materials, cheat sheets, and downloadable academic PDF.</p>
                             </div>
                             <div class="d-flex align-items-center gap-2">
+                                <button type="button" class="btn btn-outline-info btn-sm py-1.5 px-3 d-inline-flex align-items-center gap-1.5" onclick="openLessonPodcastModal()" id="openLessonPodcastBtn" title="Listen to AI conversational audio summary">
+                                    <i data-lucide="headphones" style="width: 14px; height: 14px;"></i>
+                                    <span>AI Audio Podcast</span>
+                                </button>
                                 <a href="{% url 'learning:download_notes_pdf' course_slug=course.slug lesson_id=lesson.id %}" class="btn btn-primary-custom btn-sm py-1.5 px-3 d-inline-flex align-items-center gap-1.5">
                                     <i data-lucide="download" style="width: 14px; height: 14px;"></i>
                                     <span>Download Academic PDF</span>
@@ -412,6 +416,7 @@
                                     <span>Copy Notes</span>
                                 </button>
                             </div>
+
                         </div>
 
                         <!-- Technical Deep-Dive Notes -->
@@ -580,6 +585,10 @@ print(f"Total topics completed: {total}")
                                                 <i data-lucide="trash-2" style="width: 13px; height: 13px;"></i>
                                                 <span>Clear Output</span>
                                             </button>
+                                            <button type="button" id="socraticDebugBtn" class="btn btn-outline-warning btn-sm py-1.5 px-3 d-inline-flex align-items-center gap-1.5" onclick="triggerSocraticDebugger()" title="Get Socratic hint ladder for bugs or errors">
+                                                <i data-lucide="help-circle" style="width: 14px; height: 14px;"></i>
+                                                <span id="socraticDebugBtnText">Explain Bug & Guide Me</span>
+                                            </button>
                                         </div>
                                         <div id="wasmMeter" class="text-secondary small font-monospace" style="font-size: 0.78rem;">
                                             ⚡ Zero Server Load • 100% In-Browser
@@ -598,7 +607,66 @@ print(f"Total topics completed: {total}")
                                         </div>
                                         <pre id="wasmOutputConsole" class="p-3 mb-0 font-monospace text-light" style="background-color: #030712; min-height: 90px; max-height: 240px; overflow-y: auto; font-size: 0.85rem; line-height: 1.5; white-space: pre-wrap; word-break: break-all;"># Click 'Run Python (WASM)' above to execute in sub-second WebAssembly.</pre>
                                     </div>
+
+                                    <!-- Socratic AI Code Debugger Drawer -->
+                                    <div id="socraticDebugContainer" class="d-none mt-3 p-3 rounded-3 border" style="background-color: #0b1120; border-color: rgba(245, 158, 11, 0.4) !important;">
+                                        <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom border-secondary border-opacity-25">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <span class="badge bg-warning bg-opacity-20 text-warning px-2 py-1" id="socraticErrorType">Debugging Assistant</span>
+                                                <span class="text-white small fw-bold" id="socraticSummary">Analyzing your code...</span>
+                                            </div>
+                                            <button type="button" class="btn-close btn-close-white btn-sm" onclick="closeSocraticDebugger()" aria-label="Close"></button>
+                                        </div>
+
+                                        <!-- Socratic Question Box -->
+                                        <div class="p-2.5 rounded-2 mb-3 bg-dark border border-warning border-opacity-20 text-warning small d-flex align-items-start gap-2">
+                                            <i data-lucide="sparkles" style="width: 16px; height: 16px; flex-shrink: 0;" class="mt-0.5"></i>
+                                            <div id="socraticQuestion">What assumption does your code make that might not hold true?</div>
+                                        </div>
+
+                                        <!-- 3-Tier Progressive Hint Ladder -->
+                                        <div class="d-flex flex-column gap-2" id="hintLadderList">
+                                            <!-- Tier 1 -->
+                                            <div class="p-2.5 rounded-2 bg-dark border border-secondary border-opacity-25">
+                                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                                    <span class="fw-bold text-info small">💡 Tier 1: Conceptual Clue</span>
+                                                    <span class="badge bg-secondary text-light small" style="font-size: 0.65rem;">Foundational</span>
+                                                </div>
+                                                <div class="text-secondary small" id="hintTier1Text">Loading hint...</div>
+                                            </div>
+
+                                            <!-- Tier 2 -->
+                                            <div class="p-2.5 rounded-2 bg-dark border border-secondary border-opacity-25">
+                                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                                    <span class="fw-bold text-warning small">🎯 Tier 2: Targeted Inspection</span>
+                                                    <button type="button" class="btn btn-link btn-sm p-0 text-warning text-decoration-none small" id="revealTier2Btn" onclick="toggleTier(2)">Reveal Clue</button>
+                                                </div>
+                                                <div class="text-secondary small d-none" id="hintTier2Text">Inspect the exact line and boundary condition.</div>
+                                            </div>
+
+                                            <!-- Tier 3 -->
+                                            <div class="p-2.5 rounded-2 bg-dark border border-secondary border-opacity-25">
+                                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                                    <span class="fw-bold text-success small">🛠️ Tier 3: 1-Click Diff & Fix</span>
+                                                    <button type="button" class="btn btn-link btn-sm p-0 text-success text-decoration-none small" id="revealTier3Btn" onclick="toggleTier(3)">Reveal Solution</button>
+                                                </div>
+                                                <div class="d-none" id="hintTier3Content">
+                                                    <div class="text-secondary small mb-2" id="hintTier3Explanation"></div>
+                                                    <div class="d-flex align-items-center gap-2">
+                                                        <button type="button" class="btn btn-success-custom btn-sm py-1 px-3 d-inline-flex align-items-center gap-1.5" onclick="applySocraticPatch()">
+                                                            <i data-lucide="check" style="width: 14px; height: 14px;"></i>
+                                                            <span>Apply Fix to Code Editor</span>
+                                                        </button>
+                                                        <button type="button" class="btn btn-outline-secondary btn-sm py-1 px-2.5 text-white" onclick="copyPatchedCode()">
+                                                            <span>Copy Code</span>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
+
 
                                 <!-- 2. SQL SQLITE PANE -->
                                 <div class="tab-pane fade" id="pane-sql" role="tabpanel">
@@ -1141,6 +1209,108 @@ ORDER BY c.rating DESC;</textarea>
         </div>
     </div>
 </div>
+
+<!-- AI Audio Course Podcast Modal -->
+<div class="modal fade" id="lessonPodcastModal" tabindex="-1" aria-labelledby="lessonPodcastModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content custom-card border-info-glow" style="background-color: var(--card-bg, #0B1120); border: 1px solid rgba(56, 189, 248, 0.3);">
+            <div class="modal-header border-secondary border-opacity-25 pb-3">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="p-2 rounded-3 bg-info bg-opacity-10 text-info">
+                        <i data-lucide="headphones" style="width: 20px; height: 20px;"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold text-white mb-0" id="lessonPodcastModalLabel">AI Audio Deep-Dive Podcast</h5>
+                        <div class="text-secondary small">Conversational 2-Host Breakdown: {{ lesson.title }}</div>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" onclick="stopPodcastAudio()"></button>
+            </div>
+            <div class="modal-body py-3">
+                <!-- Dual Speaker Avatars & Audio Player Stage -->
+                <div class="p-3 rounded-3 mb-3 border border-secondary border-opacity-25" style="background: linear-gradient(135deg, rgba(15, 23, 42, 0.8), rgba(30, 27, 75, 0.4));">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
+                        <!-- Host 1: Alex -->
+                        <div class="d-flex align-items-center gap-2.5 p-2 rounded-2" id="alexSpeakerBadge">
+                            <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width: 42px; height: 42px; background: linear-gradient(135deg, #06B6D4, #3B82F6); color: white; font-size: 0.9rem;">
+                                AL
+                            </div>
+                            <div>
+                                <div class="text-white fw-bold small">Alex</div>
+                                <div class="text-secondary" style="font-size: 0.72rem;">Podcast Host</div>
+                            </div>
+                        </div>
+
+                        <!-- Center Waveform & Status Indicator -->
+                        <div class="d-flex flex-column align-items-center gap-1">
+                            <div class="d-flex align-items-center gap-1" id="podcastWaveformBars" style="height: 24px;">
+                                <span class="bg-info rounded-pill" style="width: 3px; height: 12px;"></span>
+                                <span class="bg-primary rounded-pill" style="width: 3px; height: 20px;"></span>
+                                <span class="bg-info rounded-pill" style="width: 3px; height: 8px;"></span>
+                                <span class="bg-primary rounded-pill" style="width: 3px; height: 24px;"></span>
+                                <span class="bg-info rounded-pill" style="width: 3px; height: 14px;"></span>
+                            </div>
+                            <span class="badge bg-dark border border-secondary text-info small" id="podcastStatusBadge" style="font-size: 0.72rem;">Ready to Play</span>
+                        </div>
+
+                        <!-- Host 2: Morgan -->
+                        <div class="d-flex align-items-center gap-2.5 p-2 rounded-2" id="morganSpeakerBadge">
+                            <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width: 42px; height: 42px; background: linear-gradient(135deg, #8B5CF6, #EC4899); color: white; font-size: 0.9rem;">
+                                MO
+                            </div>
+                            <div>
+                                <div class="text-white fw-bold small">Morgan</div>
+                                <div class="text-secondary" style="font-size: 0.72rem;">Staff Engineer</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Playback Toolbar -->
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 pt-2 border-top border-secondary border-opacity-25">
+                        <div class="d-flex align-items-center gap-2">
+                            <button type="button" class="btn btn-primary-custom btn-sm py-1.5 px-3 d-inline-flex align-items-center gap-1.5" id="podcastPlayToggleBtn" onclick="togglePodcastPlay()">
+                                <i data-lucide="play" id="podcastPlayIcon" style="width: 14px; height: 14px;"></i>
+                                <span id="podcastPlayText">Play Podcast</span>
+                            </button>
+                            <button type="button" class="btn btn-secondary-custom btn-sm py-1.5 px-2.5" onclick="replayPodcastLine()" title="Replay current sentence">
+                                <i data-lucide="rotate-ccw" style="width: 13px; height: 13px;"></i>
+                            </button>
+                            <button type="button" class="btn btn-secondary-custom btn-sm py-1.5 px-2.5" onclick="nextPodcastLine()" title="Skip to next sentence">
+                                <i data-lucide="skip-forward" style="width: 13px; height: 13px;"></i>
+                            </button>
+                        </div>
+
+                        <div class="d-flex align-items-center gap-1.5">
+                            <span class="text-secondary small" style="font-size: 0.74rem;">Speed:</span>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-secondary py-0.5 px-2 active podcast-speed-btn" data-speed="1.0" onclick="setPodcastSpeed(1.0, this)">1.0x</button>
+                                <button type="button" class="btn btn-outline-secondary py-0.5 px-2 podcast-speed-btn" data-speed="1.25" onclick="setPodcastSpeed(1.25, this)">1.25x</button>
+                                <button type="button" class="btn btn-outline-secondary py-0.5 px-2 podcast-speed-btn" data-speed="1.5" onclick="setPodcastSpeed(1.5, this)">1.5x</button>
+                                <button type="button" class="btn btn-outline-secondary py-0.5 px-2 podcast-speed-btn" data-speed="2.0" onclick="setPodcastSpeed(2.0, this)">2.0x</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Synchronized Dialogue Transcript -->
+                <div class="d-flex justify-content-between align-items-center mb-1.5 px-1">
+                    <span class="text-white small fw-bold">Live Synchronized Transcript</span>
+                    <button type="button" class="btn btn-link btn-sm p-0 text-info text-decoration-none small" onclick="downloadPodcastTranscript()">Download Script (.txt)</button>
+                </div>
+                <div id="podcastTranscriptList" class="d-flex flex-column gap-2 p-2.5 rounded-3 bg-dark border border-secondary border-opacity-25" style="max-height: 240px; overflow-y: auto;">
+                    <div class="text-secondary text-center small py-3" id="podcastLoadingState">
+                        <div class="spinner-border spinner-border-sm text-info mb-1" role="status"></div>
+                        <div>Generating personalized 2-host audio deep dive...</div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-secondary border-opacity-25 pt-2">
+                <button type="button" class="btn btn-secondary-custom btn-sm" data-bs-dismiss="modal" onclick="stopPodcastAudio()">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
@@ -2396,5 +2566,376 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }, 1000);
 });
+
+// -------------------------------------------------------------
+// Socratic AI Code Debugger Logic
+// -------------------------------------------------------------
+let currentSocraticPatch = '';
+
+async function triggerSocraticDebugger() {
+    const btn = document.getElementById('socraticDebugBtn');
+    const btnText = document.getElementById('socraticDebugBtnText');
+    const pyEditor = document.getElementById('wasmPythonEditor');
+    const consoleEl = document.getElementById('wasmOutputConsole');
+    const container = document.getElementById('socraticDebugContainer');
+
+    const code = pyEditor ? pyEditor.value : '';
+    const errorTrace = consoleEl ? consoleEl.innerText : '';
+
+    if (!code.trim()) {
+        alert('Please write or load code in the editor before requesting Socratic debugging.');
+        return;
+    }
+
+    if (btnText) btnText.innerText = 'Analyzing Bug...';
+    if (btn) btn.disabled = true;
+
+    try {
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+        const resp = await fetch("{% url 'learning:socratic_debug' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({
+                language: 'python',
+                code: code,
+                error_trace: errorTrace,
+                lesson_title: "{{ lesson.title|escapejs }}"
+            })
+        });
+
+        const data = await resp.json();
+        if (data.success && data.debug) {
+            const dbg = data.debug;
+            document.getElementById('socraticErrorType').innerText = dbg.error_type || 'Identified Bug';
+            document.getElementById('socraticSummary').innerText = dbg.summary || 'Bug Analysis Complete';
+            document.getElementById('socraticQuestion').innerText = dbg.socratic_question || 'How should your data flow behave here?';
+
+            // Tier 1
+            document.getElementById('hintTier1Text').innerText = dbg.hint_tier_1?.clue || 'Check variable types and loop ranges.';
+
+            // Reset Tier 2
+            const t2Text = document.getElementById('hintTier2Text');
+            t2Text.innerText = dbg.hint_tier_2?.clue || 'Inspect the specific condition causing boundary failure.';
+            t2Text.classList.add('d-none');
+            document.getElementById('revealTier2Btn').innerText = 'Reveal Clue';
+
+            // Reset Tier 3
+            currentSocraticPatch = dbg.hint_tier_3?.patched_code || code;
+            document.getElementById('hintTier3Explanation').innerText = dbg.hint_tier_3?.explanation || 'Apply this patch to fix the bug.';
+            document.getElementById('hintTier3Content').classList.add('d-none');
+            document.getElementById('revealTier3Btn').innerText = 'Reveal Solution';
+
+            if (container) {
+                container.classList.remove('d-none');
+                container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        } else {
+            alert('Debugger notice: ' + (data.error || 'Could not analyze code.'));
+        }
+    } catch (err) {
+        console.error('Socratic debug error:', err);
+        alert('Could not connect to Socratic AI Tutor: ' + err.message);
+    } finally {
+        if (btnText) btnText.innerText = 'Explain Bug & Guide Me';
+        if (btn) btn.disabled = false;
+    }
+}
+
+function closeSocraticDebugger() {
+    const container = document.getElementById('socraticDebugContainer');
+    if (container) container.classList.add('d-none');
+}
+
+function toggleTier(tierNum) {
+    if (tierNum === 2) {
+        const textEl = document.getElementById('hintTier2Text');
+        const btn = document.getElementById('revealTier2Btn');
+        if (textEl.classList.contains('d-none')) {
+            textEl.classList.remove('d-none');
+            btn.innerText = 'Hide Clue';
+        } else {
+            textEl.classList.add('d-none');
+            btn.innerText = 'Reveal Clue';
+        }
+    } else if (tierNum === 3) {
+        const contentEl = document.getElementById('hintTier3Content');
+        const btn = document.getElementById('revealTier3Btn');
+        if (contentEl.classList.contains('d-none')) {
+            contentEl.classList.remove('d-none');
+            btn.innerText = 'Hide Solution';
+        } else {
+            contentEl.classList.add('d-none');
+            btn.innerText = 'Reveal Solution';
+        }
+    }
+}
+
+function applySocraticPatch() {
+    if (!currentSocraticPatch) return;
+    const pyEditor = document.getElementById('wasmPythonEditor');
+    if (pyEditor) {
+        pyEditor.value = currentSocraticPatch;
+        alert('Patch applied successfully to your Python code editor! Click "Run Python (WASM)" to verify.');
+        pyEditor.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+}
+
+function copyPatchedCode() {
+    if (!currentSocraticPatch) return;
+    navigator.clipboard.writeText(currentSocraticPatch).then(() => {
+        alert('Patched code copied to clipboard!');
+    });
+}
+
+// -------------------------------------------------------------
+// AI Audio Course Podcast Player Logic
+// -------------------------------------------------------------
+let podcastDialogue = [];
+let currentPodcastLineIdx = 0;
+let isPodcastPlaying = false;
+let podcastPlaybackSpeed = 1.0;
+let currentUtterance = null;
+
+async function openLessonPodcastModal() {
+    const modalEl = document.getElementById('lessonPodcastModal');
+    if (!modalEl || typeof bootstrap === 'undefined') return;
+
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    modal.show();
+
+    // If dialogue already fetched, return
+    if (podcastDialogue.length > 0) return;
+
+    const loadingState = document.getElementById('podcastLoadingState');
+    const transcriptList = document.getElementById('podcastTranscriptList');
+    if (loadingState) loadingState.classList.remove('d-none');
+
+    try {
+        const resp = await fetch("{% url 'learning:lesson_podcast' course_slug=course.slug lesson_id=lesson.id %}");
+        const data = await resp.json();
+
+        if (data.success && data.podcast && data.podcast.dialogue) {
+            podcastDialogue = data.podcast.dialogue;
+            renderPodcastTranscript();
+        } else {
+            if (transcriptList) {
+                transcriptList.innerHTML = '<div class="text-danger small p-3">Failed to load podcast dialogue.</div>';
+            }
+        }
+    } catch (err) {
+        console.error('Podcast load error:', err);
+        if (transcriptList) {
+            transcriptList.innerHTML = `<div class="text-danger small p-3">Error loading audio podcast: ${err.message}</div>`;
+        }
+    }
+}
+
+function renderPodcastTranscript() {
+    const transcriptList = document.getElementById('podcastTranscriptList');
+    if (!transcriptList) return;
+
+    transcriptList.innerHTML = '';
+    podcastDialogue.forEach((line, idx) => {
+        const isAlex = (line.speaker || '').toLowerCase() === 'alex';
+        const item = document.createElement('div');
+        item.className = `p-2.5 rounded-2 d-flex gap-2.5 align-items-start transition-all ${idx === currentPodcastLineIdx ? 'border border-info bg-info bg-opacity-10' : 'bg-dark border border-secondary border-opacity-25'}`;
+        item.id = `podcastLineItem_${idx}`;
+
+        const badgeColor = isAlex ? 'background: linear-gradient(135deg, #06B6D4, #3B82F6);' : 'background: linear-gradient(135deg, #8B5CF6, #EC4899);';
+        const initials = isAlex ? 'AL' : 'MO';
+
+        item.innerHTML = `
+            <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold flex-shrink-0" style="width: 28px; height: 28px; font-size: 0.72rem; ${badgeColor}">
+                ${initials}
+            </div>
+            <div class="flex-grow-1">
+                <div class="d-flex align-items-center gap-1.5 mb-0.5">
+                    <span class="text-white small fw-bold">${line.speaker}</span>
+                    <span class="text-secondary" style="font-size: 0.68rem;">(${line.role || (isAlex ? 'Host' : 'Staff Engineer')})</span>
+                </div>
+                <div class="text-light small" style="line-height: 1.5;">${line.text}</div>
+            </div>
+        `;
+        item.style.cursor = 'pointer';
+        item.onclick = () => {
+            currentPodcastLineIdx = idx;
+            playCurrentPodcastLine();
+        };
+        transcriptList.appendChild(item);
+    });
+
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+function togglePodcastPlay() {
+    if (!('speechSynthesis' in window)) {
+        alert('Your browser does not support Speech Synthesis audio playback.');
+        return;
+    }
+
+    if (isPodcastPlaying) {
+        pausePodcastAudio();
+    } else {
+        if (window.speechSynthesis.paused) {
+            window.speechSynthesis.resume();
+            isPodcastPlaying = true;
+            updatePodcastUIState(true);
+        } else {
+            playCurrentPodcastLine();
+        }
+    }
+}
+
+function playCurrentPodcastLine() {
+    if (!podcastDialogue || podcastDialogue.length === 0) return;
+    if (currentPodcastLineIdx >= podcastDialogue.length) {
+        currentPodcastLineIdx = 0;
+    }
+
+    window.speechSynthesis.cancel();
+    const line = podcastDialogue[currentPodcastLineIdx];
+    const isAlex = (line.speaker || '').toLowerCase() === 'alex';
+
+    const utterance = new SpeechSynthesisUtterance(line.text);
+    currentUtterance = utterance;
+
+    // Adjust speaker voice profile
+    utterance.rate = podcastPlaybackSpeed * (isAlex ? 1.02 : 0.96);
+    utterance.pitch = isAlex ? 1.15 : 0.85;
+
+    // Highlight speaker avatar
+    const alexBadge = document.getElementById('alexSpeakerBadge');
+    const morganBadge = document.getElementById('morganSpeakerBadge');
+    if (isAlex) {
+        alexBadge?.classList.add('bg-info', 'bg-opacity-20');
+        morganBadge?.classList.remove('bg-purple', 'bg-opacity-20');
+    } else {
+        morganBadge?.classList.add('bg-secondary', 'bg-opacity-20');
+        alexBadge?.classList.remove('bg-info', 'bg-opacity-20');
+    }
+
+    // Scroll active line into view
+    renderPodcastActiveLine();
+
+    utterance.onstart = () => {
+        isPodcastPlaying = true;
+        updatePodcastUIState(true);
+    };
+
+    utterance.onend = () => {
+        currentPodcastLineIdx++;
+        if (currentPodcastLineIdx < podcastDialogue.length && isPodcastPlaying) {
+            setTimeout(playCurrentPodcastLine, 350);
+        } else {
+            isPodcastPlaying = false;
+            updatePodcastUIState(false);
+            if (currentPodcastLineIdx >= podcastDialogue.length) {
+                currentPodcastLineIdx = 0;
+                document.getElementById('podcastStatusBadge').innerText = 'Completed ✓';
+            }
+        }
+    };
+
+    utterance.onerror = (e) => {
+        console.warn('Speech synthesis error:', e);
+        isPodcastPlaying = false;
+        updatePodcastUIState(false);
+    };
+
+    window.speechSynthesis.speak(utterance);
+}
+
+function renderPodcastActiveLine() {
+    podcastDialogue.forEach((_, idx) => {
+        const item = document.getElementById(`podcastLineItem_${idx}`);
+        if (!item) return;
+        if (idx === currentPodcastLineIdx) {
+            item.className = 'p-2.5 rounded-2 d-flex gap-2.5 align-items-start transition-all border border-info bg-info bg-opacity-10';
+            item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        } else {
+            item.className = 'p-2.5 rounded-2 d-flex gap-2.5 align-items-start transition-all bg-dark border border-secondary border-opacity-25';
+        }
+    });
+}
+
+function pausePodcastAudio() {
+    if ('speechSynthesis' in window) {
+        window.speechSynthesis.pause();
+    }
+    isPodcastPlaying = false;
+    updatePodcastUIState(false);
+}
+
+function stopPodcastAudio() {
+    if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+    }
+    isPodcastPlaying = false;
+    updatePodcastUIState(false);
+}
+
+function replayPodcastLine() {
+    playCurrentPodcastLine();
+}
+
+function nextPodcastLine() {
+    if (currentPodcastLineIdx < podcastDialogue.length - 1) {
+        currentPodcastLineIdx++;
+        playCurrentPodcastLine();
+    }
+}
+
+function setPodcastSpeed(speed, btn) {
+    podcastPlaybackSpeed = speed;
+    document.querySelectorAll('.podcast-speed-btn').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    if (isPodcastPlaying) {
+        playCurrentPodcastLine();
+    }
+}
+
+function updatePodcastUIState(playing) {
+    const playText = document.getElementById('podcastPlayText');
+    const playIcon = document.getElementById('podcastPlayIcon');
+    const statusBadge = document.getElementById('podcastStatusBadge');
+
+    if (playing) {
+        if (playText) playText.innerText = 'Pause';
+        if (playIcon) playIcon.setAttribute('data-lucide', 'pause');
+        if (statusBadge) statusBadge.innerText = `Speaking: Line ${currentPodcastLineIdx + 1}/${podcastDialogue.length}`;
+    } else {
+        if (playText) playText.innerText = 'Play Podcast';
+        if (playIcon) playIcon.setAttribute('data-lucide', 'play');
+        if (statusBadge) statusBadge.innerText = 'Paused';
+    }
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+function downloadPodcastTranscript() {
+    if (!podcastDialogue || podcastDialogue.length === 0) return;
+    let txt = `SkillSphere Audio Deep-Dive: {{ lesson.title|escapejs }}\n`;
+    txt += `Course: {{ course.title|escapejs }}\n`;
+    txt += `Date: ${new Date().toLocaleDateString()}\n\n`;
+    txt += `------------------------------------------------------\n\n`;
+
+    podcastDialogue.forEach(line => {
+        txt += `[${line.speaker} - ${line.role || 'Host'}]:\n${line.text}\n\n`;
+    });
+
+    const blob = new Blob([txt], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `SkillSphere_Podcast_{{ lesson.title|slugify }}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
 </script>
+
 {% endblock %}

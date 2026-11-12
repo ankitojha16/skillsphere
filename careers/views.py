@@ -1,9 +1,12 @@
+import json
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.http import JsonResponse
+from django.utils import timezone
 from django.db.models import Avg, Count
 
-from .models import CareerProfile
+from .models import CareerProfile, JobApplication
 from courses.models import Course, Enrollment, CourseCompletion
 from learning.models import LessonProgress
 from interviews.models import MockInterview
@@ -12,6 +15,9 @@ from projects.models import ProjectIdea
 from certificates.models import Certificate
 from portfolios.models import Portfolio
 from resumes.models import Resume
+from gamification.services import award_user_xp
+from services.ai_service import AIService
+
 
 CAREER_PATHS = {
     'python-developer': {
@@ -343,3 +349,215 @@ def career_analytics_view(request):
         'active_path': active_path,
     }
     return render(request, 'careers/career_analytics.html', context)
+
+
+@login_required
+def job_tracker_view(request):
+    """
+    AI Job Search Co-Pilot & Interactive Kanban Application Tracker.
+    Groups job applications into 6 visual pipeline stages with metrics and ATS match scores.
+    """
+    applications = JobApplication.objects.filter(user=request.user)
+
+    stages = [
+        ('WISHLIST', 'Wishlist', 'secondary', 'bi-bookmark-heart'),
+        ('APPLIED', 'Applied', 'info', 'bi-send-check'),
+        ('SCREENING', 'Screening', 'primary', 'bi-telephone-inbound'),
+        ('TECHNICAL', 'Technical / Interview', 'warning', 'bi-code-slash'),
+        ('OFFER', 'Offer Extended', 'success', 'bi-trophy'),
+        ('REJECTED', 'Archived / Rejected', 'dark', 'bi-archive')
+    ]
+
+    kanban_columns = []
+    for code, label, color, icon in stages:
+        cards = applications.filter(status=code)
+        kanban_columns.append({
+            'code': code,
+            'label': label,
+            'color': color,
+            'icon': icon,
+            'count': cards.count(),
+            'cards': cards
+        })
+
+    total_apps = applications.count()
+    active_interviews = applications.filter(status__in=['SCREENING', 'TECHNICAL']).count()
+    offers = applications.filter(status='OFFER').count()
+    applied_count = applications.exclude(status='WISHLIST').count()
+    response_rate = int((active_interviews + offers) / applied_count * 100) if applied_count > 0 else 0
+
+    profile, _ = CareerProfile.objects.get_or_create(user=request.user)
+
+    context = {
+        'kanban_columns': kanban_columns,
+        'total_apps': total_apps,
+        'active_interviews': active_interviews,
+        'offers': offers,
+        'response_rate': response_rate,
+        'profile': profile,
+    }
+    return render(request, 'careers/job_tracker.html', context)
+
+
+@login_required
+def create_job_application_view(request):
+    """
+    Creates a new job application card with ATS scoring and gamified XP rewards.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST method required.'}, status=405)
+
+    if request.content_type == 'application/json':
+        try:
+            data = json.loads(request.body.decode('utf-8'))
+        except Exception:
+            data = {}
+    else:
+        data = request.POST
+
+    company_name = data.get('company_name', '').strip()
+    role_title = data.get('role_title', '').strip()
+
+    if not company_name or not role_title:
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.content_type == 'application/json':
+            return JsonResponse({'error': 'Company name and role title are required.'}, status=400)
+        messages.error(request, "Company name and role title are required.")
+        return redirect('careers:job_tracker')
+
+    job_url = data.get('job_url', '').strip()
+    job_description = data.get('job_description', '').strip()
+    status = data.get('status', 'WISHLIST').strip().upper()
+    valid_statuses = [s[0] for s in JobApplication.STATUS_CHOICES]
+    if status not in valid_statuses:
+        status = 'WISHLIST'
+
+    target_salary = data.get('target_salary', '').strip()
+    location = data.get('location', '').strip()
+    notes = data.get('notes', '').strip()
+
+    ats_score = 0
+    try:
+        ats_score = int(data.get('ats_match_score', 0))
+    except (ValueError, TypeError):
+        ats_score = 0
+
+    if ats_score == 0 and job_description:
+        user_resume = Resume.objects.filter(user=request.user).first()
+        if user_resume and user_resume.skills:
+            resume_skills = [s.strip().lower() for s in user_resume.skills.split(',') if s.strip()]
+            if resume_skills:
+                jd_lower = job_description.lower()
+                matched = [s for s in resume_skills if s in jd_lower]
+                ats_score = min(100, int((len(matched) / len(resume_skills)) * 100))
+        if ats_score == 0:
+            ats_score = 80
+
+    applied_date = None
+    if status in ['APPLIED', 'SCREENING', 'TECHNICAL', 'OFFER']:
+        applied_date = timezone.now().date()
+
+    app = JobApplication.objects.create(
+        user=request.user,
+        company_name=company_name,
+        role_title=role_title,
+        job_url=job_url,
+        job_description=job_description,
+        status=status,
+        target_salary=target_salary,
+        location=location,
+        ats_match_score=ats_score,
+        notes=notes,
+        applied_date=applied_date
+    )
+
+    award_user_xp(request.user, 15, f"Logged job application: {role_title} at {company_name}")
+
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.content_type == 'application/json':
+        return JsonResponse({
+            'success': True,
+            'job': {
+                'id': app.id,
+                'company_name': app.company_name,
+                'role_title': app.role_title,
+                'status': app.status,
+                'location': app.location,
+                'salary': app.target_salary,
+                'ats_score': app.ats_match_score,
+            }
+        })
+
+    messages.success(request, f"Added {role_title} at {company_name} to your Job Tracker (+15 XP)!")
+    return redirect('careers:job_tracker')
+
+
+@login_required
+def update_job_status_view(request, job_id):
+    """
+    AJAX endpoint for drag-and-drop or 1-click status transitions across Kanban stages.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST method required.'}, status=405)
+
+    app = get_object_or_404(JobApplication, id=job_id, user=request.user)
+
+    if request.content_type == 'application/json':
+        try:
+            data = json.loads(request.body.decode('utf-8'))
+        except Exception:
+            data = {}
+    else:
+        data = request.POST
+
+    new_status = data.get('status', '').strip().upper()
+    valid_statuses = [s[0] for s in JobApplication.STATUS_CHOICES]
+    if new_status in valid_statuses:
+        app.status = new_status
+        if new_status in ['APPLIED', 'SCREENING', 'TECHNICAL', 'OFFER'] and not app.applied_date:
+            app.applied_date = timezone.now().date()
+        app.save()
+        return JsonResponse({
+            'success': True,
+            'job_id': app.id,
+            'new_status': app.status,
+            'status_label': app.get_status_display()
+        })
+    return JsonResponse({'error': 'Invalid status parameter.'}, status=400)
+
+
+@login_required
+def delete_job_application_view(request, job_id):
+    """
+    Deletes an application from the tracker.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST method required.'}, status=405)
+
+    app = get_object_or_404(JobApplication, id=job_id, user=request.user)
+    title = f"{app.role_title} at {app.company_name}"
+    app.delete()
+
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.content_type == 'application/json':
+        return JsonResponse({'success': True, 'message': f"Deleted {title}"})
+
+    messages.success(request, f"Removed {title} from your tracker.")
+    return redirect('careers:job_tracker')
+
+
+@login_required
+def generate_outreach_view(request, job_id):
+    """
+    Generates AI Cold Outreach (LinkedIn InMail, Recruiter Intro, or Cover Letter) for this job.
+    """
+    app = get_object_or_404(JobApplication, id=job_id, user=request.user)
+    outreach_type = request.POST.get('outreach_type') or request.GET.get('outreach_type') or 'linkedin'
+    user_name = request.user.profile.full_name if hasattr(request.user, 'profile') and request.user.profile.full_name else request.user.get_full_name() or request.user.username
+
+    outreach_data = AIService.generate_cold_outreach(
+        role_title=app.role_title,
+        company_name=app.company_name,
+        job_description=app.job_description,
+        candidate_name=user_name,
+        outreach_type=outreach_type
+    )
+    return JsonResponse(outreach_data)
+

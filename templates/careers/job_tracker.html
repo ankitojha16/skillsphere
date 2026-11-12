@@ -1,0 +1,541 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}AI Job Application Tracker & Co-Pilot - SkillSphere{% endblock %}
+
+{% block extra_css %}
+<style>
+.kanban-board-container {
+    display: flex;
+    gap: 1.25rem;
+    overflow-x: auto;
+    padding-bottom: 1.5rem;
+    min-height: 620px;
+}
+.kanban-column {
+    flex: 0 0 310px;
+    background: rgba(30, 41, 59, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    backdrop-filter: blur(10px);
+}
+.kanban-column-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 0.75rem;
+    margin-bottom: 0.75rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.kanban-card-list {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    overflow-y: auto;
+    max-height: 680px;
+}
+.kanban-job-card {
+    background: rgba(15, 23, 42, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 1rem;
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.kanban-job-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(99, 102, 241, 0.4);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+.ats-score-badge {
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.25rem 0.6rem;
+    border-radius: 9999px;
+}
+.ats-score-badge.high { background: rgba(16, 185, 129, 0.18); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); }
+.ats-score-badge.mid { background: rgba(245, 158, 11, 0.18); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); }
+.ats-score-badge.low { background: rgba(239, 68, 68, 0.18); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="badge bg-indigo-subtle text-primary border border-primary-subtle px-2 py-1 small rounded-pill">
+                    <i data-lucide="sparkles" style="width: 13px; height: 13px;" class="me-1"></i> AI Job Search Co-Pilot
+                </span>
+                <span class="text-secondary small">• 6-Stage Pipeline</span>
+            </div>
+            <h1 class="h3 fw-bold text-white mb-0">Job Application Kanban</h1>
+            <p class="text-secondary small mb-0">Track applications, analyze ATS keyword alignment, and generate AI cold outreach letters in seconds.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'resumes:builder' %}" class="btn btn-secondary-custom">
+                <i data-lucide="file-text" style="width: 16px; height: 16px;"></i>
+                <span>Resume Studio</span>
+            </a>
+            <button class="btn btn-primary-custom" data-bs-toggle="modal" data-bs-target="#addJobModal">
+                <i data-lucide="plus" style="width: 16px; height: 16px;"></i>
+                <span>Add Application (+15 XP)</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Summary Metrics -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="custom-card p-3 d-flex align-items-center gap-3">
+                <div class="rounded-circle p-2 bg-primary bg-opacity-10 text-primary">
+                    <i data-lucide="send" style="width: 22px; height: 22px;"></i>
+                </div>
+                <div>
+                    <div class="text-muted small">Total Tracked</div>
+                    <div class="fs-4 fw-bold text-white">{{ total_apps }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="custom-card p-3 d-flex align-items-center gap-3">
+                <div class="rounded-circle p-2 bg-warning bg-opacity-10 text-warning">
+                    <i data-lucide="phone-call" style="width: 22px; height: 22px;"></i>
+                </div>
+                <div>
+                    <div class="text-muted small">Active Interviews</div>
+                    <div class="fs-4 fw-bold text-white">{{ active_interviews }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="custom-card p-3 d-flex align-items-center gap-3">
+                <div class="rounded-circle p-2 bg-success bg-opacity-10 text-success">
+                    <i data-lucide="award" style="width: 22px; height: 22px;"></i>
+                </div>
+                <div>
+                    <div class="text-muted small">Offers Received</div>
+                    <div class="fs-4 fw-bold text-white">{{ offers }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="custom-card p-3 d-flex align-items-center gap-3">
+                <div class="rounded-circle p-2 bg-info bg-opacity-10 text-info">
+                    <i data-lucide="trending-up" style="width: 22px; height: 22px;"></i>
+                </div>
+                <div>
+                    <div class="text-muted small">Interview Conversion</div>
+                    <div class="fs-4 fw-bold text-white">{{ response_rate }}%</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Kanban Board -->
+    <div class="kanban-board-container">
+        {% for col in kanban_columns %}
+        <div class="kanban-column" id="col-{{ col.code }}">
+            <div class="kanban-column-header">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-{{ col.color }} bg-opacity-25 text-{{ col.color }} rounded-pill px-2">
+                        {{ col.label }}
+                    </span>
+                </div>
+                <span class="badge bg-dark border border-secondary border-opacity-25 text-white rounded-pill px-2 py-1 small" id="count-{{ col.code }}">
+                    {{ col.count }}
+                </span>
+            </div>
+
+            <div class="kanban-card-list" id="list-{{ col.code }}">
+                {% for app in col.cards %}
+                <div class="kanban-job-card" id="card-{{ app.id }}">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h6 class="fw-bold text-white mb-0 text-truncate" style="max-width: 200px;" title="{{ app.role_title }}">
+                            {{ app.role_title }}
+                        </h6>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-link text-muted p-0" data-bs-toggle="dropdown">
+                                <i data-lucide="more-vertical" style="width: 16px; height: 16px;"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end shadow">
+                                <li><h6 class="dropdown-header text-uppercase small">Move to Stage</h6></li>
+                                {% for stage_code, stage_label in app.STATUS_CHOICES %}
+                                    {% if stage_code != app.status %}
+                                    <li>
+                                        <button class="dropdown-item small" onclick="updateJobStage({{ app.id }}, '{{ stage_code }}')">
+                                            {{ stage_label }}
+                                        </button>
+                                    </li>
+                                    {% endif %}
+                                {% endfor %}
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <button class="dropdown-item text-danger small" onclick="deleteJobApp({{ app.id }})">
+                                        <i data-lucide="trash-2" style="width: 14px; height: 14px;" class="me-1"></i> Delete Application
+                                    </button>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="d-flex align-items-center gap-1 text-secondary small mb-2">
+                        <i data-lucide="building-2" style="width: 13px; height: 13px;"></i>
+                        <span class="fw-medium text-light text-truncate" style="max-width: 220px;">{{ app.company_name }}</span>
+                    </div>
+
+                    <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+                        {% if app.location %}
+                        <span class="badge bg-dark border border-secondary border-opacity-25 text-muted small">
+                            <i data-lucide="map-pin" style="width: 11px; height: 11px;"></i> {{ app.location }}
+                        </span>
+                        {% endif %}
+                        {% if app.target_salary %}
+                        <span class="badge bg-dark border border-secondary border-opacity-25 text-muted small">
+                            {{ app.target_salary }}
+                        </span>
+                        {% endif %}
+                        <span class="ats-score-badge {% if app.ats_match_score >= 80 %}high{% elif app.ats_match_score >= 60 %}mid{% else %}low{% endif %}">
+                            <i data-lucide="zap" style="width: 11px; height: 11px;"></i> {{ app.ats_match_score }}% ATS Match
+                        </span>
+                    </div>
+
+                    {% if app.notes %}
+                    <p class="text-secondary small mb-3 text-truncate-2" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                        {{ app.notes }}
+                    </p>
+                    {% endif %}
+
+                    <div class="d-flex justify-content-between align-items-center pt-2 border-top border-secondary border-opacity-25">
+                        <span class="text-muted" style="font-size: 0.72rem;">
+                            {% if app.applied_date %}
+                                Applied {{ app.applied_date|date:"M d" }}
+                            {% else %}
+                                Added {{ app.created_at|date:"M d" }}
+                            {% endif %}
+                        </span>
+                        <div class="d-flex gap-1">
+                            <button class="btn btn-xs btn-outline-info rounded-pill px-2 py-1" style="font-size: 0.75rem;" onclick="openOutreachModal({{ app.id }}, '{{ app.role_title|escapejs }}', '{{ app.company_name|escapejs }}')">
+                                <i data-lucide="sparkles" style="width: 12px; height: 12px;" class="me-1"></i> AI Outreach
+                            </button>
+                            {% if app.job_url %}
+                            <a href="{{ app.job_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-xs btn-outline-secondary rounded-circle p-1" title="View Job Post">
+                                <i data-lucide="external-link" style="width: 12px; height: 12px;"></i>
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center py-4 text-muted small empty-placeholder">
+                    <i data-lucide="inbox" style="width: 24px; height: 24px;" class="mb-1 opacity-50"></i>
+                    <div>No applications in this stage</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Modal: Add Job Application -->
+<div class="modal fade" id="addJobModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content custom-card bg-dark text-white border border-secondary border-opacity-25 shadow-lg">
+            <div class="modal-header border-bottom border-secondary border-opacity-25">
+                <h5 class="modal-title fw-bold">
+                    <i data-lucide="briefcase" style="width: 20px; height: 20px;" class="text-primary me-2"></i> Track New Job Application
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{% url 'careers:create_job_application' %}" method="POST">
+                {% csrf_token %}
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label text-muted small">Company Name *</label>
+                            <input type="text" name="company_name" class="form-control bg-secondary bg-opacity-25 text-white border-secondary border-opacity-25" placeholder="e.g. Stripe, Airbnb, Google" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-muted small">Role Title *</label>
+                            <input type="text" name="role_title" class="form-control bg-secondary bg-opacity-25 text-white border-secondary border-opacity-25" placeholder="e.g. Software Engineer, Backend" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-muted small">Initial Pipeline Stage</label>
+                            <select name="status" class="form-select bg-secondary bg-opacity-25 text-white border-secondary border-opacity-25">
+                                <option value="WISHLIST">Wishlist</option>
+                                <option value="APPLIED" selected>Applied</option>
+                                <option value="SCREENING">Screening / HR</option>
+                                <option value="TECHNICAL">Technical / Interview</option>
+                                <option value="OFFER">Offer Extended</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-muted small">Location</label>
+                            <input type="text" name="location" class="form-control bg-secondary bg-opacity-25 text-white border-secondary border-opacity-25" placeholder="e.g. Remote, San Francisco, New York">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-muted small">Target Salary / Range</label>
+                            <input type="text" name="target_salary" class="form-control bg-secondary bg-opacity-25 text-white border-secondary border-opacity-25" placeholder="e.g. $120,000 - $145,000">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-muted small">Job Posting URL</label>
+                            <input type="url" name="job_url" class="form-control bg-secondary bg-opacity-25 text-white border-secondary border-opacity-25" placeholder="https://boards.greenhouse.io/...">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label text-muted small">Job Description (Enables ATS Keyword Matching & Cold Outreach)</label>
+                            <textarea name="job_description" class="form-control bg-secondary bg-opacity-25 text-white border-secondary border-opacity-25" rows="4" placeholder="Paste the job requirements, qualifications, and responsibilities..."></textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label text-muted small">Personal Notes / Referrals</label>
+                            <input type="text" name="notes" class="form-control bg-secondary bg-opacity-25 text-white border-secondary border-opacity-25" placeholder="e.g. Referred by Jane on engineering team; follow up next Tuesday">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top border-secondary border-opacity-25">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary-custom">
+                        <i data-lucide="plus-circle" style="width: 16px; height: 16px;"></i>
+                        <span>Save & Award +15 XP</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: AI Cold Outreach Generator -->
+<div class="modal fade" id="outreachModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content custom-card bg-dark text-white border border-secondary border-opacity-25 shadow-lg">
+            <div class="modal-header border-bottom border-secondary border-opacity-25">
+                <div>
+                    <h5 class="modal-title fw-bold mb-0">
+                        <i data-lucide="sparkles" style="width: 20px; height: 20px;" class="text-info me-2"></i> AI Cold Outreach Co-Pilot
+                    </h5>
+                    <div class="text-secondary small mt-1" id="outreachJobSubtitle">Target: Role at Company</div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <!-- Outreach Format Tabs -->
+                <ul class="nav nav-pills nav-fill mb-3 p-1 rounded bg-secondary bg-opacity-25">
+                    <li class="nav-item">
+                        <button class="nav-link active py-2 text-white small" id="btn-tab-linkedin" onclick="switchOutreachType('linkedin')">
+                            <i data-lucide="message-square" style="width: 14px; height: 14px;" class="me-1"></i> LinkedIn InMail
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link py-2 text-white small" id="btn-tab-recruiter" onclick="switchOutreachType('recruiter_email')">
+                            <i data-lucide="mail" style="width: 14px; height: 14px;" class="me-1"></i> Recruiter Email
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link py-2 text-white small" id="btn-tab-cover" onclick="switchOutreachType('cover_letter')">
+                            <i data-lucide="file-text" style="width: 14px; height: 14px;" class="me-1"></i> Tailored Cover Letter
+                        </button>
+                    </li>
+                </ul>
+
+                <!-- Loading State -->
+                <div id="outreachLoading" class="text-center py-5 d-none">
+                    <div class="spinner-border text-info mb-2" role="status"></div>
+                    <div class="text-secondary small">Synthesizing high-converting outreach hooks with Gemini AI...</div>
+                </div>
+
+                <!-- Result Container -->
+                <div id="outreachResult">
+                    <div class="mb-3">
+                        <label class="form-label text-muted small">Subject / Headline</label>
+                        <div class="input-group">
+                            <input type="text" id="outreachSubject" class="form-control bg-secondary bg-opacity-25 text-white border-secondary border-opacity-25" readonly>
+                            <button class="btn btn-outline-secondary" onclick="copyOutreachField('outreachSubject')">
+                                <i data-lucide="copy" style="width: 14px; height: 14px;"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label text-muted small mb-0">Message Body</label>
+                            <button class="btn btn-xs btn-outline-primary rounded-pill px-2 py-1" onclick="copyOutreachField('outreachBody')">
+                                <i data-lucide="copy" style="width: 12px; height: 12px;" class="me-1"></i> Copy Message
+                            </button>
+                        </div>
+                        <textarea id="outreachBody" class="form-control bg-secondary bg-opacity-25 text-white border-secondary border-opacity-25" rows="8" readonly></textarea>
+                    </div>
+
+                    <div class="p-3 rounded bg-info bg-opacity-10 border border-info border-opacity-25">
+                        <div class="d-flex align-items-center gap-2 mb-2 text-info small fw-bold">
+                            <i data-lucide="lightbulb" style="width: 16px; height: 16px;"></i> Recruiter Response Tactics
+                        </div>
+                        <ul class="mb-0 text-secondary small ps-3" id="outreachTipsList">
+                            <li>Keep outreach under 150 words for optimal mobile engagement.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-top border-secondary border-opacity-25">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-info text-dark fw-bold" onclick="regenerateCurrentOutreach()">
+                    <i data-lucide="refresh-cw" style="width: 14px; height: 14px;" class="me-1"></i> Regenerate
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentJobId = null;
+let currentOutreachType = 'linkedin';
+
+function openOutreachModal(jobId, role, company) {
+    currentJobId = jobId;
+    currentOutreachType = 'linkedin';
+    document.getElementById('outreachJobSubtitle').textContent = `Target: ${role} at ${company}`;
+    
+    // Set tabs
+    setActiveTab('linkedin');
+    
+    const modal = new bootstrap.Modal(document.getElementById('outreachModal'));
+    modal.show();
+    
+    fetchOutreach();
+}
+
+function switchOutreachType(type) {
+    currentOutreachType = type;
+    setActiveTab(type);
+    fetchOutreach();
+}
+
+function setActiveTab(type) {
+    document.getElementById('btn-tab-linkedin').classList.remove('active');
+    document.getElementById('btn-tab-recruiter').classList.remove('active');
+    document.getElementById('btn-tab-cover').classList.remove('active');
+
+    if (type === 'linkedin') document.getElementById('btn-tab-linkedin').classList.add('active');
+    else if (type === 'recruiter_email') document.getElementById('btn-tab-recruiter').classList.add('active');
+    else if (type === 'cover_letter') document.getElementById('btn-tab-cover').classList.add('active');
+}
+
+function regenerateCurrentOutreach() {
+    fetchOutreach();
+}
+
+async function fetchOutreach() {
+    if (!currentJobId) return;
+    
+    const loading = document.getElementById('outreachLoading');
+    const result = document.getElementById('outreachResult');
+    loading.classList.remove('d-none');
+    result.classList.add('d-none');
+    
+    try {
+        const res = await fetch(`/careers/tracker/${currentJobId}/outreach/?outreach_type=${currentOutreachType}`);
+        const data = await res.json();
+        
+        document.getElementById('outreachSubject').value = data.subject || '';
+        document.getElementById('outreachBody').value = data.message || '';
+        
+        const tipsContainer = document.getElementById('outreachTipsList');
+        tipsContainer.innerHTML = '';
+        if (data.tips && Array.isArray(data.tips)) {
+            data.tips.forEach(tip => {
+                const li = document.createElement('li');
+                li.textContent = tip;
+                tipsContainer.appendChild(li);
+            });
+        }
+    } catch (e) {
+        console.error("Outreach fetch error:", e);
+    } finally {
+        loading.classList.add('d-none');
+        result.classList.remove('d-none');
+        if (window.lucide) lucide.createIcons();
+    }
+}
+
+function copyOutreachField(elementId) {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+    navigator.clipboard.writeText(el.value);
+    
+    const toast = document.createElement('div');
+    toast.className = 'position-fixed bottom-0 end-0 p-3';
+    toast.style.zIndex = '9999';
+    toast.innerHTML = `
+        <div class="toast show align-items-center text-white bg-success border-0 shadow" role="alert">
+            <div class="d-flex">
+                <div class="toast-body small"><i class="bi bi-check2-circle me-1"></i> Copied to clipboard!</div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 2500);
+}
+
+async function updateJobStage(jobId, newStatus) {
+    try {
+        const res = await fetch(`/careers/tracker/${jobId}/status/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({ status: newStatus })
+        });
+        const data = await res.json();
+        if (data.success) {
+            window.location.reload();
+        } else {
+            alert(data.error || 'Failed to update job stage');
+        }
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+async function deleteJobApp(jobId) {
+    if (!confirm('Are you sure you want to remove this job application from your tracker?')) return;
+    try {
+        const res = await fetch(`/careers/tracker/${jobId}/delete/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        });
+        const data = await res.json();
+        if (data.success) {
+            const card = document.getElementById(`card-${jobId}`);
+            if (card) card.remove();
+            window.location.reload();
+        }
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}

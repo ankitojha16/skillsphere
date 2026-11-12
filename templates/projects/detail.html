@@ -47,21 +47,29 @@
         <h2 class="fw-bold text-white mb-2">{{ project.title }}</h2>
         <p class="text-secondary mb-3">{{ project.description }}</p>
 
-        <!-- GitHub & Live Demo Links if provided -->
-        {% if project.github_url or project.demo_url %}
-        <div class="d-flex flex-wrap gap-2 mb-4">
+        <!-- GitHub & Portfolio Sync Action Bar -->
+        <div class="d-flex flex-wrap gap-2 mb-4 align-items-center">
+            <button type="button" class="btn btn-primary-custom btn-sm py-1.5 px-3 d-inline-flex align-items-center gap-1.5" data-bs-toggle="modal" data-bs-target="#githubExportModal" id="openGithubExportBtn">
+                <i data-lucide="git-branch" style="width: 14px; height: 14px;"></i>
+                <span>1-Click GitHub Export &amp; Sync</span>
+            </button>
+            <button type="button" class="btn btn-outline-secondary btn-sm py-1.5 px-3 d-inline-flex align-items-center gap-1.5 text-white" data-bs-toggle="modal" data-bs-target="#githubExportModal" id="openReadmeBtn">
+                <i data-lucide="file-code" style="width: 14px; height: 14px;"></i>
+                <span>View README</span>
+            </button>
             {% if project.github_url %}
-            <a href="{{ project.github_url }}" target="_blank" rel="noopener" class="btn btn-secondary-custom btn-sm">
-                <i data-lucide="github" style="width: 14px; height: 14px;"></i> GitHub Repository
+
+            <a href="{{ project.github_url }}" target="_blank" rel="noopener" class="btn btn-secondary-custom btn-sm py-1.5 px-3 d-inline-flex align-items-center gap-1.5">
+                <i data-lucide="github" style="width: 14px; height: 14px;"></i> <span>GitHub Repository</span>
             </a>
             {% endif %}
             {% if project.demo_url %}
-            <a href="{{ project.demo_url }}" target="_blank" rel="noopener" class="btn btn-outline-info btn-sm">
-                <i data-lucide="external-link" style="width: 14px; height: 14px;"></i> Live Deployment
+            <a href="{{ project.demo_url }}" target="_blank" rel="noopener" class="btn btn-outline-info btn-sm py-1.5 px-3 d-inline-flex align-items-center gap-1.5">
+                <i data-lucide="external-link" style="width: 14px; height: 14px;"></i> <span>Live Deployment</span>
             </a>
             {% endif %}
         </div>
-        {% endif %}
+
 
         <!-- Tech Stack Banner -->
         <div class="p-3 rounded-3 mb-4" style="background-color: rgba(167, 139, 250, 0.08); border: 1px solid rgba(167, 139, 250, 0.35);">
@@ -168,30 +176,126 @@
     </div>
 </div>
 
-<!-- GitHub README Modal -->
-<div class="modal fade" id="readmeModal" tabindex="-1" aria-labelledby="readmeModalLabel" aria-hidden="true">
+<!-- 1-Click GitHub Export & Portfolio Sync Modal -->
+<div class="modal fade" id="githubExportModal" data-testid="readmeModal" tabindex="-1" aria-labelledby="githubExportModalLabel" aria-hidden="true">
+
     <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content text-white" style="background-color: #0e1526; border: 1px solid rgba(255,255,255,0.12); border-radius: 16px;">
+        <div class="modal-content text-white custom-card" style="background-color: #0b1120; border: 1px solid rgba(99, 102, 241, 0.35); border-radius: 16px;">
             <div class="modal-header border-secondary border-opacity-25 pb-3">
                 <div class="d-flex align-items-center gap-2">
-                    <i data-lucide="file-code" class="text-purple" style="width: 20px; height: 20px;"></i>
-                    <h5 class="modal-title fw-bold" id="readmeModalLabel">Generated GitHub README.md</h5>
+                    <div class="p-2 rounded-3 bg-primary bg-opacity-10 text-primary">
+                        <i data-lucide="git-branch" style="width: 20px; height: 20px;"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold text-white mb-0" id="githubExportModalLabel">1-Click GitHub Export &amp; Portfolio Sync</h5>
+                        <div class="text-secondary small">{{ project.title }} • {{ project.project_ref }}</div>
+                    </div>
                 </div>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <span class="text-secondary small">Ready for direct commit to your repository root:</span>
-                    <div class="d-flex gap-2">
-                        <button type="button" class="btn btn-sm btn-outline-info py-0 px-2" id="copyReadmeBtn">
-                            <i data-lucide="copy" style="width: 12px; height: 12px;" class="me-1"></i>Copy
+            <div class="modal-body py-3">
+                <!-- Nav Tabs -->
+                <ul class="nav nav-pills gap-1 mb-3 bg-dark p-1 rounded-3 border border-secondary border-opacity-25" role="tablist">
+                    <li class="nav-item flex-fill" role="presentation">
+                        <button class="nav-link active small w-100 py-1.5" id="tab-readme-btn" data-bs-toggle="pill" data-bs-target="#tab-readme" type="button" role="tab">
+                            <i data-lucide="file-text" style="width: 13px; height: 13px;" class="me-1"></i>README.md
                         </button>
-                        <button type="button" class="btn btn-sm btn-outline-purple py-0 px-2" id="downloadReadmeBtn">
-                            <i data-lucide="download" style="width: 12px; height: 12px;" class="me-1"></i>Download .md
+                    </li>
+                    <li class="nav-item flex-fill" role="presentation">
+                        <button class="nav-link small w-100 py-1.5" id="tab-structure-btn" data-bs-toggle="pill" data-bs-target="#tab-structure" type="button" role="tab">
+                            <i data-lucide="folder-tree" style="width: 13px; height: 13px;" class="me-1"></i>Repo Tree
                         </button>
+                    </li>
+                    <li class="nav-item flex-fill" role="presentation">
+                        <button class="nav-link small w-100 py-1.5" id="tab-terminal-btn" data-bs-toggle="pill" data-bs-target="#tab-terminal" type="button" role="tab">
+                            <i data-lucide="terminal" style="width: 13px; height: 13px;" class="me-1"></i>Quick Push
+                        </button>
+                    </li>
+                    <li class="nav-item flex-fill" role="presentation">
+                        <button class="nav-link small w-100 py-1.5" id="tab-portfolio-btn" data-bs-toggle="pill" data-bs-target="#tab-portfolio" type="button" role="tab">
+                            <i data-lucide="globe" style="width: 13px; height: 13px;" class="me-1"></i>Portfolio Sync
+                        </button>
+                    </li>
+                </ul>
+
+                <div class="tab-content">
+                    <!-- Tab 1: README.md -->
+                    <div class="tab-pane fade show active" id="tab-readme" role="tabpanel">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-secondary small">FAANG-grade production documentation ready for GitHub root:</span>
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-sm btn-outline-info py-0 px-2.5" id="copyReadmeBtn">
+                                    <i data-lucide="copy" style="width: 12px; height: 12px;" class="me-1"></i>Copy
+                                </button>
+                            </div>
+                        </div>
+                        <textarea id="readmeTextarea" rows="12" class="form-control font-monospace bg-dark text-light border-secondary small" style="font-size: 0.8rem; line-height: 1.5;" readonly></textarea>
+                    </div>
+
+                    <!-- Tab 2: Repo Tree -->
+                    <div class="tab-pane fade" id="tab-structure" role="tabpanel">
+                        <p class="text-secondary small mb-2">Pre-packaged repository architecture included inside the bundle:</p>
+                        <div class="p-3 rounded-3 bg-dark border border-secondary border-opacity-25 font-monospace text-light small" style="font-size: 0.82rem; line-height: 1.6;">
+                            <div>📁 <strong class="text-info">{{ project.title|slugify }}</strong>/</div>
+                            <div class="ps-3">├── 📄 README.md <span class="text-secondary">// Architecture &amp; SkillSphere Badge</span></div>
+                            <div class="ps-3">├── 📄 requirements.txt <span class="text-secondary">// Verified Dependencies</span></div>
+                            <div class="ps-3">├── 📄 .gitignore <span class="text-secondary">// Clean Python/Git exclusions</span></div>
+                            <div class="ps-3">├── 📄 LICENSE <span class="text-secondary">// Open Source MIT License</span></div>
+                            <div class="ps-3">├── 📁 <strong>src/</strong></div>
+                            <div class="ps-4">├── 📄 __init__.py</div>
+                            <div class="ps-4">└── 📄 main.py <span class="text-secondary">// Core Application Entrypoint</span></div>
+                            <div class="ps-3">└── 📁 <strong>tests/</strong></div>
+                            <div class="ps-4">├── 📄 __init__.py</div>
+                            <div class="ps-4">└── 📄 test_main.py <span class="text-secondary">// Automated Test Suite</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Tab 3: Quick Push Terminal Snippet -->
+                    <div class="tab-pane fade" id="tab-terminal" role="tabpanel">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-secondary small">Execute in your local terminal to push straight to GitHub:</span>
+                            <button type="button" class="btn btn-sm btn-outline-info py-0 px-2.5" onclick="copyTerminalCommands()">
+                                <i data-lucide="copy" style="width: 12px; height: 12px;" class="me-1"></i>Copy
+                            </button>
+                        </div>
+                        <pre class="p-3 rounded-3 bg-dark border border-secondary border-opacity-25 font-monospace text-warning small mb-0" id="terminalCommandsSnippet" style="font-size: 0.82rem; line-height: 1.5; white-space: pre-wrap;">git init
+git add .
+git commit -m "feat: initial release via SkillSphere Blueprint"
+git branch -M main
+git remote add origin https://github.com/YOUR_USERNAME/{{ project.title|slugify }}.git
+git push -u origin main</pre>
+                    </div>
+
+                    <!-- Tab 4: Sync to Public Portfolio -->
+                    <div class="tab-pane fade" id="tab-portfolio" role="tabpanel">
+                        <div class="p-3 rounded-3 bg-dark border border-secondary border-opacity-25">
+                            <h6 class="fw-bold text-white small mb-1">Publish to SkillSphere Public Developer Portfolio</h6>
+                            <p class="text-secondary small mb-3">Syncing embeds this project directly on your public portfolio with GitHub repo and live demo buttons.</p>
+
+                            <div class="mb-2.5">
+                                <label class="form-label text-secondary small mb-1">GitHub Repository URL</label>
+                                <input type="url" class="form-control form-control-sm bg-dark text-white border-secondary" id="syncGithubInput" value="{{ project.github_url }}" placeholder="https://github.com/username/repo">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-secondary small mb-1">Live Demo / Deployment URL</label>
+                                <input type="url" class="form-control form-control-sm bg-dark text-white border-secondary" id="syncDemoInput" value="{{ project.demo_url }}" placeholder="https://my-app.vercel.app">
+                            </div>
+
+                            <button type="button" class="btn btn-success-custom btn-sm py-1.5 px-3 d-inline-flex align-items-center gap-1.5" onclick="syncProjectToPortfolio()" id="syncPortfolioBtn">
+                                <i data-lucide="globe" style="width: 14px; height: 14px;"></i>
+                                <span id="syncPortfolioBtnText">Sync &amp; Publish to My Portfolio (+30 XP)</span>
+                            </button>
+                            <div id="syncResultAlert" class="mt-2 text-success small d-none"></div>
+                        </div>
                     </div>
                 </div>
-                <textarea id="readmeTextarea" rows="16" class="form-control font-monospace bg-dark text-light border-secondary small" style="font-size: 0.82rem; line-height: 1.5;" readonly></textarea>
+            </div>
+            <div class="modal-footer border-secondary border-opacity-25 pt-2 d-flex justify-content-between align-items-center">
+                <a href="{% url 'projects:export_github' project_id=project.id %}" class="btn btn-primary-custom btn-sm py-1.5 px-3 d-inline-flex align-items-center gap-1.5">
+                    <i data-lucide="download" style="width: 14px; height: 14px;"></i>
+                    <span>Download Git Bundle (.zip)</span>
+                </a>
+                <button type="button" class="btn btn-secondary-custom btn-sm" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
@@ -201,93 +305,87 @@
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const readmeModalEl = document.getElementById('readmeModal');
-    const readmeModal = readmeModalEl ? new bootstrap.Modal(readmeModalEl) : null;
-    const openBtn = document.getElementById('openReadmeBtn');
     const readmeArea = document.getElementById('readmeTextarea');
     const copyBtn = document.getElementById('copyReadmeBtn');
-    const downloadBtn = document.getElementById('downloadReadmeBtn');
 
-    function buildReadmeContent() {
-        return `# {{ project.title|escapejs }}
-
-[![SkillSphere Verified](https://img.shields.io/badge/SkillSphere-Blueprint-6366F1.svg)](https://skillsphere-cyan.vercel.app)
-[![Tech Stack](https://img.shields.io/badge/Stack-{{ project.technology_stack|slugify }}-22C55E.svg)]()
-[![Difficulty](https://img.shields.io/badge/Difficulty-{{ project.difficulty }}-F59E0B.svg)]()
-
-## 📌 Problem Statement
-{{ project.problem_statement|escapejs }}
-
-## 🎯 Objectives & Scope
-{{ project.objectives|escapejs|default:"Build an end-to-end scalable application following modern software engineering principles." }}
-
-## 🛠️ Technology Stack
-- **Core Languages & Frameworks:** {{ project.technology_stack|escapejs }}
-- **Category:** {{ project.category|escapejs }}
-- **Architecture Pattern:** Modular MVC / RESTful Microservices
-
-## 🚀 Key Features
-${`{{ project.main_features|escapejs }}`.split('\n').filter(Boolean).map(f => `- ${f}`).join('\n')}
-
-## 🗄️ Database & Schema Specifications
-{{ project.database_requirements|escapejs }}
-
-## 📋 Implementation Roadmap & Phases
-${`{{ project.development_phases|escapejs }}`.split('\n').filter(Boolean).map(p => `1. ${p}`).join('\n')}
-
-## 💻 Local Getting Started
-\`\`\`bash
-# 1. Clone this repository
-git clone https://github.com/<your-username>/{{ project.title|slugify }}.git
-cd {{ project.title|slugify }}
-
-# 2. Setup virtual environment & dependencies
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\\Scripts\\activate
-pip install -r requirements.txt
-
-# 3. Run database migrations & start local server
-python manage.py migrate
-python manage.py runserver
-\`\`\`
-
-## 📄 License & Attribution
-Created with blueprint guidance on [SkillSphere Learning Platform](https://skillsphere-cyan.vercel.app).
-`;
-    }
-
-    if (openBtn && readmeModal) {
-        openBtn.addEventListener('click', function() {
-            readmeArea.value = buildReadmeContent();
-            readmeModal.show();
+    // Auto-fetch preview JSON from server
+    fetch("{% url 'projects:export_github' project_id=project.id %}?format=json")
+        .then(r => r.json())
+        .then(data => {
+            if (data.success && readmeArea) {
+                readmeArea.value = data.readme;
+            }
+        })
+        .catch(() => {
+            if (readmeArea) {
+                readmeArea.value = "# {{ project.title|escapejs }}\n\n{{ project.description|escapejs }}";
+            }
         });
-    }
 
-    if (copyBtn) {
+    if (copyBtn && readmeArea) {
         copyBtn.addEventListener('click', function() {
             navigator.clipboard.writeText(readmeArea.value);
             copyBtn.innerHTML = '<i data-lucide="check" style="width: 12px; height: 12px;" class="me-1"></i>Copied!';
-            lucide.createIcons();
+            if (typeof lucide !== 'undefined') lucide.createIcons();
             setTimeout(() => {
                 copyBtn.innerHTML = '<i data-lucide="copy" style="width: 12px; height: 12px;" class="me-1"></i>Copy';
-                lucide.createIcons();
+                if (typeof lucide !== 'undefined') lucide.createIcons();
             }, 1800);
         });
     }
-
-    if (downloadBtn) {
-        downloadBtn.addEventListener('click', function() {
-            const blob = new Blob([readmeArea.value], { type: 'text/markdown;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `README_{{ project.title|slugify }}.md`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        });
-    }
 });
+
+function copyTerminalCommands() {
+    const snippet = document.getElementById('terminalCommandsSnippet');
+    if (!snippet) return;
+    navigator.clipboard.writeText(snippet.innerText).then(() => {
+        alert('Terminal git commands copied to clipboard!');
+    });
+}
+
+async function syncProjectToPortfolio() {
+    const btn = document.getElementById('syncPortfolioBtn');
+    const btnText = document.getElementById('syncPortfolioBtnText');
+    const alertBox = document.getElementById('syncResultAlert');
+
+    const github = document.getElementById('syncGithubInput')?.value || '';
+    const demo = document.getElementById('syncDemoInput')?.value || '';
+
+    if (btnText) btnText.innerText = 'Syncing to Portfolio...';
+    if (btn) btn.disabled = true;
+
+    try {
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+        const formData = new FormData();
+        formData.append('github_url', github);
+        formData.append('demo_url', demo);
+
+        const resp = await fetch("{% url 'projects:sync_portfolio' project_id=project.id %}", {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken
+            },
+            body: formData
+        });
+
+        const data = await resp.json();
+        if (data.success) {
+            if (alertBox) {
+                alertBox.className = 'mt-2 text-success small';
+                alertBox.innerHTML = `✓ ${data.message} <a href="${data.portfolio_url}" target="_blank" class="text-info text-decoration-underline ms-1">View Live Portfolio →</a>`;
+                alertBox.classList.remove('d-none');
+            }
+        } else {
+            alert('Notice: ' + (data.error || 'Could not sync project'));
+        }
+    } catch (err) {
+        console.error('Portfolio sync error:', err);
+        alert('Sync error: ' + err.message);
+    } finally {
+        if (btnText) btnText.innerText = 'Sync & Publish to My Portfolio (+30 XP)';
+        if (btn) btn.disabled = false;
+    }
+}
 </script>
+
 {% endblock %}

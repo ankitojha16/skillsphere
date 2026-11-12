@@ -88,3 +88,67 @@ class XPTransaction(models.Model):
     def __str__(self):
         return f"{self.user.username}: +{self.amount} XP for {self.activity_key}"
 
+
+class League(models.Model):
+    TIER_CHOICES = [
+        ('BRONZE', 'Bronze League'),
+        ('SILVER', 'Silver League'),
+        ('GOLD', 'Gold League'),
+        ('DIAMOND', 'Diamond League'),
+    ]
+
+    tier = models.CharField(max_length=20, choices=TIER_CHOICES, default='BRONZE')
+    tier_level = models.PositiveSmallIntegerField(default=1)  # 1: Bronze, 2: Silver, 3: Gold, 4: Diamond
+    cohort_id = models.CharField(max_length=60)
+    week_start = models.DateField()
+    week_end = models.DateField()
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-week_start', 'tier_level']
+        unique_together = ('cohort_id', 'week_start')
+
+    def __str__(self):
+        return f"{self.get_tier_display()} (Cohort {self.cohort_id})"
+
+
+class LeagueMembership(models.Model):
+    league = models.ForeignKey(League, on_delete=models.CASCADE, related_name='memberships')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='league_memberships')
+    weekly_xp = models.PositiveIntegerField(default=0)
+    rank = models.PositiveIntegerField(default=1)
+    joined_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-weekly_xp', 'joined_at']
+        unique_together = ('league', 'user')
+
+    def __str__(self):
+        return f"{self.user.username} in {self.league} - {self.weekly_xp} XP (Rank #{self.rank})"
+
+
+class SkillDuel(models.Model):
+    STATUS_CHOICES = [
+        ('PENDING', 'Pending'),
+        ('COMPLETED', 'Completed'),
+    ]
+
+    challenger = models.ForeignKey(User, related_name='duels_initiated', on_delete=models.CASCADE)
+    opponent = models.ForeignKey(User, related_name='duels_received', on_delete=models.SET_NULL, null=True, blank=True)
+    opponent_name = models.CharField(max_length=100, default='AI Rival')
+    topic = models.CharField(max_length=100, default='Python & Algorithms')
+    challenger_score = models.PositiveIntegerField(default=0)
+    opponent_score = models.PositiveIntegerField(default=0)
+    winner = models.ForeignKey(User, related_name='duels_won', on_delete=models.SET_NULL, null=True, blank=True)
+    xp_wager = models.PositiveIntegerField(default=25)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='COMPLETED')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.challenger.username} vs {self.opponent_name} ({self.topic}) - Winner: {self.winner.username if self.winner else 'Draw'}"
+
+

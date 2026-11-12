@@ -795,3 +795,70 @@ def flashcards_auto_generate_view(request, course_id):
     messages.success(request, f"Generated {created_count} flashcards from course lesson takeaways!")
     return redirect('learning:flashcards_study', course_id=course.id)
 
+
+@login_required
+def socratic_debug_api(request):
+    """
+    Socratic AI Code Debugger API.
+    Analyzes code + error traceback and returns a 3-tier hint ladder
+    (Conceptual clue -> Edge-case pointer -> 1-click diff patch).
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+
+    try:
+        if request.content_type == 'application/json':
+            body = json.loads(request.body)
+        else:
+            body = request.POST
+
+        language = body.get('language', 'python')
+        code = body.get('code', '')
+        error_trace = body.get('error_trace', '')
+        lesson_title = body.get('lesson_title', '')
+
+        if not code.strip():
+            return JsonResponse({'error': 'No code provided for debugging'}, status=400)
+
+        result = AIService.debug_code_socratic(
+            language=language,
+            code=code,
+            error_trace=error_trace,
+            lesson_title=lesson_title
+        )
+
+        return JsonResponse({
+            'success': True,
+            'debug': result
+        })
+    except Exception as e:
+        logger.error(f"socratic_debug_api error: {e}")
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required
+def lesson_podcast_api(request, course_slug, lesson_id):
+    """
+    Synthesizes a 2-person podcast conversation (Alex & Morgan)
+    summarizing the current lesson for conversational audio playback.
+    """
+    course = get_object_or_404(Course, slug=course_slug)
+    lesson = get_object_or_404(Lesson, id=lesson_id, course=course)
+
+    try:
+        content_summary = f"{lesson.key_takeaways or ''}\n\n{lesson.content or ''}"
+        podcast_data = AIService.generate_lesson_podcast(
+            lesson_title=lesson.title,
+            lesson_content=content_summary,
+            course_title=course.title
+        )
+
+        return JsonResponse({
+            'success': True,
+            'podcast': podcast_data
+        })
+    except Exception as e:
+        logger.error(f"lesson_podcast_api error: {e}")
+        return JsonResponse({'error': str(e)}, status=500)
+
+

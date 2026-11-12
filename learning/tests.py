@@ -679,6 +679,15 @@ class SpacedRepetitionFlashcardTests(TestCase):
             category='Regularization',
             order=2
         )
+        self.lesson = Lesson.objects.create(
+            course=self.course,
+            title='Gradient Descent & Backpropagation',
+            lesson_order=1,
+            estimated_minutes=15,
+            content='<p>Core optimization and weight updates.</p>',
+            key_takeaways='["Chain rule is essential", "Learning rate controls convergence step"]'
+        )
+
 
     def test_sm2_algorithm_quality_scaling(self):
         """Test SuperMemo SM-2 interval calculations across quality ratings."""
@@ -742,4 +751,66 @@ class SpacedRepetitionFlashcardTests(TestCase):
         activity = LearningActivity.objects.filter(user=self.user, activity_type='FLASHCARD_REVIEW').first()
         self.assertIsNotNone(activity)
         self.assertIn('Neural Networks & Deep Learning', activity.description)
+
+    def test_socratic_debug_api_success(self):
+        """Test that the Socratic debugger returns 3-tier hints and patch."""
+        url = reverse('learning:socratic_debug')
+        resp = self.client.post(
+            url,
+            data=json.dumps({
+                'language': 'python',
+                'code': 'numbers = [1, 2, 3]\nprint(numbers[5])',
+                'error_trace': 'IndexError: list index out of range',
+                'lesson_title': 'Arrays and Indexing'
+            }),
+            content_type='application/json'
+        )
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertTrue(data.get('success'))
+        dbg = data.get('debug')
+        self.assertIn('hint_tier_1', dbg)
+        self.assertIn('hint_tier_2', dbg)
+        self.assertIn('hint_tier_3', dbg)
+        self.assertIn('patched_code', dbg['hint_tier_3'])
+
+    def test_socratic_debug_api_empty_code_validation(self):
+        """Test validation error when code is empty."""
+        url = reverse('learning:socratic_debug')
+        resp = self.client.post(
+            url,
+            data=json.dumps({'code': '', 'language': 'python'}),
+            content_type='application/json'
+        )
+        self.assertEqual(resp.status_code, 400)
+
+    def test_lesson_podcast_api_success(self):
+        """Test that lesson podcast API returns structured multi-voice dialogue."""
+        url = reverse('learning:lesson_podcast', kwargs={
+            'course_slug': self.course.slug,
+            'lesson_id': self.lesson.id
+        })
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertTrue(data.get('success'))
+        podcast = data.get('podcast')
+        self.assertIn('dialogue', podcast)
+        self.assertGreaterEqual(len(podcast['dialogue']), 3)
+        speakers = {d['speaker'] for d in podcast['dialogue']}
+        self.assertTrue('Alex' in speakers or 'Morgan' in speakers)
+
+    def test_lesson_page_renders_socratic_and_podcast_controls(self):
+        """Verify that lesson detail template renders Socratic debug drawer and podcast trigger."""
+        url = reverse('learning:lesson_detail', kwargs={
+            'course_slug': self.course.slug,
+            'lesson_id': self.lesson.id
+        })
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'socraticDebugBtn')
+        self.assertContains(resp, 'socraticDebugContainer')
+        self.assertContains(resp, 'lessonPodcastModal')
+        self.assertContains(resp, 'openLessonPodcastModal')
+
 

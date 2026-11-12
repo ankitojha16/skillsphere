@@ -95,3 +95,68 @@ class ProjectsTests(TestCase):
         self.assertContains(resp, 'Track as Goal')
         self.assertContains(resp, 'goals/?preset_title=Autonomous%20Trading%20Bot')
 
+    def test_export_github_bundle_zip(self):
+        """Test generating and downloading a GitHub ZIP starter bundle."""
+        idea = ProjectIdea.objects.create(
+            user=self.user,
+            title='ML Model Registry',
+            category='Machine Learning',
+            difficulty='Intermediate',
+            technology_stack='Python, FastAPI, PyTorch',
+            description='Model versioning registry',
+            problem_statement='Model drift and provenance',
+            objectives='Version models and track metrics',
+            main_features='Metadata tracking\nModel deployment',
+            database_requirements='Postgres registry',
+            development_phases='Phase 1\nPhase 2'
+        )
+        # 1. JSON preview test
+        url_preview = reverse('projects:export_github', kwargs={'project_id': idea.id}) + '?format=json'
+        resp_preview = self.client.get(url_preview)
+        self.assertEqual(resp_preview.status_code, 200)
+        data = resp_preview.json()
+        self.assertTrue(data.get('success'))
+        self.assertIn('README.md', data.get('file_tree'))
+        self.assertIn('requirements.txt', data.get('file_tree'))
+        self.assertIn('SkillSphere Verified Project', data.get('readme'))
+
+        # 2. ZIP download test
+        url_zip = reverse('projects:export_github', kwargs={'project_id': idea.id})
+        resp_zip = self.client.get(url_zip)
+        self.assertEqual(resp_zip.status_code, 200)
+        self.assertEqual(resp_zip['Content-Type'], 'application/zip')
+        self.assertIn('attachment; filename=', resp_zip['Content-Disposition'])
+
+    def test_sync_project_to_portfolio(self):
+        """Test 1-click syncing a project to the user's public Developer Portfolio."""
+        from portfolios.models import Portfolio, PortfolioProject
+        idea = ProjectIdea.objects.create(
+            user=self.user,
+            title='Realtime Chat Engine',
+            category='Web Development',
+            difficulty='Intermediate',
+            technology_stack='Python, Django Channels, Redis',
+            description='WebSockets chat platform'
+        )
+        url = reverse('projects:sync_portfolio', kwargs={'project_id': idea.id})
+        resp = self.client.post(url, {
+            'github_url': 'https://github.com/projbuilder/realtime-chat',
+            'demo_url': 'https://chat-demo.vercel.app'
+        })
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertTrue(data.get('success'))
+
+        # Verify database updates
+        idea.refresh_from_db()
+        self.assertEqual(idea.status, 'completed')
+        self.assertEqual(idea.github_url, 'https://github.com/projbuilder/realtime-chat')
+
+        portfolio = Portfolio.objects.filter(user=self.user).first()
+        self.assertIsNotNone(portfolio)
+        port_proj = PortfolioProject.objects.filter(portfolio=portfolio, title=idea.title).first()
+        self.assertIsNotNone(port_proj)
+        self.assertEqual(port_proj.github_url, 'https://github.com/projbuilder/realtime-chat')
+        self.assertEqual(port_proj.live_url, 'https://chat-demo.vercel.app')
+
+

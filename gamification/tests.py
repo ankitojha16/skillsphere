@@ -55,3 +55,63 @@ class GamificationTests(TestCase):
         self.assertEqual(gamification.total_xp, 50)
         self.assertEqual(XPTransaction.objects.filter(user=self.user, activity_key="lesson_101").count(), 1)
 
+
+class LeagueAndDuelTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(username='leaguer', email='leaguer@test.com', password='Password123!')
+        self.client.force_login(self.user)
+
+    def test_leagues_view_authenticated(self):
+        resp = self.client.get(reverse('gamification:leagues'))
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'Weekly Competitive League')
+        self.assertContains(resp, 'Cohort Standings')
+        self.assertContains(resp, 'Top 7: Promotion Zone')
+        self.assertContains(resp, 'leaguer')
+
+    def test_start_duel_api(self):
+        resp = self.client.get(reverse('gamification:start_duel') + '?topic=python')
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertTrue(data.get('success'))
+        self.assertEqual(len(data.get('questions', [])), 5)
+        self.assertEqual(data.get('time_limit'), 60)
+        self.assertIn('DevBot', data.get('opponent_name', ''))
+
+    def test_submit_duel_api_victory(self):
+        import json
+        from gamification.models import SkillDuel
+        # All correct answers for Python duel questions:
+        # id 1: 0 (O(1))
+        # id 2: 1 (yield)
+        # id 3: 1 (prevent race conditions)
+        # id 4: 1 (cls)
+        # id 5: 1 (extend())
+        payload = {
+            'topic_key': 'python',
+            'opponent_name': 'DevBot 3000',
+            'answers': {
+                '1': 0,
+                '2': 1,
+                '3': 1,
+                '4': 1,
+                '5': 1
+            },
+            'time_taken': 35
+        }
+        resp = self.client.post(
+            reverse('gamification:submit_duel'),
+            data=json.dumps(payload),
+            content_type='application/json'
+        )
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertTrue(data.get('success'))
+        self.assertEqual(data.get('challenger_score'), 5)
+        # Score is 5/5, so user either wins or draws (since opponent score is 2-4, user always wins with 5)
+        self.assertEqual(data.get('outcome'), 'VICTORY')
+        self.assertEqual(data.get('xp_awarded'), 30)
+        self.assertTrue(SkillDuel.objects.filter(challenger=self.user).exists())
+
+

@@ -1,0 +1,599 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Weekly Competitive Leagues & Skill Duels - SkillSphere{% endblock %}
+
+{% block extra_css %}
+<style>
+.tier-hero-card {
+    background: radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.25) 0%, rgba(15, 23, 42, 0.95) 90%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 18px;
+    position: relative;
+    overflow: hidden;
+}
+.tier-hero-card.gold {
+    background: radial-gradient(circle at 10% 20%, rgba(245, 158, 11, 0.25) 0%, rgba(15, 23, 42, 0.95) 90%);
+}
+.tier-hero-card.diamond {
+    background: radial-gradient(circle at 10% 20%, rgba(6, 182, 212, 0.25) 0%, rgba(15, 23, 42, 0.95) 90%);
+}
+.podium-step {
+    border-radius: 14px 14px 0 0;
+    text-align: center;
+    padding: 1.25rem 0.75rem;
+    position: relative;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(8px);
+}
+.podium-1 {
+    background: linear-gradient(180deg, rgba(245, 158, 11, 0.25) 0%, rgba(15, 23, 42, 0.85) 100%);
+    border-color: rgba(245, 158, 11, 0.5);
+    min-height: 190px;
+}
+.podium-2 {
+    background: linear-gradient(180deg, rgba(148, 163, 184, 0.25) 0%, rgba(15, 23, 42, 0.85) 100%);
+    border-color: rgba(148, 163, 184, 0.4);
+    min-height: 160px;
+}
+.podium-3 {
+    background: linear-gradient(180deg, rgba(180, 83, 9, 0.25) 0%, rgba(15, 23, 42, 0.85) 100%);
+    border-color: rgba(180, 83, 9, 0.4);
+    min-height: 140px;
+}
+.league-table-row {
+    background: rgba(15, 23, 42, 0.65);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    padding: 0.9rem 1.25rem;
+    margin-bottom: 0.65rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: all 0.2s ease;
+}
+.league-table-row:hover {
+    border-color: rgba(99, 102, 241, 0.35);
+    transform: translateX(4px);
+}
+.league-table-row.current-user-row {
+    background: linear-gradient(90deg, rgba(99, 102, 241, 0.25) 0%, rgba(15, 23, 42, 0.85) 100%);
+    border: 1px solid rgba(99, 102, 241, 0.6);
+    box-shadow: 0 4px 20px rgba(99, 102, 241, 0.25);
+}
+.zone-tag-promotion {
+    color: #34d399;
+    background: rgba(16, 185, 129, 0.15);
+    border: 1px solid rgba(16, 185, 129, 0.35);
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.2rem 0.55rem;
+    border-radius: 9999px;
+}
+.zone-tag-demotion {
+    color: #f87171;
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.2rem 0.55rem;
+    border-radius: 9999px;
+}
+.duel-option-btn {
+    text-align: left;
+    width: 100%;
+    background: rgba(30, 41, 59, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #e2e8f0;
+    padding: 0.85rem 1.15rem;
+    border-radius: 10px;
+    margin-bottom: 0.6rem;
+    transition: all 0.15s ease;
+}
+.duel-option-btn:hover {
+    background: rgba(99, 102, 241, 0.25);
+    border-color: rgba(99, 102, 241, 0.5);
+    color: #ffffff;
+}
+.duel-option-btn.selected {
+    background: rgba(99, 102, 241, 0.45);
+    border-color: #6366f1;
+    color: #ffffff;
+    box-shadow: 0 0 12px rgba(99, 102, 241, 0.4);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <!-- Tier Hero Banner -->
+    <div class="tier-hero-card p-4 p-md-5 mb-4 {{ tier|lower }}">
+        <div class="row align-items-center g-4">
+            <div class="col-lg-7">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <span class="badge bg-dark border border-secondary border-opacity-50 text-white rounded-pill px-3 py-1">
+                        {{ tier_badge }}
+                    </span>
+                    <span class="text-secondary small">Cohort {{ league.cohort_id }}</span>
+                </div>
+                <h1 class="display-6 fw-bold text-white mb-2">Weekly Competitive League</h1>
+                <p class="text-secondary mb-4" style="max-width: 600px;">
+                    Compete in a 30-member weekly cohort. Top 7 advance to the next tier, bottom 5 face relegation. Challenge peers in 60-second technical duels to surge ahead!
+                </p>
+                <div class="d-flex flex-wrap gap-2">
+                    <button class="btn btn-primary-custom px-4 py-2" data-bs-toggle="modal" data-bs-target="#skillDuelModal" onclick="initializeDuel('python')">
+                        <i data-lucide="swords" style="width: 18px; height: 18px;" class="me-1"></i>
+                        <span>Start 60-Second Skill Duel (+30 XP)</span>
+                    </button>
+                    <a href="{% url 'gamification:achievements' %}" class="btn btn-outline-light rounded-pill px-3 py-2">
+                        <i data-lucide="award" style="width: 16px; height: 16px;" class="me-1"></i>
+                        <span>All Badges</span>
+                    </a>
+                </div>
+            </div>
+            <div class="col-lg-5">
+                <div class="custom-card bg-dark bg-opacity-75 p-4 border border-secondary border-opacity-25 text-center">
+                    <div class="text-muted small text-uppercase fw-semibold mb-1">Weekly Reset Countdown</div>
+                    <div class="fs-2 fw-bold text-white mb-2" id="leagueTimer">
+                        {{ days_left }}d {{ hours_left }}h {{ mins_left }}m
+                    </div>
+                    <div class="progress mb-3" style="height: 6px; background: rgba(255,255,255,0.1);">
+                        <div class="progress-bar bg-primary" role="progressbar" style="width: {{ user_rank|default:1|stringformat:'d' }}%;"></div>
+                    </div>
+                    <div class="d-flex justify-content-around text-center pt-2 border-top border-secondary border-opacity-25">
+                        <div>
+                            <div class="text-muted small">Your Rank</div>
+                            <div class="fs-4 fw-bold {% if user_rank <= promotion_cutoff %}text-success{% else %}text-white{% endif %}">
+                                #{{ user_rank }}
+                            </div>
+                        </div>
+                        <div>
+                            <div class="text-muted small">Weekly XP</div>
+                            <div class="fs-4 fw-bold text-warning">{{ membership.weekly_xp }} XP</div>
+                        </div>
+                        <div>
+                            <div class="text-muted small">Status</div>
+                            <div class="fs-6 fw-bold mt-1">
+                                {% if user_rank <= promotion_cutoff %}
+                                    <span class="text-success"><i data-lucide="arrow-up" style="width: 14px; height: 14px;"></i> Promote</span>
+                                {% elif user_rank >= demotion_cutoff and tier != 'BRONZE' %}
+                                    <span class="text-danger"><i data-lucide="arrow-down" style="width: 14px; height: 14px;"></i> Danger</span>
+                                {% else %}
+                                    <span class="text-secondary"><i data-lucide="minus" style="width: 14px; height: 14px;"></i> Safe</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top 3 Podium -->
+    <div class="row g-3 justify-content-center align-items-end mb-4 px-2">
+        {% if cohort_list|length >= 3 %}
+        <!-- 2nd Place -->
+        <div class="col-4 col-md-3">
+            <div class="podium-step podium-2">
+                <div class="fs-2 mb-1">🥈</div>
+                <div class="fw-bold text-white text-truncate">{{ cohort_list.1.name }}</div>
+                <div class="text-secondary small">{{ cohort_list.1.weekly_xp }} XP</div>
+                <span class="badge bg-secondary bg-opacity-25 text-white rounded-pill px-2 py-1 mt-2 small">#2 Rank</span>
+            </div>
+        </div>
+        <!-- 1st Place -->
+        <div class="col-4 col-md-3">
+            <div class="podium-step podium-1">
+                <div class="fs-1 mb-1">👑</div>
+                <div class="fw-bold text-white text-truncate">{{ cohort_list.0.name }}</div>
+                <div class="text-warning small fw-bold">{{ cohort_list.0.weekly_xp }} XP</div>
+                <span class="badge bg-warning bg-opacity-25 text-warning rounded-pill px-3 py-1 mt-2 small">#1 Champion</span>
+            </div>
+        </div>
+        <!-- 3rd Place -->
+        <div class="col-4 col-md-3">
+            <div class="podium-step podium-3">
+                <div class="fs-2 mb-1">🥉</div>
+                <div class="fw-bold text-white text-truncate">{{ cohort_list.2.name }}</div>
+                <div class="text-secondary small">{{ cohort_list.2.weekly_xp }} XP</div>
+                <span class="badge bg-danger bg-opacity-25 text-danger rounded-pill px-2 py-1 mt-2 small">#3 Rank</span>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Cohort Leaderboard & Recent Duels Split -->
+    <div class="row g-4">
+        <!-- Main Leaderboard -->
+        <div class="col-lg-8">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="fw-bold text-white mb-0">Cohort Standings</h4>
+                <div class="d-flex gap-2">
+                    <span class="zone-tag-promotion"><i data-lucide="trophy" style="width: 12px; height: 12px;"></i> Top 7: Promotion Zone</span>
+                    {% if tier != 'BRONZE' %}
+                    <span class="zone-tag-demotion"><i data-lucide="alert-triangle" style="width: 12px; height: 12px;"></i> Bottom 5: Demotion</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="cohort-leaderboard-container">
+                {% for member in cohort_list %}
+                <div class="league-table-row {% if member.is_current_user %}current-user-row{% endif %}">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="fw-bold text-center" style="width: 32px;">
+                            {% if member.rank == 1 %}🥇
+                            {% elif member.rank == 2 %}🥈
+                            {% elif member.rank == 3 %}🥉
+                            {% else %}<span class="text-secondary">#{{ member.rank }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="fs-4">{{ member.avatar }}</div>
+                        <div>
+                            <div class="fw-bold text-white d-flex align-items-center gap-2">
+                                {{ member.name }}
+                                {% if member.is_current_user %}
+                                <span class="badge bg-primary text-white rounded-pill px-2 py-0 small">YOU</span>
+                                {% endif %}
+                            </div>
+                            <div class="text-secondary small">@{{ member.handle }} • {{ member.badge }}</div>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center gap-3">
+                        {% if member.zone == 'promotion' %}
+                        <span class="zone-tag-promotion d-none d-md-inline-block">Promotion</span>
+                        {% elif member.zone == 'demotion' %}
+                        <span class="zone-tag-demotion d-none d-md-inline-block">Relegation</span>
+                        {% endif %}
+                        <div class="text-end" style="min-width: 90px;">
+                            <div class="fw-bold text-warning">{{ member.weekly_xp }} XP</div>
+                            <div class="text-muted small">🔥 {{ member.streak }}d streak</div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Sidebar: Skill Duel History & Rules -->
+        <div class="col-lg-4">
+            <!-- 1v1 Skill Duel Promo -->
+            <div class="custom-card p-4 mb-4 border border-primary border-opacity-25" style="background: rgba(99, 102, 241, 0.08);">
+                <div class="d-flex align-items-center gap-2 mb-2 text-primary fw-bold">
+                    <i data-lucide="zap" style="width: 18px; height: 18px;"></i>
+                    <span>Live 1v1 Skill Duels</span>
+                </div>
+                <h5 class="fw-bold text-white mb-2">Boost Your Weekly Rank</h5>
+                <p class="text-secondary small mb-3">
+                    Answer 5 rapid-fire technical questions in 60 seconds. Defeat an algorithmic rival or peer to claim +30 XP and jump up the cohort leaderboard.
+                </p>
+                <div class="d-grid gap-2">
+                    <button class="btn btn-primary-custom" data-bs-toggle="modal" data-bs-target="#skillDuelModal" onclick="initializeDuel('python')">
+                        <i data-lucide="terminal" style="width: 16px; height: 16px;"></i>
+                        <span>Duel: Python & Algorithms</span>
+                    </button>
+                    <button class="btn btn-outline-info rounded-pill" data-bs-toggle="modal" data-bs-target="#skillDuelModal" onclick="initializeDuel('sql')">
+                        <i data-lucide="database" style="width: 16px; height: 16px;"></i>
+                        <span>Duel: SQL & Databases</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Recent Duels -->
+            <div class="custom-card p-4">
+                <h6 class="fw-bold text-white mb-3 d-flex align-items-center gap-2">
+                    <i data-lucide="history" style="width: 16px; height: 16px;" class="text-muted"></i>
+                    <span>Your Recent Duels</span>
+                </h6>
+                {% for duel in recent_duels %}
+                <div class="p-3 mb-2 rounded bg-secondary bg-opacity-25 border border-secondary border-opacity-25">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="badge {% if duel.winner == request.user %}bg-success{% elif not duel.winner %}bg-secondary{% else %}bg-danger{% endif %} rounded-pill px-2 py-0 small">
+                            {% if duel.winner == request.user %}VICTORY 🏆{% elif not duel.winner %}DRAW 🤝{% else %}DEFEAT ❌{% endif %}
+                        </span>
+                        <span class="text-warning small fw-bold">+{{ duel.xp_wager }} XP</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center text-white small">
+                        <span>vs {{ duel.opponent_name }}</span>
+                        <span class="text-muted">{{ duel.challenger_score }} - {{ duel.opponent_score }}</span>
+                    </div>
+                    <div class="text-muted" style="font-size: 0.72rem;">{{ duel.topic }} • {{ duel.created_at|date:"M d, H:i" }}</div>
+                </div>
+                {% empty %}
+                <div class="text-center py-4 text-muted small">
+                    <i data-lucide="swords" style="width: 24px; height: 24px;" class="mb-1 opacity-50"></i>
+                    <div>No duels played yet this week.<br>Launch a challenge to earn bonus XP!</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: 60-Second Skill Duel Arena -->
+<div class="modal fade" id="skillDuelModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content custom-card bg-dark text-white border border-secondary border-opacity-25 shadow-lg">
+            <!-- Modal Header -->
+            <div class="modal-header border-bottom border-secondary border-opacity-25">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-circle p-2 bg-primary bg-opacity-25 text-primary">
+                        <i data-lucide="swords" style="width: 22px; height: 22px;"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0" id="duelTopicHeader">Python & Algorithms Duel</h5>
+                        <div class="text-secondary small" id="duelOpponentSubtitle">Challenging DevBot 3000</div>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <div class="badge bg-danger rounded-pill px-3 py-2 fs-6" id="duelCountdown">
+                        ⏱️ <span id="duelTimerSeconds">60</span>s
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" onclick="abortDuel()" aria-label="Close"></button>
+                </div>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="modal-body p-4">
+                <!-- Arena Active Question Container -->
+                <div id="duelArena">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="text-muted small">Question <span id="currentQuestionNum">1</span> of 5</span>
+                        <div class="progress flex-grow-1 mx-3" style="height: 6px; background: rgba(255,255,255,0.1);">
+                            <div class="progress-bar bg-info" id="duelProgressBar" style="width: 20%;"></div>
+                        </div>
+                        <span class="badge bg-warning bg-opacity-25 text-warning small">+30 XP Wager</span>
+                    </div>
+
+                    <h5 class="fw-bold text-white mb-4" id="duelQuestionPrompt">
+                        Loading challenge question...
+                    </h5>
+
+                    <div id="duelOptionsContainer" class="d-flex flex-column">
+                        <!-- Options injected dynamically -->
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top border-secondary border-opacity-25">
+                        <span class="text-muted small">Select your answer quickly to beat the clock!</span>
+                        <button class="btn btn-primary-custom px-4" id="btnNextDuelQuestion" onclick="advanceDuelQuestion()">
+                            Next Question &rarr;
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Arena Results Container -->
+                <div id="duelResults" class="d-none text-center py-4">
+                    <div class="fs-1 mb-2" id="resultEmoji">🏆</div>
+                    <h3 class="fw-bold text-white mb-1" id="resultOutcomeTitle">VICTORY!</h3>
+                    <p class="text-secondary mb-3" id="resultOutcomeSubtitle">You outpaced your rival in algorithmic agility.</p>
+
+                    <div class="d-inline-flex gap-4 p-3 rounded bg-secondary bg-opacity-25 border border-secondary border-opacity-25 mb-4">
+                        <div>
+                            <div class="text-muted small">You</div>
+                            <div class="fs-3 fw-bold text-success" id="resultUserScore">4/5</div>
+                        </div>
+                        <div class="border-end border-secondary border-opacity-25"></div>
+                        <div>
+                            <div class="text-muted small" id="resultOpponentName">DevBot 3000</div>
+                            <div class="fs-3 fw-bold text-danger" id="resultOppScore">2/5</div>
+                        </div>
+                        <div class="border-end border-secondary border-opacity-25"></div>
+                        <div>
+                            <div class="text-muted small">Earned</div>
+                            <div class="fs-3 fw-bold text-warning" id="resultXpAwarded">+30 XP</div>
+                        </div>
+                    </div>
+
+                    <div class="text-start mb-4">
+                        <h6 class="fw-bold text-white mb-3">Review & Explanations</h6>
+                        <div id="duelExplanationsList" class="d-flex flex-column gap-2"></div>
+                    </div>
+
+                    <div class="d-flex justify-content-center gap-2">
+                        <button class="btn btn-outline-secondary px-4" data-bs-dismiss="modal" onclick="window.location.reload()">
+                            Return to Standings
+                        </button>
+                        <button class="btn btn-primary-custom px-4" onclick="initializeDuel(activeDuelTopicKey)">
+                            <i data-lucide="refresh-cw" style="width: 16px; height: 16px;"></i>
+                            <span>Play Another Duel</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let duelQuestions = [];
+let currentQuestionIndex = 0;
+let userAnswers = {};
+let duelTimerInterval = null;
+let secondsRemaining = 60;
+let activeDuelTopicKey = 'python';
+let currentOpponent = 'DevBot 3000';
+
+async function initializeDuel(topicKey) {
+    activeDuelTopicKey = topicKey;
+    clearInterval(duelTimerInterval);
+    secondsRemaining = 60;
+    currentQuestionIndex = 0;
+    userAnswers = {};
+
+    document.getElementById('duelArena').classList.remove('d-none');
+    document.getElementById('duelResults').classList.add('d-none');
+    document.getElementById('duelTimerSeconds').textContent = '60';
+
+    try {
+        const res = await fetch(`/achievements/duels/start/?topic=${topicKey}`);
+        const data = await res.json();
+        if (data.success) {
+            duelQuestions = data.questions;
+            currentOpponent = data.opponent_name;
+            document.getElementById('duelTopicHeader').textContent = `${data.topic} Duel`;
+            document.getElementById('duelOpponentSubtitle').textContent = `Challenging ${data.opponent_name}`;
+            renderQuestion(0);
+            startDuelTimer();
+        }
+    } catch (err) {
+        console.error("Duel init error:", err);
+    }
+}
+
+function startDuelTimer() {
+    duelTimerInterval = setInterval(() => {
+        secondsRemaining--;
+        document.getElementById('duelTimerSeconds').textContent = secondsRemaining;
+        if (secondsRemaining <= 0) {
+            clearInterval(duelTimerInterval);
+            submitDuelAnswers();
+        }
+    }, 1000);
+}
+
+function renderQuestion(index) {
+    if (index >= duelQuestions.length) {
+        submitDuelAnswers();
+        return;
+    }
+
+    const q = duelQuestions[index];
+    document.getElementById('currentQuestionNum').textContent = index + 1;
+    document.getElementById('duelProgressBar').style.width = `${((index + 1) / duelQuestions.length) * 100}%`;
+    document.getElementById('duelQuestionPrompt').textContent = q.question;
+
+    const container = document.getElementById('duelOptionsContainer');
+    container.innerHTML = '';
+
+    q.options.forEach((optText, optIdx) => {
+        const btn = document.createElement('button');
+        btn.className = 'duel-option-btn';
+        if (userAnswers[q.id] === optIdx) {
+            btn.classList.add('selected');
+        }
+        btn.innerHTML = `<span class="badge bg-secondary me-2">${String.fromCharCode(65 + optIdx)}</span> ${optText}`;
+        btn.onclick = () => selectOption(q.id, optIdx, btn);
+        container.appendChild(btn);
+    });
+
+    const nextBtn = document.getElementById('btnNextDuelQuestion');
+    if (index === duelQuestions.length - 1) {
+        nextBtn.textContent = 'Finish Duel & Score';
+    } else {
+        nextBtn.textContent = 'Next Question →';
+    }
+}
+
+function selectOption(questionId, optionIdx, buttonEl) {
+    userAnswers[questionId] = optionIdx;
+    const allBtns = document.querySelectorAll('.duel-option-btn');
+    allBtns.forEach(b => b.classList.remove('selected'));
+    buttonEl.classList.add('selected');
+}
+
+function advanceDuelQuestion() {
+    currentQuestionIndex++;
+    if (currentQuestionIndex < duelQuestions.length) {
+        renderQuestion(currentQuestionIndex);
+    } else {
+        submitDuelAnswers();
+    }
+}
+
+async function submitDuelAnswers() {
+    clearInterval(duelTimerInterval);
+    document.getElementById('duelArena').classList.add('d-none');
+    document.getElementById('duelResults').classList.remove('d-none');
+
+    try {
+        const res = await fetch('/achievements/duels/submit/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                topic_key: activeDuelTopicKey,
+                opponent_name: currentOpponent,
+                answers: userAnswers,
+                time_taken: 60 - secondsRemaining
+            })
+        });
+        const data = await res.json();
+        if (data.success) {
+            renderDuelResults(data);
+        }
+    } catch (err) {
+        console.error("Duel submission error:", err);
+    }
+}
+
+function renderDuelResults(data) {
+    const outcome = data.outcome;
+    const emojiEl = document.getElementById('resultEmoji');
+    const titleEl = document.getElementById('resultOutcomeTitle');
+    const subEl = document.getElementById('resultOutcomeSubtitle');
+
+    if (outcome === 'VICTORY') {
+        emojiEl.textContent = '🏆';
+        titleEl.textContent = 'VICTORY!';
+        titleEl.className = 'fw-bold text-success mb-1';
+        subEl.textContent = `You dominated ${data.opponent_name} and claimed +${data.xp_awarded} XP!`;
+    } else if (outcome === 'DRAW') {
+        emojiEl.textContent = '🤝';
+        titleEl.textContent = 'STALEMATE!';
+        titleEl.className = 'fw-bold text-warning mb-1';
+        subEl.textContent = `A dead tie against ${data.opponent_name}! Both earned +${data.xp_awarded} XP.`;
+    } else {
+        emojiEl.textContent = '⚡';
+        titleEl.textContent = 'DEFEATED';
+        titleEl.className = 'fw-bold text-danger mb-1';
+        subEl.textContent = `${data.opponent_name} took this round. Earned +${data.xp_awarded} XP for participating.`;
+    }
+
+    document.getElementById('resultUserScore').textContent = `${data.challenger_score}/5`;
+    document.getElementById('resultOppScore').textContent = `${data.opponent_score}/5`;
+    document.getElementById('resultOpponentName').textContent = data.opponent_name;
+    document.getElementById('resultXpAwarded').textContent = `+${data.xp_awarded} XP`;
+
+    const explanationsList = document.getElementById('duelExplanationsList');
+    explanationsList.innerHTML = '';
+    if (data.feedback && Array.isArray(data.feedback)) {
+        data.feedback.forEach((item, idx) => {
+            const card = document.createElement('div');
+            card.className = `p-3 rounded small border ${item.is_correct ? 'bg-success bg-opacity-10 border-success border-opacity-25' : 'bg-danger bg-opacity-10 border-danger border-opacity-25'}`;
+            card.innerHTML = `
+                <div class="fw-bold ${item.is_correct ? 'text-success' : 'text-danger'} mb-1">
+                    Question ${idx + 1}: ${item.is_correct ? 'Correct ✓' : 'Incorrect ✗'}
+                </div>
+                <div class="text-secondary">${item.explanation}</div>
+            `;
+            explanationsList.appendChild(card);
+        });
+    }
+
+    if (window.lucide) lucide.createIcons();
+}
+
+function abortDuel() {
+    clearInterval(duelTimerInterval);
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}
