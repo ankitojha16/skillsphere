@@ -289,17 +289,17 @@ def dashboard_view(request):
     # 12. Dynamic AI Learning Summary
     ai_summary_points = []
     if gamification.current_streak > 1:
-        ai_summary_points.append(f"🔥 You're on an active **{gamification.current_streak}-day learning streak**! Keep the momentum going.")
+        ai_summary_points.append(f"🔥 You're on an active <strong class=\"text-white fw-bold\">{gamification.current_streak}-day learning streak</strong>! Keep the momentum going.")
     else:
         ai_summary_points.append("Ready to learn! Complete a lesson today to ignite your study streak.")
 
     if active_roadmap:
-        ai_summary_points.append(f"🗺️ Your **{active_roadmap.title}** is currently at **{roadmap_progress['percentage']}% completion**.")
+        ai_summary_points.append(f"🗺️ Your <strong class=\"text-white fw-bold\">{active_roadmap.title}</strong> is currently at <strong class=\"text-warning fw-bold\">{roadmap_progress['percentage']}% completion</strong>.")
     else:
         ai_summary_points.append("💡 Generate a personalized learning roadmap to guide your career path.")
 
     if total_completed_lessons > 0:
-        ai_summary_points.append(f"📚 You have completed **{total_completed_lessons} lessons** across {total_enrolled} enrolled courses.")
+        ai_summary_points.append(f"📚 You have completed <strong class=\"text-white fw-bold\">{total_completed_lessons} lessons</strong> across {total_enrolled} enrolled courses.")
     
     # 13. Earned Certificates
     user_certificates = list(
