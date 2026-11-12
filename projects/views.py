@@ -287,6 +287,75 @@ The above copyright notice and this permission notice shall be included in all
 copies or substantial portions of the Software.
 """
 
+    ci_workflow_content = f"""name: CI Test & Code Quality
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8 pytest pytest-cov
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+      - name: Lint with flake8
+        run: |
+          flake8 src --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 src --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+      - name: Run automated test suite with pytest
+        run: |
+          pytest --cov=src tests/
+"""
+
+    dockerfile_content = f"""FROM python:3.12-slim
+
+WORKDIR /app
+
+ENV PYTHONDONTWRITEBYTECODE=1 \\
+    PYTHONUNBUFFERED=1
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+CMD ["python", "src/main.py"]
+"""
+
+    docker_compose_content = f"""version: '3.8'
+
+services:
+  app:
+    build: .
+    volumes:
+      - .:/app
+    environment:
+      - ENVIRONMENT=development
+    ports:
+      - "8000:8000"
+"""
+
+    powershell_commands = f"""# Windows PowerShell Quick Push
+git init
+git add .
+git commit -m "feat: initial commit from SkillSphere Blueprint"
+git branch -M main
+git remote add origin https://github.com/YOUR_USERNAME/{repo_slug}.git
+git push -u origin main
+"""
+
     # If format is JSON preview
     if request.GET.get('format') == 'json':
         return JsonResponse({
@@ -298,10 +367,14 @@ copies or substantial portions of the Software.
                 'requirements.txt',
                 '.gitignore',
                 'LICENSE',
+                'Dockerfile',
+                'docker-compose.yml',
+                '.github/workflows/ci.yml',
                 'src/main.py',
                 'tests/test_main.py'
             ],
-            'quick_push_commands': f"git init\ngit add .\ngit commit -m 'feat: initial commit from SkillSphere Blueprint'\ngit branch -M main\ngit remote add origin https://github.com/YOUR_USERNAME/{repo_slug}.git\ngit push -u origin main"
+            'quick_push_commands': f"git init\ngit add .\ngit commit -m 'feat: initial commit from SkillSphere Blueprint'\ngit branch -M main\ngit remote add origin https://github.com/YOUR_USERNAME/{repo_slug}.git\ngit push -u origin main",
+            'powershell_commands': powershell_commands
         })
 
     # Generate ZIP bundle in-memory
@@ -311,6 +384,9 @@ copies or substantial portions of the Software.
         zip_file.writestr(f"{repo_slug}/requirements.txt", requirements_content)
         zip_file.writestr(f"{repo_slug}/.gitignore", gitignore_content)
         zip_file.writestr(f"{repo_slug}/LICENSE", license_content)
+        zip_file.writestr(f"{repo_slug}/Dockerfile", dockerfile_content)
+        zip_file.writestr(f"{repo_slug}/docker-compose.yml", docker_compose_content)
+        zip_file.writestr(f"{repo_slug}/.github/workflows/ci.yml", ci_workflow_content)
         zip_file.writestr(f"{repo_slug}/src/main.py", main_py_content)
         zip_file.writestr(f"{repo_slug}/src/__init__.py", "")
         zip_file.writestr(f"{repo_slug}/tests/test_main.py", test_main_py_content)
@@ -318,6 +394,7 @@ copies or substantial portions of the Software.
 
     buffer.seek(0)
     response = HttpResponse(buffer.getvalue(), content_type='application/zip')
+
     response['Content-Disposition'] = f'attachment; filename="{repo_slug}-github-starter.zip"'
     return response
 

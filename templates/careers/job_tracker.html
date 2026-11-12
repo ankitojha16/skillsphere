@@ -77,6 +77,10 @@
             <p class="text-secondary small mb-0">Track applications, analyze ATS keyword alignment, and generate AI cold outreach letters in seconds.</p>
         </div>
         <div class="d-flex gap-2">
+            <a href="{% url 'careers:export_csv' %}" class="btn btn-secondary-custom" title="Export all tracked applications to CSV">
+                <i data-lucide="download" style="width: 16px; height: 16px;"></i>
+                <span>Export CSV</span>
+            </a>
             <a href="{% url 'resumes:builder' %}" class="btn btn-secondary-custom">
                 <i data-lucide="file-text" style="width: 16px; height: 16px;"></i>
                 <span>Resume Studio</span>
@@ -136,10 +140,10 @@
         </div>
     </div>
 
-    <!-- Kanban Board -->
+    <!-- Kanban Board with Native Drag-and-Drop -->
     <div class="kanban-board-container">
         {% for col in kanban_columns %}
-        <div class="kanban-column" id="col-{{ col.code }}">
+        <div class="kanban-column" id="col-{{ col.code }}" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event, '{{ col.code }}')">
             <div class="kanban-column-header">
                 <div class="d-flex align-items-center gap-2">
                     <span class="badge bg-{{ col.color }} bg-opacity-25 text-{{ col.color }} rounded-pill px-2">
@@ -153,11 +157,12 @@
 
             <div class="kanban-card-list" id="list-{{ col.code }}">
                 {% for app in col.cards %}
-                <div class="kanban-job-card" id="card-{{ app.id }}">
+                <div class="kanban-job-card" id="card-{{ app.id }}" draggable="true" ondragstart="handleDragStart(event, {{ app.id }})">
                     <div class="d-flex justify-content-between align-items-start mb-2">
                         <h6 class="fw-bold text-white mb-0 text-truncate" style="max-width: 200px;" title="{{ app.role_title }}">
                             {{ app.role_title }}
                         </h6>
+
                         <div class="dropdown">
                             <button class="btn btn-sm btn-link text-muted p-0" data-bs-toggle="dropdown">
                                 <i data-lucide="more-vertical" style="width: 16px; height: 16px;"></i>
@@ -339,7 +344,13 @@
                             <i data-lucide="file-text" style="width: 14px; height: 14px;" class="me-1"></i> Tailored Cover Letter
                         </button>
                     </li>
+                    <li class="nav-item">
+                        <button class="nav-link py-2 text-white small" id="btn-tab-salary" onclick="switchOutreachType('salary_negotiation')">
+                            <i data-lucide="dollar-sign" style="width: 14px; height: 14px;" class="me-1"></i> Salary Negotiation
+                        </button>
+                    </li>
                 </ul>
+
 
                 <!-- Loading State -->
                 <div id="outreachLoading" class="text-center py-5 d-none">
@@ -416,14 +427,61 @@ function switchOutreachType(type) {
 }
 
 function setActiveTab(type) {
-    document.getElementById('btn-tab-linkedin').classList.remove('active');
-    document.getElementById('btn-tab-recruiter').classList.remove('active');
-    document.getElementById('btn-tab-cover').classList.remove('active');
+    document.getElementById('btn-tab-linkedin')?.classList.remove('active');
+    document.getElementById('btn-tab-recruiter')?.classList.remove('active');
+    document.getElementById('btn-tab-cover')?.classList.remove('active');
+    document.getElementById('btn-tab-salary')?.classList.remove('active');
 
-    if (type === 'linkedin') document.getElementById('btn-tab-linkedin').classList.add('active');
-    else if (type === 'recruiter_email') document.getElementById('btn-tab-recruiter').classList.add('active');
-    else if (type === 'cover_letter') document.getElementById('btn-tab-cover').classList.add('active');
+    if (type === 'linkedin') document.getElementById('btn-tab-linkedin')?.classList.add('active');
+    else if (type === 'recruiter_email') document.getElementById('btn-tab-recruiter')?.classList.add('active');
+    else if (type === 'cover_letter') document.getElementById('btn-tab-cover')?.classList.add('active');
+    else if (type === 'salary_negotiation') document.getElementById('btn-tab-salary')?.classList.add('active');
 }
+
+// -------------------------------------------------------------
+// Native HTML5 Drag-and-Drop Pipeline Handlers
+// -------------------------------------------------------------
+let draggedJobId = null;
+
+function handleDragStart(e, jobId) {
+    draggedJobId = jobId;
+    e.dataTransfer.setData('text/plain', jobId);
+    e.dataTransfer.effectAllowed = 'move';
+    const card = document.getElementById(`card-${jobId}`);
+    if (card) card.style.opacity = '0.35';
+    if (window.SkillSphereSFX) window.SkillSphereSFX.play('click');
+}
+
+function handleDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    const col = e.currentTarget;
+    col.style.borderColor = 'rgba(99, 102, 241, 0.85)';
+    col.style.backgroundColor = 'rgba(99, 102, 241, 0.08)';
+}
+
+function handleDragLeave(e) {
+    const col = e.currentTarget;
+    col.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+    col.style.backgroundColor = 'rgba(30, 41, 59, 0.45)';
+}
+
+async function handleDrop(e, targetStatus) {
+    e.preventDefault();
+    const col = e.currentTarget;
+    col.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+    col.style.backgroundColor = 'rgba(30, 41, 59, 0.45)';
+
+    const jobId = draggedJobId || e.dataTransfer.getData('text/plain');
+    const card = document.getElementById(`card-${jobId}`);
+    if (card) card.style.opacity = '1';
+
+    if (jobId && targetStatus) {
+        if (window.SkillSphereSFX) window.SkillSphereSFX.play('success');
+        await updateJobStage(jobId, targetStatus);
+    }
+}
+
 
 function regenerateCurrentOutreach() {
     fetchOutreach();

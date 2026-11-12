@@ -561,3 +561,36 @@ def generate_outreach_view(request, job_id):
     )
     return JsonResponse(outreach_data)
 
+
+@login_required
+def export_job_applications_csv(request):
+    """
+    Exports all tracked job applications for the user as a formatted CSV file.
+    """
+    import csv
+    from django.http import HttpResponse
+
+    apps = JobApplication.objects.filter(user=request.user).order_by('-updated_at')
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = f'attachment; filename="SkillSphere_Job_Applications_{timezone.now().strftime("%Y%m%d")}.csv"'
+
+    writer = csv.writer(response)
+    writer.writerow(['Company', 'Role Title', 'Status', 'Location', 'Target Salary', 'ATS Match %', 'Applied Date', 'Job URL', 'Notes', 'Created At'])
+
+    for app in apps:
+        writer.writerow([
+            app.company_name,
+            app.role_title,
+            app.get_status_display(),
+            app.location or 'N/A',
+            app.target_salary or 'N/A',
+            f"{app.ats_match_score}%",
+            app.applied_date.strftime('%Y-%m-%d') if app.applied_date else 'N/A',
+            app.job_url or '',
+            app.notes or '',
+            app.created_at.strftime('%Y-%m-%d %H:%M')
+        ])
+
+    return response
+
+

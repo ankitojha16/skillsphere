@@ -95,8 +95,103 @@ DUEL_QUESTIONS = {
             'correct': 1,
             'explanation': "COALESCE returns the first non-null argument."
         }
+    ],
+    'web': [
+        {
+            'id': 11,
+            'question': "What security header prevents Clickjacking by restricting whether a site can be framed in an <iframe>?",
+            'options': ["Content-Security-Policy: frame-ancestors", "Access-Control-Allow-Origin", "Strict-Transport-Security", "X-XSS-Protection"],
+            'correct': 0,
+            'explanation': "CSP frame-ancestors (and the legacy X-Frame-Options) dictates which origins may embed the resource in an iframe."
+        },
+        {
+            'id': 12,
+            'question': "In JWT (JSON Web Tokens), which component contains user claims and expiration timestamp?",
+            'options': ["Header", "Payload", "Signature", "Digest"],
+            'correct': 1,
+            'explanation': "The second base64url-encoded segment is the Payload containing claims and timestamps."
+        },
+        {
+            'id': 13,
+            'question': "What HTTP status code is most appropriate when a client request violates rate limiting policies?",
+            'options': ["400 Bad Request", "403 Forbidden", "429 Too Many Requests", "503 Service Unavailable"],
+            'correct': 2,
+            'explanation': "HTTP 429 Too Many Requests indicates the user has sent too many requests in a given amount of time."
+        },
+        {
+            'id': 14,
+            'question': "Why is SameSite=Strict recommended on session authentication cookies?",
+            'options': [
+                "It encrypts cookie data with AES-256",
+                "It prevents the cookie from being sent on cross-site requests, mitigating CSRF",
+                "It allows cookies to be read via JavaScript fetch",
+                "It speeds up DNS lookup resolution"
+            ],
+            'correct': 1,
+            'explanation': "SameSite=Strict prevents browsers from sending cookies on cross-site navigation, effectively neutralizing CSRF."
+        },
+        {
+            'id': 15,
+            'question': "What is the primary benefit of HTTP/2 multiplexing over HTTP/1.1?",
+            'options': [
+                "Mandatory symmetric encryption",
+                "Concurrent bidirectional streaming over a single TCP connection without head-of-line blocking",
+                "Automatic database query caching",
+                "Elimination of TLS handshakes"
+            ],
+            'correct': 1,
+            'explanation': "Multiplexing interleaves multiple request/response frames concurrently over one TCP socket."
+        }
+    ],
+    'system': [
+        {
+            'id': 16,
+            'question': "According to the CAP theorem, in the event of a network partition (P), what trade-off must a distributed system make?",
+            'options': [
+                "Between Latency and Cost",
+                "Between Consistency (C) and Availability (A)",
+                "Between Scalability and Durability",
+                "Between Throughput and Concurrency"
+            ],
+            'correct': 1,
+            'explanation': "When a partition occurs, a distributed system must choose between returning consistent data or remaining available."
+        },
+        {
+            'id': 17,
+            'question': "What cache eviction strategy discards items that have not been accessed for the longest period of time?",
+            'options': ["FIFO (First In First Out)", "LRU (Least Recently Used)", "LFU (Least Frequently Used)", "TTL (Time To Live)"],
+            'correct': 1,
+            'explanation': "LRU tracks access order and evicts items with the oldest last-accessed timestamp."
+        },
+        {
+            'id': 18,
+            'question': "What is the primary function of a consistent hashing ring in distributed caches like Redis or Cassandra?",
+            'options': [
+                "To encrypt all payload data in transit",
+                "To minimize key remapping when nodes are added or removed from the cluster",
+                "To perform ACID transactions across all nodes simultaneously",
+                "To compress JSON keys using gzip"
+            ],
+            'correct': 1,
+            'explanation': "Consistent hashing ensures only K/N keys need relocation on average when cluster topology changes."
+        },
+        {
+            'id': 19,
+            'question': "Which database partitioning technique splits large tables horizontally across multiple database servers based on a shard key?",
+            'options': ["Replication", "Database Sharding", "Denormalization", "Indexing"],
+            'correct': 1,
+            'explanation': "Horizontal sharding partitions rows across multiple distinct database nodes based on shard key hash."
+        },
+        {
+            'id': 20,
+            'question': "What pattern prevents cascading failure when a downstream microservice is unresponsive?",
+            'options': ["Circuit Breaker Pattern", "Singleton Pattern", "Factory Method Pattern", "Observer Pattern"],
+            'correct': 0,
+            'explanation': "Circuit Breaker trips after repeated downstream timeouts, fast-failing and protecting caller threads."
+        }
     ]
 }
+
 
 COHORT_BOT_PEERS = [
     {"name": "Sophia Zhang", "handle": "sophia_z", "xp": 480, "avatar": "👩‍💻", "badge": "Gold Prospect"},
@@ -402,11 +497,18 @@ def start_duel_api(request):
             'options': q['options'],
         })
 
+    topic_titles = {
+        'python': 'Python & Algorithms',
+        'sql': 'Relational Databases & SQL',
+        'web': 'Web Architecture & Security',
+        'system': 'System Design & Scalability'
+    }
+
     return JsonResponse({
         'success': True,
-        'topic': 'Python & Algorithms' if topic_key == 'python' else 'Relational Databases & SQL',
+        'topic': topic_titles.get(topic_key, 'Python & Algorithms'),
         'topic_key': topic_key,
-        'opponent_name': random.choice(['DevBot 3000', 'CodeViper', 'ByteMaster', 'AlgoRival']),
+        'opponent_name': random.choice(['DevBot 3000', 'CodeViper', 'ByteMaster', 'AlgoRival', 'CyberKnight']),
         'time_limit': 60,
         'questions': client_questions,
     })
@@ -415,7 +517,7 @@ def start_duel_api(request):
 @login_required
 def submit_duel_api(request):
     """
-    Validates answers for 1v1 Skill Duel, calculates winner, and awards XP.
+    Validates answers for 1v1 Skill Duel, calculates winner, and awards XP with combo multipliers.
     """
     if request.method != 'POST':
         return JsonResponse({'error': 'POST method required.'}, status=405)
@@ -428,6 +530,13 @@ def submit_duel_api(request):
     topic_key = data.get('topic_key', 'python')
     if topic_key not in DUEL_QUESTIONS:
         topic_key = 'python'
+
+    topic_titles = {
+        'python': 'Python & Algorithms',
+        'sql': 'Relational Databases & SQL',
+        'web': 'Web Architecture & Security',
+        'system': 'System Design & Scalability'
+    }
 
     user_answers = data.get('answers', {})
     questions = DUEL_QUESTIONS[topic_key]
@@ -450,20 +559,29 @@ def submit_duel_api(request):
     opponent_score = random.randint(2, 4)
     opponent_name = data.get('opponent_name', 'DevBot 3000')
 
+    # Streak Combo Multiplier
+    if correct_count == 5:
+        combo_multiplier = 1.5
+    elif correct_count == 4:
+        combo_multiplier = 1.2
+    else:
+        combo_multiplier = 1.0
+
     if correct_count > opponent_score:
         outcome = 'VICTORY'
-        xp_awarded = 30
+        base_xp = 30
         winner = request.user
     elif correct_count == opponent_score:
         outcome = 'DRAW'
-        xp_awarded = 15
+        base_xp = 15
         winner = None
     else:
         outcome = 'DEFEAT'
-        xp_awarded = 10
+        base_xp = 10
         winner = None
 
-    award_user_xp(request.user, xp_awarded, f"Skill Duel ({outcome}): {correct_count} vs {opponent_score}")
+    xp_awarded = int(base_xp * combo_multiplier)
+    award_user_xp(request.user, xp_awarded, f"Skill Duel ({outcome} {combo_multiplier}x): {correct_count} vs {opponent_score}")
 
     today = timezone.now().date()
     monday = today - timedelta(days=today.weekday())
@@ -478,7 +596,7 @@ def submit_duel_api(request):
     duel = SkillDuel.objects.create(
         challenger=request.user,
         opponent_name=opponent_name,
-        topic='Python & Algorithms' if topic_key == 'python' else 'Relational Databases & SQL',
+        topic=topic_titles.get(topic_key, 'Python & Algorithms'),
         challenger_score=correct_count,
         opponent_score=opponent_score,
         winner=winner,
@@ -493,7 +611,10 @@ def submit_duel_api(request):
         'challenger_score': correct_count,
         'opponent_score': opponent_score,
         'opponent_name': opponent_name,
+        'base_xp': base_xp,
+        'combo_multiplier': combo_multiplier,
         'xp_awarded': xp_awarded,
         'feedback': feedback,
     })
+
 

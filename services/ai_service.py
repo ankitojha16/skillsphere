@@ -2251,7 +2251,26 @@ class AIService:
                 "Mirror 2-3 explicit keywords from the job description in your first paragraph.",
                 "Export as PDF with matching typography to your resume."
             ]
+        elif outreach_type == "salary_negotiation":
+            subject = f"Offer Follow-Up & Compensation Alignment: {role} - {candidate_name}"
+            body = (
+                f"Hi [Hiring Manager / Recruiter Name],\n\n"
+                f"Thank you so much for extending the offer for the {role} position at {company}! "
+                f"I am genuinely enthusiastic about the team's mission and technical roadmap.\n\n"
+                f"Based on my production engineering experience, full-stack capstone deliveries at SkillSphere, "
+                f"and prevailing market compensation benchmarks for {role} roles in this tier, I would like to explore "
+                f"adjusting the base compensation closer to [Target Number / +10-15%]. If base salary flexibility is constrained, "
+                f"I am very open to exploring an adjustment to the sign-on bonus or equity vesting structure.\n\n"
+                f"I am eager to finalize our agreement and begin making an immediate technical impact. Would you have 10-15 minutes for a quick conversation this week?\n\n"
+                f"Warmly,\n{candidate_name}"
+            )
+            tips = [
+                "Express enthusiasm for the team and mission before discussing numbers.",
+                "Negotiate total compensation (base salary, sign-on bonus, equity/stock vesting schedule).",
+                "Frame negotiation as collaborative alignment toward a long-term partnership."
+            ]
         else:  # recruiter_email
+
             subject = f"Experienced {role} candidate interested in {company}"
             body = (
                 f"Hi [Recruiter Name],\n\n"

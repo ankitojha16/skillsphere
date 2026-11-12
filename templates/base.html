@@ -50,6 +50,8 @@
     <link rel="stylesheet" href="{% static 'css/style.css' %}?v=20261110_v103">
     <!-- SkillSphere Cinematic Opening Animation Stylesheet -->
     <link rel="stylesheet" href="{% static 'css/opening-animation.css' %}?v=20261112_v1">
+    <!-- SkillSphere Universal Spotlight Command Palette Stylesheet -->
+    <link rel="stylesheet" href="{% static 'css/command-palette.css' %}?v=20261112_v1">
 
     
     <!-- Critical Layout, Mobile Viewport & Contrast Overrides -->
@@ -160,7 +162,11 @@
     <!-- SkillSphere Cinematic Opening Splash Animation Overlay -->
     {% include 'includes/opening_splash.html' %}
 
+    <!-- SkillSphere Universal Spotlight Command Palette Overlay -->
+    {% include 'includes/command_palette.html' %}
+
     <div class="app-wrapper">
+
         {% block sidebar %}
         {% if user.is_authenticated %}
         <!-- Desktop & Mobile Sidebar -->
@@ -330,20 +336,34 @@
 
 
                     {% block navbar_search %}
-                    <form action="{% url 'courses:list' %}" method="get" class="navbar-search d-none d-md-block">
-                        <i data-lucide="search" class="search-icon" style="width: 16px; height: 16px;"></i>
-                        <input type="text" name="q" placeholder="Search courses, skills, topics..." value="{{ request.GET.q|default:'' }}">
-                    </form>
+                    <button type="button" onclick="window.openCommandPalette()" class="navbar-search d-none d-md-flex align-items-center justify-content-between text-start text-decoration-none" style="cursor: pointer; background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 9999px; padding: 6px 16px; width: 270px; color: #94a3b8;" title="Quick open Spotlight search (⌘K)">
+                        <span class="d-flex align-items-center gap-2 small">
+                            <i data-lucide="search" style="width: 15px; height: 15px;" class="text-primary"></i>
+                            <span class="text-truncate">Search courses, tools...</span>
+                        </span>
+                        <kbd class="command-palette-keycap" style="font-size: 0.68rem;">⌘K</kbd>
+                    </button>
                     {% endblock navbar_search %}
                 </div>
 
                 <div class="navbar-actions d-flex align-items-center gap-2">
+                    <!-- Mobile Spotlight Search Trigger -->
+                    <button type="button" onclick="window.openCommandPalette()" class="btn btn-secondary-custom p-2 d-md-none" title="Spotlight Search">
+                        <i data-lucide="search" style="width: 18px; height: 18px;"></i>
+                    </button>
+
+                    <!-- Web Audio SFX Toggle Button -->
+                    <button type="button" onclick="if(window.SkillSphereSFX){window.SkillSphereSFX.toggle();}" class="btn btn-secondary-custom p-2 sfx-toggle-btn text-primary" title="Toggle Sound Effects">
+                        <i data-lucide="volume-2" style="width: 18px; height: 18px;"></i>
+                    </button>
+
                     <!-- Install App Button (Visible when PWA is installable) -->
                     <button type="button" onclick="triggerPWAInstall()" class="btn btn-sm btn-outline-primary rounded-pill pwa-install-trigger d-none align-items-center gap-1 px-2.5 py-1 text-nowrap" style="font-size: 0.76rem; border-color: rgba(99, 102, 241, 0.5); color: #a5b4fc;">
                         <i data-lucide="download" style="width: 13px; height: 13px;"></i>
                         <span class="d-none d-sm-inline">Install App</span>
                         <span class="d-sm-none">Install</span>
                     </button>
+
 
                     {% if user.is_authenticated %}
                         <!-- Notification Bell Dropdown -->
@@ -501,7 +521,12 @@
     <script src="{% static 'js/pwa-install.js' %}"></script>
     <!-- SkillSphere Cinematic Opening Animation Script -->
     <script src="{% static 'js/opening-animation.js' %}"></script>
+    <!-- SkillSphere Web Audio SFX Engine -->
+    <script src="{% static 'js/audio-sfx.js' %}"></script>
+    <!-- SkillSphere Universal Spotlight Command Palette Script -->
+    <script src="{% static 'js/command-palette.js' %}"></script>
     {% block extra_js %}{% endblock %}
+
     <script>
         if (typeof lucide !== 'undefined') {
             lucide.createIcons();

@@ -543,12 +543,15 @@
                                                 <label for="wasmSnippetSelect" class="text-secondary small mb-0" style="font-size: 0.76rem;">Preset:</label>
                                                 <select id="wasmSnippetSelect" class="form-select form-select-sm bg-dark text-white border-secondary py-0.5 px-2" style="font-size: 0.76rem; width: auto;" onchange="loadWasmSnippet(this.value)">
                                                     <option value="metrics">Lesson Mastery Metrics</option>
+                                                    <option value="sql_query">SQLite: Relational Schema & Query</option>
+                                                    <option value="sql_analytics">SQLite: Aggregation & Group By</option>
                                                     <option value="algo">Binary Search & Complexity</option>
                                                     <option value="data">Data Processing & Analytics</option>
                                                     <option value="primes">Prime Sieve & Math</option>
                                                     <option value="empty">Blank Script</option>
                                                 </select>
-                                                <span class="text-muted font-monospace d-none d-sm-inline" style="font-size: 0.72rem;">WASM Sandbox</span>
+                                                <span class="text-muted font-monospace d-none d-sm-inline" style="font-size: 0.72rem;">Python & SQL WASM</span>
+
                                             </div>
                                         </div>
                                         <textarea id="wasmPythonEditor" rows="7" class="form-control font-monospace text-light p-3" style="background-color: #0b1120; border: 1px solid rgba(255,255,255,0.15); font-size: 0.88rem; line-height: 1.5;" spellcheck="false"># In-Browser Python WebAssembly Playground
@@ -1224,8 +1227,15 @@ ORDER BY c.rating DESC;</textarea>
                         <div class="text-secondary small">Conversational 2-Host Breakdown: {{ lesson.title }}</div>
                     </div>
                 </div>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" onclick="stopPodcastAudio()"></button>
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-sm btn-outline-info rounded-pill px-2.5 py-1 text-white d-inline-flex align-items-center gap-1" onclick="minimizePodcastToPiP()" title="Pop out into floating background player">
+                        <i data-lucide="picture-in-picture-2" style="width: 14px; height: 14px;"></i>
+                        <span>Floating PiP</span>
+                    </button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" onclick="stopPodcastAudio()"></button>
+                </div>
             </div>
+
             <div class="modal-body py-3">
                 <!-- Dual Speaker Avatars & Audio Player Stage -->
                 <div class="p-3 rounded-3 mb-3 border border-secondary border-opacity-25" style="background: linear-gradient(135deg, rgba(15, 23, 42, 0.8), rgba(30, 27, 75, 0.4));">
@@ -2232,11 +2242,15 @@ _all_passed = all(t[1] for t in _test_results)
 
         consoleEl.textContent = report;
         if (timerEl) timerEl.innerText = allPassed ? `✅ Passed (${duration}ms)` : `⚠️ Failed (${duration}ms)`;
+        if (window.SkillSphereSFX) {
+            window.SkillSphereSFX.play(allPassed ? 'success' : 'error');
+        }
     } catch (err) {
         const t1 = performance.now();
         const duration = (t1 - t0).toFixed(1);
         consoleEl.textContent = `=== ❌ TESTCASE EXECUTION FAILED ===\n\n${err.message || err}\n\n[Halted in ${duration}ms]`;
         if (timerEl) timerEl.innerText = `❌ Error`;
+        if (window.SkillSphereSFX) window.SkillSphereSFX.play('error');
     } finally {
         if (btnText) btnText.innerText = 'Validate Testcases';
     }
@@ -2249,15 +2263,19 @@ function resetWasmCode() {
 function clearWasmConsole() {
     const consoleEl = document.getElementById('wasmOutputConsole');
     if (consoleEl) consoleEl.textContent = '# Console cleared. Press Run to execute code.';
+    if (window.SkillSphereSFX) window.SkillSphereSFX.play('click');
 }
 
 const wasmSnippets = {
     metrics: `# In-Browser Python WebAssembly Playground\n\ndef compute_lesson_metrics():\n    topics = ["Foundations", "Architecture", "Best Practices"]\n    progress = {t: f"{idx * 33 + 34}%" for idx, t in enumerate(topics)}\n    print("Lesson Topics & Mastery:")\n    for t, p in progress.items():\n        print(f"  • {t}: {p}")\n    return len(topics)\n\ntotal = compute_lesson_metrics()\nprint(f"Total topics completed: {total}")\n`,
+    sql_query: `# In-Browser SQLite Relational Engine via Python sqlite3\nimport sqlite3\n\nconn = sqlite3.connect(':memory:')\nc = conn.cursor()\nc.execute('''CREATE TABLE engineers (\n    id INTEGER PRIMARY KEY,\n    name TEXT,\n    role TEXT,\n    salary INTEGER,\n    status TEXT\n)''')\n\nc.executemany('INSERT INTO engineers VALUES (?, ?, ?, ?, ?)', [\n    (1, 'Alex Rivera', 'Backend Architect', 165000, 'Active'),\n    (2, 'Morgan Chen', 'Frontend Specialist', 145000, 'Active'),\n    (3, 'Sarah Jenkins', 'Data Platform Lead', 158000, 'Active'),\n    (4, 'Devon Patel', 'Security Engineer', 138000, 'Interviewing'),\n    (5, 'Chloe Zhao', 'Full Stack Developer', 125000, 'Active')\n])\nconn.commit()\n\nprint("== HIGH-EARNING SENIOR ENGINEERS (> $140,000) ==")\nc.execute("SELECT name, role, salary FROM engineers WHERE salary > 140000 ORDER BY salary DESC")\nrows = c.fetchall()\nprint(f"{'NAME':<16} | {'ROLE':<22} | {'SALARY'}")\nprint("-" * 52)\nfor name, role, salary in rows:\n    print(f"{name:<16} | {role:<22} | \${salary:,}")\n`,
+    sql_analytics: `# Relational Aggregations & Analytical Queries\nimport sqlite3\n\nconn = sqlite3.connect(':memory:')\nc = conn.cursor()\nc.execute('CREATE TABLE metrics (department TEXT, completed_projects INT, avg_score REAL)')\nc.executemany('INSERT INTO metrics VALUES (?, ?, ?)', [\n    ('Infrastructure', 14, 94.5),\n    ('Machine Learning', 8, 96.2),\n    ('Application Core', 22, 91.8),\n    ('Security & DevSec', 11, 95.0)\n])\nconn.commit()\n\nprint("== DEPARTMENTAL BENCHMARKS & PRODUCTIVITY ==")\nc.execute('''\n    SELECT department, completed_projects, avg_score\n    FROM metrics\n    ORDER BY avg_score DESC\n''')\nfor dept, count, score in c.fetchall():\n    print(f"📊 {dept:<20} | Projects: {count:<3} | Score: {score}%")\n`,
     algo: `# Binary Search Algorithm Benchmark\n\ndef binary_search(arr, target):\n    left, right = 0, len(arr) - 1\n    steps = 0\n    while left <= right:\n        steps += 1\n        mid = (left + right) // 2\n        if arr[mid] == target:\n            return mid, steps\n        elif arr[mid] < target:\n            left = mid + 1\n        else:\n            right = mid - 1\n    return -1, steps\n\ndata = list(range(0, 1000000, 2))\nidx, steps = binary_search(data, 888888)\nprint(f"Target found at index {idx} in {steps} steps across 500,000 items!")\n`,
     data: `# In-Browser Data Processing & Analytics\n\nrecords = [\n    {"skill": "Python", "category": "Backend", "demand": 95},\n    {"skill": "Docker", "category": "DevOps", "demand": 88},\n    {"skill": "PostgreSQL", "category": "Database", "demand": 91},\n    {"skill": "Redis", "category": "Cache", "demand": 82}\n]\n\navg_demand = sum(r["demand"] for r in records) / len(records)\nprint(f"Skill Count: {len(records)} | Average Demand Score: {avg_demand:.1f}%")\nfor r in sorted(records, key=lambda x: x["demand"], reverse=True):\n    print(f"  🔥 {r['skill']} ({r['category']}): {r['demand']}%")\n`,
     primes: `# Prime Sieve & High-Performance Computation\n\ndef sieve_primes(limit=500):\n    sieve = [True] * (limit + 1)\n    sieve[0] = sieve[1] = False\n    for i in range(2, int(limit**0.5) + 1):\n        if sieve[i]:\n            for j in range(i*i, limit + 1, i):\n                sieve[j] = False\n    return [i for i, is_p in enumerate(sieve) if is_p]\n\nprimes = sieve_primes(500)\nprint(f"Found {len(primes)} prime numbers up to 500.")\nprint(f"Sample primes: {primes[:15]}")\n`,
     empty: `# Write custom Python 3 script here...\n\nprint("Hello from SkillSphere WebAssembly sandbox!")\n`
 };
+
 
 function loadWasmSnippet(val) {
     const editor = document.getElementById('wasmPythonEditor');
@@ -2935,7 +2953,92 @@ function downloadPodcastTranscript() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    if (window.SkillSphereSFX) window.SkillSphereSFX.play('success');
+}
+
+// -------------------------------------------------------------
+// Floating Picture-in-Picture (PiP) Mini Player Controller
+// -------------------------------------------------------------
+function minimizePodcastToPiP() {
+    const modalEl = document.getElementById('lessonPodcastModal');
+    if (modalEl && typeof bootstrap !== 'undefined') {
+        const modal = bootstrap.Modal.getInstance(modalEl);
+        if (modal) modal.hide();
+    }
+    const pip = document.getElementById('podcastPiPDock');
+    if (pip) {
+        pip.classList.remove('d-none');
+        updatePiPContent();
+    }
+    if (window.SkillSphereSFX) window.SkillSphereSFX.play('click');
+}
+
+function restorePodcastFromPiP() {
+    closePodcastPiP();
+    openLessonPodcastModal();
+}
+
+function closePodcastPiP() {
+    const pip = document.getElementById('podcastPiPDock');
+    if (pip) pip.classList.add('d-none');
+}
+
+function updatePiPContent() {
+    if (!podcastDialogue || podcastDialogue.length === 0) return;
+    const line = podcastDialogue[currentPodcastLineIdx] || podcastDialogue[0];
+    const isAlex = (line.speaker || '').toLowerCase() === 'alex';
+
+    const avatar = document.getElementById('pipSpeakerAvatar');
+    const nameEl = document.getElementById('pipSpeakerName');
+    const textEl = document.getElementById('pipCurrentText');
+    const progEl = document.getElementById('pipProgressLabel');
+    const speedEl = document.getElementById('pipSpeedBadge');
+
+    if (avatar) {
+        avatar.textContent = isAlex ? 'AL' : 'MO';
+        avatar.style.background = isAlex ? 'linear-gradient(135deg, #06B6D4, #3B82F6)' : 'linear-gradient(135deg, #8B5CF6, #EC4899)';
+    }
+    if (nameEl) nameEl.textContent = `${line.speaker} (${line.role || (isAlex ? 'Host' : 'Staff Engineer')})`;
+    if (textEl) textEl.textContent = line.text;
+    if (progEl) progEl.textContent = `Line ${currentPodcastLineIdx + 1} of ${podcastDialogue.length}`;
+    if (speedEl) speedEl.textContent = `${podcastPlaybackSpeed}x`;
+    if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 </script>
 
+<!-- Floating Audio Podcast PiP Mini-Player -->
+<div id="podcastPiPDock" class="d-none position-fixed bottom-0 end-0 m-3 p-3 shadow-lg" style="z-index: 1055; background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 16px; backdrop-filter: blur(16px); width: min(340px, 90vw);">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <div class="d-flex align-items-center gap-2">
+            <span class="rounded-circle p-1 bg-info bg-opacity-25 text-info d-flex align-items-center justify-content-center" style="width: 26px; height: 26px;">
+                <i data-lucide="headphones" style="width: 14px; height: 14px;"></i>
+            </span>
+            <span class="text-white small fw-bold text-truncate" style="max-width: 180px;">AI Podcast Deep-Dive</span>
+        </div>
+        <div class="d-flex align-items-center gap-1">
+            <button type="button" class="btn btn-sm btn-link text-muted p-0 me-1" onclick="restorePodcastFromPiP()" title="Expand to Fullscreen">
+                <i data-lucide="maximize-2" style="width: 14px; height: 14px;"></i>
+            </button>
+            <button type="button" class="btn-close btn-close-white btn-sm" onclick="closePodcastPiP()" aria-label="Close"></button>
+        </div>
+    </div>
+    <div class="d-flex align-items-center gap-2 mb-2 p-1.5 rounded bg-dark border border-secondary border-opacity-25">
+        <div id="pipSpeakerAvatar" class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold" style="width: 28px; height: 28px; font-size: 0.72rem; background: linear-gradient(135deg, #06B6D4, #3B82F6);">
+            AL
+        </div>
+        <div class="overflow-hidden flex-grow-1">
+            <div id="pipSpeakerName" class="text-white small fw-bold text-truncate">Alex (Host)</div>
+            <div id="pipCurrentText" class="text-secondary text-truncate" style="font-size: 0.7rem;">Connecting lesson audio...</div>
+        </div>
+        <button id="pipPlayPauseBtn" type="button" class="btn btn-sm btn-primary rounded-circle p-1.5" onclick="togglePodcastPlay()">
+            <i data-lucide="play" id="pipPlayIcon" style="width: 14px; height: 14px;"></i>
+        </button>
+    </div>
+    <div class="d-flex justify-content-between align-items-center text-muted" style="font-size: 0.7rem;">
+        <span id="pipProgressLabel">Line 1 of 6</span>
+        <span class="badge bg-secondary bg-opacity-25 text-info" id="pipSpeedBadge">1.0x</span>
+    </div>
+</div>
+
 {% endblock %}
+

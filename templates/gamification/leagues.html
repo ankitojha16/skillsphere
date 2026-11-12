@@ -275,7 +275,16 @@
                         <i data-lucide="database" style="width: 16px; height: 16px;"></i>
                         <span>Duel: SQL & Databases</span>
                     </button>
+                    <button class="btn btn-outline-warning rounded-pill" data-bs-toggle="modal" data-bs-target="#skillDuelModal" onclick="initializeDuel('web')">
+                        <i data-lucide="shield-check" style="width: 16px; height: 16px;"></i>
+                        <span>Duel: Web Security & Architecture</span>
+                    </button>
+                    <button class="btn btn-outline-light rounded-pill" data-bs-toggle="modal" data-bs-target="#skillDuelModal" onclick="initializeDuel('system')">
+                        <i data-lucide="network" style="width: 16px; height: 16px;"></i>
+                        <span>Duel: System Design & Scaling</span>
+                    </button>
                 </div>
+
             </div>
 
             <!-- Recent Duels -->
@@ -541,22 +550,33 @@ function renderDuelResults(data) {
         titleEl.textContent = 'VICTORY!';
         titleEl.className = 'fw-bold text-success mb-1';
         subEl.textContent = `You dominated ${data.opponent_name} and claimed +${data.xp_awarded} XP!`;
+        if (window.SkillSphereSFX) {
+            window.SkillSphereSFX.play(data.combo_multiplier > 1.0 ? 'combo' : 'victory');
+        }
     } else if (outcome === 'DRAW') {
         emojiEl.textContent = '🤝';
         titleEl.textContent = 'STALEMATE!';
         titleEl.className = 'fw-bold text-warning mb-1';
         subEl.textContent = `A dead tie against ${data.opponent_name}! Both earned +${data.xp_awarded} XP.`;
+        if (window.SkillSphereSFX) window.SkillSphereSFX.play('success');
     } else {
         emojiEl.textContent = '⚡';
         titleEl.textContent = 'DEFEATED';
         titleEl.className = 'fw-bold text-danger mb-1';
         subEl.textContent = `${data.opponent_name} took this round. Earned +${data.xp_awarded} XP for participating.`;
+        if (window.SkillSphereSFX) window.SkillSphereSFX.play('error');
     }
 
     document.getElementById('resultUserScore').textContent = `${data.challenger_score}/5`;
     document.getElementById('resultOppScore').textContent = `${data.opponent_score}/5`;
     document.getElementById('resultOpponentName').textContent = data.opponent_name;
-    document.getElementById('resultXpAwarded').textContent = `+${data.xp_awarded} XP`;
+    
+    let xpText = `+${data.xp_awarded} XP`;
+    if (data.combo_multiplier && data.combo_multiplier > 1.0) {
+        xpText += ` (${data.combo_multiplier}x Combo)`;
+    }
+    document.getElementById('resultXpAwarded').textContent = xpText;
+
 
     const explanationsList = document.getElementById('duelExplanationsList');
     explanationsList.innerHTML = '';

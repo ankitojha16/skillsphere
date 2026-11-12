@@ -77,7 +77,8 @@ class LeagueAndDuelTests(TestCase):
         self.assertTrue(data.get('success'))
         self.assertEqual(len(data.get('questions', [])), 5)
         self.assertEqual(data.get('time_limit'), 60)
-        self.assertIn('DevBot', data.get('opponent_name', ''))
+        self.assertIn(data.get('opponent_name', ''), ['DevBot 3000', 'CodeViper', 'ByteMaster', 'AlgoRival', 'CyberKnight'])
+
 
     def test_submit_duel_api_victory(self):
         import json
@@ -109,9 +110,20 @@ class LeagueAndDuelTests(TestCase):
         data = resp.json()
         self.assertTrue(data.get('success'))
         self.assertEqual(data.get('challenger_score'), 5)
-        # Score is 5/5, so user either wins or draws (since opponent score is 2-4, user always wins with 5)
+        # Score is 5/5: user wins and earns 1.5x streak combo multiplier (30 * 1.5 = 45 XP)
         self.assertEqual(data.get('outcome'), 'VICTORY')
-        self.assertEqual(data.get('xp_awarded'), 30)
+        self.assertEqual(data.get('combo_multiplier'), 1.5)
+        self.assertEqual(data.get('xp_awarded'), 45)
         self.assertTrue(SkillDuel.objects.filter(challenger=self.user).exists())
+
+    def test_start_duel_web_security_topic(self):
+        resp = self.client.get(reverse('gamification:start_duel') + '?topic=web')
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertTrue(data.get('success'))
+        self.assertEqual(data.get('topic'), 'Web Architecture & Security')
+        self.assertEqual(len(data.get('questions', [])), 5)
+        self.assertIn('Clickjacking', data['questions'][0]['question'])
+
 
 

@@ -134,3 +134,22 @@ class JobTrackerTests(TestCase):
         self.assertIn('tips', data)
         self.assertIn('Stripe', data['subject'] + data['message'])
 
+    def test_generate_salary_negotiation_outreach(self):
+        response = self.client.get(
+            reverse('careers:generate_outreach', kwargs={'job_id': self.app.id}) + '?outreach_type=salary_negotiation'
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data.get('outreach_type'), 'salary_negotiation')
+        self.assertIn('compensation', (data.get('subject', '') + data.get('message', '')).lower())
+
+    def test_export_job_applications_csv(self):
+        response = self.client.get(reverse('careers:export_csv'))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'text/csv')
+        self.assertIn('attachment; filename="SkillSphere_Job_Applications_', response['Content-Disposition'])
+        content = response.content.decode('utf-8')
+        self.assertIn('Company,Role Title,Status,Location', content)
+        self.assertIn('Stripe,Backend Systems Engineer,Wishlist', content)
+
+
