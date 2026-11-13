@@ -12,9 +12,13 @@ def invalidate_certificate_pdf_cache(sender, instance, **kwargs):
     Uses transaction.on_commit to ensure DB changes persist before cache purge.
     """
     if instance and instance.certificate_id:
-        cache_key = f"cert_pdf_{instance.certificate_id}"
+        keys_to_clear = [
+            f"cert_pdf_{instance.certificate_id}",
+            f"cert_pdf_v6_{instance.certificate_id}",
+        ]
         def do_delete():
-            cache.delete(cache_key)
+            for k in keys_to_clear:
+                cache.delete(k)
         try:
             transaction.on_commit(do_delete)
         except Exception:

@@ -33,6 +33,9 @@ class Lesson(models.Model):
 
     class Meta:
         ordering = ['lesson_order', 'id']
+        indexes = [
+            models.Index(fields=['course', 'lesson_order'], name='lesson_course_order_idx'),
+        ]
 
     def __str__(self):
         return f"{self.course.title} - #{self.lesson_order} {self.title}"
@@ -83,6 +86,9 @@ class LessonProgress(models.Model):
     class Meta:
         unique_together = ('user', 'lesson')
         verbose_name_plural = 'Lesson Progress Records'
+        indexes = [
+            models.Index(fields=['user', 'is_completed'], name='lesson_prog_user_comp_idx'),
+        ]
 
     def __str__(self):
         status = "Completed" if self.is_completed else "In Progress"

@@ -144,24 +144,22 @@ def course_list_view(request):
         courses = courses.order_by('title')
     else:
         courses = courses.order_by('-created_at')
-    # Check if this is the default unfiltered catalogue for anonymous visitors
-    is_default_catalogue = (
-        not request.user.is_authenticated and
-        not q and
-        (not selected_category or selected_category == 'all') and
-        (not selected_degree or selected_degree.lower() == 'all') and
-        (not selected_difficulty or selected_difficulty == 'all') and
-        sort_by == 'newest'
+    import hashlib
+    cat_ver = cache.get('skillsphere_catalogue_version', 1)
+    q_hash = hashlib.md5(q.lower().encode('utf-8')).hexdigest()[:12] if q else 'none'
+    catalogue_cache_key = (
+        f"skillsphere_cat_list_v{cat_ver}_"
+        f"{selected_category or 'all'}_"
+        f"{selected_degree or 'all'}_"
+        f"{selected_difficulty or 'all'}_"
+        f"{sort_by}_{q_hash}"
     )
-    if is_default_catalogue:
-        cached_catalogue = cache.get('skillsphere_course_catalogue_base')
-        if cached_catalogue is not None:
-            courses_list = cached_catalogue
-        else:
-            courses_list = list(courses)
-            cache.set('skillsphere_course_catalogue_base', courses_list, 900)
+    cached_courses = cache.get(catalogue_cache_key)
+    if cached_courses is not None:
+        courses_list = cached_courses
     else:
         courses_list = list(courses)
+        cache.set(catalogue_cache_key, courses_list, 600)  # 10 minutes TTL
 
     total_courses_count = len(courses_list)
 

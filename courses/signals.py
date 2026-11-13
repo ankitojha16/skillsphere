@@ -10,6 +10,15 @@ CACHE_KEYS_TO_CLEAR = [
     'skillsphere_course_catalogue_base',
 ]
 
+def bump_catalogue_cache_version():
+    """Bumps the global catalogue cache version to invalidate all parameterized catalogue queries in O(1)."""
+    try:
+        curr = cache.get('skillsphere_catalogue_version', 1)
+        cache.set('skillsphere_catalogue_version', curr + 1, 86400 * 7)
+    except Exception:
+        import time
+        cache.set('skillsphere_catalogue_version', int(time.time()), 86400 * 7)
+
 def on_commit_delete(*keys):
     """
     Schedules cache deletion strictly after the current database transaction commits.
@@ -20,6 +29,7 @@ def on_commit_delete(*keys):
         return
 
     def do_delete():
+        bump_catalogue_cache_version()
         for k in keys_to_delete:
             cache.delete(k)
 

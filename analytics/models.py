@@ -1,3 +1,4 @@
+import uuid
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
@@ -107,3 +108,42 @@ class BetaFeedback(models.Model):
 
     def __str__(self):
         return f"{self.get_category_display()} #{self.id} ({self.status})"
+
+
+class DurableTaskJob(models.Model):
+    """
+    Durable, fault-tolerant background task model for enterprise scaling.
+    Guarantees persistent queueing across process restarts with exponential retries,
+    idempotency enforcement, timeouts, and dead-letter monitoring.
+    """
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('running', 'Running'),
+        ('completed', 'Completed'),
+        ('failed', 'Failed'),
+        ('dead_letter', 'Dead Letter'),
+    ]
+
+    task_id = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
+    task_name = models.CharField(max_length=120, db_index=True)
+    payload = models.JSONField(default=dict, blank=True)
+    idempotency_key = models.CharField(max_length=128, blank=True, db_index=True)
+    status = models.CharField(max_length=24, choices=STATUS_CHOICES, default='pending', db_index=True)
+    retries = models.PositiveSmallIntegerField(default=0)
+    max_retries = models.PositiveSmallIntegerField(default=3)
+    timeout_seconds = models.PositiveIntegerField(default=60)
+    error_message = models.TextField(blank=True, default='')
+    worker_id = models.CharField(max_length=80, blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    started_at = models.DateTimeField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['created_at']
+        indexes = [
+            models.Index(fields=['status', 'created_at']),
+            models.Index(fields=['task_name', 'status']),
+        ]
+
+    def __str__(self):
+        return f"Task {self.task_name} ({self.status}) [{self.task_id}]"

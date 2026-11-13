@@ -53,6 +53,10 @@ class Course(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['is_published', '-created_at'], name='course_pub_created_idx'),
+            models.Index(fields=['category', 'is_published'], name='course_cat_pub_idx'),
+        ]
 
     def __str__(self):
         return self.title
@@ -490,6 +494,9 @@ class CourseCompletion(models.Model):
 
     class Meta:
         unique_together = ('user', 'course')
+        indexes = [
+            models.Index(fields=['user', 'is_completed'], name='course_comp_user_status_idx'),
+        ]
 
     def __str__(self):
         return f"{self.user.username} - {self.course.title} (Progress: {self.learning_progress}%, Completed: {self.is_completed})"
@@ -504,6 +511,9 @@ class Enrollment(models.Model):
     class Meta:
         unique_together = ('user', 'course')
         ordering = ['-enrolled_at']
+        indexes = [
+            models.Index(fields=['user', '-enrolled_at'], name='enrollment_user_date_idx'),
+        ]
 
     def __str__(self):
         return f"{self.user.username} enrolled in {self.course.title}"

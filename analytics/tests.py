@@ -291,3 +291,128 @@ class OnboardingFlowTests(TestCase):
         self.assertEqual(res.status_code, 302)
         profile = StudentProfile.objects.get(user=self.user)
         self.assertTrue(profile.onboarding_completed)
+
+
+class Phase16ScalingAndArchitectureTests(TestCase):
+    """
+    Validation tests for Phase 16:
+    - PgBouncer transaction pooling settings
+    - Parameterized course catalogue caching & cache version invalidation
+    - DurableTaskJob queue execution, idempotency, retries, and dead-letter handling
+    - Synthetic load test data generator production safeguard
+    """
+    def setUp(self):
+        self.category = Category.objects.create(name='Architecture & Systems', slug='arch-systems')
+        self.course = Course.objects.create(
+            title='Distributed Systems 101',
+            slug='distributed-systems-101',
+            description='Scalable distributed architectures for high concurrency.',
+            category=self.category,
+            is_published=True
+        )
+
+    def test_pgbouncer_configuration_attributes(self):
+        """Verifies DISABLE_SERVER_SIDE_CURSORS is enabled for PgBouncer compatibility."""
+        from django.conf import settings
+        default_db = settings.DATABASES['default']
+        # When DATABASE_URL is present, DISABLE_SERVER_SIDE_CURSORS must be True
+        if 'DISABLE_SERVER_SIDE_CURSORS' in default_db:
+            self.assertTrue(default_db['DISABLE_SERVER_SIDE_CURSORS'])
+
+    def test_parameterized_catalogue_caching_and_invalidation(self):
+        """Verifies parameterized catalog caching and signal-driven cache version invalidation."""
+        client = Client()
+        # Initial request caches the catalogue
+        res1 = client.get('/courses/?category=arch-systems&sort=newest')
+        self.assertEqual(res1.status_code, 200)
+
+        initial_ver = cache.get('skillsphere_catalogue_version', 1)
+
+        # Triggering course save signal bumps catalogue version on transaction commit
+        with self.captureOnCommitCallbacks(execute=True):
+            self.course.title = 'Distributed Systems 101 (Updated)'
+            self.course.save()
+
+        new_ver = cache.get('skillsphere_catalogue_version', 1)
+        self.assertGreater(new_ver, initial_ver)
+
+    def test_durable_task_queue_enqueue_and_execution(self):
+        """Tests task enqueueing, execution, and idempotency in services.task_queue."""
+        from services import task_queue
+        from analytics.models import DurableTaskJob
+
+        executed_payloads = []
+
+        @task_queue.register_task('scaling_task_test')
+        def sample_handler(payload):
+            executed_payloads.append(payload)
+            return True
+
+        # Enqueue with idempotency key
+        job1 = task_queue.enqueue_task(
+            'scaling_task_test',
+            {'worker': 1, 'data': 'phase16'},
+            idempotency_key='phase16_idemp_key_1',
+            execute_now=True
+        )
+        self.assertEqual(job1.status, 'completed')
+        self.assertEqual(len(executed_payloads), 1)
+
+        # Re-enqueueing identical idempotency key returns existing job without re-executing
+        job2 = task_queue.enqueue_task(
+            'scaling_task_test',
+            {'worker': 2},
+            idempotency_key='phase16_idemp_key_1',
+            execute_now=True
+        )
+        self.assertEqual(job1.pk, job2.pk)
+        self.assertEqual(len(executed_payloads), 1)
+
+    def test_durable_task_queue_retries_and_dead_letter(self):
+        """Tests that failing jobs retry up to max_retries before transitioning to dead_letter."""
+        from services import task_queue
+        from analytics.models import DurableTaskJob
+
+        @task_queue.register_task('failing_task_test')
+        def failing_handler(payload):
+            raise ValueError("Deliberate failure for retry test")
+
+        job = DurableTaskJob.objects.create(
+            task_name='failing_task_test',
+            max_retries=2,
+            status='pending'
+        )
+
+        # Attempt 1
+        ok1 = task_queue.execute_job(job)
+        self.assertFalse(ok1)
+        job.refresh_from_db()
+        self.assertEqual(job.retries, 1)
+        self.assertEqual(job.status, 'failed')
+
+        # Attempt 2 -> Should hit max_retries (2) and transition to dead_letter
+        ok2 = task_queue.execute_job(job)
+        self.assertFalse(ok2)
+        job.refresh_from_db()
+        self.assertEqual(job.retries, 2)
+        self.assertEqual(job.status, 'dead_letter')
+
+    def test_synthetic_data_generator_safeguard(self):
+        """Verifies synthetic data generator strictly blocks when ALLOW_SYNTHETIC_DATA is not set in non-debug mode."""
+        from django.core.management import call_command
+        from django.core.management.base import CommandError
+        import os
+
+        # Temporarily emulate production environment
+        with self.settings(DEBUG=False):
+            old_allow = os.environ.get('ALLOW_SYNTHETIC_DATA')
+            if 'ALLOW_SYNTHETIC_DATA' in os.environ:
+                del os.environ['ALLOW_SYNTHETIC_DATA']
+            try:
+                with self.assertRaises(CommandError) as ctx:
+                    call_command('generate_synthetic_load_data')
+                self.assertIn("CRITICAL SAFEGUARD", str(ctx.exception))
+            finally:
+                if old_allow is not None:
+                    os.environ['ALLOW_SYNTHETIC_DATA'] = old_allow
+

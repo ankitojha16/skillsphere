@@ -139,13 +139,21 @@ if 'test' in sys.argv:
     }
 elif os.getenv('DATABASE_URL'):
     import dj_database_url
-    DATABASES = {
-        'default': dj_database_url.config(
-            default=os.getenv('DATABASE_URL'),
-            conn_max_age=int(os.getenv('CONN_MAX_AGE', '60')),
-            conn_health_checks=True,
-        )
-    }
+    default_db = dj_database_url.config(
+        default=os.getenv('DATABASE_URL'),
+        conn_max_age=int(os.getenv('CONN_MAX_AGE', '0' if IS_VERCEL else '60')),
+        conn_health_checks=True,
+    )
+    # In PgBouncer transaction pooling (port 6543), server-side cursors must be disabled in Django
+    default_db['DISABLE_SERVER_SIDE_CURSORS'] = True
+    default_db.setdefault('OPTIONS', {})
+    default_db['OPTIONS'].update({
+        # Fast failure on database network drop (libpq parameter)
+        'connect_timeout': int(os.getenv('DB_CONNECT_TIMEOUT', '5')),
+        # Hard 10-second statement timeout to protect the connection pool from runaway queries
+        'options': f"-c statement_timeout={os.getenv('DB_STATEMENT_TIMEOUT', '10000')}",
+    })
+    DATABASES = {'default': default_db}
 elif not USE_SQLITE_FALLBACK:
     DATABASES = {
         'default': {
@@ -212,6 +220,9 @@ else:
             }
         }
     }
+
+# Session engine: Cached database backend eliminates redundant DB hits on authenticated requests
+SESSION_ENGINE = 'django.contrib.sessions.backends.cached_db'
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [

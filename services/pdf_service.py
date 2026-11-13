@@ -148,7 +148,8 @@ class PDFService:
         - Watermark: Pale ice blue (#DCEBFA)
         - Gold accent: Soft gold (#C7A45A)
         """
-        cache_key = f"cert_pdf_spec_v5_{getattr(certificate, 'certificate_id', certificate.pk)}"
+        cert_id = getattr(certificate, 'certificate_id', certificate.pk)
+        cache_key = f"cert_pdf_{cert_id}"
         cached = cache.get(cache_key)
         if cached:
             return cached
