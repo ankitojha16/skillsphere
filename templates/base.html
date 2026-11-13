@@ -108,20 +108,21 @@
             min-width: 0 !important;
             box-sizing: border-box !important;
         }
-        .text-muted, [data-bs-theme="dark"] .text-muted {
-            color: #FFFFFF !important;
-            --bs-text-opacity: 1 !important;
-        }
-        .text-secondary, [data-bs-theme="dark"] .text-secondary {
-            color: #FFFFFF !important;
-            --bs-text-opacity: 1 !important;
-        }
-        .text-body-secondary, [data-bs-theme="dark"] .text-body-secondary {
-            color: #FFFFFF !important;
-            --bs-text-opacity: 1 !important;
-        }
+        /* Four-Tier High-Contrast Typography System (WCAG AAA) */
         .text-light, [data-bs-theme="dark"] .text-light, .text-white, [data-bs-theme="dark"] .text-white {
             color: #FFFFFF !important;
+        }
+        .text-main, [data-bs-theme="dark"] .text-main {
+            color: #F1F5F9 !important;
+        }
+        .text-secondary, [data-bs-theme="dark"] .text-secondary {
+            color: #CBD5E1 !important;
+            --bs-text-opacity: 1 !important;
+        }
+        .text-muted, [data-bs-theme="dark"] .text-muted,
+        .text-body-secondary, [data-bs-theme="dark"] .text-body-secondary {
+            color: #94A3B8 !important;
+            --bs-text-opacity: 1 !important;
         }
         .small, small {
             color: inherit;

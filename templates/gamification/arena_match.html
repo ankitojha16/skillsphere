@@ -11,6 +11,32 @@
         height: calc(100vh - 130px);
         min-height: 650px;
     }
+    @media (max-width: 1199.98px) {
+        .match-container {
+            height: auto !important;
+            min-height: 0 !important;
+        }
+        .combat-panel {
+            min-height: 480px !important;
+        }
+        .mobile-arena-hidden {
+            display: none !important;
+        }
+        .seg-arena-btn.active {
+            background: #EF4444 !important;
+            color: #FFFFFF !important;
+            box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
+        }
+        .seg-arena-btn:not(.active) {
+            background: transparent !important;
+            color: #94A3B8 !important;
+        }
+    }
+    @media (min-width: 1200px) {
+        .mobile-arena-hidden {
+            display: flex !important;
+        }
+    }
     .combat-panel {
         background: #0B0F19;
         border: 1px solid rgba(255, 255, 255, 0.1);
@@ -114,10 +140,34 @@
         </div>
     </div>
 
+    <!-- Mobile Segmented Battlefield Navigation (< 1200px) (Phase 2) -->
+    <div class="d-xl-none mb-2" id="arenaMobileNav">
+        <div class="segmented-control-container p-1 rounded-pill border border-secondary border-opacity-25 d-flex gap-1" style="background: #111827 !important;">
+            <button type="button" class="btn btn-sm flex-grow-1 rounded-pill active fw-semibold seg-arena-btn" id="btnArenaProb" onclick="switchArenaMobileTab('challenge')">
+                <span class="d-flex align-items-center justify-content-center gap-1.5 py-1">
+                    <i data-lucide="book-open" style="width: 14px; height: 14px;"></i>
+                    <span>Challenge & Timer</span>
+                </span>
+            </button>
+            <button type="button" class="btn btn-sm flex-grow-1 rounded-pill text-secondary fw-semibold seg-arena-btn" id="btnArenaEditor" onclick="switchArenaMobileTab('editor')">
+                <span class="d-flex align-items-center justify-content-center gap-1.5 py-1">
+                    <i data-lucide="swords" style="width: 14px; height: 14px;"></i>
+                    <span>Combat Editor</span>
+                </span>
+            </button>
+            <button type="button" class="btn btn-sm flex-grow-1 rounded-pill text-secondary fw-semibold seg-arena-btn" id="btnArenaResults" onclick="switchArenaMobileTab('results')">
+                <span class="d-flex align-items-center justify-content-center gap-1.5 py-1">
+                    <i data-lucide="check-circle" style="width: 14px; height: 14px;"></i>
+                    <span>Results</span>
+                </span>
+            </button>
+        </div>
+    </div>
+
     <!-- Main Split Battlefield -->
     <div class="row g-3 match-container">
         <!-- Left: Problem Description -->
-        <div class="col-lg-5 col-md-6 h-100 d-flex flex-column">
+        <div class="col-xl-5 col-12 h-100 d-flex flex-column" id="arenaLeftPanel">
             <div class="combat-panel h-100 p-3 overflow-y-auto">
                 <div class="d-flex justify-content-between align-items-start mb-2">
                     <h5 class="fw-bold text-white mb-0">{{ challenge.title }}</h5>
@@ -136,7 +186,7 @@
         </div>
 
         <!-- Right: Code Editor & Combat Controls -->
-        <div class="col-lg-7 col-md-6 h-100 d-flex flex-column">
+        <div class="col-xl-7 col-12 h-100 d-flex flex-column" id="arenaRightPanel">
             <div class="combat-panel h-100">
                 <!-- Editor Top Header -->
                 <div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom border-secondary border-opacity-25" style="background: #111624;">
@@ -154,12 +204,14 @@
                     </div>
                 </div>
 
-                <!-- Code Editor Area -->
-                <textarea id="arenaEditor" class="code-editor-arena" spellcheck="false">{{ challenge.python_starter }}</textarea>
+                <!-- Code Editor & CodeMirror 6 Container (Phase 1) -->
+                <div id="arenaCm6Container" class="flex-grow-1 position-relative" style="min-height: 380px; height: 100%; overflow: hidden;">
+                    <textarea id="arenaEditor" class="code-editor-arena" spellcheck="false">{{ challenge.python_starter }}</textarea>
+                </div>
 
                 <!-- Console Output Tray -->
-                <div class="p-2 border-top border-secondary border-opacity-25 font-monospace small text-secondary" id="arenaConsole" style="background: #090D15; max-height: 100px; overflow-y: auto;">
-                    Ready for battle. Press "Run Tests" to evaluate your solution.
+                <div class="p-2 border-top border-secondary border-opacity-25 font-monospace small text-secondary" id="arenaConsole" style="background: #090D15; max-height: 120px; overflow-y: auto;">
+                    Ready for battle. Press "Run Tests" (or Cmd/Ctrl+Enter) to evaluate your solution.
                 </div>
             </div>
         </div>
@@ -199,6 +251,8 @@
 
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js"></script>
+<!-- SkillSphere CodeMirror 6 Universal Engine (Phase 1) -->
+<script src="{% static 'js/cm6-editor.js' %}"></script>
 
 <script>
     const matchId = {{ match.id }};
@@ -212,6 +266,64 @@
     let telemetryInterval = null;
     let pyodideInstance = null;
     let matchEnded = false;
+
+    // Phase 1: Initialize CodeMirror 6 Arena Combat Editor
+    let arenaCM = null;
+    (async function initArenaCM6() {
+        if (window.SkillSphereCodeEditor) {
+            arenaCM = await window.SkillSphereCodeEditor.create({
+                target: 'arenaEditor',
+                container: 'arenaCm6Container',
+                language: 'python',
+                onRunCode: () => {
+                    const btn = document.getElementById('runTestsBtn');
+                    if (btn && !btn.disabled) btn.click();
+                }
+            });
+            window.arenaCM = arenaCM;
+        }
+    })();
+
+    // Phase 2: Responsive Segmented Navigation for 1v1 Arena (< 1200px)
+    // Preserves active match timer and telemetry seamlessly
+    window.switchArenaMobileTab = function(tab) {
+        if (window.innerWidth >= 1200) return;
+        const btnProb = document.getElementById('btnArenaProb');
+        const btnEdit = document.getElementById('btnArenaEditor');
+        const btnRes = document.getElementById('btnArenaResults');
+
+        const leftPanel = document.getElementById('arenaLeftPanel');
+        const rightPanel = document.getElementById('arenaRightPanel');
+        const cmContainer = document.getElementById('arenaCm6Container');
+        const consoleEl = document.getElementById('arenaConsole');
+
+        [btnProb, btnEdit, btnRes].forEach(b => {
+            if (b) {
+                b.classList.remove('active');
+                b.classList.add('text-secondary');
+            }
+        });
+
+        if (tab === 'challenge') {
+            if (btnProb) { btnProb.classList.add('active'); btnProb.classList.remove('text-secondary'); }
+            if (leftPanel) leftPanel.classList.remove('mobile-arena-hidden');
+            if (rightPanel) rightPanel.classList.add('mobile-arena-hidden');
+        } else if (tab === 'editor') {
+            if (btnEdit) { btnEdit.classList.add('active'); btnEdit.classList.remove('text-secondary'); }
+            if (leftPanel) leftPanel.classList.add('mobile-arena-hidden');
+            if (rightPanel) rightPanel.classList.remove('mobile-arena-hidden');
+            if (cmContainer) cmContainer.classList.remove('mobile-arena-hidden');
+            if (arenaCM) arenaCM.focus();
+        } else if (tab === 'results') {
+            if (btnRes) { btnRes.classList.add('active'); btnRes.classList.remove('text-secondary'); }
+            if (leftPanel) leftPanel.classList.add('mobile-arena-hidden');
+            if (rightPanel) rightPanel.classList.remove('mobile-arena-hidden');
+            if (consoleEl) {
+                consoleEl.style.maxHeight = '280px';
+                consoleEl.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+    };
 
     // Clock Countdown
     clockInterval = setInterval(() => {
@@ -300,7 +412,9 @@ except Exception as e:
         btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Testing...`;
 
         try {
-            const code = document.getElementById('arenaEditor').value;
+            const code = (window.arenaCM && typeof window.arenaCM.getValue === 'function')
+                ? window.arenaCM.getValue()
+                : document.getElementById('arenaEditor').value;
             const passed = await testSolution(code);
             const pct = Math.round((passed / totalCases) * 100);
             
@@ -324,12 +438,17 @@ except Exception as e:
             btn.disabled = false;
             btn.innerHTML = `<i data-lucide="play" style="width: 14px; height: 14px;"></i> Run Tests`;
             lucide.createIcons();
+            if (window.innerWidth < 1200) {
+                switchArenaMobileTab('results');
+            }
         }
     });
 
     // Buzzer Submit Button
     document.getElementById('buzzerSubmitBtn').addEventListener('click', async () => {
-        const code = document.getElementById('arenaEditor').value;
+        const code = (window.arenaCM && typeof window.arenaCM.getValue === 'function')
+            ? window.arenaCM.getValue()
+            : document.getElementById('arenaEditor').value;
         try {
             const passed = await testSolution(code);
             triggerMatchConclusion(passed);

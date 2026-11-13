@@ -12,7 +12,7 @@
                 <span class="badge bg-primary px-3 py-1 text-white fw-bold rounded-pill text-uppercase font-monospace" style="letter-spacing: 0.05em; font-size: 0.75rem;">
                     <i data-lucide="award" class="d-inline-block align-middle me-1" style="width: 14px; height: 14px;"></i> Verified Talent Pool
                 </span>
-                <span class="badge bg-dark border border-secondary text-secondary font-monospace">{{ total_candidates }} Candidates</span>
+                <span class="badge bg-dark border border-secondary text-secondary font-monospace" id="totalCandidatesBadge">{{ total_candidates }} Candidates</span>
             </div>
             <h1 class="h3 fw-bold text-white mb-1">Recruiter Talent Portal &amp; Proof-of-Work Search</h1>
             <p class="text-secondary mb-0">Search and scout top engineers verified by code judge pass-rates, FIDE Elo blitz ratings, and Harvard ATS benchmarks.</p>
@@ -31,7 +31,7 @@
 
     <!-- Filter Card -->
     <div class="custom-card p-3 mb-4" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.1);">
-        <form method="get" class="row g-3 align-items-end">
+        <form method="get" id="talentFilterForm" class="row g-3 align-items-end">
             <div class="col-md-3">
                 <label class="form-label text-secondary small fw-semibold">Candidate Search</label>
                 <div class="input-group">
@@ -83,120 +83,122 @@
         </form>
     </div>
 
-    <!-- Candidate Grid -->
-    {% if candidate_cards %}
-    <div class="row g-4">
-        {% for card in candidate_cards %}
-        <div class="col-md-6 col-xl-4">
-            <div class="custom-card h-100 p-4 d-flex flex-column justify-content-between position-relative" style="background: rgba(17, 24, 39, 0.85); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px; transition: transform 0.2s, box-shadow 0.2s;">
-                <!-- Card Header -->
-                <div>
-                    <div class="d-flex align-items-start justify-content-between gap-3 mb-3">
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold text-white fs-5" style="width: 52px; height: 52px; background: linear-gradient(135deg, #4f46e5, #06b6d4); box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);">
-                                {{ card.user.username|make_list|first|upper }}
+    <!-- Candidate Grid Container (Phase 5) -->
+    <div id="talentCardsContainer">
+        {% if candidate_cards %}
+        <div class="row g-4" id="talentCardsGrid">
+            {% for card in candidate_cards %}
+            <div class="col-md-6 col-xl-4 candidate-card-col">
+                <div class="custom-card h-100 p-4 d-flex flex-column justify-content-between position-relative" style="background: rgba(17, 24, 39, 0.85); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px; transition: transform 0.2s, box-shadow 0.2s;">
+                    <!-- Card Header -->
+                    <div>
+                        <div class="d-flex align-items-start justify-content-between gap-3 mb-3">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold text-white fs-5" style="width: 52px; height: 52px; background: linear-gradient(135deg, #4f46e5, #06b6d4); box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);">
+                                    {{ card.user.username|make_list|first|upper }}
+                                </div>
+                                <div>
+                                    <h2 class="h5 fw-bold text-white mb-0">
+                                        <a href="{% url 'opportunities:candidate_dossier' card.user.username %}" class="text-white text-decoration-none hover-primary">
+                                            {% if card.user.get_full_name %}{{ card.user.get_full_name }}{% else %}@{{ card.user.username }}{% endif %}
+                                        </a>
+                                    </h2>
+                                    <p class="text-secondary small mb-0 font-monospace">@{{ card.user.username }}</p>
+                                </div>
                             </div>
-                            <div>
-                                <h2 class="h5 fw-bold text-white mb-0">
-                                    <a href="{% url 'opportunities:candidate_dossier' card.user.username %}" class="text-white text-decoration-none hover-primary">
-                                        {% if card.user.get_full_name %}{{ card.user.get_full_name }}{% else %}@{{ card.user.username }}{% endif %}
-                                    </a>
-                                </h2>
-                                <p class="text-secondary small mb-0 font-monospace">@{{ card.user.username }}</p>
+                            <button type="button" class="btn btn-sm btn-outline-secondary rounded-circle shortlist-toggle-btn {% if card.is_shortlisted %}border-warning text-warning{% endif %}" data-username="{{ card.user.username }}" title="Toggle Shortlist" style="width: 36px; height: 36px; padding: 0; display: flex; align-items: center; justify-content: center;">
+                                <i data-lucide="bookmark" style="width: 16px; height: 16px;"></i>
+                            </button>
+                        </div>
+
+                        <!-- Career Tagline -->
+                        <p class="text-light small mb-3">
+                            {% if card.profile and card.profile.career_goal %}
+                                <span class="text-white fw-medium">{{ card.profile.career_goal }}</span>
+                            {% else %}
+                                <span class="text-secondary fst-italic">Software Engineer candidate</span>
+                            {% endif %}
+                        </p>
+
+                        <!-- Metrics Grid -->
+                        <div class="row g-2 mb-3">
+                            <div class="col-4">
+                                <div class="p-2 rounded bg-dark border border-secondary text-center">
+                                    <div class="text-secondary" style="font-size: 0.7rem; text-transform: uppercase;">Elo Rating</div>
+                                    <div class="fw-bold text-warning font-monospace" style="font-size: 1rem;">
+                                        {% if card.arena_rating %}{{ card.arena_rating.elo }}{% else %}1200{% endif %}
+                                    </div>
+                                    <span class="badge bg-secondary" style="font-size: 0.65rem;">
+                                        {% if card.arena_rating %}{{ card.arena_rating.tier }}{% else %}Bronze{% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="p-2 rounded bg-dark border border-secondary text-center">
+                                    <div class="text-secondary" style="font-size: 0.7rem; text-transform: uppercase;">Judge Solved</div>
+                                    <div class="fw-bold text-success font-monospace" style="font-size: 1rem;">
+                                        {{ card.challenges_solved }}
+                                    </div>
+                                    <span class="badge bg-success-subtle text-success border border-success" style="font-size: 0.65rem;">
+                                        Verified
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="p-2 rounded bg-dark border border-secondary text-center">
+                                    <div class="text-secondary" style="font-size: 0.7rem; text-transform: uppercase;">ATS Score</div>
+                                    <div class="fw-bold text-info font-monospace" style="font-size: 1rem;">
+                                        {% if card.resume and card.resume.ats_score %}{{ card.resume.ats_score }}%{% else %}N/A{% endif %}
+                                    </div>
+                                    <span class="badge bg-info-subtle text-info border border-info" style="font-size: 0.65rem;">
+                                        Harvard
+                                    </span>
+                                </div>
                             </div>
                         </div>
-                        <button type="button" class="btn btn-sm btn-outline-secondary rounded-circle shortlist-toggle-btn {% if card.is_shortlisted %}border-warning text-warning{% endif %}" data-username="{{ card.user.username }}" title="Toggle Shortlist" style="width: 36px; height: 36px; padding: 0; display: flex; align-items: center; justify-content: center;">
-                            <i data-lucide="bookmark" style="width: 16px; height: 16px;"></i>
-                        </button>
+
+                        <!-- Proof of Work Badges -->
+                        <div class="d-flex flex-wrap gap-1 mb-3">
+                            {% if card.certificates_count > 0 %}
+                            <span class="badge bg-primary-subtle text-primary border border-primary small">
+                                <i data-lucide="shield-check" class="d-inline-block align-middle me-1" style="width: 12px; height: 12px;"></i>{{ card.certificates_count }} Certificate{{ card.certificates_count|pluralize }}
+                            </span>
+                            {% endif %}
+                            {% if card.arena_rating and card.arena_rating.matches_won > 0 %}
+                            <span class="badge bg-warning-subtle text-warning border border-warning small">
+                                <i data-lucide="zap" class="d-inline-block align-middle me-1" style="width: 12px; height: 12px;"></i>{{ card.arena_rating.matches_won }} Duel Victories
+                            </span>
+                            {% endif %}
+                            {% if card.resume and card.resume.skills %}
+                            <span class="badge bg-dark text-white border border-secondary small">
+                                <i data-lucide="code" class="d-inline-block align-middle me-1" style="width: 12px; height: 12px;"></i>Skills on Resume
+                            </span>
+                            {% endif %}
+                        </div>
                     </div>
 
-                    <!-- Career Tagline -->
-                    <p class="text-light small mb-3">
-                        {% if card.profile and card.profile.career_goal %}
-                            <span class="text-white fw-medium">{{ card.profile.career_goal }}</span>
-                        {% else %}
-                            <span class="text-secondary fst-italic">Software Engineer candidate</span>
-                        {% endif %}
-                    </p>
-
-                    <!-- Metrics Grid -->
-                    <div class="row g-2 mb-3">
-                        <div class="col-4">
-                            <div class="p-2 rounded bg-dark border border-secondary text-center">
-                                <div class="text-secondary" style="font-size: 0.7rem; text-transform: uppercase;">Elo Rating</div>
-                                <div class="fw-bold text-warning font-monospace" style="font-size: 1rem;">
-                                    {% if card.arena_rating %}{{ card.arena_rating.elo }}{% else %}1200{% endif %}
-                                </div>
-                                <span class="badge bg-secondary" style="font-size: 0.65rem;">
-                                    {% if card.arena_rating %}{{ card.arena_rating.tier }}{% else %}Bronze{% endif %}
-                                </span>
-                            </div>
-                        </div>
-                        <div class="col-4">
-                            <div class="p-2 rounded bg-dark border border-secondary text-center">
-                                <div class="text-secondary" style="font-size: 0.7rem; text-transform: uppercase;">Judge Solved</div>
-                                <div class="fw-bold text-success font-monospace" style="font-size: 1rem;">
-                                    {{ card.challenges_solved }}
-                                </div>
-                                <span class="badge bg-success-subtle text-success border border-success" style="font-size: 0.65rem;">
-                                    Verified
-                                </span>
-                            </div>
-                        </div>
-                        <div class="col-4">
-                            <div class="p-2 rounded bg-dark border border-secondary text-center">
-                                <div class="text-secondary" style="font-size: 0.7rem; text-transform: uppercase;">ATS Score</div>
-                                <div class="fw-bold text-info font-monospace" style="font-size: 1rem;">
-                                    {% if card.resume and card.resume.ats_score %}{{ card.resume.ats_score }}%{% else %}N/A{% endif %}
-                                </div>
-                                <span class="badge bg-info-subtle text-info border border-info" style="font-size: 0.65rem;">
-                                    Harvard
-                                </span>
-                            </div>
-                        </div>
+                    <!-- Footer Actions -->
+                    <div class="pt-3 border-top border-secondary d-flex gap-2">
+                        <a href="{% url 'opportunities:candidate_dossier' card.user.username %}" class="btn btn-sm btn-primary-custom flex-grow-1 d-flex align-items-center justify-content-center gap-1">
+                            <i data-lucide="user" style="width: 14px; height: 14px;"></i> View Full Dossier
+                        </a>
                     </div>
-
-                    <!-- Proof of Work Badges -->
-                    <div class="d-flex flex-wrap gap-1 mb-3">
-                        {% if card.certificates_count > 0 %}
-                        <span class="badge bg-primary-subtle text-primary border border-primary small">
-                            <i data-lucide="shield-check" class="d-inline-block align-middle me-1" style="width: 12px; height: 12px;"></i>{{ card.certificates_count }} Certificate{{ card.certificates_count|pluralize }}
-                        </span>
-                        {% endif %}
-                        {% if card.arena_rating and card.arena_rating.matches_won > 0 %}
-                        <span class="badge bg-warning-subtle text-warning border border-warning small">
-                            <i data-lucide="zap" class="d-inline-block align-middle me-1" style="width: 12px; height: 12px;"></i>{{ card.arena_rating.matches_won }} Duel Victories
-                        </span>
-                        {% endif %}
-                        {% if card.resume and card.resume.skills %}
-                        <span class="badge bg-dark text-white border border-secondary small">
-                            <i data-lucide="code" class="d-inline-block align-middle me-1" style="width: 12px; height: 12px;"></i>Skills on Resume
-                        </span>
-                        {% endif %}
-                    </div>
-                </div>
-
-                <!-- Footer Actions -->
-                <div class="pt-3 border-top border-secondary d-flex gap-2">
-                    <a href="{% url 'opportunities:candidate_dossier' card.user.username %}" class="btn btn-sm btn-primary-custom flex-grow-1 d-flex align-items-center justify-content-center gap-1">
-                        <i data-lucide="user" style="width: 14px; height: 14px;"></i> View Full Dossier
-                    </a>
                 </div>
             </div>
+            {% endfor %}
         </div>
-        {% endfor %}
+        {% else %}
+        <div class="custom-card p-5 text-center" style="background: rgba(17, 24, 39, 0.6); border: 1px dashed rgba(255, 255, 255, 0.15);">
+            <i data-lucide="users" class="text-secondary mx-auto mb-3" style="width: 48px; height: 48px;"></i>
+            <h3 class="h5 fw-bold text-white mb-2">No Candidates Match Your Filter Criteria</h3>
+            <p class="text-secondary mb-3">Try lowering minimum Elo, lowering ATS threshold, or resetting search filters.</p>
+            <a href="{% url 'opportunities:talent_portal' %}" class="btn btn-outline-secondary">Reset Search Filters</a>
+        </div>
+        {% endif %}
     </div>
-    {% else %}
-    <div class="custom-card p-5 text-center" style="background: rgba(17, 24, 39, 0.6); border: 1px dashed rgba(255, 255, 255, 0.15);">
-        <i data-lucide="users" class="text-secondary mx-auto mb-3" style="width: 48px; height: 48px;"></i>
-        <h3 class="h5 fw-bold text-white mb-2">No Candidates Match Your Filter Criteria</h3>
-        <p class="text-secondary mb-3">Try lowering minimum Elo, lowering ATS threshold, or resetting search filters.</p>
-        <a href="{% url 'opportunities:talent_portal' %}" class="btn btn-outline-secondary">Reset Search Filters</a>
-    </div>
-    {% endif %}
 </div>
 
-<!-- Shortlist Toggle Script -->
+<!-- Shortlist & Debounced Skeleton Search Script (Phase 5) -->
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     lucide.createIcons();
@@ -216,37 +218,155 @@ document.addEventListener('DOMContentLoaded', () => {
         return cookieValue;
     };
 
-    document.querySelectorAll('.shortlist-toggle-btn').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-            e.preventDefault();
-            const username = btn.dataset.username;
-            try {
-                const res = await fetch(`/opportunities/talent/candidate/${username}/shortlist/`, {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRFToken': getCsrfToken(),
-                        'Content-Type': 'application/json'
+    function bindShortlistButtons() {
+        document.querySelectorAll('.shortlist-toggle-btn').forEach(btn => {
+            btn.onclick = async (e) => {
+                e.preventDefault();
+                const username = btn.dataset.username;
+                try {
+                    const res = await fetch(`/opportunities/talent/candidate/${username}/shortlist/`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': getCsrfToken(),
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    const data = await res.json();
+                    if (data.status === 'success') {
+                        if (data.is_shortlisted) {
+                            btn.classList.add('border-warning', 'text-warning');
+                        } else {
+                            btn.classList.remove('border-warning', 'text-warning');
+                        }
+                        const badge = document.getElementById('shortlistBadgeCount');
+                        if (badge) {
+                            let cur = parseInt(badge.textContent || '0');
+                            badge.textContent = data.is_shortlisted ? cur + 1 : Math.max(0, cur - 1);
+                        }
                     }
-                });
-                const data = await res.json();
-                if (data.status === 'success') {
-                    if (data.is_shortlisted) {
-                        btn.classList.add('border-warning', 'text-warning');
-                    } else {
-                        btn.classList.remove('border-warning', 'text-warning');
-                    }
-                    // Update badge count
-                    const badge = document.getElementById('shortlistBadgeCount');
-                    if (badge) {
-                        let cur = parseInt(badge.textContent || '0');
-                        badge.textContent = data.is_shortlisted ? cur + 1 : Math.max(0, cur - 1);
-                    }
+                } catch (err) {
+                    console.error("Shortlist error:", err);
                 }
-            } catch (err) {
-                console.error("Shortlist error:", err);
+            };
+        });
+    }
+
+    bindShortlistButtons();
+
+    // ==========================================
+    // Phase 5: Debounced Skeleton Search & Filters
+    // ==========================================
+    function getSkeletonGridHtml() {
+        let cardHtml = '';
+        for (let i = 0; i < 6; i++) {
+            cardHtml += `
+            <div class="col-md-6 col-xl-4">
+                <div class="custom-card h-100 p-4 d-flex flex-column justify-content-between position-relative" style="background: rgba(17, 24, 39, 0.85); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px;">
+                    <div>
+                        <div class="d-flex align-items-start justify-content-between gap-3 mb-3">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="skeleton-avatar" style="width: 52px; height: 52px; border-radius: 50%;"></div>
+                                <div>
+                                    <div class="skeleton-text" style="width: 130px; height: 18px; margin-bottom: 6px;"></div>
+                                    <div class="skeleton-text" style="width: 75px; height: 12px;"></div>
+                                </div>
+                            </div>
+                            <div class="skeleton-box rounded-circle" style="width: 36px; height: 36px;"></div>
+                        </div>
+                        <div class="skeleton-text" style="width: 80%; height: 14px; margin-bottom: 16px;"></div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-4"><div class="skeleton-box" style="height: 60px; border-radius: 8px;"></div></div>
+                            <div class="col-4"><div class="skeleton-box" style="height: 60px; border-radius: 8px;"></div></div>
+                            <div class="col-4"><div class="skeleton-box" style="height: 60px; border-radius: 8px;"></div></div>
+                        </div>
+                        <div class="d-flex gap-2 mb-3">
+                            <div class="skeleton-box" style="width: 100px; height: 24px; border-radius: 9999px;"></div>
+                            <div class="skeleton-box" style="width: 85px; height: 24px; border-radius: 9999px;"></div>
+                        </div>
+                    </div>
+                    <div class="pt-3 border-top border-secondary">
+                        <div class="skeleton-box" style="height: 34px; border-radius: 8px;"></div>
+                    </div>
+                </div>
+            </div>`;
+        }
+        return `<div class="row g-4" id="talentCardsGrid">${cardHtml}</div>`;
+    }
+
+    let searchTimer = null;
+    let abortController = null;
+
+    function executeLiveSearch() {
+        const form = document.getElementById('talentFilterForm');
+        const container = document.getElementById('talentCardsContainer');
+        if (!form || !container) return;
+
+        // Abort previous in-flight request to prevent duplicate/race conditions
+        if (abortController) {
+            abortController.abort();
+        }
+        abortController = new AbortController();
+
+        // Immediately show skeleton loaders matching candidate card layout
+        container.innerHTML = getSkeletonGridHtml();
+
+        const formData = new FormData(form);
+        const params = new URLSearchParams(formData);
+        const targetUrl = `${window.location.pathname}?${params.toString()}`;
+
+        fetch(targetUrl, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            signal: abortController.signal
+        })
+        .then(res => res.text())
+        .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const newContainer = doc.getElementById('talentCardsContainer');
+            const newBadge = doc.getElementById('totalCandidatesBadge');
+            const curBadge = document.getElementById('totalCandidatesBadge');
+
+            if (newContainer) {
+                container.innerHTML = newContainer.innerHTML;
+            }
+            if (newBadge && curBadge) {
+                curBadge.textContent = newBadge.textContent;
+            }
+
+            window.history.replaceState({}, '', targetUrl);
+            bindShortlistButtons();
+            if (window.lucide) lucide.createIcons();
+        })
+        .catch(err => {
+            if (err.name !== 'AbortError') {
+                console.error("Live candidate search error:", err);
             }
         });
-    });
+    }
+
+    const filterForm = document.getElementById('talentFilterForm');
+    if (filterForm) {
+        const searchInput = filterForm.querySelector('input[name="q"]');
+        if (searchInput) {
+            searchInput.addEventListener('input', () => {
+                clearTimeout(searchTimer);
+                searchTimer = setTimeout(executeLiveSearch, 300);
+            });
+        }
+
+        filterForm.querySelectorAll('select').forEach(sel => {
+            sel.addEventListener('change', () => {
+                clearTimeout(searchTimer);
+                executeLiveSearch();
+            });
+        });
+
+        filterForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            clearTimeout(searchTimer);
+            executeLiveSearch();
+        });
+    }
 });
 </script>
 {% endblock %}

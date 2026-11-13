@@ -147,12 +147,18 @@
 
                 <div class="accordion custom-accordion" id="resumeAccordion">
                     <!-- 1. Contact -->
-                    <div class="accordion-item bg-dark border-secondary border-opacity-25 mb-2 rounded-3 overflow-hidden">
-                        <h2 class="accordion-header" id="headingContact">
-                            <button class="accordion-button bg-dark text-white shadow-none collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseContact">
-                                <i data-lucide="user" style="width: 16px; height: 16px;" class="me-2 text-info"></i> Contact Coordinates
-                            </button>
-                        </h2>
+                    <div class="accordion-item bg-dark border-secondary border-opacity-25 mb-2 rounded-3 overflow-hidden resume-section-card" data-section="contact">
+                        <div class="d-flex align-items-center justify-content-between pe-3 bg-dark">
+                            <h2 class="accordion-header flex-grow-1" id="headingContact">
+                                <button class="accordion-button bg-dark text-white shadow-none collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseContact">
+                                    <i data-lucide="user" style="width: 16px; height: 16px;" class="me-2 text-info"></i> Contact Coordinates
+                                </button>
+                            </h2>
+                            <div class="btn-group btn-group-sm section-reorder-group ms-2">
+                                <button type="button" class="btn btn-outline-secondary btn-xs py-0 px-2 move-section-up" title="Move Up" aria-label="Move Section Up"><i data-lucide="chevron-up" style="width: 13px; height: 13px;"></i></button>
+                                <button type="button" class="btn btn-outline-secondary btn-xs py-0 px-2 move-section-down" title="Move Down" aria-label="Move Section Down"><i data-lucide="chevron-down" style="width: 13px; height: 13px;"></i></button>
+                            </div>
+                        </div>
                         <div id="collapseContact" class="accordion-collapse collapse show">
                             <div class="accordion-body text-light">
                                 <div class="row g-2 mb-2">
@@ -186,12 +192,18 @@
                     </div>
 
                     <!-- 2. Career Objective & Professional Goals -->
-                    <div class="accordion-item bg-dark border-secondary border-opacity-25 mb-2 rounded-3 overflow-hidden">
-                        <h2 class="accordion-header" id="headingSummary">
-                            <button class="accordion-button bg-dark text-white shadow-none collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSummary">
-                                <i data-lucide="target" style="width: 16px; height: 16px;" class="me-2 text-purple"></i> Career Objective & Goals
-                            </button>
-                        </h2>
+                    <div class="accordion-item bg-dark border-secondary border-opacity-25 mb-2 rounded-3 overflow-hidden resume-section-card" data-section="objective">
+                        <div class="d-flex align-items-center justify-content-between pe-3 bg-dark">
+                            <h2 class="accordion-header flex-grow-1" id="headingSummary">
+                                <button class="accordion-button bg-dark text-white shadow-none collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSummary">
+                                    <i data-lucide="target" style="width: 16px; height: 16px;" class="me-2 text-purple"></i> Career Objective & Goals
+                                </button>
+                            </h2>
+                            <div class="btn-group btn-group-sm section-reorder-group ms-2">
+                                <button type="button" class="btn btn-outline-secondary btn-xs py-0 px-2 move-section-up" title="Move Up" aria-label="Move Section Up"><i data-lucide="chevron-up" style="width: 13px; height: 13px;"></i></button>
+                                <button type="button" class="btn btn-outline-secondary btn-xs py-0 px-2 move-section-down" title="Move Down" aria-label="Move Section Down"><i data-lucide="chevron-down" style="width: 13px; height: 13px;"></i></button>
+                            </div>
+                        </div>
                         <div id="collapseSummary" class="accordion-collapse collapse">
                             <div class="accordion-body text-light">
                                 <div class="row g-2 mb-3">
@@ -244,12 +256,18 @@
                     </div>
 
                     <!-- 3. Technical Skills -->
-                    <div class="accordion-item bg-dark border-secondary border-opacity-25 mb-2 rounded-3 overflow-hidden">
-                        <h2 class="accordion-header" id="headingSkills">
-                            <button class="accordion-button bg-dark text-white shadow-none collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSkills">
-                                <i data-lucide="code" style="width: 16px; height: 16px;" class="me-2 text-success"></i> Technical Skills
-                            </button>
-                        </h2>
+                    <div class="accordion-item bg-dark border-secondary border-opacity-25 mb-2 rounded-3 overflow-hidden resume-section-card" data-section="skills">
+                        <div class="d-flex align-items-center justify-content-between pe-3 bg-dark">
+                            <h2 class="accordion-header flex-grow-1" id="headingSkills">
+                                <button class="accordion-button bg-dark text-white shadow-none collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSkills">
+                                    <i data-lucide="code" style="width: 16px; height: 16px;" class="me-2 text-success"></i> Technical Skills
+                                </button>
+                            </h2>
+                            <div class="btn-group btn-group-sm section-reorder-group ms-2">
+                                <button type="button" class="btn btn-outline-secondary btn-xs py-0 px-2 move-section-up" title="Move Up" aria-label="Move Section Up"><i data-lucide="chevron-up" style="width: 13px; height: 13px;"></i></button>
+                                <button type="button" class="btn btn-outline-secondary btn-xs py-0 px-2 move-section-down" title="Move Down" aria-label="Move Section Down"><i data-lucide="chevron-down" style="width: 13px; height: 13px;"></i></button>
+                            </div>
+                        </div>
                         <div id="collapseSkills" class="accordion-collapse collapse">
                             <div class="accordion-body text-light">
                                 <label class="form-label text-secondary small">Comma-separated skills</label>
@@ -260,12 +278,18 @@
                     </div>
 
                     <!-- 4. Projects -->
-                    <div class="accordion-item bg-dark border-secondary border-opacity-25 mb-2 rounded-3 overflow-hidden">
-                        <h2 class="accordion-header" id="headingProjects">
-                            <button class="accordion-button bg-dark text-white shadow-none collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseProjects">
-                                <i data-lucide="folder-git-2" style="width: 16px; height: 16px;" class="me-2 text-warning"></i> Featured Projects
-                            </button>
-                        </h2>
+                    <div class="accordion-item bg-dark border-secondary border-opacity-25 mb-2 rounded-3 overflow-hidden resume-section-card" data-section="projects">
+                        <div class="d-flex align-items-center justify-content-between pe-3 bg-dark">
+                            <h2 class="accordion-header flex-grow-1" id="headingProjects">
+                                <button class="accordion-button bg-dark text-white shadow-none collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseProjects">
+                                    <i data-lucide="folder-git-2" style="width: 16px; height: 16px;" class="me-2 text-warning"></i> Featured Projects
+                                </button>
+                            </h2>
+                            <div class="btn-group btn-group-sm section-reorder-group ms-2">
+                                <button type="button" class="btn btn-outline-secondary btn-xs py-0 px-2 move-section-up" title="Move Up" aria-label="Move Section Up"><i data-lucide="chevron-up" style="width: 13px; height: 13px;"></i></button>
+                                <button type="button" class="btn btn-outline-secondary btn-xs py-0 px-2 move-section-down" title="Move Down" aria-label="Move Section Down"><i data-lucide="chevron-down" style="width: 13px; height: 13px;"></i></button>
+                            </div>
+                        </div>
                         <div id="collapseProjects" class="accordion-collapse collapse">
                             <div class="accordion-body text-light">
                                 <div id="projectsContainer">
@@ -292,12 +316,18 @@
                     </div>
 
                     <!-- 5. Experience -->
-                    <div class="accordion-item bg-dark border-secondary border-opacity-25 mb-2 rounded-3 overflow-hidden">
-                        <h2 class="accordion-header" id="headingExp">
-                            <button class="accordion-button bg-dark text-white shadow-none collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseExp">
-                                <i data-lucide="briefcase" style="width: 16px; height: 16px;" class="me-2 text-info"></i> Work & Internships
-                            </button>
-                        </h2>
+                    <div class="accordion-item bg-dark border-secondary border-opacity-25 mb-2 rounded-3 overflow-hidden resume-section-card" data-section="experience">
+                        <div class="d-flex align-items-center justify-content-between pe-3 bg-dark">
+                            <h2 class="accordion-header flex-grow-1" id="headingExp">
+                                <button class="accordion-button bg-dark text-white shadow-none collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseExp">
+                                    <i data-lucide="briefcase" style="width: 16px; height: 16px;" class="me-2 text-info"></i> Work & Internships
+                                </button>
+                            </h2>
+                            <div class="btn-group btn-group-sm section-reorder-group ms-2">
+                                <button type="button" class="btn btn-outline-secondary btn-xs py-0 px-2 move-section-up" title="Move Up" aria-label="Move Section Up"><i data-lucide="chevron-up" style="width: 13px; height: 13px;"></i></button>
+                                <button type="button" class="btn btn-outline-secondary btn-xs py-0 px-2 move-section-down" title="Move Down" aria-label="Move Section Down"><i data-lucide="chevron-down" style="width: 13px; height: 13px;"></i></button>
+                            </div>
+                        </div>
                         <div id="collapseExp" class="accordion-collapse collapse">
                             <div class="accordion-body text-light">
                                 <div id="experienceContainer">
@@ -323,16 +353,22 @@
                     </div>
 
                     <!-- 6. Education -->
-                    <div class="accordion-item bg-dark border-secondary border-opacity-25 mb-2 rounded-3 overflow-hidden">
+                    <div class="accordion-item bg-dark border-secondary border-opacity-25 mb-2 rounded-3 overflow-hidden resume-section-card" data-section="education">
                         <div class="d-flex align-items-center justify-content-between pe-3 bg-dark">
                             <h2 class="accordion-header flex-grow-1" id="headingEducation">
                                 <button class="accordion-button bg-dark text-white shadow-none collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseEducation">
                                     <i data-lucide="graduation-cap" style="width: 16px; height: 16px;" class="me-2 text-primary-accent"></i> Education Background
                                 </button>
                             </h2>
-                            <button type="button" id="addEducationBtn" class="btn btn-outline-info btn-xs py-1 px-2 d-inline-flex align-items-center gap-1" style="font-size: 0.75rem;">
-                                <i data-lucide="plus" style="width: 12px; height: 12px;"></i> Add Education
-                            </button>
+                            <div class="d-flex align-items-center gap-1">
+                                <button type="button" id="addEducationBtn" class="btn btn-outline-info btn-xs py-1 px-2 d-inline-flex align-items-center gap-1" style="font-size: 0.75rem;">
+                                    <i data-lucide="plus" style="width: 12px; height: 12px;"></i> Add Education
+                                </button>
+                                <div class="btn-group btn-group-sm section-reorder-group ms-1">
+                                    <button type="button" class="btn btn-outline-secondary btn-xs py-0 px-2 move-section-up" title="Move Up" aria-label="Move Section Up"><i data-lucide="chevron-up" style="width: 13px; height: 13px;"></i></button>
+                                    <button type="button" class="btn btn-outline-secondary btn-xs py-0 px-2 move-section-down" title="Move Down" aria-label="Move Section Down"><i data-lucide="chevron-down" style="width: 13px; height: 13px;"></i></button>
+                                </div>
+                            </div>
                         </div>
                         <div id="collapseEducation" class="accordion-collapse collapse">
                             <div class="accordion-body text-light">
@@ -388,14 +424,14 @@
                     </div>
 
                     <!-- 7. Certifications & Credentials -->
-                    <div class="accordion-item bg-dark border-secondary border-opacity-25 mb-2 rounded-3 overflow-hidden">
+                    <div class="accordion-item bg-dark border-secondary border-opacity-25 mb-2 rounded-3 overflow-hidden resume-section-card" data-section="certifications">
                         <div class="d-flex align-items-center justify-content-between pe-3 bg-dark">
                             <h2 class="accordion-header flex-grow-1" id="headingCertifications">
                                 <button class="accordion-button bg-dark text-white shadow-none collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseCertifications">
                                     <i data-lucide="award" style="width: 16px; height: 16px;" class="me-2 text-success"></i> Certifications & Credentials
                                 </button>
                             </h2>
-                            <div class="d-flex gap-1">
+                            <div class="d-flex align-items-center gap-1">
                                 {% if user_certificates %}
                                 <button type="button" id="importSkillSphereCertsBtn" class="btn btn-outline-success btn-xs py-1 px-2 d-inline-flex align-items-center gap-1" style="font-size: 0.75rem;" title="Import all verified SkillSphere certificates">
                                     <i data-lucide="shield-check" style="width: 12px; height: 12px;"></i> Import SkillSphere ({{ user_certificates|length }})
@@ -404,6 +440,10 @@
                                 <button type="button" id="addCertificationBtn" class="btn btn-outline-info btn-xs py-1 px-2 d-inline-flex align-items-center gap-1" style="font-size: 0.75rem;">
                                     <i data-lucide="plus" style="width: 12px; height: 12px;"></i> Add Cert
                                 </button>
+                                <div class="btn-group btn-group-sm section-reorder-group ms-1">
+                                    <button type="button" class="btn btn-outline-secondary btn-xs py-0 px-2 move-section-up" title="Move Up" aria-label="Move Section Up"><i data-lucide="chevron-up" style="width: 13px; height: 13px;"></i></button>
+                                    <button type="button" class="btn btn-outline-secondary btn-xs py-0 px-2 move-section-down" title="Move Down" aria-label="Move Section Down"><i data-lucide="chevron-down" style="width: 13px; height: 13px;"></i></button>
+                                </div>
                             </div>
                         </div>
                         <div id="collapseCertifications" class="accordion-collapse collapse">
@@ -453,78 +493,109 @@
                     </div>
                 </div>
 
-                <!-- Printable Document Sheet Simulation -->
-                <div class="p-4 rounded-3 text-dark theme-harvard" id="resumePreviewSheet" style="background: #ffffff; min-height: 520px; box-shadow: 0 8px 24px rgba(0,0,0,0.4);">
-                    <div class="border-bottom pb-2 mb-3">
-                        <h2 class="h4 fw-bold mb-0 text-dark" id="preview_name">{{ resume_data.contact.full_name|default:request.user.get_full_name|default:request.user.username }}</h2>
-                        <div class="text-secondary small fw-medium" id="preview_headline">{{ resume_data.contact.headline }}</div>
-                        <div class="text-muted small" style="font-size: 0.8rem;" id="preview_contact_line">
-                            {{ resume_data.contact.email }} • {{ resume_data.contact.phone }} • {{ resume_data.contact.location }} • {{ resume_data.contact.links }}
-                        </div>
+                <!-- Live Canvas Zoom Toolbar (Phase 4) -->
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 p-2 rounded bg-dark border border-secondary border-opacity-25" id="resumeZoomToolbar">
+                    <div class="d-flex align-items-center gap-1">
+                        <span class="text-secondary small fw-medium me-1"><i data-lucide="zoom-in" style="width: 14px; height: 14px;"></i> Zoom:</span>
+                        <button type="button" class="btn btn-sm btn-outline-secondary py-1 px-2" id="zoomOutBtn" title="Zoom Out (-10%)" aria-label="Zoom Out">
+                            <i data-lucide="minus" style="width: 13px; height: 13px;"></i>
+                        </button>
+                        <span class="badge bg-dark border border-secondary text-white font-monospace px-2 py-1" id="zoomPercentBadge" style="min-width: 48px; font-size: 0.78rem;">100%</span>
+                        <button type="button" class="btn btn-sm btn-outline-secondary py-1 px-2" id="zoomInBtn" title="Zoom In (+10%)" aria-label="Zoom In">
+                            <i data-lucide="plus" style="width: 13px; height: 13px;"></i>
+                        </button>
                     </div>
-
-                    <div class="mb-3">
-                        <div class="fw-bold text-dark text-uppercase small tracking-wide border-bottom pb-1 mb-1 preview-section-header" style="letter-spacing: 0.05em;" id="preview_section_title">Career Objective & Goals</div>
-                        <div id="preview_target_wrap" class="small fw-bold text-dark mb-1">
-                            <span id="preview_career_goal">{{ resume_data.career_goal|default:resume_data.contact.headline|default:'Software Developer' }}</span>
-                            <span id="preview_target_industry_wrap" class="text-muted fw-normal"> | <span id="preview_target_industry">{{ resume_data.target_industry|default:'Technology & Software Engineering' }}</span></span>
-                        </div>
-                        <p class="small text-secondary mb-1" id="preview_summary">{{ resume_data.career_objective|default:resume_data.summary }}</p>
-                        <div id="preview_goals" class="small text-secondary">
-                            {% for g in resume_data.short_term_goals %}
-                            <div>• {{ g }}</div>
-                            {% endfor %}
-                        </div>
+                    <div class="d-flex align-items-center gap-1 flex-wrap">
+                        <button type="button" class="btn btn-sm btn-outline-secondary py-1 px-2 zoom-preset-btn" data-zoom="75">75%</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary py-1 px-2 zoom-preset-btn active" data-zoom="100">100%</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary py-1 px-2 zoom-preset-btn" data-zoom="125">125%</button>
+                        <button type="button" class="btn btn-sm btn-outline-info py-1 px-2 d-inline-flex align-items-center gap-1" id="zoomFitBtn" title="Fit to Screen Width">
+                            <i data-lucide="maximize-2" style="width: 12px; height: 12px;"></i> Fit to Screen
+                        </button>
                     </div>
+                </div>
 
-                    <div class="mb-3">
-                        <div class="fw-bold text-dark text-uppercase small tracking-wide border-bottom pb-1 mb-1 preview-section-header" style="letter-spacing: 0.05em;">Technical Skills</div>
-                        <div class="small text-secondary" id="preview_skills">{{ resume_data.skills|join:', ' }}</div>
-                    </div>
-
-                    <div class="mb-3">
-                        <div class="fw-bold text-dark text-uppercase small tracking-wide border-bottom pb-1 mb-1 preview-section-header" style="letter-spacing: 0.05em;">Featured Projects</div>
-                        <div id="preview_projects">
-                            {% for proj in resume_data.projects %}
-                            <div class="mb-2">
-                                <div class="fw-bold small text-dark">{{ proj.title }} <span class="text-muted fw-normal">| {{ proj.technologies }}</span></div>
-                                <div class="small text-secondary">{{ proj.description }}</div>
+                <!-- Printable Document Sheet Simulation in Scalable Viewport -->
+                <div id="resumeCanvasViewport" style="overflow-x: auto; overflow-y: visible; padding: 4px 0; width: 100%;">
+                    <div id="resumeCanvasScaler" style="transform-origin: top center; transition: transform 0.15s ease-out; width: 100%;">
+                        <div class="p-4 rounded-3 text-dark theme-harvard" id="resumePreviewSheet" style="background: #ffffff; min-height: 520px; box-shadow: 0 8px 24px rgba(0,0,0,0.4);">
+                            <!-- Contact Header Preview -->
+                            <div class="border-bottom pb-2 mb-3 preview-section-block" data-preview-section="contact">
+                                <h2 class="h4 fw-bold mb-0 text-dark" id="preview_name">{{ resume_data.contact.full_name|default:request.user.get_full_name|default:request.user.username }}</h2>
+                                <div class="text-secondary small fw-medium" id="preview_headline">{{ resume_data.contact.headline }}</div>
+                                <div class="text-muted small" style="font-size: 0.8rem;" id="preview_contact_line">
+                                    {{ resume_data.contact.email }} • {{ resume_data.contact.phone }} • {{ resume_data.contact.location }} • {{ resume_data.contact.links }}
+                                </div>
                             </div>
-                            {% endfor %}
-                        </div>
-                    </div>
 
-                    <div class="mb-3">
-                        <div class="fw-bold text-dark text-uppercase small tracking-wide border-bottom pb-1 mb-1 preview-section-header" style="letter-spacing: 0.05em;">Experience</div>
-                        <div id="preview_experience">
-                            {% for exp in resume_data.experience %}
-                            <div class="mb-2">
-                                <div class="fw-bold small text-dark">{{ exp.role }} <span class="text-muted fw-normal">— {{ exp.company }} ({{ exp.dates }})</span></div>
-                                <div class="small text-secondary">{{ exp.description }}</div>
+                            <!-- Objective Preview -->
+                            <div class="mb-3 preview-section-block" data-preview-section="objective">
+                                <div class="fw-bold text-dark text-uppercase small tracking-wide border-bottom pb-1 mb-1 preview-section-header" style="letter-spacing: 0.05em;" id="preview_section_title">Career Objective & Goals</div>
+                                <div id="preview_target_wrap" class="small fw-bold text-dark mb-1">
+                                    <span id="preview_career_goal">{{ resume_data.career_goal|default:resume_data.contact.headline|default:'Software Developer' }}</span>
+                                    <span id="preview_target_industry_wrap" class="text-muted fw-normal"> | <span id="preview_target_industry">{{ resume_data.target_industry|default:'Technology & Software Engineering' }}</span></span>
+                                </div>
+                                <p class="small text-secondary mb-1" id="preview_summary">{{ resume_data.career_objective|default:resume_data.summary }}</p>
+                                <div id="preview_goals" class="small text-secondary">
+                                    {% for g in resume_data.short_term_goals %}
+                                    <div>• {{ g }}</div>
+                                    {% endfor %}
+                                </div>
                             </div>
-                            {% endfor %}
-                        </div>
-                    </div>
 
-                    <!-- Education in Live Preview -->
-                    <div class="mb-3" id="preview_education_wrap">
-                        <div class="fw-bold text-dark text-uppercase small tracking-wide border-bottom pb-1 mb-1 preview-section-header" style="letter-spacing: 0.05em;">Education</div>
-                        <div id="preview_education">
-                            {% for edu in resume_data.education %}
-                            <div class="mb-1">
-                                <div class="fw-bold small text-dark">{{ edu.degree }} <span class="text-muted fw-normal">— {{ edu.school }} {% if edu.year %}({{ edu.year }}){% endif %} {% if edu.gpa %}| GPA: {{ edu.gpa }}{% endif %}</span></div>
+                            <!-- Technical Skills Preview -->
+                            <div class="mb-3 preview-section-block" data-preview-section="skills">
+                                <div class="fw-bold text-dark text-uppercase small tracking-wide border-bottom pb-1 mb-1 preview-section-header" style="letter-spacing: 0.05em;">Technical Skills</div>
+                                <div class="small text-secondary" id="preview_skills">{{ resume_data.skills|join:', ' }}</div>
                             </div>
-                            {% endfor %}
-                        </div>
-                    </div>
 
-                    <!-- Certifications in Live Preview -->
-                    <div class="mb-2" id="preview_certifications_wrap">
-                        <div class="fw-bold text-dark text-uppercase small tracking-wide border-bottom pb-1 mb-1 preview-section-header" style="letter-spacing: 0.05em;">Certifications & Credentials</div>
-                        <div id="preview_certifications">
-                            {% for cert in resume_data.certifications %}
-                            <div class="small text-secondary">• {% if cert.title %}{{ cert.title }}{% if cert.issuer %} — <span class="text-muted">{{ cert.issuer }}</span>{% endif %}{% else %}{{ cert }}{% endif %}</div>
-                            {% endfor %}
+                            <!-- Featured Projects Preview -->
+                            <div class="mb-3 preview-section-block" data-preview-section="projects">
+                                <div class="fw-bold text-dark text-uppercase small tracking-wide border-bottom pb-1 mb-1 preview-section-header" style="letter-spacing: 0.05em;">Featured Projects</div>
+                                <div id="preview_projects">
+                                    {% for proj in resume_data.projects %}
+                                    <div class="mb-2">
+                                        <div class="fw-bold small text-dark">{{ proj.title }} <span class="text-muted fw-normal">| {{ proj.technologies }}</span></div>
+                                        <div class="small text-secondary">{{ proj.description }}</div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            <!-- Work Experience Preview -->
+                            <div class="mb-3 preview-section-block" data-preview-section="experience">
+                                <div class="fw-bold text-dark text-uppercase small tracking-wide border-bottom pb-1 mb-1 preview-section-header" style="letter-spacing: 0.05em;">Experience</div>
+                                <div id="preview_experience">
+                                    {% for exp in resume_data.experience %}
+                                    <div class="mb-2">
+                                        <div class="fw-bold small text-dark">{{ exp.role }} <span class="text-muted fw-normal">— {{ exp.company }} ({{ exp.dates }})</span></div>
+                                        <div class="small text-secondary">{{ exp.description }}</div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            <!-- Education in Live Preview -->
+                            <div class="mb-3 preview-section-block" id="preview_education_wrap" data-preview-section="education">
+                                <div class="fw-bold text-dark text-uppercase small tracking-wide border-bottom pb-1 mb-1 preview-section-header" style="letter-spacing: 0.05em;">Education</div>
+                                <div id="preview_education">
+                                    {% for edu in resume_data.education %}
+                                    <div class="mb-1">
+                                        <div class="fw-bold small text-dark">{{ edu.degree }} <span class="text-muted fw-normal">— {{ edu.school }} {% if edu.year %}({{ edu.year }}){% endif %} {% if edu.gpa %}| GPA: {{ edu.gpa }}{% endif %}</span></div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            <!-- Certifications in Live Preview -->
+                            <div class="mb-2 preview-section-block" id="preview_certifications_wrap" data-preview-section="certifications">
+                                <div class="fw-bold text-dark text-uppercase small tracking-wide border-bottom pb-1 mb-1 preview-section-header" style="letter-spacing: 0.05em;">Certifications & Credentials</div>
+                                <div id="preview_certifications">
+                                    {% for cert in resume_data.certifications %}
+                                    <div class="small text-secondary">• {% if cert.title %}{{ cert.title }}{% if cert.issuer %} — <span class="text-muted">{{ cert.issuer }}</span>{% endif %}{% else %}{{ cert }}{% endif %}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -630,6 +701,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const targetIndustry = document.getElementById('input_target_industry')?.value.trim() || '';
         const summaryText = document.getElementById('input_summary')?.value.trim() || '';
 
+        const sectionOrder = [];
+        document.querySelectorAll('#resumeAccordion > .resume-section-card').forEach(card => {
+            const sec = card.getAttribute('data-section');
+            if (sec) sectionOrder.push(sec);
+        });
+
         return {
             contact: {
                 full_name: document.getElementById('input_full_name')?.value || '',
@@ -648,7 +725,8 @@ document.addEventListener('DOMContentLoaded', function() {
             projects: projects,
             experience: experience,
             education: education,
-            certifications: certifications
+            certifications: certifications,
+            section_order: sectionOrder
         };
     }
 
@@ -908,6 +986,143 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // ==========================================
+    // Phase 4: Accessible Section Reordering Logic
+    // ==========================================
+    function updateReorderButtonsState() {
+        const cards = document.querySelectorAll('#resumeAccordion > .resume-section-card');
+        cards.forEach((card, idx) => {
+            const upBtn = card.querySelector('.move-section-up');
+            const downBtn = card.querySelector('.move-section-down');
+            if (upBtn) upBtn.disabled = (idx === 0);
+            if (downBtn) downBtn.disabled = (idx === cards.length - 1);
+        });
+    }
+
+    function reorderSection(card, direction) {
+        const accordion = document.getElementById('resumeAccordion');
+        const sheet = document.getElementById('resumePreviewSheet');
+        if (!accordion || !sheet) return;
+
+        const sectionKey = card.getAttribute('data-section');
+        const previewBlock = sheet.querySelector(`.preview-section-block[data-preview-section="${sectionKey}"]`);
+
+        if (direction === 'up') {
+            const prevCard = card.previousElementSibling;
+            if (prevCard && prevCard.classList.contains('resume-section-card')) {
+                accordion.insertBefore(card, prevCard);
+                if (previewBlock) {
+                    const prevSecKey = prevCard.getAttribute('data-section');
+                    const prevPreview = sheet.querySelector(`.preview-section-block[data-preview-section="${prevSecKey}"]`);
+                    if (prevPreview) {
+                        sheet.insertBefore(previewBlock, prevPreview);
+                    }
+                }
+            }
+        } else if (direction === 'down') {
+            const nextCard = card.nextElementSibling;
+            if (nextCard && nextCard.classList.contains('resume-section-card')) {
+                accordion.insertBefore(nextCard, card);
+                if (previewBlock) {
+                    const nextSecKey = nextCard.getAttribute('data-section');
+                    const nextPreview = sheet.querySelector(`.preview-section-block[data-preview-section="${nextSecKey}"]`);
+                    if (nextPreview) {
+                        sheet.insertBefore(nextPreview, previewBlock);
+                    }
+                }
+            }
+        }
+
+        updateReorderButtonsState();
+        updatePreview();
+        if (window.SkillSphereSFX) window.SkillSphereSFX.play('click');
+    }
+
+    const resumeAccordionEl = document.getElementById('resumeAccordion');
+    if (resumeAccordionEl) {
+        resumeAccordionEl.addEventListener('click', (e) => {
+            const upBtn = e.target.closest('.move-section-up');
+            const downBtn = e.target.closest('.move-section-down');
+            if (upBtn) {
+                e.preventDefault();
+                e.stopPropagation();
+                const card = upBtn.closest('.resume-section-card');
+                if (card) reorderSection(card, 'up');
+            } else if (downBtn) {
+                e.preventDefault();
+                e.stopPropagation();
+                const card = downBtn.closest('.resume-section-card');
+                if (card) reorderSection(card, 'down');
+            }
+        });
+    }
+
+    function restoreSectionOrder(savedOrder) {
+        if (!savedOrder || !Array.isArray(savedOrder) || savedOrder.length === 0) return;
+        const accordion = document.getElementById('resumeAccordion');
+        const sheet = document.getElementById('resumePreviewSheet');
+        if (!accordion || !sheet) return;
+
+        savedOrder.forEach(secKey => {
+            const card = accordion.querySelector(`.resume-section-card[data-section="${secKey}"]`);
+            if (card) accordion.appendChild(card);
+            const previewBlock = sheet.querySelector(`.preview-section-block[data-preview-section="${secKey}"]`);
+            if (previewBlock) sheet.appendChild(previewBlock);
+        });
+        updateReorderButtonsState();
+    }
+
+    // ==========================================
+    // Phase 4: Live Canvas Zoom Toolbar Logic
+    // ==========================================
+    let currentZoom = 100;
+    const zoomPercentBadge = document.getElementById('zoomPercentBadge');
+    const resumeCanvasScaler = document.getElementById('resumeCanvasScaler');
+    const resumeCanvasViewport = document.getElementById('resumeCanvasViewport');
+
+    function applyZoom(zoom) {
+        currentZoom = Math.max(50, Math.min(150, Math.round(zoom)));
+        if (resumeCanvasScaler) {
+            resumeCanvasScaler.style.transform = `scale(${currentZoom / 100})`;
+        }
+        if (zoomPercentBadge) {
+            zoomPercentBadge.textContent = `${currentZoom}%`;
+        }
+        document.querySelectorAll('#resumeZoomToolbar .zoom-preset-btn').forEach(btn => {
+            const z = parseInt(btn.getAttribute('data-zoom'));
+            btn.classList.toggle('active', z === currentZoom);
+        });
+    }
+
+    document.getElementById('zoomOutBtn')?.addEventListener('click', () => applyZoom(currentZoom - 10));
+    document.getElementById('zoomInBtn')?.addEventListener('click', () => applyZoom(currentZoom + 10));
+    document.querySelectorAll('#resumeZoomToolbar .zoom-preset-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const z = parseInt(btn.getAttribute('data-zoom'));
+            if (!isNaN(z)) applyZoom(z);
+        });
+    });
+
+    document.getElementById('zoomFitBtn')?.addEventListener('click', () => {
+        if (!resumeCanvasViewport) return;
+        const availableW = resumeCanvasViewport.clientWidth - 24;
+        const sheetEl = document.getElementById('resumePreviewSheet');
+        const sheetW = (sheetEl ? sheetEl.offsetWidth : 750) || 750;
+        const fitZoom = Math.floor((availableW / sheetW) * 100);
+        applyZoom(fitZoom);
+    });
+
+    // Check for saved section order
+    {% if resume_data.section_order %}
+    try {
+        const savedOrder = {{ resume_data.section_order|safe }};
+        restoreSectionOrder(savedOrder);
+    } catch(e) {
+        console.warn("Could not restore saved section order", e);
+    }
+    {% endif %}
+    updateReorderButtonsState();
+
     attachListeners();
     updatePreview();
 
@@ -925,10 +1140,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // AI Auto-Target Career Goal & Milestones Button
     const aiGoalBtn = document.getElementById('aiGoalBtn');
+    const inputSummary = document.getElementById('input_summary');
+    const inputGoals = document.getElementById('input_goals');
     if (aiGoalBtn) {
         aiGoalBtn.addEventListener('click', async function() {
             aiGoalBtn.disabled = true;
             aiGoalBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Generating...';
+            if (inputSummary) inputSummary.classList.add('skeleton-shimmer');
+            if (inputGoals) inputGoals.classList.add('skeleton-shimmer');
             try {
                 const data = getResumeJSON();
                 const resp = await fetch('{% url "resumes:ai_improve" %}', {
@@ -946,11 +1165,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
                 const res = await resp.json();
                 if (res.success && res.data) {
-                    if (res.data.career_objective) {
-                        document.getElementById('input_summary').value = res.data.career_objective;
+                    if (res.data.career_objective && inputSummary) {
+                        inputSummary.value = res.data.career_objective;
                     }
-                    if (res.data.short_term_goals && res.data.short_term_goals.length) {
-                        document.getElementById('input_goals').value = res.data.short_term_goals.join('\n');
+                    if (res.data.short_term_goals && res.data.short_term_goals.length && inputGoals) {
+                        inputGoals.value = res.data.short_term_goals.join('\n');
                     }
                     updatePreview();
                 }
@@ -959,6 +1178,8 @@ document.addEventListener('DOMContentLoaded', function() {
             } finally {
                 aiGoalBtn.disabled = false;
                 aiGoalBtn.innerHTML = '<i data-lucide="sparkles" style="width: 12px; height: 12px;"></i> AI Auto-Target';
+                if (inputSummary) inputSummary.classList.remove('skeleton-shimmer');
+                if (inputGoals) inputGoals.classList.remove('skeleton-shimmer');
                 lucide.createIcons();
             }
         });
@@ -970,6 +1191,7 @@ document.addEventListener('DOMContentLoaded', function() {
         aiSummaryBtn.addEventListener('click', async function() {
             aiSummaryBtn.disabled = true;
             aiSummaryBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Polishing...';
+            if (inputSummary) inputSummary.classList.add('skeleton-shimmer');
             try {
                 const data = getResumeJSON();
                 const resp = await fetch('{% url "resumes:ai_improve" %}', {
@@ -985,8 +1207,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     })
                 });
                 const res = await resp.json();
-                if (res.success && res.content) {
-                    document.getElementById('input_summary').value = res.content;
+                if (res.success && res.content && inputSummary) {
+                    inputSummary.value = res.content;
                     updatePreview();
                 }
             } catch (err) {
@@ -994,10 +1216,60 @@ document.addEventListener('DOMContentLoaded', function() {
             } finally {
                 aiSummaryBtn.disabled = false;
                 aiSummaryBtn.innerHTML = '<i data-lucide="feather" style="width: 12px; height: 12px;"></i> AI Polish';
+                if (inputSummary) inputSummary.classList.remove('skeleton-shimmer');
                 lucide.createIcons();
             }
         });
     }
+
+    // AI Enhance Project Description
+    document.addEventListener('click', async function(e) {
+        const btn = e.target.closest('.ai-improve-proj-btn');
+        if (!btn) return;
+        const item = btn.closest('.project-item');
+        if (!item) return;
+
+        const title = item.querySelector('.proj-title')?.value.trim() || '';
+        const tech = item.querySelector('.proj-tech')?.value.trim() || '';
+        const descInput = item.querySelector('.proj-desc');
+        if (!title && !tech) {
+            alert("Please enter a project title or technologies first.");
+            return;
+        }
+
+        const origHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Enhancing...';
+        if (descInput) descInput.classList.add('skeleton-shimmer');
+
+        try {
+            const resp = await fetch('{% url "resumes:ai_improve" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    type: 'project',
+                    title: title,
+                    technologies: tech,
+                    description: descInput ? descInput.value : ''
+                })
+            });
+            const res = await resp.json();
+            if (res.success && res.content && descInput) {
+                descInput.value = res.content;
+                updatePreview();
+            }
+        } catch (err) {
+            console.error("AI project enhancement failed:", err);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = origHtml;
+            if (descInput) descInput.classList.remove('skeleton-shimmer');
+            if (window.lucide) lucide.createIcons();
+        }
+    });
 
     // ATS Audit Modal & Target JD Keyword Matcher
     const atsAuditBtn = document.getElementById('atsAuditBtn');
@@ -1260,18 +1532,25 @@ document.addEventListener('DOMContentLoaded', function() {
             directPdfBtn.disabled = true;
             directPdfBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Building PDF...';
 
+            const scaler = document.getElementById('resumeCanvasScaler');
+            const prevTransform = scaler ? scaler.style.transform : '';
+            if (scaler) scaler.style.transform = 'none';
+
             if (typeof html2pdf !== 'undefined') {
                 html2pdf().set(opt).from(sheet).save().then(() => {
                     directPdfBtn.disabled = false;
                     directPdfBtn.innerHTML = origHtml;
+                    if (scaler) scaler.style.transform = prevTransform;
                     if (window.lucide) lucide.createIcons();
                 }).catch(err => {
                     console.error("html2pdf export failed, falling back to server PDF:", err);
                     directPdfBtn.disabled = false;
                     directPdfBtn.innerHTML = origHtml;
+                    if (scaler) scaler.style.transform = prevTransform;
                     window.location.href = "{% url 'resumes:export_pdf' pk=resume.pk %}";
                 });
             } else {
+                if (scaler) scaler.style.transform = prevTransform;
                 window.location.href = "{% url 'resumes:export_pdf' pk=resume.pk %}";
             }
         });

@@ -1,9 +1,11 @@
 <!-- SkillSphere Universal Spotlight Command Palette Overlay -->
-<div class="command-palette-backdrop" id="commandPaletteBackdrop" aria-hidden="true">
+<div class="command-palette-backdrop" id="commandPaletteBackdrop" aria-hidden="true"
+     data-is-authenticated="{% if request.user.is_authenticated %}true{% else %}false{% endif %}"
+     data-is-recruiter="{% if request.user.is_authenticated and request.user.is_staff or request.user.profile.role == 'recruiter' or request.user.is_superuser %}true{% else %}false{% endif %}">
     <div class="command-palette-modal shadow-2xl">
         <div class="command-palette-header">
             <i data-lucide="search" style="width: 20px; height: 20px;" class="text-primary"></i>
-            <input type="text" id="commandPaletteInput" class="command-palette-search" placeholder="Search commands, courses, tools, or shortcuts..." autocomplete="off" spellcheck="false">
+            <input type="text" id="commandPaletteInput" class="command-palette-search" placeholder="Type a command, coding challenge, candidate (@), or action..." autocomplete="off" spellcheck="false">
             <span class="command-palette-keycap">ESC</span>
         </div>
         <div class="command-palette-body" id="commandPaletteResults">

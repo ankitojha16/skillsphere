@@ -3,6 +3,30 @@
 
 {% block title %}{{ room.title }} ({{ room.room_code }}) - SkillSphere Pair Lounge{% endblock %}
 
+{% block extra_css %}
+<style>
+@media (max-width: 1199.98px) {
+    .mobile-pair-hidden {
+        display: none !important;
+    }
+    .seg-pair-btn.active {
+        background: #4F46E5 !important;
+        color: #FFFFFF !important;
+        box-shadow: 0 2px 8px rgba(79, 70, 229, 0.4);
+    }
+    .seg-pair-btn:not(.active) {
+        background: transparent !important;
+        color: #94A3B8 !important;
+    }
+}
+@media (min-width: 1200px) {
+    .mobile-pair-hidden {
+        display: block !important;
+    }
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid p-3" style="max-width: 100%;">
     <!-- Top Action Navbar -->
@@ -52,10 +76,34 @@
         </div>
     </div>
 
+    <!-- Mobile/Tablet Segmented View Switcher (< 1200px) (Phase 2) -->
+    <div class="d-xl-none mb-3" id="pairMobileNav">
+        <div class="segmented-control-container p-1 rounded-pill border border-secondary border-opacity-25 d-flex gap-1" style="background: #111827 !important;">
+            <button type="button" class="btn btn-sm flex-grow-1 rounded-pill active fw-semibold seg-pair-btn" id="btnPairCode" onclick="switchPairMobileTab('code')">
+                <span class="d-flex align-items-center justify-content-center gap-1.5 py-1">
+                    <i data-lucide="code" style="width: 14px; height: 14px;"></i>
+                    <span>Code Editor</span>
+                </span>
+            </button>
+            <button type="button" class="btn btn-sm flex-grow-1 rounded-pill text-secondary fw-semibold seg-pair-btn" id="btnPairBoard" onclick="switchPairMobileTab('board')">
+                <span class="d-flex align-items-center justify-content-center gap-1.5 py-1">
+                    <i data-lucide="layout" style="width: 14px; height: 14px;"></i>
+                    <span>Architecture Whiteboard</span>
+                </span>
+            </button>
+            <button type="button" class="btn btn-sm flex-grow-1 rounded-pill text-secondary fw-semibold seg-pair-btn" id="btnPairChat" onclick="switchPairMobileTab('chat')">
+                <span class="d-flex align-items-center justify-content-center gap-1.5 py-1">
+                    <i data-lucide="message-square" style="width: 14px; height: 14px;"></i>
+                    <span>Team Chat</span>
+                </span>
+            </button>
+        </div>
+    </div>
+
     <!-- Dual Split Workspace: Left IDE, Right Interactive System Design Whiteboard -->
     <div class="row g-3">
-        <!-- LEFT COLUMN: Collaborative Monaco-style Code Editor -->
-        <div class="col-xl-6">
+        <!-- LEFT COLUMN: Collaborative Code Editor -->
+        <div class="col-xl-6 col-12" id="pairCodeColumn">
             <div class="custom-card p-0 d-flex flex-column" style="height: 750px; background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; overflow: hidden;">
                 <!-- Editor Tab Bar -->
                 <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom border-secondary" style="background: rgba(15, 23, 42, 0.9);">
@@ -70,8 +118,8 @@
                     </div>
                 </div>
 
-                <!-- Editor Textarea -->
-                <div class="flex-grow-1 position-relative" style="min-height: 0;">
+                <!-- Editor Textarea & CodeMirror 6 Container (Phase 1) -->
+                <div id="pairCm6Container" class="flex-grow-1 position-relative" style="min-height: 400px; height: 100%; overflow: hidden;">
                     <textarea id="codeEditor" class="w-100 h-100 p-3 bg-dark text-white font-monospace border-0" style="resize: none; outline: none; font-size: 0.9rem; line-height: 1.6; tab-size: 4; font-family: 'Fira Code', 'JetBrains Mono', Consolas, monospace;" spellcheck="false">{{ room.code_content }}</textarea>
                 </div>
 
@@ -89,7 +137,7 @@
         </div>
 
         <!-- RIGHT COLUMN: Interactive System Design Whiteboard -->
-        <div class="col-xl-6">
+        <div class="col-xl-6 col-12" id="pairBoardColumn">
             <div class="custom-card p-0 d-flex flex-column" style="height: 750px; background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; overflow: hidden;">
                 <!-- Whiteboard Toolbar -->
                 <div class="p-2 border-bottom border-secondary d-flex flex-wrap align-items-center justify-content-between gap-2" style="background: rgba(15, 23, 42, 0.9);">
@@ -222,6 +270,9 @@
 .node-queue  { background: linear-gradient(135deg, #1e293b, #334155); border-left: 4px solid #eab308 !important; }
 </style>
 
+<!-- SkillSphere CodeMirror 6 Universal Engine (Phase 1) -->
+<script src="{% static 'js/cm6-editor.js' %}"></script>
+
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     lucide.createIcons();
@@ -249,6 +300,64 @@ document.addEventListener('DOMContentLoaded', () => {
     const chatInput = document.getElementById('chatInput');
     const chatMessagesList = document.getElementById('chatMessagesList');
 
+    // Phase 1: Initialize Collaborative CodeMirror 6 Editor
+    let pairCM = null;
+    (async function initPairCM6() {
+        if (window.SkillSphereCodeEditor) {
+            pairCM = await window.SkillSphereCodeEditor.create({
+                target: 'codeEditor',
+                container: 'pairCm6Container',
+                language: langSelect.value || 'python',
+                onRunCode: () => {
+                    if (runCodeBtn && !runCodeBtn.disabled) runCodeBtn.click();
+                },
+                onDocChange: (newCode) => {
+                    updateCharCount();
+                    isTyping = true;
+                    clearTimeout(syncTimeout);
+                    syncTimeout = setTimeout(() => {
+                        isTyping = false;
+                        triggerSync({ code: newCode });
+                    }, 800);
+                }
+            });
+            window.pairCM = pairCM;
+        }
+    })();
+
+    // Phase 2: Mobile & Tablet Segmented View Switcher (< 1200px)
+    window.switchPairMobileTab = function(tab) {
+        if (window.innerWidth >= 1200) return;
+        const btnCode = document.getElementById('btnPairCode');
+        const btnBoard = document.getElementById('btnPairBoard');
+        const btnChat = document.getElementById('btnPairChat');
+
+        const codeCol = document.getElementById('pairCodeColumn');
+        const boardCol = document.getElementById('pairBoardColumn');
+
+        [btnCode, btnBoard, btnChat].forEach(b => {
+            if (b) {
+                b.classList.remove('active');
+                b.classList.add('text-secondary');
+            }
+        });
+
+        if (tab === 'code') {
+            if (btnCode) { btnCode.classList.add('active'); btnCode.classList.remove('text-secondary'); }
+            if (codeCol) codeCol.classList.remove('mobile-pair-hidden');
+            if (boardCol) boardCol.classList.add('mobile-pair-hidden');
+            if (pairCM) pairCM.focus();
+        } else if (tab === 'board') {
+            if (btnBoard) { btnBoard.classList.add('active'); btnBoard.classList.remove('text-secondary'); }
+            if (codeCol) codeCol.classList.add('mobile-pair-hidden');
+            if (boardCol) boardCol.classList.remove('mobile-pair-hidden');
+        } else if (tab === 'chat') {
+            if (btnChat) { btnChat.classList.add('active'); btnChat.classList.remove('text-secondary'); }
+            const chatCanvas = bootstrap.Offcanvas.getOrCreateInstance(document.getElementById('chatOffcanvas'));
+            chatCanvas.show();
+        }
+    };
+
     const getCsrfToken = () => {
         let cookieValue = null;
         if (document.cookie && document.cookie !== '') {
@@ -272,13 +381,17 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     langSelect.addEventListener('change', () => {
         updateTabLabel();
+        if (pairCM) {
+            pairCM.setLanguage(langSelect.value);
+        }
         triggerSync({ language: langSelect.value });
     });
     updateTabLabel();
 
     // Char count
     const updateCharCount = () => {
-        charCountLabel.textContent = `${codeEditor.value.length} chars`;
+        const val = pairCM ? pairCM.getValue() : codeEditor.value;
+        charCountLabel.textContent = `${val.length} chars`;
     };
     codeEditor.addEventListener('input', updateCharCount);
     updateCharCount();
@@ -304,7 +417,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (copyCodeBtn) {
         copyCodeBtn.addEventListener('click', () => {
-            navigator.clipboard.writeText(codeEditor.value);
+            const codeVal = pairCM ? pairCM.getValue() : codeEditor.value;
+            navigator.clipboard.writeText(codeVal);
             alert("Code copied to clipboard!");
         });
     }
@@ -521,8 +635,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const triggerSync = async (payload = {}) => {
         try {
+            const currentCode = pairCM ? pairCM.getValue() : codeEditor.value;
             const body = {
-                code: payload.code !== undefined ? payload.code : codeEditor.value,
+                code: payload.code !== undefined ? payload.code : currentCode,
                 language: payload.language !== undefined ? payload.language : langSelect.value,
                 whiteboard: payload.whiteboard !== undefined ? payload.whiteboard : whiteboardData,
                 chat_message: payload.chat_message || ''
@@ -538,8 +653,14 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             const data = await res.json();
             handleSyncData(data);
+            if (syncStatusBadge) {
+                syncStatusBadge.innerHTML = `<span class="spinner-grow spinner-grow-sm text-success" role="status" style="width: 8px; height: 8px;"></span> Live Synced`;
+            }
         } catch (err) {
             console.error("Sync error:", err);
+            if (syncStatusBadge) {
+                syncStatusBadge.innerHTML = `<span class="spinner-border spinner-border-sm text-warning" role="status" style="width: 8px; height: 8px;"></span> Reconnecting...`;
+            }
         }
     };
 
@@ -548,7 +669,8 @@ document.addEventListener('DOMContentLoaded', () => {
         clearTimeout(syncTimeout);
         syncTimeout = setTimeout(() => {
             isTyping = false;
-            triggerSync({ code: codeEditor.value });
+            const currentVal = pairCM ? pairCM.getValue() : codeEditor.value;
+            triggerSync({ code: currentVal });
         }, 800);
     });
 
@@ -560,10 +682,16 @@ document.addEventListener('DOMContentLoaded', () => {
             collabLabel.textContent = `@${data.collaborator}`;
         }
 
-        // If not actively typing, sync peer's code
-        if (!isTyping && document.activeElement !== codeEditor) {
-            if (codeEditor.value !== data.code) {
-                codeEditor.value = data.code;
+        // If not actively typing and not actively focused in CM6, sync peer's code
+        const isEditorFocused = (pairCM && pairCM.view && pairCM.view.hasFocus) || document.activeElement === codeEditor;
+        if (!isTyping && !isEditorFocused) {
+            const currentVal = pairCM ? pairCM.getValue() : codeEditor.value;
+            if (currentVal !== data.code) {
+                if (pairCM) {
+                    pairCM.setValue(data.code, true);
+                } else {
+                    codeEditor.value = data.code;
+                }
                 updateCharCount();
             }
         }
@@ -572,6 +700,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (langSelect.value !== data.language) {
             langSelect.value = data.language;
             updateTabLabel();
+            if (pairCM) {
+                pairCM.setLanguage(data.language);
+            }
         }
 
         // Sync whiteboard if changed from outside
@@ -614,8 +745,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const res = await fetch(`/collaboration/lounge/room/${roomCode}/sync/`);
             const data = await res.json();
             handleSyncData(data);
+            if (syncStatusBadge) {
+                syncStatusBadge.innerHTML = `<span class="spinner-grow spinner-grow-sm text-success" role="status" style="width: 8px; height: 8px;"></span> Live Synced`;
+            }
         } catch (e) {
-            // silent network retry
+            if (syncStatusBadge) {
+                syncStatusBadge.innerHTML = `<span class="spinner-border spinner-border-sm text-warning" role="status" style="width: 8px; height: 8px;"></span> Reconnecting...`;
+            }
         }
     }, 2500);
 
@@ -643,6 +779,7 @@ document.addEventListener('DOMContentLoaded', () => {
             consoleOutput.textContent = "Compiling and executing shared code...";
 
             try {
+                const codeToRun = pairCM ? pairCM.getValue() : codeEditor.value;
                 const res = await fetch(`/collaboration/lounge/room/${roomCode}/run/`, {
                     method: 'POST',
                     headers: {
@@ -650,7 +787,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        code: codeEditor.value,
+                        code: codeToRun,
                         language: langSelect.value
                     })
                 });
