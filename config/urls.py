@@ -8,6 +8,7 @@ from config.views import (
     health_check_view, robots_txt_view, sitemap_xml_view,
     privacy_policy_view, terms_of_service_view
 )
+from analytics.views import feedback_page_view
 
 def home_redirect(request):
     if request.user.is_authenticated:
@@ -56,6 +57,7 @@ urlpatterns = [
     # Phase 15 Legal, Privacy & Analytics Routes
     path('privacy/', privacy_policy_view, name='privacy_policy'),
     path('terms/', terms_of_service_view, name='terms_of_service'),
+    path('feedback/', feedback_page_view, name='feedback_direct'),
     path('analytics/', include('analytics.urls', namespace='analytics')),
 ]
 
