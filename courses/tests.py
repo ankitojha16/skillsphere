@@ -332,6 +332,63 @@ class CoursesTests(TestCase):
         self.assertIn('url', first)
         self.assertIn('thumbnail', first)
 
+    def test_seed_curated_videos_command(self):
+        from django.core.management import call_command
+        import io
+
+        # 1. Test dry-run
+        out = io.StringIO()
+        call_command('seed_curated_videos', '--dry-run', stdout=out)
+        output = out.getvalue()
+        self.assertIn('DRY RUN COMPLETE', output)
+
+        # 2. Test live sync on targeted course
+        test_c = Course.objects.create(
+            title='Test MBA Strategy',
+            slug='strategic-management-mba',
+            category=self.category,
+            difficulty='Intermediate'
+        )
+        test_lesson = Lesson.objects.create(
+            course=test_c,
+            title='Intro Strategy',
+            lesson_order=1,
+            video_url='https://www.youtube.com/embed/sPh6S4wIqC4?enablejsapi=1&rel=0'
+        )
+        out_live = io.StringIO()
+        call_command('seed_curated_videos', stdout=out_live)
+        test_lesson.refresh_from_db()
+        # Verify video_url was updated away from duplicate PM video
+        self.assertNotEqual(test_lesson.video_url, 'https://www.youtube.com/embed/sPh6S4wIqC4?enablejsapi=1&rel=0')
+        self.assertIn('bNYz4U3eI3U', test_lesson.video_url)
+
+    def test_course_catalogue_pagination(self):
+        # Create 20 dummy published courses to test pagination (threshold is 16)
+        for i in range(20):
+            Course.objects.create(
+                title=f'Pagination Test Course {i}',
+                slug=f'pagination-test-course-{i}',
+                category=self.category,
+                difficulty='Beginner',
+                is_published=True
+            )
+
+        # 1. Page 1
+        res = self.client.get(reverse('courses:list'))
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(len(res.context['courses_data']), 16)
+        self.assertTrue(res.context['page_obj'].has_next())
+        self.assertFalse(res.context['page_obj'].has_previous())
+        self.assertContains(res, 'Course Library Navigation')
+
+        # 2. Page 2 with filter preservation
+        res2 = self.client.get(reverse('courses:list') + '?page=2&difficulty=Beginner')
+        self.assertEqual(res2.status_code, 200)
+        self.assertTrue(res2.context['page_obj'].has_previous())
+        self.assertIn('difficulty=Beginner', res2.context['pagination_querystring'])
+
+
+
 
 
 

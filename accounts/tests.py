@@ -149,3 +149,66 @@ class AccountsTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Too many failed login attempts")
 
+    def test_avatar_oversized_rejected(self):
+        import io
+        from PIL import Image
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        user = User.objects.create_user(username='oversizeuser', email='over@test.com', password='Password123!')
+        self.client.force_login(user)
+
+        # Valid JPEG with appended bytes to exceed 5 MB
+        img = Image.new('RGB', (100, 100), color='green')
+        img_io = io.BytesIO()
+        img.save(img_io, format='JPEG')
+        big_bytes = img_io.getvalue() + (b'\x00' * (5 * 1024 * 1024 + 1024))
+        big_file = SimpleUploadedFile("massive.jpg", big_bytes, content_type="image/jpeg")
+
+        response = self.client.post(self.profile_setup_url, {
+            'full_name': 'Big Avatar User',
+            'avatar': big_file,
+            'education_level': 'undergraduate',
+            'learning_level': 'intermediate',
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertFormError(response, 'form', 'avatar', 'Avatar image file size must not exceed 5 MB.')
+
+    def test_avatar_corrupt_rejected(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        user = User.objects.create_user(username='corruptuser', email='corrupt@test.com', password='Password123!')
+        self.client.force_login(user)
+
+        # Corrupt bytes claiming to be an image
+        bad_file = SimpleUploadedFile("fake.jpg", b'not a real image header', content_type="image/jpeg")
+
+        response = self.client.post(self.profile_setup_url, {
+            'full_name': 'Corrupt File User',
+            'avatar': bad_file,
+            'education_level': 'undergraduate',
+            'learning_level': 'intermediate',
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context['form'].has_error('avatar'))
+
+    def test_avatar_unsupported_format_rejected(self):
+        import io
+        from PIL import Image
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        user = User.objects.create_user(username='gifuser', email='gif@test.com', password='Password123!')
+        self.client.force_login(user)
+
+        # Create a GIF
+        img = Image.new('RGB', (50, 50), color='blue')
+        img_io = io.BytesIO()
+        img.save(img_io, format='GIF')
+        gif_file = SimpleUploadedFile("anim.gif", img_io.getvalue(), content_type="image/gif")
+
+        response = self.client.post(self.profile_setup_url, {
+            'full_name': 'GIF User',
+            'avatar': gif_file,
+            'education_level': 'undergraduate',
+            'learning_level': 'intermediate',
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertFormError(response, 'form', 'avatar', 'Unsupported image format: GIF. Please upload a JPEG, PNG, or WebP image.')
+
+

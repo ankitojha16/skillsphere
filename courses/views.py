@@ -262,8 +262,30 @@ def course_list_view(request):
             'reviews_count': getattr(course, 'reviews_count', 0),
         })
 
+    # Milestone 4.1: High-Performance Catalogue Pagination (16 courses per page)
+    from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+    paginator = Paginator(courses_data, 16)
+    page_number = request.GET.get('page', 1)
+    try:
+        page_obj = paginator.page(page_number)
+    except PageNotAnInteger:
+        page_obj = paginator.page(1)
+    except EmptyPage:
+        page_obj = paginator.page(paginator.num_pages)
+
+    elided_page_range = paginator.get_elided_page_range(page_obj.number, on_each_side=1, on_ends=1)
+
+    # Preserve all active query parameters across pagination links
+    query_params = request.GET.copy()
+    if 'page' in query_params:
+        del query_params['page']
+    pagination_querystring = query_params.urlencode()
+
     return render(request, 'courses/list.html', {
-        'courses_data': courses_data,
+        'courses_data': page_obj,
+        'page_obj': page_obj,
+        'elided_page_range': elided_page_range,
+        'pagination_querystring': pagination_querystring,
         'categories': categories,
         'selected_category': selected_category,
         'selected_degree': selected_degree,

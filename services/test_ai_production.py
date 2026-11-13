@@ -67,6 +67,33 @@ class GeminiCascadeProductionTests(TestCase):
         # Should call only 1 time for the first model and stop immediately
         self.assertEqual(mock_single.call_count, 1)
         mock_sleep.assert_not_called()
+        # Verify 401 cached unavailable state
+        self.assertTrue(cache.get("gemini_api_key_unavailable"))
+
+    def test_gemini_fast_fail_when_key_unconfigured(self):
+        """When GEMINI_API_KEY is not configured or empty, fast-fail instantly to Knowledge Engine."""
+        from django.conf import settings
+        orig_key = getattr(settings, 'GEMINI_API_KEY', '')
+        try:
+            settings.GEMINI_API_KEY = ''
+            with patch.dict('os.environ', {'GEMINI_API_KEY': ''}):
+                res = AIService.ask_study_assistant_with_meta("Explain quicksort")
+                self.assertEqual(res['provider'], 'SkillSphere Knowledge Engine (Offline)')
+                self.assertTrue(res['is_offline'])
+                self.assertTrue(res['is_fallback'])
+                self.assertGreater(len(res['text']), 50)
+        finally:
+            settings.GEMINI_API_KEY = orig_key
+
+    @patch('services.ai_service.AIService._call_gemini_single')
+    def test_individual_model_timeout_is_1_point_5_seconds(self, mock_single):
+        """Verify per-model timeout parameter is 1.5s."""
+        mock_single.return_value = ('OK', 200, None, False)
+        with patch.dict('os.environ', {'GEMINI_API_KEY': 'valid-test-key'}):
+            AIService._call_gemini("Test prompt")
+            self.assertTrue(mock_single.called)
+            timeout_passed = mock_single.call_args[1].get('timeout') or mock_single.call_args[0][3]
+            self.assertAlmostEqual(timeout_passed, 1.5, delta=0.01)
 
 
 class StructuredJSONValidationTests(TestCase):
@@ -268,7 +295,8 @@ class StructuredJSONValidationTests(TestCase):
 
         self.assertEqual(data["rating"], 7)
         self.assertTrue(meta["is_fallback"])
-        self.assertEqual(meta["provider"], "offline-knowledge-engine")
+        self.assertEqual(meta["provider"], "SkillSphere Knowledge Engine (Offline)")
+        self.assertTrue(meta["is_offline"])
 
 
 class SecurityAndIsolationTests(TestCase):

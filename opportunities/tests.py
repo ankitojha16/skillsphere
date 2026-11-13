@@ -5,7 +5,12 @@ from opportunities.models import Opportunity, SavedOpportunity
 
 class OpportunityTests(TestCase):
     def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
         self.user = User.objects.create_user(username='opptester', email='opp@test.com', password='Password123!')
+        if hasattr(self.user, 'profile'):
+            self.user.profile.role = 'recruiter'
+            self.user.profile.save()
         self.client = Client()
         self.client.login(username='opptester', password='Password123!')
         self.opp = Opportunity.objects.create(
@@ -108,3 +113,51 @@ class OpportunityTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'pipelinedev')
         self.assertContains(response, 'Recruiter Shortlist')
+
+    def test_student_denied_recruiter_access(self):
+        student = User.objects.create_user(username='purestudent', email='student@pure.com', password='Password123!')
+        if hasattr(student, 'profile'):
+            student.profile.role = 'student'
+            student.profile.save()
+        student_client = Client()
+        student_client.login(username='purestudent', password='Password123!')
+
+        # Talent portal redirects student with warning
+        res_portal = student_client.get(reverse('opportunities:talent_portal'))
+        self.assertEqual(res_portal.status_code, 302)
+
+        # Candidate dossier redirects student
+        res_dossier = student_client.get(reverse('opportunities:candidate_dossier', kwargs={'username': 'opptester'}))
+        self.assertEqual(res_dossier.status_code, 302)
+
+        # Shortlist view returns 403 Forbidden
+        res_shortlist = student_client.get(reverse('opportunities:my_shortlist'))
+        self.assertEqual(res_shortlist.status_code, 403)
+
+        # API calls return 403 Forbidden JSON
+        res_api = student_client.post(
+            reverse('opportunities:toggle_shortlist', kwargs={'username': 'opptester'}),
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest'
+        )
+        self.assertEqual(res_api.status_code, 403)
+
+    def test_interview_invitation_rate_limit(self):
+        from django.core.cache import cache
+        cache.clear()
+        candidate = User.objects.create_user(username='ratelimited', email='rl@test.com', password='Password123!')
+        url = reverse('opportunities:send_interview_invitation', kwargs={'username': 'ratelimited'})
+        payload = {
+            'role_title': 'Staff Engineer',
+            'company_name': 'Tech Corp',
+            'meeting_link': 'https://meet.google.com/test',
+            'message': 'Hello!'
+        }
+        # Send 15 invitations
+        for _ in range(15):
+            res = self.client.post(url, data=payload, content_type='application/json')
+            self.assertEqual(res.status_code, 200)
+        
+        # 16th invitation should trigger HTTP 429
+        res_overflow = self.client.post(url, data=payload, content_type='application/json')
+        self.assertEqual(res_overflow.status_code, 429)
+        self.assertIn('Hourly interview invitation limit reached', res_overflow.json()['error'])

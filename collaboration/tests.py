@@ -195,3 +195,52 @@ class CollaborationTests(TestCase):
         self.assertEqual(data['status'], 'success')
         self.assertIn('Computed: 420', data['output'])
 
+    def test_unauthorized_user_blocked_from_pair_room(self):
+        from collaboration.models import PairProgrammingRoom
+        room = PairProgrammingRoom.objects.create(
+            room_code='SPHERE-SECRET1',
+            title='Secret Interview Room',
+            host=self.owner,
+            collaborator=self.applicant,
+            language='python'
+        )
+        intruder = User.objects.create_user(username='intruder', email='intruder@hack.com', password='Password123!')
+        client = Client()
+        client.login(username='intruder', password='Password123!')
+
+        # 1. View room -> 403 Forbidden
+        res_view = client.get(reverse('collaboration:pair_room', kwargs={'room_code': 'SPHERE-SECRET1'}))
+        self.assertEqual(res_view.status_code, 403)
+
+        # 2. Sync room -> 403 Forbidden
+        res_sync = client.post(
+            reverse('collaboration:room_sync', kwargs={'room_code': 'SPHERE-SECRET1'}),
+            data={'code': 'malicious code'},
+            content_type='application/json'
+        )
+        self.assertEqual(res_sync.status_code, 403)
+
+        # 3. Run code -> 403 Forbidden
+        res_run = client.post(
+            reverse('collaboration:run_room_code', kwargs={'room_code': 'SPHERE-SECRET1'}),
+            data={'code': 'malicious code'},
+            content_type='application/json'
+        )
+        self.assertEqual(res_run.status_code, 403)
+
+    def test_inactive_room_blocked(self):
+        from collaboration.models import PairProgrammingRoom
+        room = PairProgrammingRoom.objects.create(
+            room_code='SPHERE-CLOSED1',
+            title='Closed Session',
+            host=self.owner,
+            is_active=False,
+            language='python'
+        )
+        client = Client()
+        client.login(username='collabowner', password='Password123!')
+
+        res = client.get(reverse('collaboration:pair_room', kwargs={'room_code': 'SPHERE-CLOSED1'}))
+        self.assertEqual(res.status_code, 403)
+
+

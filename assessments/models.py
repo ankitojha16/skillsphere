@@ -13,6 +13,8 @@ class SkillAssessment(models.Model):
         ('DSA', 'Data Structures & Algorithms'),
         ('Django', 'Django Web Framework'),
         ('CS_Fundamentals', 'Computer Science Fundamentals'),
+        ('Cloud_Fundamentals', 'Cloud Fundamentals & DevOps'),
+        ('Data_Science', 'Data Science & Machine Learning'),
     ]
 
     DIFFICULTY_CHOICES = [

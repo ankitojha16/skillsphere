@@ -200,7 +200,7 @@ def manage_team_view(request, pk):
 import json
 import uuid
 import secrets
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseForbidden
 from .models import PairProgrammingRoom, RoomChatMessage
 
 
@@ -276,10 +276,16 @@ def pair_room_view(request, room_code):
     """
     room = get_object_or_404(PairProgrammingRoom, room_code=room_code)
     
-    # Auto-assign collaborator if slot open
-    if room.host != request.user and room.collaborator is None:
-        room.collaborator = request.user
-        room.save()
+    if not room.is_active:
+        return HttpResponseForbidden("This lounge session has ended.")
+
+    # Auto-assign collaborator if slot open, otherwise reject unauthorized intruders if room is full
+    if room.host != request.user:
+        if room.collaborator is None:
+            room.collaborator = request.user
+            room.save(update_fields=['collaborator'])
+        elif room.collaborator != request.user:
+            return HttpResponseForbidden("This lounge room is full (2/2 engineers active).")
 
     recent_chats = room.chat_messages.select_related('sender').order_by('created_at')[:40]
 
@@ -294,8 +300,18 @@ def pair_room_view(request, room_code):
 def room_sync_api(request, room_code):
     """
     Bidirectional polling/sync API: updates & fetches code, whiteboard state, and chat.
+    Restricted strictly to the room's host and active collaborator.
     """
     room = get_object_or_404(PairProgrammingRoom, room_code=room_code)
+
+    if not room.is_active:
+        return JsonResponse({'status': 'error', 'message': 'This lounge session has ended.'}, status=403)
+
+    if not (room.host == request.user or room.collaborator == request.user):
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Forbidden: You are not an active member of this pair programming session.'
+        }, status=403)
 
     if request.method == 'POST':
         try:
@@ -362,11 +378,21 @@ def room_sync_api(request, room_code):
 def run_room_code_api(request, room_code):
     """
     Safely executes collaborative code and returns stdout/result.
+    Restricted strictly to the room's host and active collaborator.
     """
     if request.method != 'POST':
         return JsonResponse({'status': 'error', 'message': 'POST required'}, status=400)
 
     room = get_object_or_404(PairProgrammingRoom, room_code=room_code)
+
+    if not room.is_active:
+        return JsonResponse({'status': 'error', 'message': 'This lounge session has ended.'}, status=403)
+
+    if not (room.host == request.user or room.collaborator == request.user):
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Forbidden: You are not an active member of this pair programming session.'
+        }, status=403)
     try:
         data = json.loads(request.body.decode('utf-8'))
         code = data.get('code', room.code_content)

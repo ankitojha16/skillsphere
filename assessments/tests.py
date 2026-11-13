@@ -223,4 +223,31 @@ class CodingChallengesTests(TestCase):
         self.assertEqual(data['xp_awarded'], 0)
         self.assertFalse(data['is_first_solve'])
 
+    def test_seed_expanded_assessments_command(self):
+        from django.core.management import call_command
+        import io
+        from learning.models import Exercise
+
+        out = io.StringIO()
+        call_command('seed_expanded_assessments', stdout=out)
+        output = out.getvalue()
+        self.assertIn('MILESTONE 3 SEEDING COMPLETED SUCCESSFULLY', output)
+
+        # Verify all 5 categories exist
+        expected_cats = ['HTML_CSS', 'JavaScript', 'CPP', 'Cloud_Fundamentals', 'Data_Science']
+        for cat in expected_cats:
+            ass = SkillAssessment.objects.filter(category=cat).first()
+            self.assertIsNotNone(ass, f"Missing assessment for category {cat}")
+            self.assertGreaterEqual(ass.questions.count(), 10, f"Assessment {cat} has less than 10 questions")
+
+        # Verify category filtering on assessments list view
+        resp_cloud = self.client.get(reverse('assessments:list') + '?category=Cloud_Fundamentals')
+        self.assertEqual(resp_cloud.status_code, 200)
+        self.assertContains(resp_cloud, 'Cloud Architecture')
+
+        resp_ds = self.client.get(reverse('assessments:list') + '?category=Data_Science')
+        self.assertEqual(resp_ds.status_code, 200)
+        self.assertContains(resp_ds, 'Data Science, Applied Statistics')
+
+
 

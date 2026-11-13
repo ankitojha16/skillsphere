@@ -119,6 +119,48 @@ class ProfileSetupForm(forms.ModelForm):
         if self.instance and self.instance.pk:
             self.fields['selected_interests'].initial = self.instance.get_interests_list()
 
+    def clean_avatar(self):
+        avatar = self.cleaned_data.get('avatar')
+        if not avatar:
+            return avatar
+
+        # 1. Strict File Size Limit: 5 MB
+        max_size = 5 * 1024 * 1024
+        if avatar.size > max_size:
+            raise ValidationError("Avatar image file size must not exceed 5 MB.")
+
+        # 2. Decompression Bomb Protection (Limit total pixels)
+        from PIL import Image
+        Image.MAX_IMAGE_PIXELS = 10_000_000
+
+        # 3. Deep Image Integrity Verification using Pillow
+        try:
+            avatar.seek(0)
+            img = Image.open(avatar)
+            img.verify()
+        except Exception:
+            raise ValidationError("The uploaded file is corrupt, truncated, or not a valid image.")
+
+        # 4. Check Allowed Image Formats & Dimensions
+        try:
+            avatar.seek(0)
+            img = Image.open(avatar)
+            allowed_formats = {'JPEG', 'PNG', 'WEBP'}
+            img_format = (img.format or '').upper()
+            if img_format not in allowed_formats:
+                raise ValidationError(f"Unsupported image format: {img_format or 'Unknown'}. Please upload a JPEG, PNG, or WebP image.")
+
+            if img.width > 4096 or img.height > 4096:
+                raise ValidationError(f"Image dimensions ({img.width}×{img.height}) exceed maximum allowed limit of 4096×4096 pixels.")
+        except ValidationError:
+            raise
+        except Exception:
+            raise ValidationError("Unable to decode the uploaded image. Please ensure it is a valid JPEG, PNG, or WebP file.")
+        finally:
+            avatar.seek(0)
+
+        return avatar
+
     def save(self, commit=True):
         import os
         import base64

@@ -494,23 +494,23 @@
                 </div>
 
                 <!-- Live Canvas Zoom Toolbar (Phase 4) -->
-                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 p-2 rounded bg-dark border border-secondary border-opacity-25" id="resumeZoomToolbar">
-                    <div class="d-flex align-items-center gap-1">
-                        <span class="text-secondary small fw-medium me-1"><i data-lucide="zoom-in" style="width: 14px; height: 14px;"></i> Zoom:</span>
-                        <button type="button" class="btn btn-sm btn-outline-secondary py-1 px-2" id="zoomOutBtn" title="Zoom Out (-10%)" aria-label="Zoom Out">
+                <div class="d-flex justify-content-between align-items-center gap-1.5 mb-3 p-2 rounded bg-dark border border-secondary border-opacity-25" id="resumeZoomToolbar">
+                    <div class="d-flex align-items-center gap-1 flex-shrink-0">
+                        <span class="text-secondary small fw-medium me-1 zoom-label"><i data-lucide="zoom-in" style="width: 14px; height: 14px;"></i> Zoom:</span>
+                        <button type="button" class="btn btn-sm btn-outline-secondary py-1 px-2 flex-shrink-0" id="zoomOutBtn" title="Zoom Out (-10%)" aria-label="Zoom Out">
                             <i data-lucide="minus" style="width: 13px; height: 13px;"></i>
                         </button>
-                        <span class="badge bg-dark border border-secondary text-white font-monospace px-2 py-1" id="zoomPercentBadge" style="min-width: 48px; font-size: 0.78rem;">100%</span>
-                        <button type="button" class="btn btn-sm btn-outline-secondary py-1 px-2" id="zoomInBtn" title="Zoom In (+10%)" aria-label="Zoom In">
+                        <span class="badge bg-dark border border-secondary text-white font-monospace px-2 py-1 flex-shrink-0" id="zoomPercentBadge" style="min-width: 48px; font-size: 0.78rem;">100%</span>
+                        <button type="button" class="btn btn-sm btn-outline-secondary py-1 px-2 flex-shrink-0" id="zoomInBtn" title="Zoom In (+10%)" aria-label="Zoom In">
                             <i data-lucide="plus" style="width: 13px; height: 13px;"></i>
                         </button>
                     </div>
-                    <div class="d-flex align-items-center gap-1 flex-wrap">
-                        <button type="button" class="btn btn-sm btn-outline-secondary py-1 px-2 zoom-preset-btn" data-zoom="75">75%</button>
-                        <button type="button" class="btn btn-sm btn-outline-secondary py-1 px-2 zoom-preset-btn active" data-zoom="100">100%</button>
-                        <button type="button" class="btn btn-sm btn-outline-secondary py-1 px-2 zoom-preset-btn" data-zoom="125">125%</button>
-                        <button type="button" class="btn btn-sm btn-outline-info py-1 px-2 d-inline-flex align-items-center gap-1" id="zoomFitBtn" title="Fit to Screen Width">
-                            <i data-lucide="maximize-2" style="width: 12px; height: 12px;"></i> Fit to Screen
+                    <div class="d-flex align-items-center gap-1 flex-nowrap flex-shrink-0">
+                        <button type="button" class="btn btn-sm btn-outline-secondary py-1 px-2 zoom-preset-btn flex-shrink-0" data-zoom="75">75%</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary py-1 px-2 zoom-preset-btn active flex-shrink-0" data-zoom="100">100%</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary py-1 px-2 zoom-preset-btn flex-shrink-0" data-zoom="125">125%</button>
+                        <button type="button" class="btn btn-sm btn-outline-info py-1 px-2 d-inline-flex align-items-center gap-1 flex-shrink-0" id="zoomFitBtn" title="Fit to Screen Width">
+                            <i data-lucide="maximize-2" style="width: 12px; height: 12px;"></i> <span class="fit-text-full">Fit to Screen</span><span class="fit-text-short d-none">Fit</span>
                         </button>
                     </div>
                 </div>

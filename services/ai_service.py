@@ -401,7 +401,12 @@ class AIService:
         exponential backoff, random jitter, and monotonic execution deadline budget.
         Returns: Dict with {'text': str, 'model': str, 'latency_ms': float} or None.
         """
-        api_key = os.getenv('GEMINI_API_KEY') or getattr(settings, 'GEMINI_API_KEY', '')
+        # Fast-fail immediately if API key was recently flagged as unauthorized / unavailable (401/403)
+        if cache and cache.get("gemini_api_key_unavailable"):
+            logger.info("[AIService] Gemini API key previously flagged as unavailable (401/403). Fast-failing to Knowledge Engine.")
+            return None
+
+        api_key = (os.getenv('GEMINI_API_KEY') or getattr(settings, 'GEMINI_API_KEY', '') or '').strip()
         if not api_key:
             return None
 
@@ -448,7 +453,7 @@ class AIService:
 
         # Monotonic deadline budget
         total_deadline = getattr(settings, 'AI_TOTAL_DEADLINE', 25.0)
-        request_timeout = getattr(settings, 'AI_REQUEST_TIMEOUT', 12.0)
+        model_timeout = getattr(settings, 'AI_MODEL_TIMEOUT', 1.5)
         start_monotonic = time.monotonic()
         deadline_time = start_monotonic + total_deadline
 
@@ -468,7 +473,7 @@ class AIService:
                 if remaining <= 0:
                     break
 
-                per_req_timeout = min(request_timeout, max(2.0, remaining))
+                per_req_timeout = min(model_timeout, max(0.5, remaining))
                 call_start = time.perf_counter()
 
                 call_res = cls._call_gemini_single(
@@ -499,6 +504,9 @@ class AIService:
                 # If permanent error (e.g. 401/403 Invalid API Key): DO NOT RETRY, abort immediately
                 if is_permanent:
                     cls._record_metric(success=False, model=model, latency_ms=latency_ms, is_429=False)
+                    if status_code in (401, 403) and cache:
+                        # Cache API key unavailable state for 5 minutes (300s) to fast-fail subsequent doomed requests
+                        cache.set("gemini_api_key_unavailable", True, timeout=300)
                     logger.error(
                         f"[AIService] Permanent HTTP {status_code} on model '{model}'. "
                         f"Aborting cascade to prevent repeated unauthorized calls. Reason: {err_msg}"
@@ -678,9 +686,10 @@ class AIService:
         # 3. Offline fallback
         return {
             'text': None,
-            'provider': 'offline-knowledge-engine',
-            'provider_label': 'SkillSphere Offline Knowledge Engine',
+            'provider': 'SkillSphere Knowledge Engine (Offline)',
+            'provider_label': 'SkillSphere Knowledge Engine (Offline)',
             'is_fallback': True,
+            'is_offline': True,
             'latency_ms': 0.0,
         }
 
@@ -763,9 +772,10 @@ class AIService:
         fallback_data = fallback_fn()
         fallback_meta = {
             'text': json.dumps(fallback_data),
-            'provider': 'offline-knowledge-engine',
-            'provider_label': 'SkillSphere Offline Knowledge Engine',
+            'provider': 'SkillSphere Knowledge Engine (Offline)',
+            'provider_label': 'SkillSphere Knowledge Engine (Offline)',
             'is_fallback': True,
+            'is_offline': True,
             'latency_ms': 0.0,
         }
         return fallback_data, fallback_meta
@@ -1217,9 +1227,10 @@ class AIService:
 
         return {
             'text': fallback_text,
-            'provider': 'offline-knowledge-engine',
-            'provider_label': 'SkillSphere Offline Knowledge Engine',
+            'provider': 'SkillSphere Knowledge Engine (Offline)',
+            'provider_label': 'SkillSphere Knowledge Engine (Offline)',
             'is_fallback': True,
+            'is_offline': True,
             'latency_ms': 0.0,
         }
 
@@ -1970,9 +1981,10 @@ class AIService:
             )
         return {
             'text': fallback,
-            'provider': 'offline-knowledge-engine',
-            'provider_label': 'SkillSphere Knowledge Engine',
+            'provider': 'SkillSphere Knowledge Engine (Offline)',
+            'provider_label': 'SkillSphere Knowledge Engine (Offline)',
             'is_fallback': True,
+            'is_offline': True,
             'latency_ms': 0.0,
         }
 

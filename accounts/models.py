@@ -28,7 +28,14 @@ class StudentProfile(models.Model):
         ('dbms', 'Database Management'),
     ]
 
+    ROLE_CHOICES = [
+        ('student', 'Student'),
+        ('recruiter', 'Recruiter'),
+        ('instructor', 'Instructor'),
+    ]
+
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='student', db_index=True)
     full_name = models.CharField(max_length=150, blank=True)
     avatar = models.ImageField(upload_to='avatars/', null=True, blank=True)
     avatar_url_external = models.URLField(max_length=500, blank=True, help_text='Direct URL to profile photo (e.g. GitHub, Gravatar, Unsplash)')
