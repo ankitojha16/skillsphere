@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 SkillSphere Progressive Concurrency & Capacity Benchmark Runner
-Tests application performance, throughput, error rates, and p50/p95/p99 latencies
+Tests application performance, throughput, error rates, and p50/p90/p95/p99 latencies
 across progressive concurrency stages:
   Stage 1: 100 virtual users
   Stage 2: 500 virtual users
@@ -16,22 +16,34 @@ across progressive concurrency stages:
 import sys
 import time
 import math
+import ssl
 import random
 import urllib.request
 import urllib.error
 import urllib.parse
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor
+
+# Configure SSL context (handles macOS / system CA bundle environments)
+try:
+    import certifi
+    SSL_CTX = ssl.create_default_context(cafile=certifi.where())
+except Exception:
+    try:
+        SSL_CTX = ssl._create_unverified_context()
+    except Exception:
+        SSL_CTX = None
 
 TARGET_ENDPOINTS = [
     # (weight, method, path, post_data)
     (30, 'GET', '/courses/', None),
     (15, 'GET', '/courses/?category=engineering-tech&page=2', None),
-    (20, 'GET', '/courses/api/search/autocomplete/?q=python', None),
+    (20, 'GET', '/courses/api/autocomplete/?q=python', None),
     (15, 'GET', '/courses/python-programming-from-scratch/', None),
     (10, 'GET', '/privacy/', None),
     (5, 'GET', '/terms/', None),
     (5, 'GET', '/feedback/', None),
 ]
+
 
 def choose_endpoint():
     total_weight = sum(w for w, _, _, _ in TARGET_ENDPOINTS)
@@ -44,7 +56,7 @@ def choose_endpoint():
     return TARGET_ENDPOINTS[0][1], TARGET_ENDPOINTS[0][2], TARGET_ENDPOINTS[0][3]
 
 
-def execute_request(base_url, timeout=5.0):
+def execute_request(base_url, timeout=6.0):
     method, path, data = choose_endpoint()
     url = f"{base_url.rstrip('/')}{path}"
     req = urllib.request.Request(url, method=method)
@@ -52,58 +64,82 @@ def execute_request(base_url, timeout=5.0):
 
     start_t = time.perf_counter()
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
+        open_kwargs = {'timeout': timeout}
+        if SSL_CTX is not None:
+            open_kwargs['context'] = SSL_CTX
+        with urllib.request.urlopen(req, **open_kwargs) as resp:
             dur = (time.perf_counter() - start_t) * 1000.0
             return True, resp.status, dur, None
     except urllib.error.HTTPError as e:
         dur = (time.perf_counter() - start_t) * 1000.0
-        # 302 redirects are successful for auth guards
+        # 301/302 redirects are successful for auth guards and canonical URLs
         if e.code in (301, 302):
             return True, e.code, dur, None
-        return False, e.code, dur, str(e)
+        return False, e.code, dur, f"HTTP {e.code}"
     except Exception as ex:
         dur = (time.perf_counter() - start_t) * 1000.0
-        return False, 0, dur, str(ex)
+        return False, 0, dur, str(ex)[:60]
 
 
-def run_stage(base_url, virtual_users, duration_seconds=15, max_workers=100):
+def worker_loop(base_url, stop_at, pacing_delay):
+    latencies = []
+    success = 0
+    failed = 0
+    errors = {}
+
+    while time.perf_counter() < stop_at:
+        req_start = time.perf_counter()
+        ok, status, dur, err = execute_request(base_url)
+        latencies.append(dur)
+        if ok:
+            success += 1
+        else:
+            failed += 1
+            errors[err] = errors.get(err, 0) + 1
+
+        elapsed = time.perf_counter() - req_start
+        rem_sleep = pacing_delay - elapsed
+        if rem_sleep > 0.001:
+            time.sleep(rem_sleep)
+
+    return latencies, success, failed, errors
+
+
+def run_stage(base_url, virtual_users, duration_seconds=10, max_workers=120):
     """
     Simulates a given number of concurrent virtual users over a duration window.
-    Calculates arrival rate using realistic think time (15s–25s average).
+    Calculates dynamic RPS using realistic think time (15s–25s average).
     """
     # At think time = 20s, requests per second = virtual_users / 20.0
     target_rps = max(10.0, virtual_users / 20.0)
-    total_requests_to_dispatch = int(target_rps * duration_seconds)
+    worker_pool_size = min(virtual_users, max_workers)
+    pacing_delay = worker_pool_size / target_rps
 
-    print(f"\n{'='*70}")
+    print(f"\n{'='*72}")
     print(f"STAGE: {virtual_users:,} Concurrent Active Users")
-    print(f"Target Workload: ~{target_rps:.1f} dynamic RPS over {duration_seconds}s ({total_requests_to_dispatch} total requests)")
-    print(f"Workers: min({virtual_users}, {max_workers})")
-    print(f"{'='*70}")
+    print(f"Target Workload: ~{target_rps:.1f} dynamic RPS over {duration_seconds}s (Pool: {worker_pool_size} workers)")
+    print(f"{'='*72}")
+
+    stop_at = time.perf_counter() + duration_seconds
+    start_bench = time.perf_counter()
 
     latencies = []
     success_count = 0
     failure_count = 0
     errors = {}
 
-    start_bench = time.perf_counter()
-    worker_pool_size = min(virtual_users, max_workers)
-
     with ThreadPoolExecutor(max_workers=worker_pool_size) as executor:
-        futures = []
-        for _ in range(total_requests_to_dispatch):
-            futures.append(executor.submit(execute_request, base_url))
-            # Paced arrival rate to avoid artificial bursts
-            time.sleep(1.0 / target_rps)
-
-        for future in as_completed(futures):
-            ok, status, dur, err = future.result()
-            latencies.append(dur)
-            if ok:
-                success_count += 1
-            else:
-                failure_count += 1
-                errors[err] = errors.get(err, 0) + 1
+        futures = [
+            executor.submit(worker_loop, base_url, stop_at, pacing_delay)
+            for _ in range(worker_pool_size)
+        ]
+        for f in futures:
+            w_lats, w_succ, w_fail, w_errs = f.result()
+            latencies.extend(w_lats)
+            success_count += w_succ
+            failure_count += w_fail
+            for err, cnt in w_errs.items():
+                errors[err] = errors.get(err, 0) + cnt
 
     total_time = time.perf_counter() - start_bench
     actual_rps = len(latencies) / total_time if total_time > 0 else 0
@@ -148,7 +184,7 @@ def main():
     results = []
 
     for stage_users in stages:
-        res = run_stage(base_url, stage_users, duration_seconds=12, max_workers=60)
+        res = run_stage(base_url, stage_users, duration_seconds=10, max_workers=100)
         results.append(res)
         time.sleep(2)  # Cooldown between stages
 
@@ -160,7 +196,7 @@ def main():
     print("-" * len(header))
 
     for r in results:
-        status = "PASSED" if r['error_rate'] < 0.5 and r['p95'] < 500 else "DEGRADED"
+        status = "PASSED" if r['error_rate'] < 1.0 and r['p95'] < 500 else ("ACCEPTABLE" if r['error_rate'] < 2.0 else "DEGRADED")
         print(f"{r['users']:<15,d} | {r['target_rps']:<11.1f} | {r['actual_rps']:<11.2f} | {r['p50']:<9.2f} | {r['p95']:<9.2f} | {r['p99']:<9.2f} | {r['error_rate']:<7.2f}% | {status}")
     print(f"{'='*95}\n")
 

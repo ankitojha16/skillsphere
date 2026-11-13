@@ -6,6 +6,7 @@ app_name = 'courses'
 urlpatterns = [
     path('', views.course_list_view, name='list'),
     path('api/autocomplete/', views.course_search_autocomplete_api, name='search_autocomplete'),
+    path('api/search/autocomplete/', views.course_search_autocomplete_api, name='search_autocomplete_alias'),
     path('my-learning/', views.my_learning_view, name='my_learning'),
     path('saved/', views.saved_courses_view, name='saved_courses'),
     path('<slug:slug>/bookmark/', views.toggle_course_bookmark_api, name='toggle_bookmark'),
