@@ -1,0 +1,122 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="100%" height="100%" fill="none">
+  <defs>
+    <!-- Core Linear Gradients -->
+    <linearGradient id="ssRing1Grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8" />
+      <stop offset="50%" stop-color="#6366F1" />
+      <stop offset="100%" stop-color="#A855F7" />
+    </linearGradient>
+
+    <linearGradient id="ssRing2Grad" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#F43F5E" />
+      <stop offset="45%" stop-color="#EC4899" />
+      <stop offset="100%" stop-color="#8B5CF6" />
+    </linearGradient>
+
+    <linearGradient id="ssSphereSurface" x1="20%" y1="15%" x2="85%" y2="90%">
+      <stop offset="0%" stop-color="#818CF8" />
+      <stop offset="35%" stop-color="#6366F1" />
+      <stop offset="70%" stop-color="#4338CA" />
+      <stop offset="100%" stop-color="#1E1B4B" />
+    </linearGradient>
+
+    <radialGradient id="ssCoreGlow" cx="42%" cy="38%" r="65%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.9" />
+      <stop offset="25%" stop-color="#C7D2FE" stop-opacity="0.6" />
+      <stop offset="55%" stop-color="#6366F1" stop-opacity="0.2" />
+      <stop offset="100%" stop-color="#0F172A" stop-opacity="0" />
+    </radialGradient>
+
+    <radialGradient id="ssAuraGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#818CF8" stop-opacity="0.45" />
+      <stop offset="50%" stop-color="#6366F1" stop-opacity="0.2" />
+      <stop offset="100%" stop-color="#6366F1" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- Glow Filters -->
+    <filter id="ssGlow" x="-25%" y="-25%" width="150%" height="150%">
+      <feGaussianBlur stdDeviation="3" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+
+    <filter id="ssAuraBlur" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="8" />
+    </filter>
+  </defs>
+
+  <!-- Ambient Background Aura -->
+  <circle cx="60" cy="60" r="50" fill="url(#ssAuraGlow)" filter="url(#ssAuraBlur)" />
+
+  <!-- Back Segment of Counter-Orbital Ring (Layer Behind Sphere) -->
+  <g transform="rotate(-32 60 60)">
+    <ellipse cx="60" cy="60" rx="51" ry="17" 
+             stroke="url(#ssRing2Grad)" stroke-width="2.5" 
+             stroke-dasharray="140 180" stroke-dashoffset="15" 
+             opacity="0.45" />
+  </g>
+
+  <!-- Back Segment of Primary Orbital Ring -->
+  <g transform="rotate(38 60 60)">
+    <ellipse cx="60" cy="60" rx="53" ry="18" 
+             stroke="url(#ssRing1Grad)" stroke-width="3" 
+             stroke-dasharray="150 180" stroke-dashoffset="18" 
+             opacity="0.5" />
+  </g>
+
+  <!-- Central Solid Sphere Body -->
+  <circle cx="60" cy="60" r="28" fill="url(#ssSphereSurface)" />
+
+  <!-- 3D Latitudinal / Longitudinal Skill Meridian Grid -->
+  <!-- Latitude Arcs -->
+  <ellipse cx="60" cy="50" rx="26" ry="8" fill="none" stroke="#A5B4FC" stroke-width="1.2" opacity="0.35" />
+  <ellipse cx="60" cy="60" rx="28" ry="10" fill="none" stroke="#E0E7FF" stroke-width="1.4" opacity="0.45" />
+  <ellipse cx="60" cy="70" rx="25" ry="8" fill="none" stroke="#818CF8" stroke-width="1.2" opacity="0.3" />
+
+  <!-- Longitude Geodesic Curves -->
+  <path d="M60 32 C 45 42, 45 78, 60 88" fill="none" stroke="#C7D2FE" stroke-width="1.2" opacity="0.4" />
+  <path d="M60 32 C 75 42, 75 78, 60 88" fill="none" stroke="#818CF8" stroke-width="1.2" opacity="0.4" />
+  <line x1="60" y1="32" x2="60" y2="88" stroke="#E0E7FF" stroke-width="1.3" opacity="0.35" />
+
+  <!-- Sphere Specular Light Highlight & 3D Shading -->
+  <circle cx="60" cy="60" r="28" fill="url(#ssCoreGlow)" />
+
+  <!-- Front Segment of Primary Orbital Ring (Sweeping Across the Front) -->
+  <g transform="rotate(38 60 60)">
+    <ellipse cx="60" cy="60" rx="53" ry="18" 
+             stroke="url(#ssRing1Grad)" stroke-width="3.2" 
+             stroke-linecap="round"
+             stroke-dasharray="160 170" stroke-dashoffset="195" 
+             filter="url(#ssGlow)" />
+    <!-- Orbiting Skill Node 1 on Primary Ring -->
+    <circle cx="113" cy="60" r="4.5" fill="#38BDF8" filter="url(#ssGlow)" />
+    <circle cx="113" cy="60" r="2" fill="#FFFFFF" />
+  </g>
+
+  <!-- Front Segment of Counter-Orbital Ring (Sweeping Across Front) -->
+  <g transform="rotate(-32 60 60)">
+    <ellipse cx="60" cy="60" rx="51" ry="17" 
+             stroke="url(#ssRing2Grad)" stroke-width="2.8" 
+             stroke-linecap="round"
+             stroke-dasharray="150 170" stroke-dashoffset="190" 
+             filter="url(#ssGlow)" />
+    <!-- Orbiting Skill Node 2 on Counter Ring -->
+    <circle cx="9" cy="60" r="4" fill="#F43F5E" filter="url(#ssGlow)" />
+    <circle cx="9" cy="60" r="1.8" fill="#FFFFFF" />
+  </g>
+
+  <!-- Inner Skill Constellation Nodes & Connecting Sparks -->
+  <circle cx="50" cy="52" r="2.2" fill="#38BDF8" filter="url(#ssGlow)" />
+  <circle cx="71" cy="54" r="2.2" fill="#F43F5E" filter="url(#ssGlow)" />
+  <circle cx="58" cy="71" r="2.2" fill="#A855F7" filter="url(#ssGlow)" />
+  <line x1="50" y1="52" x2="60" y2="60" stroke="#FFFFFF" stroke-width="1" opacity="0.6" />
+  <line x1="71" y1="54" x2="60" y2="60" stroke="#FFFFFF" stroke-width="1" opacity="0.6" />
+  <line x1="58" y1="71" x2="60" y2="60" stroke="#FFFFFF" stroke-width="1" opacity="0.6" />
+
+  <!-- Center Radiant 4-Point Star of Mastery (SkillSphere Vertex) -->
+  <path d="M60 52 Q60 60 52 60 Q60 60 60 68 Q60 60 68 60 Q60 60 60 52 Z" 
+        fill="#FFFFFF" filter="url(#ssGlow)" />
+  <circle cx="60" cy="60" r="1.5" fill="#38BDF8" />
+</svg>

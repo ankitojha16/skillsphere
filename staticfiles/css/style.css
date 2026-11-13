@@ -5,8 +5,18 @@
 
 :root,
 [data-bs-theme="dark"] {
+  --text-primary: #FFFFFF;
+  --text-main: #F8FAFC;
+  --text-tier2: #F1F5F9;
+  --text-secondary: #CBD5E1;
+  --text-muted: #A8B7CC;
+  --text-tier4: #94A3B8;
   --bg-primary: #0B1020;
   --bg-secondary: #10172A;
+  --bg-surface: #0F172A;
+  --border-subtle: #334155;
+  --accent-primary: #89F336;
+
   --bg-card: #151F35;
   --bg-card-hover: #1E2B4A;
   --bg-card-secondary: #1B2942;
@@ -25,10 +35,6 @@
   --warning: #FBBF24;
   --danger: #F87171;
   --error: #F87171;
-  
-  --text-main: #F8FAFC;
-  --text-secondary: #CBD5E1;
-  --text-muted: #A8B7CC;
   
   /* Bootstrap 5 Native Theme Binding */
   --bs-body-bg: #0B1020;
@@ -73,29 +79,134 @@
   color: #FFFFFF !important;
 }
 
-/* High Contrast & WCAG AA Accessibility Overrides */
-.text-main, .text-primary-text {
+/* ========================================================
+   Phase 3: Four-Tier High-Contrast Typography System (WCAG AAA)
+   Tier 1: Headings, key metrics -> #FFFFFF (17.5:1 ratio)
+   Tier 2: Main body text, buttons -> #F1F5F9 (15.6:1 ratio)
+   Tier 3: Subtitles, metadata, timestamps -> #CBD5E1 (11.2:1 ratio)
+   Tier 4: Placeholders, subtle labels -> #94A3B8 (7.2:1 ratio)
+   ======================================================== */
+.text-white, .text-light, .text-primary-text {
   color: #FFFFFF !important;
 }
 
-.text-muted {
-  color: #F1F5F9 !important; /* Crisp light contrast */
+.text-main {
+  color: #F1F5F9 !important;
 }
 
 .text-secondary {
-  color: #FFFFFF !important; /* Pure white for labels and metadata */
+  color: #CBD5E1 !important;
 }
 
-.text-body-secondary {
-  color: #FFFFFF !important;
+.text-muted, .text-body-secondary {
+  color: #94A3B8 !important;
 }
 
-.text-light {
-  color: #FFFFFF !important;
+::placeholder {
+  color: #94A3B8 !important;
+  opacity: 1 !important;
 }
 
-.text-white {
-  color: #FFFFFF !important;
+/* Phase 3: Card Micro-Hover Effects with Accessibility Motion Guard */
+.card, .custom-card, .stat-card {
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+.card:hover, .custom-card:hover, .stat-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(137, 243, 54, 0.35) !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 0 15px rgba(137, 243, 54, 0.08);
+}
+@media (prefers-reduced-motion: reduce) {
+  .card, .custom-card, .stat-card {
+    transition: none !important;
+    transform: none !important;
+  }
+}
+
+/* ========================================================
+   Phase 1: CodeMirror 6 VS Code Dark Theme Tokens
+   ======================================================== */
+.cm-editor {
+  height: 100% !important;
+  background-color: #1E1E1E !important;
+  color: #D4D4D4 !important;
+  font-family: 'Fira Code', 'JetBrains Mono', 'Consolas', monospace !important;
+  font-size: 14px !important;
+  line-height: 1.6 !important;
+  border-radius: 8px;
+}
+.cm-editor .cm-scroller {
+  font-family: inherit !important;
+  overflow: auto;
+}
+.cm-editor .cm-gutters {
+  background-color: #252526 !important;
+  color: #858585 !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+.cm-editor .cm-activeLine {
+  background-color: #2A2D2E !important;
+}
+.cm-editor .cm-activeLineGutter {
+  background-color: #2A2D2E !important;
+  color: #C6C6C6 !important;
+}
+.cm-editor .cm-selectionBackground,
+.cm-editor.cm-focused .cm-selectionBackground,
+.cm-editor ::selection {
+  background-color: #264F78 !important;
+}
+
+/* CodeMirror 6 Syntax Highlighting Token Colors */
+.cm-editor .tok-keyword { color: #569CD6 !important; font-weight: 600; }
+.cm-editor .tok-string { color: #CE9178 !important; }
+.cm-editor .tok-function { color: #DCDCAA !important; }
+.cm-editor .tok-comment { color: #6A9955 !important; font-style: italic; }
+.cm-editor .tok-number { color: #B5CEA8 !important; }
+.cm-editor .tok-variableName { color: #9CDCFE !important; }
+.cm-editor .tok-typeName { color: #4EC9B0 !important; }
+.cm-editor .tok-operator { color: #D4D4D4 !important; }
+
+/* ========================================================
+   Phase 5: Reusable Skeleton Loaders & Shimmer
+   ======================================================== */
+.skeleton-box, .skeleton-text, .skeleton-avatar {
+  position: relative;
+  overflow: hidden;
+  background: #1E293B;
+  border-radius: 8px;
+}
+.skeleton-text {
+  height: 12px;
+  margin: 8px 0;
+}
+.skeleton-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+}
+.skeleton-box::after, .skeleton-text::after, .skeleton-avatar::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.08),
+    transparent
+  );
+  animation: skeleton-shimmer 1.4s infinite;
+}
+@keyframes skeleton-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-box::after, .skeleton-text::after, .skeleton-avatar::after {
+    animation: none;
+  }
 }
 
 /* Typography Scale Safeguards */
