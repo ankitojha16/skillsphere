@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Your Personalized Curriculum - SkillSphere{% endblock %}
+
+{% block content %}
+<div class="container py-4 py-md-5" style="max-width: 960px;">
+    <!-- Welcome Header -->
+    <div class="text-center mb-5">
+        <span class="badge bg-purple-subtle text-purple border border-purple-subtle px-3 py-1 rounded-pill small fw-semibold mb-2 d-inline-flex align-items-center gap-1.5">
+            <i data-lucide="sparkles" style="width: 14px; height: 14px;"></i> Onboarding Complete
+        </span>
+        <h1 class="display-6 fw-bold text-white mb-2">Welcome to Your Beta Journey, {{ profile.full_name|default:user.username }}!</h1>
+        <p class="text-secondary mx-auto mb-0" style="max-width: 620px;">
+            Based on your interests in <strong class="text-white">{{ profile.get_interests_list|join:", "|title|default:"Software Engineering" }}</strong> and your <strong class="text-white">{{ profile.get_learning_level_display }}</strong> technical background, here is your customized starter curriculum:
+        </p>
+    </div>
+
+    <!-- Hero First Action Card -->
+    {% if top_course and first_lesson %}
+    <div class="custom-card p-4 p-md-5 mb-5 border border-primary border-opacity-25" style="background: radial-gradient(circle at top right, rgba(99, 102, 241, 0.12), rgba(15, 23, 42, 0.98));">
+        <div class="row align-items-center g-4">
+            <div class="col-lg-8">
+                <span class="badge bg-primary text-white rounded-pill px-2.5 py-1 small fw-semibold mb-2">
+                    <i data-lucide="play-circle" style="width: 13px; height: 13px;" class="me-1"></i> Recommended First Step
+                </span>
+                <h2 class="h3 fw-bold text-white mb-2">{{ top_course.title }}</h2>
+                <p class="text-secondary small mb-3">{{ top_course.short_description|default:top_course.description|truncatewords:28 }}</p>
+                <div class="d-flex flex-wrap align-items-center gap-3 text-secondary small">
+                    <span class="d-flex align-items-center gap-1"><i data-lucide="layers" style="width: 14px; height: 14px;"></i> {{ top_course.difficulty }}</span>
+                    <span class="d-flex align-items-center gap-1"><i data-lucide="video" style="width: 14px; height: 14px;"></i> Lesson 1: {{ first_lesson.title|truncatechars:35 }}</span>
+                    <span class="d-flex align-items-center gap-1"><i data-lucide="clock" style="width: 14px; height: 14px;"></i> ~{{ first_lesson.duration_minutes|default:15 }} mins</span>
+                </div>
+            </div>
+            <div class="col-lg-4 text-lg-end">
+                <form action="{% url 'courses:enroll' top_course.slug %}" method="post" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-primary-custom px-4 py-2.5 rounded-pill shadow-lg d-inline-flex align-items-center gap-2">
+                        <i data-lucide="arrow-right" style="width: 18px; height: 18px;"></i>
+                        <span>Start First Lesson Now</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Recommended Courses Grid -->
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <h3 class="h5 fw-bold text-white mb-0">Recommended Courses for You</h3>
+        <a href="{% url 'courses:list' %}" class="small text-decoration-none text-info d-flex align-items-center gap-1">
+            Browse All 69 Courses <i data-lucide="chevron-right" style="width: 14px; height: 14px;"></i>
+        </a>
+    </div>
+
+    <div class="row g-4 mb-5">
+        {% for course in recommended_courses %}
+        <div class="col-md-6 col-lg-4">
+            <div class="custom-card h-100 d-flex flex-column p-3.5 hover-elevation">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="badge bg-dark border border-secondary border-opacity-20 text-secondary small">{{ course.difficulty }}</span>
+                    <span class="badge bg-success-subtle text-success small">Free Beta</span>
+                </div>
+                <h4 class="h6 fw-bold text-white mb-2" style="min-height: 2.6rem;">{{ course.title }}</h4>
+                <p class="text-secondary small mb-3 flex-grow-1" style="font-size: 0.8rem; line-height: 1.45;">
+                    {{ course.short_description|default:course.description|truncatewords:16 }}
+                </p>
+                <div class="d-flex align-items-center justify-content-between pt-2 border-top border-secondary border-opacity-15">
+                    <span class="text-muted small" style="font-size: 0.75rem;"><i data-lucide="book-open" style="width: 12px; height: 12px;" class="me-1"></i>{{ course.lessons.count }} lessons</span>
+                    <a href="{% url 'courses:detail' course.slug %}" class="btn btn-sm btn-outline-primary py-1 px-3 rounded-pill">
+                        View Course
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12 text-center py-4 text-secondary">
+            <p>Explore our catalogue of 69 accredited courses.</p>
+            <a href="{% url 'courses:list' %}" class="btn btn-primary-custom btn-sm">Explore Courses</a>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Bottom Actions -->
+    <div class="d-flex flex-wrap justify-content-center align-items-center gap-3 pt-2">
+        <a href="{% url 'dashboard:index' %}" class="btn btn-secondary-custom px-4 py-2 rounded-pill">
+            <i data-lucide="layout-dashboard" style="width: 16px; height: 16px;"></i>
+            <span>Go to Student Dashboard</span>
+        </a>
+        <a href="{% url 'courses:list' %}" class="btn btn-outline-secondary px-4 py-2 rounded-pill text-white">
+            <i data-lucide="compass" style="width: 16px; height: 16px;"></i>
+            <span>Explore All Topics</span>
+        </a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Terms of Service - SkillSphere Beta{% endblock %}
+
+{% block content %}
+<div class="container py-4 py-md-5" style="max-width: 820px;">
+    <div class="custom-card p-4 p-md-5 border border-secondary border-opacity-25">
+        <div class="mb-4 pb-3 border-bottom border-secondary border-opacity-20">
+            <span class="badge bg-purple-subtle text-purple border border-purple-subtle px-3 py-1 rounded-pill small fw-semibold mb-2 d-inline-flex align-items-center gap-1.5">
+                <i data-lucide="file-text" style="width: 14px; height: 14px;"></i> Beta Terms
+            </span>
+            <h1 class="h2 fw-bold text-white mb-2">SkillSphere Beta Terms of Service</h1>
+            <div class="text-secondary small">Last Updated: November 2026 • Private Beta Cohort</div>
+        </div>
+
+        <div class="text-light d-flex flex-column gap-4" style="line-height: 1.7; font-size: 0.92rem;">
+            <section>
+                <h5 class="fw-bold text-white mb-2">1. Acceptance of Terms</h5>
+                <p class="text-secondary mb-0">
+                    By registering, logging in, or using SkillSphere during the private beta phase, you agree to comply with and be bound by these Terms of Service. If you do not agree, you may refrain from using the platform and delete your account at any time.
+                </p>
+            </section>
+
+            <section>
+                <h5 class="fw-bold text-white mb-2">2. Beta Software Nature</h5>
+                <p class="text-secondary mb-0">
+                    SkillSphere is currently an evolving beta platform intended for testing, feedback gathering, and product improvement. Features, curriculum structure, and interfaces may be updated or refined periodically. While we strive for maximum uptime and reliability, the service is provided on an "as-is" and "as-available" basis.
+                </p>
+            </section>
+
+            <section>
+                <h5 class="fw-bold text-white mb-2">3. Academic Integrity &amp; Conduct</h5>
+                <ul class="text-secondary ps-3 mb-0 d-flex flex-column gap-2">
+                    <li><strong class="text-white">Authentic Assessment:</strong> Skill assessments and coding challenges must reflect your genuine technical capabilities. Automated submission bots, answer scraping, or unauthorized exploitation of judge sandboxes is prohibited.</li>
+                    <li><strong class="text-white">Collaborative Respect:</strong> In collaborative pair lounges and 1v1 arenas, students must maintain a professional and welcoming learning environment. Harassment, abuse, or offensive content is strictly prohibited.</li>
+                    <li><strong class="text-white">Security Integrity:</strong> You agree not to probe, scan, or exploit vulnerabilities on SkillSphere infrastructure or bypass role-based access restrictions.</li>
+                </ul>
+            </section>
+
+            <section>
+                <h5 class="fw-bold text-white mb-2">4. Intellectual Property</h5>
+                <p class="text-secondary mb-0">
+                    All curriculum designs, interactive code editors, platform code, and instructional media remain the intellectual property of SkillSphere and their respective content licensors. Code written by you in personal coding exercises and portfolio projects remains your own property.
+                </p>
+            </section>
+
+            <section>
+                <h5 class="fw-bold text-white mb-2">5. No Commercial Guarantees</h5>
+                <p class="text-secondary mb-0">
+                    SkillSphere provides educational courses, project generators, and resume tools. While certificates verify curriculum completion, SkillSphere makes no guarantees regarding employment, compensation, or job placement.
+                </p>
+            </section>
+
+            <section>
+                <h5 class="fw-bold text-white mb-2">6. Account Termination</h5>
+                <p class="text-secondary mb-0">
+                    You may permanently delete your account and associated records at any time using our self-service <a href="{% url 'accounts:delete_account' %}" class="text-danger text-decoration-none">Delete Account tool</a>. SkillSphere reserves the right to suspend accounts that violate safety rules or engage in platform abuse.
+                </p>
+            </section>
+
+            <section>
+                <h5 class="fw-bold text-white mb-2">7. Legal Review Notice</h5>
+                <p class="text-secondary mb-0">
+                    These beta terms govern student participation during the private testing release. A comprehensive legal review with qualified counsel will be completed prior to global public commercial launch.
+                </p>
+            </section>
+        </div>
+    </div>
+</div>
+{% endblock %}

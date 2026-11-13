@@ -184,3 +184,18 @@ def sitemap_xml_view(request):
     response['Cache-Control'] = 'public, max-age=43200'
     return response
 
+
+def privacy_policy_view(request):
+    """
+    Renders the SkillSphere Beta Privacy Policy and Data Practices disclosure.
+    """
+    return render(request, 'pages/privacy.html')
+
+
+def terms_of_service_view(request):
+    """
+    Renders the SkillSphere Beta Terms of Service and Code of Conduct.
+    """
+    return render(request, 'pages/terms.html')
+
+

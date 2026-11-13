@@ -250,6 +250,15 @@ def claim_certificate_view(request, course_id):
     )
     Course.invalidate_user_progress_cache(request.user.id, course.id)
 
+    # Telemetry: Certificate earned
+    from analytics.services import track_event
+    track_event(
+        user=request.user,
+        event_type='certificate_earned',
+        metadata={'course_id': course.id, 'certificate_id': cert.certificate_id, 'course_title': course.title},
+        event_key=f"cert_{request.user.id}_{course.id}"
+    )
+
     Notification.objects.create(
         user=request.user,
         title="Certificate Issued! 🎓",

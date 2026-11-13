@@ -45,6 +45,8 @@ class StudentProfile(models.Model):
     learning_level = models.CharField(max_length=20, choices=LEARNING_LEVEL_CHOICES, default='beginner')
     learning_interests = models.TextField(default='[]', help_text='JSON list of interest slugs')
     career_goal = models.CharField(max_length=255, blank=True)
+    onboarding_completed = models.BooleanField(default=False, db_index=True)
+    analytics_opt_out = models.BooleanField(default=False, help_text='Opt out of first-party product analytics telemetry')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

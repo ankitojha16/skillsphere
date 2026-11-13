@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Beta Feedback & Bug Report - SkillSphere{% endblock %}
+
+{% block content %}
+<div class="container py-4 py-md-5" style="max-width: 720px;">
+    <div class="custom-card p-4 p-md-5 border border-secondary border-opacity-25">
+        <div class="text-center mb-4">
+            <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-3 py-1 rounded-pill small fw-semibold mb-2 d-inline-flex align-items-center gap-1.5">
+                <i data-lucide="message-square" style="width: 14px; height: 14px;"></i> Private Beta Testing
+            </span>
+            <h1 class="h3 fw-bold text-white mb-2">Share Beta Feedback &amp; Report Issues</h1>
+            <p class="text-secondary small mb-0">Your honest feedback directly shapes the development of SkillSphere. Reports go straight to the engineering triage board.</p>
+        </div>
+
+        <form method="post" action="{% url 'analytics:submit_feedback_api' %}" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="hidden" name="page_url" value="{{ page_url|default:'/dashboard/' }}">
+
+            <!-- Category -->
+            <div class="mb-3">
+                <label class="form-label text-white small fw-semibold">Feedback Category</label>
+                <div class="d-flex flex-wrap gap-2">
+                    {% for cat_val, cat_label in category_choices %}
+                    <input type="radio" class="btn-check" name="category" id="cat_{{ cat_val }}" value="{{ cat_val }}" {% if forloop.first %}checked{% endif %}>
+                    <label class="btn btn-sm btn-outline-secondary text-light px-3 py-1.5 rounded-pill small" for="cat_{{ cat_val }}">
+                        {{ cat_label }}
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Rating (Optional 1-5) -->
+            <div class="mb-3">
+                <label class="form-label text-white small fw-semibold">Experience Rating (Optional)</label>
+                <div class="d-flex gap-2 align-items-center">
+                    {% for star in "12345" %}
+                    <input type="radio" class="btn-check" name="rating" id="rating_{{ star }}" value="{{ star }}">
+                    <label class="btn btn-sm btn-outline-warning px-3 py-1 rounded-pill" for="rating_{{ star }}" title="{{ star }} of 5 stars">
+                        ★ {{ star }}
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Description -->
+            <div class="mb-3">
+                <label for="id_description" class="form-label text-white small fw-semibold">Description / What happened?</label>
+                <textarea name="description" id="id_description" class="form-control" rows="5" placeholder="Tell us what you loved, what broke, or what could be better..." required style="background-color: var(--bg-input); border-color: var(--border-color); color: #fff;"></textarea>
+                <small class="text-muted mt-1 d-block">If reporting a bug, please mention the steps to reproduce.</small>
+            </div>
+
+            <!-- Screenshot (Optional) -->
+            <div class="mb-4">
+                <label for="id_screenshot" class="form-label text-white small fw-semibold">Screenshot Attachment (Optional)</label>
+                <input type="file" name="screenshot" id="id_screenshot" class="form-control" accept="image/jpeg,image/png,image/webp,image/gif">
+                <small class="text-muted mt-1 d-block">JPEG, PNG, WebP or GIF up to 5 MB.</small>
+            </div>
+
+            <!-- Context Info -->
+            <div class="p-2.5 rounded-3 mb-4 bg-dark border border-secondary border-opacity-15 small text-secondary d-flex align-items-center justify-content-between">
+                <span><i data-lucide="link" style="width: 13px; height: 13px;" class="me-1"></i> Context URL: <code>{{ page_url|default:'/dashboard/' }}</code></span>
+                <span class="badge bg-secondary text-white">Auto-detected</span>
+            </div>
+
+            <!-- Submit Buttons -->
+            <div class="d-flex flex-wrap gap-3">
+                <button type="submit" class="btn btn-primary-custom flex-grow-1 justify-content-center py-2.5 rounded-pill shadow-lg">
+                    <i data-lucide="send" style="width: 17px; height: 17px;"></i>
+                    <span>Send Beta Feedback</span>
+                </button>
+                <a href="{% url 'dashboard:index' %}" class="btn btn-secondary-custom py-2.5 px-4 rounded-pill">
+                    Back to Dashboard
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -335,11 +335,22 @@
                     <span>Settings & Profile</span>
                 </a>
 
+                <a href="javascript:void(0)" data-bs-toggle="modal" data-bs-target="#betaFeedbackModal" class="sidebar-link text-warning">
+                    <i data-lucide="message-square-plus" style="width: 18px; height: 18px;"></i>
+                    <span>Beta Feedback</span>
+                    <span class="badge bg-warning text-dark rounded-pill px-1.5 py-0 ms-auto" style="font-size: 0.65rem;">Beta</span>
+                </a>
+
                 <a href="javascript:void(0)" onclick="triggerPWAInstall()" class="sidebar-link pwa-install-trigger text-info" style="display: none;">
                     <i data-lucide="smartphone" style="width: 18px; height: 18px;"></i>
                     <span>Install App</span>
                 </a>
                 {% if user.is_staff %}
+                <a href="{% url 'analytics:admin_beta_dashboard' %}" class="sidebar-link {% if 'analytics' in request.path %}active{% endif %}">
+                    <i data-lucide="line-chart" style="width: 18px; height: 18px;"></i>
+                    <span>Beta Operations</span>
+                    <span class="badge bg-purple text-white rounded-pill px-2 py-0 ms-auto" style="font-size: 0.65rem;">Staff</span>
+                </a>
                 <a href="/admin/" target="_blank" class="sidebar-link">
                     <i data-lucide="shield" style="width: 18px; height: 18px;"></i>
                     <span>Admin Panel</span>
@@ -497,6 +508,22 @@
             <main class="page-container p-0">
                 {% block content %}{% endblock %}
             </main>
+
+            <!-- Global Platform Footer (Phase 15) -->
+            <footer class="app-footer py-4 px-3 px-sm-4 mt-auto border-top border-secondary border-opacity-15 text-secondary" style="font-size: 0.8rem; background: rgba(11, 15, 25, 0.4);">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="text-white fw-bold">SkillSphere</span>
+                        <span class="badge bg-warning-subtle text-warning rounded-pill px-2 py-0.5" style="font-size: 0.68rem;">Private Beta</span>
+                        <span class="text-muted d-none d-md-inline">• Learn Skills. Build Projects. Track Your Growth.</span>
+                    </div>
+                    <div class="d-flex flex-wrap align-items-center gap-3">
+                        <a href="{% url 'privacy_policy' %}" class="text-secondary text-decoration-none hover-white">Privacy Policy</a>
+                        <a href="{% url 'terms_of_service' %}" class="text-secondary text-decoration-none hover-white">Terms of Service</a>
+                        <a href="javascript:void(0)" data-bs-toggle="modal" data-bs-target="#betaFeedbackModal" class="text-warning text-decoration-none hover-white">Report Bug / Feedback</a>
+                    </div>
+                </div>
+            </footer>
         </div>
     </div>
 
@@ -574,10 +601,27 @@
     <script src="{% static 'js/command-palette.js' %}"></script>
     {% block extra_js %}{% endblock %}
 
+    <!-- Beta Feedback Modal & Trigger -->
+    {% include 'includes/feedback_modal.html' %}
+
     <script>
         if (typeof lucide !== 'undefined') {
             lucide.createIcons();
         }
+
+        // Local timezone converter for elements with class .js-utc-time
+        document.querySelectorAll('.js-utc-time').forEach(function(el) {
+            var iso = el.getAttribute('datetime');
+            if (iso) {
+                var d = new Date(iso);
+                if (!isNaN(d.getTime())) {
+                    el.textContent = d.toLocaleString(undefined, {
+                        year: 'numeric', month: 'short', day: 'numeric',
+                        hour: '2-digit', minute: '2-digit'
+                    });
+                }
+            }
+        });
     </script>
 </body>
 </html>

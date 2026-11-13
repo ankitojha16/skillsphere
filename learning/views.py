@@ -27,6 +27,7 @@ from goals.models import LearningActivity
 from services.pdf_service import PDFService
 from services.ai_service import AIService
 from gamification.services import award_user_xp
+from analytics.services import track_event
 
 def get_lesson_knowledge_check(lesson):
     """
@@ -273,6 +274,14 @@ def lesson_view(request, course_slug, lesson_id):
             'knowledge_check': knowledge_check,
         }
 
+        # Telemetry: Track first lesson started (idempotent per user)
+        track_event(
+            user=request.user,
+            event_type='first_lesson_started',
+            metadata={'course_id': course.id, 'lesson_id': lesson.id, 'course_title': course.title},
+            event_key=f"first_lesson_{request.user.id}"
+        )
+
         return render(request, 'learning/lesson.html', context)
     except Exception as e:
         logger.error(f"Catastrophic error in lesson_view for course {course_slug}, lesson {lesson_id}: {e}", exc_info=True)
@@ -312,12 +321,30 @@ def complete_lesson_toggle(request, course_slug, lesson_id):
             description=f"Completed '{lesson.title}' in {course.title}"
         )
         award_user_xp(request.user, 25, f"Completed lesson: {lesson.title}", activity_key=f"lesson_{lesson.id}")
+
+        # Telemetry: Lesson completed
+        track_event(
+            user=request.user,
+            event_type='lesson_completed',
+            metadata={'course_id': course.id, 'lesson_id': lesson.id},
+            event_key=f"lesson_comp_{request.user.id}_{lesson.id}"
+        )
+
         messages.success(request, f"Great job! Marked '{lesson.title}' as completed.")
     else:
         messages.info(request, f"Marked '{lesson.title}' as incomplete.")
 
     Course.invalidate_user_progress_cache(request.user.id, course.id)
     course_progress = course.get_user_progress(request.user, use_cache=False)
+
+    # Telemetry: Course completion check (idempotent per user & course)
+    if course_progress.get('percentage', 0) >= 100 or course_progress.get('overall_progress', 0) >= 100:
+        track_event(
+            user=request.user,
+            event_type='course_completed',
+            metadata={'course_id': course.id, 'course_slug': course.slug, 'course_title': course.title},
+            event_key=f"course_comp_{request.user.id}_{course.id}"
+        )
 
     from certificates.models import Certificate
     course_progress['certificate_issued'] = Certificate.objects.filter(user=request.user, course=course).exists()

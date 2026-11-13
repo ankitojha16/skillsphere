@@ -77,7 +77,7 @@
                 </div>
             </div>
 
-            <div class="custom-card p-4">
+            <div class="custom-card p-4 mb-4">
                 <h5 class="fw-bold text-white mb-3 d-flex align-items-center gap-2">
                     <i data-lucide="sparkles" class="text-primary-accent" style="width: 20px; height: 20px;"></i>
                     <span>Technical Learning Interests</span>
@@ -93,6 +93,31 @@
                 {% else %}
                     <p class="text-muted mb-0">No specific interests selected yet. <a href="{% url 'accounts:profile_edit' %}">Add your topics of interest</a>.</p>
                 {% endif %}
+            </div>
+
+            <!-- Privacy, Data Export & Account Controls (Phase 15) -->
+            <div class="custom-card p-4 border border-secondary border-opacity-20">
+                <h5 class="fw-bold text-white mb-3 d-flex align-items-center gap-2">
+                    <i data-lucide="shield-check" class="text-info" style="width: 20px; height: 20px;"></i>
+                    <span>Privacy & Data Management</span>
+                </h5>
+                <p class="text-secondary small mb-3">
+                    You have full sovereignty over your data on SkillSphere. We practice strict data minimization, store timestamps in UTC, and never sell personal learner information.
+                </p>
+                <div class="d-flex flex-wrap gap-2.5 pt-1">
+                    <a href="{% url 'accounts:export_data' %}" class="btn btn-sm btn-outline-info rounded-pill d-inline-flex align-items-center gap-1.5 px-3 py-2">
+                        <i data-lucide="download" style="width: 15px; height: 15px;"></i>
+                        <span>Export My Data (JSON)</span>
+                    </a>
+                    <a href="{% url 'accounts:delete_account' %}" class="btn btn-sm btn-outline-danger rounded-pill d-inline-flex align-items-center gap-1.5 px-3 py-2">
+                        <i data-lucide="trash-2" style="width: 15px; height: 15px;"></i>
+                        <span>Delete Account</span>
+                    </a>
+                    <a href="{% url 'privacy_policy' %}" class="btn btn-sm btn-outline-secondary rounded-pill text-secondary d-inline-flex align-items-center gap-1.5 px-3 py-2 ms-auto">
+                        <i data-lucide="external-link" style="width: 14px; height: 14px;"></i>
+                        <span>Privacy Policy</span>
+                    </a>
+                </div>
             </div>
         </div>
     </div>

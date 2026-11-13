@@ -16,6 +16,7 @@ from .models import (
 )
 from learning.models import Lesson, LessonProgress, Exercise, LessonBookmark
 from goals.models import LearningActivity
+from analytics.services import track_event
 
 logger = logging.getLogger('skillsphere.courses')
 
@@ -415,6 +416,14 @@ def course_detail_view(request, slug):
         for star in [5, 4, 3, 2, 1]
     ]
 
+    # Telemetry
+    track_event(
+        user=request.user,
+        event_type='course_viewed',
+        metadata={'course_id': course.id, 'course_slug': course.slug, 'course_title': course.title},
+        session_key=getattr(request.session, 'session_key', '') or ''
+    )
+
     return render(request, 'courses/detail.html', {
         'course': course,
         'modules': modules,
@@ -470,6 +479,15 @@ def enroll_course_view(request, slug):
                 )
             except Exception as e:
                 logger.warning(f"Failed to record learning activity on enrollment: {e}")
+
+            # Telemetry
+            track_event(
+                user=request.user,
+                event_type='course_enrolled',
+                metadata={'course_id': course.id, 'course_slug': course.slug, 'course_title': course.title},
+                event_key=f"enroll_{request.user.id}_{course.id}"
+            )
+
             messages.success(request, f"Successfully enrolled in '{course.title}'! Let's get started.")
         else:
             messages.info(request, f"You are already enrolled in '{course.title}'.")

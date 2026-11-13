@@ -140,6 +140,20 @@ def submit_assessment_view(request, assessment_id):
         weaknesses=", ".join(weaknesses) if weaknesses else "None identified",
     )
 
+    # Telemetry: Assessment attempted
+    from analytics.services import track_event
+    track_event(
+        user=request.user,
+        event_type='assessment_attempted',
+        metadata={
+            'assessment_id': assessment.id,
+            'assessment_title': assessment.title,
+            'category': assessment.category,
+            'score': score,
+            'percentage': percentage,
+        }
+    )
+
     # Save individual responses
     for r in responses_to_create:
         AssessmentResponse.objects.create(

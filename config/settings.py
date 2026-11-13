@@ -79,6 +79,9 @@ INSTALLED_APPS = [
     'events.apps.EventsConfig',
     'certificates.apps.CertificatesConfig',
     'notifications.apps.NotificationsConfig',
+
+    # Phase 15 Analytics & Beta Operations
+    'analytics.apps.AnalyticsConfig',
 ]
 
 MIDDLEWARE = [

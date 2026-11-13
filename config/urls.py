@@ -5,7 +5,8 @@ from django.conf.urls.static import static
 from django.shortcuts import redirect, render
 from config.views import (
     pwa_manifest_view, service_worker_view, offline_view,
-    health_check_view, robots_txt_view, sitemap_xml_view
+    health_check_view, robots_txt_view, sitemap_xml_view,
+    privacy_policy_view, terms_of_service_view
 )
 
 def home_redirect(request):
@@ -51,6 +52,11 @@ urlpatterns = [
     path('', include('events.urls', namespace='events')),
     path('', include('certificates.urls', namespace='certificates')),
     path('', include('notifications.urls', namespace='notifications')),
+
+    # Phase 15 Legal, Privacy & Analytics Routes
+    path('privacy/', privacy_policy_view, name='privacy_policy'),
+    path('terms/', terms_of_service_view, name='terms_of_service'),
+    path('analytics/', include('analytics.urls', namespace='analytics')),
 ]
 
 def custom_bad_request_view(request, exception=None):

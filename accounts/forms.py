@@ -103,7 +103,7 @@ class ProfileSetupForm(forms.ModelForm):
 
     class Meta:
         model = StudentProfile
-        fields = ['full_name', 'avatar', 'avatar_url_external', 'education_level', 'institution', 'learning_level', 'career_goal']
+        fields = ['full_name', 'avatar', 'avatar_url_external', 'education_level', 'institution', 'learning_level', 'career_goal', 'analytics_opt_out']
         widgets = {
             'full_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Full Name'}),
             'avatar': forms.FileInput(attrs={'class': 'form-control'}),
@@ -112,6 +112,7 @@ class ProfileSetupForm(forms.ModelForm):
             'institution': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'College, University, or Self-study'}),
             'learning_level': forms.Select(attrs={'class': 'form-select'}),
             'career_goal': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Full-Stack Developer, AI Engineer, Data Scientist'}),
+            'analytics_opt_out': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
 
     def __init__(self, *args, **kwargs):

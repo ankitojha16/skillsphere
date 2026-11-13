@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Delete Account - SkillSphere{% endblock %}
+
+{% block content %}
+<div class="container py-5" style="max-width: 620px;">
+    <div class="custom-card p-4 p-md-5 border border-danger border-opacity-30">
+        <div class="text-center mb-4">
+            <div class="d-inline-flex p-3 rounded-circle bg-danger bg-opacity-10 text-danger mb-3">
+                <i data-lucide="alert-triangle" style="width: 36px; height: 36px;"></i>
+            </div>
+            <h1 class="h3 fw-bold text-white mb-2">Delete Your SkillSphere Account</h1>
+            <p class="text-secondary small mb-0">Please read this carefully before proceeding. This action is irreversible.</p>
+        </div>
+
+        <div class="p-3.5 rounded-3 mb-4 border border-danger border-opacity-20" style="background-color: rgba(239, 68, 68, 0.08);">
+            <h6 class="fw-bold text-danger mb-2" style="font-size: 0.9rem;">What happens when you delete your account:</h6>
+            <ul class="text-secondary small ps-3 mb-0 d-flex flex-column gap-1.5" style="font-size: 0.82rem;">
+                <li>Your student profile, personal information, and credentials will be permanently erased.</li>
+                <li>All course enrollments, progress markers, and study notes will be destroyed.</li>
+                <li>Any issued completion certificates and verification URLs will be invalidated.</li>
+                <li>Your assessment scores, coding challenge records, and arena ranking will be purged.</li>
+                <li>You will immediately be logged out and cannot recover this account.</li>
+            </ul>
+        </div>
+
+        <form method="post" action="{% url 'accounts:delete_account' %}">
+            {% csrf_token %}
+
+            <div class="mb-4">
+                <label for="id_password" class="form-label text-white small fw-semibold">
+                    Confirm your password to authorize deletion:
+                </label>
+                <input type="password" name="password" id="id_password" class="form-control" placeholder="Enter your current password" required autocomplete="current-password">
+                <small class="text-muted mt-1 d-block">We require your password to prevent accidental or unauthorized deletion.</small>
+            </div>
+
+            <div class="d-flex flex-column flex-sm-row gap-3 pt-2">
+                <button type="submit" class="btn btn-danger py-2.5 px-4 rounded-pill fw-semibold d-inline-flex align-items-center justify-content-center gap-2" onclick="return confirm('Are you absolutely certain? This will permanently delete your account, enrollments, and certificates. This cannot be undone.');">
+                    <i data-lucide="trash-2" style="width: 17px; height: 17px;"></i>
+                    <span>Permanently Delete My Account</span>
+                </button>
+                <a href="{% url 'accounts:profile' %}" class="btn btn-secondary-custom py-2.5 px-4 rounded-pill text-center">
+                    Cancel & Return
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

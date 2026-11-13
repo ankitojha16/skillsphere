@@ -62,12 +62,24 @@
                 <small class="text-muted">e.g., "Full-Stack Web Developer", "AI Engineer", "Software Engineer at Top Tech"</small>
             </div>
 
-            <div class="d-flex gap-3 pt-2">
-                <button type="submit" class="btn btn-primary-custom flex-grow-1 justify-content-center py-2">
-                    <i data-lucide="check-circle" style="width: 18px; height: 18px;"></i>
-                    <span>Complete Setup & Go to Dashboard</span>
+            <div class="p-3 rounded-3 mb-4 border border-secondary border-opacity-20" style="background-color: rgba(15, 23, 42, 0.6);">
+                <div class="form-check">
+                    {{ form.analytics_opt_out }}
+                    <label class="form-check-label text-light small fw-medium" for="id_analytics_opt_out">
+                        Opt out of first-party product telemetry
+                    </label>
+                </div>
+                <small class="text-secondary d-block mt-1" style="font-size: 0.76rem;">
+                    SkillSphere uses privacy-preserving, first-party analytics to understand student course engagement. We never collect passwords, tokens, or sell student data. You can toggle this preference anytime in Settings.
+                </small>
+            </div>
+
+            <div class="d-flex flex-wrap gap-3 pt-2">
+                <button type="submit" class="btn btn-primary-custom flex-grow-1 justify-content-center py-2.5 rounded-pill">
+                    <i data-lucide="sparkles" style="width: 18px; height: 18px;"></i>
+                    <span>Save & View Recommendations</span>
                 </button>
-                <a href="{% url 'dashboard:index' %}" class="btn btn-secondary-custom">
+                <a href="{% url 'accounts:profile_setup' %}?skip=1" class="btn btn-secondary-custom py-2.5 px-4 rounded-pill">
                     Skip for Now
                 </a>
             </div>
