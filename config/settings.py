@@ -262,10 +262,12 @@ STORAGES = {
         "BACKEND": (
             "django.contrib.staticfiles.storage.StaticFilesStorage"
             if DEBUG
-            else "whitenoise.storage.CompressedStaticFilesStorage"
+            else "whitenoise.storage.CompressedManifestStaticFilesStorage"
         ),
     },
 }
+# Fallback to unhashed file if missing from manifest to prevent rolling deployment crashes
+WHITENOISE_MANIFEST_STRICT = False
 
 # Media files (User uploads, avatars, course thumbnails)
 MEDIA_URL = '/media/'

@@ -39,7 +39,7 @@ class AccountsTests(TestCase):
             'terms_accepted': True
         })
         self.assertEqual(response.status_code, 200)
-        self.assertFormError(response, 'form', 'email', 'An account with this email address already exists.')
+        self.assertFormError(response.context['form'], 'email', 'An account with this email address already exists.')
 
     def test_password_mismatch_rejected(self):
         response = self.client.post(self.signup_url, {
@@ -50,7 +50,7 @@ class AccountsTests(TestCase):
             'terms_accepted': True
         })
         self.assertEqual(response.status_code, 200)
-        self.assertFormError(response, 'form', 'confirm_password', 'Passwords do not match.')
+        self.assertFormError(response.context['form'], 'confirm_password', 'Passwords do not match.')
 
     def test_login_and_logout(self):
         user = User.objects.create_user(username='loginuser', email='login@test.com', password='Password123!')
@@ -170,7 +170,7 @@ class AccountsTests(TestCase):
             'learning_level': 'intermediate',
         })
         self.assertEqual(response.status_code, 200)
-        self.assertFormError(response, 'form', 'avatar', 'Avatar image file size must not exceed 5 MB.')
+        self.assertFormError(response.context['form'], 'avatar', 'Avatar image file size must not exceed 5 MB.')
 
     def test_avatar_corrupt_rejected(self):
         from django.core.files.uploadedfile import SimpleUploadedFile
@@ -209,6 +209,6 @@ class AccountsTests(TestCase):
             'learning_level': 'intermediate',
         })
         self.assertEqual(response.status_code, 200)
-        self.assertFormError(response, 'form', 'avatar', 'Unsupported image format: GIF. Please upload a JPEG, PNG, or WebP image.')
+        self.assertFormError(response.context['form'], 'avatar', 'Unsupported image format: GIF. Please upload a JPEG, PNG, or WebP image.')
 
 

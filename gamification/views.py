@@ -1,6 +1,6 @@
 import json
 import random
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone as dt_timezone
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponse
@@ -454,7 +454,7 @@ def leagues_view(request):
 
     # Time remaining calculation
     now = timezone.now()
-    reset_dt = timezone.datetime(sunday.year, sunday.month, sunday.day, 23, 59, 59, tzinfo=timezone.utc)
+    reset_dt = datetime(sunday.year, sunday.month, sunday.day, 23, 59, 59, tzinfo=dt_timezone.utc)
     seconds_left = max(0, int((reset_dt - now).total_seconds()))
     days_left = seconds_left // 86400
     hours_left = (seconds_left % 86400) // 3600
