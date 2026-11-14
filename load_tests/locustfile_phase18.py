@@ -83,7 +83,7 @@ class ActiveEnrolledStudent(HttpUser):
 
     @task(10)
     def check_roadmap(self):
-        self.client.get("/roadmaps/", name="/roadmaps/ [Career Paths]")
+        self.client.get("/learning-roadmap/", name="/learning-roadmap/ [Career Paths]")
 
 
 class HeavyResourceStudent(HttpUser):
@@ -102,8 +102,7 @@ class HeavyResourceStudent(HttpUser):
 
     @task(20)
     def verify_certificate(self):
-        cert_num = random.randint(1, 6)
-        self.client.get(f"/certificates/{cert_num}/", name="/certificates/<id>/ [Certificate View]")
+        self.client.get("/certificates/", name="/certificates/ [Certificate Center]")
 
     @task(15)
     def check_public_verification(self):
