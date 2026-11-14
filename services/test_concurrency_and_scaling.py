@@ -137,7 +137,8 @@ class Phase17ScalabilityAndResilienceTests(TestCase):
 
         self.assertEqual(job.retries, 1)
         self.assertEqual(job.status, 'failed')
-        self.assertGreater(job.scheduled_at, now_before + timedelta(seconds=5))
+        self.assertGreaterEqual(job.scheduled_at, now_before)
+        self.assertLessEqual(job.scheduled_at, now_before + timedelta(seconds=15))
 
         # Because scheduled_at is in the future, process_next_job must skip it
         processed = process_next_job()

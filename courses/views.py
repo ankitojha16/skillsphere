@@ -1,9 +1,10 @@
 import json
 import logging
+from datetime import timedelta
 from django.utils import timezone
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
-from django.db import IntegrityError
+from django.db import transaction, IntegrityError
 from django.db.models import Count, Avg, Q
 from django.contrib import messages
 from django.http import HttpResponseRedirect, JsonResponse
@@ -834,42 +835,41 @@ def submit_assessment_view(request, slug, assessment_type):
     percentage = int(round((score / total_q) * 100)) if total_q > 0 else 0
     is_passed = percentage >= assessment.passing_percentage
 
-    # Idempotency lock against rapid double-clicks
-    lock_key = f"submit_assess_{request.user.id}_{assessment.id}"
-    if not cache.add(lock_key, 1, timeout=4):
-        recent_attempt = assessment.attempts.filter(user=request.user).order_by('-id').first()
+    # Database-backed idempotency protection against rapid duplicate submissions
+    with transaction.atomic():
+        # Check for recent identical submission within 5 seconds to provide idempotent replay
+        recent_cutoff = timezone.now() - timedelta(seconds=5)
+        recent_attempt = assessment.attempts.filter(
+            user=request.user,
+            completed_at__gte=recent_cutoff
+        ).order_by('-id').first()
+
         if recent_attempt:
-            return render(request, 'courses/assessment_result.html', {
-                'course': course,
-                'assessment': assessment,
-                'attempt': recent_attempt,
-                'is_passed': recent_attempt.is_passed,
-                'percentage': recent_attempt.percentage,
-                'passing_percentage': assessment.passing_percentage,
-                'score': recent_attempt.score,
-                'total_q': recent_attempt.total_questions,
-                'topic_breakdown': topic_breakdown,
-                'questions': questions,
-                'answers_record': json.loads(recent_attempt.answers_json or '{}'),
-            })
+            attempt = recent_attempt
+        else:
+            attempt_count = assessment.attempts.filter(user=request.user).count() + 1
+            attempt = CourseAssessmentAttempt.objects.create(
+                user=request.user,
+                assessment=assessment,
+                score=score,
+                total_questions=total_q,
+                percentage=percentage,
+                is_passed=is_passed,
+                attempt_number=attempt_count,
+                answers_json=json.dumps(answers_record),
+                completed_at=timezone.now()
+            )
 
-    attempt_count = assessment.attempts.filter(user=request.user).count() + 1
-    attempt = CourseAssessmentAttempt.objects.create(
-        user=request.user,
-        assessment=assessment,
-        score=score,
-        total_questions=total_q,
-        percentage=percentage,
-        is_passed=is_passed,
-        attempt_number=attempt_count,
-        answers_json=json.dumps(answers_record),
-        completed_at=timezone.now()
-    )
-
-    if is_passed:
-        from gamification.services import award_user_xp
-        xp_amount = 100 if assessment_type == 'final_quiz' else 150
-        award_user_xp(request.user, xp_amount, f"Passed {assessment.title} ({percentage}%)")
+            if is_passed:
+                from gamification.services import award_user_xp
+                xp_amount = 100 if assessment_type == 'final_quiz' else 150
+                # Database-backed activity_key prevents duplicate XP awards on concurrent or repeated submissions
+                award_user_xp(
+                    user=request.user,
+                    amount=xp_amount,
+                    reason=f"Passed {assessment.title} ({percentage}%)",
+                    activity_key=f"assessment_pass_{assessment.id}_{request.user.id}"
+                )
 
     # Refresh course completion state
     prog = course.get_user_progress(request.user)

@@ -4,7 +4,11 @@ from .models import UserGamification, Badge, UserBadge, XPTransaction
 from goals.models import LearningActivity
 
 def get_or_create_gamification(user: User, for_update: bool = False) -> UserGamification:
-    UserGamification.objects.get_or_create(user=user)
+    try:
+        with transaction.atomic():
+            UserGamification.objects.get_or_create(user=user)
+    except IntegrityError:
+        pass
     if for_update:
         return UserGamification.objects.select_for_update().get(user=user)
     return UserGamification.objects.get(user=user)

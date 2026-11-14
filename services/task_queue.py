@@ -144,14 +144,16 @@ def execute_job(job: DurableTaskJob, worker_id: str = 'sync_worker') -> bool:
             logger.error(f"Task {job.task_name} [{job.task_id}] moved to DEAD_LETTER after {job.retries} attempts: {e}")
         else:
             job.status = 'failed'
-            # Exponential backoff with randomized jitter
+            # Canonical full-jitter exponential backoff:
+            # delay = random.uniform(0, min(cap, base_delay * (2 ** retry_count)))
             base_delay = 5.0
-            jitter = random.uniform(0.1, 2.0)
-            backoff_delay = (2 ** job.retries) * base_delay + jitter
+            cap = 300.0  # max 5 minutes backoff
+            backoff_limit = min(cap, base_delay * (2 ** job.retries))
+            backoff_delay = random.uniform(0.0, backoff_limit)
             job.scheduled_at = timezone.now() + timedelta(seconds=backoff_delay)
             logger.warning(
                 f"Task {job.task_name} [{job.task_id}] failed (attempt {job.retries}/{job.max_retries}). "
-                f"Rescheduled with backoff in {backoff_delay:.1f}s: {e}"
+                f"Rescheduled with full-jitter backoff in {backoff_delay:.1f}s (cap={backoff_limit:.1f}s): {e}"
             )
 
         job.error_message = err_str[:3000]
@@ -220,3 +222,46 @@ def get_queue_health() -> dict:
         'oldest_pending_age_seconds': oldest_age_seconds,
         'healthy': (counts.get('pending', 0) < 5000 and (oldest_age_seconds or 0) < 300),
     }
+
+
+def cleanup_completed_jobs(retention_days: int = 7, batch_size: int = 500) -> dict:
+    """
+    Cleans up eligible completed jobs older than retention_days in bounded batches.
+    PRESERVES:
+    - Pending and scheduled jobs (NEVER deleted).
+    - Running jobs (NEVER deleted).
+    - Failed and dead_letter jobs (preserved for debugging/telemetry).
+    - Idempotency records within retention window.
+    Avoids long-running table locks by deleting in chunks of batch_size.
+    Returns summary dict with total cleaned and batch count.
+    """
+    cutoff = timezone.now() - timedelta(days=retention_days)
+    total_cleaned = 0
+    batches = 0
+
+    while True:
+        # Fetch chunk of IDs to avoid locking large tables
+        ids_to_delete = list(
+            DurableTaskJob.objects.filter(
+                status='completed',
+                completed_at__lt=cutoff
+            ).values_list('id', flat=True)[:batch_size]
+        )
+
+        if not ids_to_delete:
+            break
+
+        deleted_count, _ = DurableTaskJob.objects.filter(id__in=ids_to_delete).delete()
+        total_cleaned += deleted_count
+        batches += 1
+
+        if len(ids_to_delete) < batch_size:
+            break
+
+    logger.info(f"[TaskQueue:Cleanup] Removed {total_cleaned} completed jobs older than {retention_days} days in {batches} batches.")
+    return {
+        'cleaned_completed': total_cleaned,
+        'batches': batches,
+        'retention_days': retention_days
+    }
+

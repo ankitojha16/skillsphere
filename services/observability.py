@@ -1,12 +1,21 @@
 """
 SkillSphere Enterprise Observability & Site Reliability Engineering (SRE) Service
 Provider-independent telemetry, APM metrics, latency percentiles, and OpenTelemetry/Prometheus exporters.
+
+SCOPE & ARCHITECTURAL CLARITY:
+- Counters: Distributed via atomic cache increments (`cache.incr`) with thread-safe process-local fallback.
+  Multiple workers update independent atomic keys, eliminating read-modify-write lost updates.
+- Histogram Buckets: Distributed aggregatable Prometheus histogram buckets (10ms to 5000ms).
+- Rolling Latencies: Thread-safe bounded in-memory ring buffer (1,000 samples) per worker process for rolling percentiles.
+- Resilience: If Redis or database fails, metrics collection degrades to local in-memory structures without failing user requests.
 """
 
 import time
 import os
 import math
 import logging
+import threading
+from collections import deque
 from typing import Dict, Any, List
 from django.core.cache import cache
 from django.utils import timezone
@@ -14,46 +23,96 @@ from django.db import connection
 
 logger = logging.getLogger('skillsphere.observability')
 
+# Standard Prometheus latency buckets in milliseconds
+LATENCY_BUCKETS = [10.0, 25.0, 50.0, 100.0, 250.0, 500.0, 1000.0, 2500.0, 5000.0]
+
 class MetricsCollector:
     """
-    Distributed telemetry collector tracking throughput, status codes,
-    p50/p95/p99 latency percentiles, cache hit-rates, and database pool health.
+    SRE Telemetry collector tracking throughput, status codes,
+    rolling p50/p95/p99 latency percentiles, cache hit-rates, and database pool health.
     Compatible with OpenTelemetry and Prometheus standards.
     """
-    METRICS_PREFIX = 'metrics:v1'
+    METRICS_PREFIX = 'metrics:v2'
+    _lock = threading.Lock()
+    _local_requests = 0
+    _local_errors = 0
+    _local_latencies = deque(maxlen=1000)
+    _local_histogram = {b: 0 for b in LATENCY_BUCKETS}
+    _local_histogram['+Inf'] = 0
 
     @classmethod
     def record_request(cls, method: str, path_prefix: str, status_code: int, duration_ms: float):
-        """Records an HTTP request event for telemetry aggregation."""
-        try:
-            minute_bucket = int(time.time() // 60)
-            key = f"{cls.METRICS_PREFIX}:{minute_bucket}"
+        """
+        Records an HTTP request event using atomic increments to prevent read-modify-write races.
+        Records into Prometheus histogram buckets and bounded in-memory rolling sample.
+        """
+        minute_bucket = int(time.time() // 60)
 
-            # Aggregate counters in cache
-            stats = cache.get(key, {'requests': 0, 'errors': 0, 'latencies': []})
-            stats['requests'] += 1
+        # 1. Process-local thread-safe recording (guaranteed to succeed)
+        with cls._lock:
+            cls._local_requests += 1
             if status_code >= 400:
-                stats['errors'] += 1
+                cls._local_errors += 1
+            cls._local_latencies.append(duration_ms)
 
-            # Sample latencies (keep up to 200 samples per minute for fast percentile computation)
-            if len(stats['latencies']) < 200:
-                stats['latencies'].append(duration_ms)
+            # Histogram bucket increment
+            bucket_matched = False
+            for b in LATENCY_BUCKETS:
+                if duration_ms <= b:
+                    cls._local_histogram[b] += 1
+                    bucket_matched = True
+                    break
+            if not bucket_matched:
+                cls._local_histogram['+Inf'] += 1
 
-            cache.set(key, stats, timeout=3600)  # Retain 1 hour of rolling minute stats
+        # 2. Distributed atomic cache recording (if Redis available)
+        try:
+            req_key = f"{cls.METRICS_PREFIX}:{minute_bucket}:requests"
+            cache.incr(req_key)
+        except ValueError:
+            # Key does not exist yet; initialize with 1 and 1-hour TTL
+            try:
+                cache.set(req_key, 1, timeout=3600)
+            except Exception:
+                pass
         except Exception:
             pass
 
+        if status_code >= 400:
+            try:
+                err_key = f"{cls.METRICS_PREFIX}:{minute_bucket}:errors"
+                cache.incr(err_key)
+            except ValueError:
+                try:
+                    cache.set(err_key, 1, timeout=3600)
+                except Exception:
+                    pass
+            except Exception:
+                pass
+
     @classmethod
     def record_cache_hit(cls):
+        """Records cache hit via atomic increment."""
         try:
             cache.incr(f"{cls.METRICS_PREFIX}:cache_hits")
+        except ValueError:
+            try:
+                cache.set(f"{cls.METRICS_PREFIX}:cache_hits", 1, timeout=86400)
+            except Exception:
+                pass
         except Exception:
             pass
 
     @classmethod
     def record_cache_miss(cls):
+        """Records cache miss via atomic increment."""
         try:
             cache.incr(f"{cls.METRICS_PREFIX}:cache_misses")
+        except ValueError:
+            try:
+                cache.set(f"{cls.METRICS_PREFIX}:cache_misses", 1, timeout=86400)
+            except Exception:
+                pass
         except Exception:
             pass
 
@@ -63,26 +122,38 @@ class MetricsCollector:
         now = time.time()
         minute_bucket = int(now // 60)
 
-        # 1. Aggregate last 5 minutes of request traffic
+        # 1. Aggregate request counts across last 5 minute buckets
         total_requests = 0
         total_errors = 0
-        latencies = []
 
         for b in range(minute_bucket - 4, minute_bucket + 1):
-            stats = cache.get(f"{cls.METRICS_PREFIX}:{b}")
-            if stats:
-                total_requests += stats.get('requests', 0)
-                total_errors += stats.get('errors', 0)
-                latencies.extend(stats.get('latencies', []))
+            try:
+                reqs = cache.get(f"{cls.METRICS_PREFIX}:{b}:requests")
+                if reqs is not None:
+                    total_requests += int(reqs)
+                errs = cache.get(f"{cls.METRICS_PREFIX}:{b}:errors")
+                if errs is not None:
+                    total_errors += int(errs)
+            except Exception:
+                pass
 
-        latencies.sort()
-        n = len(latencies)
-        p50 = round(latencies[int(n * 0.50)], 2) if n else 0.0
-        p95 = round(latencies[int(n * 0.95)], 2) if n else 0.0
-        p99 = round(latencies[int(n * 0.99)], 2) if n else 0.0
+        # Fallback to local worker metrics if cache was empty or down
+        if total_requests == 0:
+            with cls._lock:
+                total_requests = cls._local_requests
+                total_errors = cls._local_errors
+
+        # 2. Rolling latency percentiles from bounded ring buffer
+        with cls._lock:
+            samples = sorted(list(cls._local_latencies))
+
+        n = len(samples)
+        p50 = round(samples[int(n * 0.50)], 2) if n else 0.0
+        p95 = round(samples[int(n * 0.95)], 2) if n else 0.0
+        p99 = round(samples[int(n * 0.99)], 2) if n else 0.0
         error_rate = round((total_errors / total_requests * 100.0), 2) if total_requests else 0.0
 
-        # 2. Database Probe & Latency
+        # 3. Database Probe & Latency
         db_ok = True
         db_latency_ms = 0.0
         try:
@@ -95,13 +166,19 @@ class MetricsCollector:
             db_ok = False
             logger.error(f"[Observability] DB probe error: {e}")
 
-        # 3. Cache Metrics
-        cache_hits = cache.get(f"{cls.METRICS_PREFIX}:cache_hits", 0)
-        cache_misses = cache.get(f"{cls.METRICS_PREFIX}:cache_misses", 0)
+        # 4. Cache Hit/Miss Metrics
+        cache_hits = 0
+        cache_misses = 0
+        try:
+            cache_hits = int(cache.get(f"{cls.METRICS_PREFIX}:cache_hits") or 0)
+            cache_misses = int(cache.get(f"{cls.METRICS_PREFIX}:cache_misses") or 0)
+        except Exception:
+            pass
+
         total_cache_ops = cache_hits + cache_misses
         hit_ratio = round((cache_hits / total_cache_ops * 100.0), 2) if total_cache_ops else 100.0
 
-        # 4. Background Task Queue Health
+        # 5. Background Task Queue Health
         from services.task_queue import get_queue_health
         queue_health = get_queue_health()
 
@@ -115,6 +192,7 @@ class MetricsCollector:
                 'rps_rolling': round(total_requests / 300.0, 2),
             },
             'latency_percentiles_ms': {
+                'sample_size': n,
                 'p50': p50,
                 'p95': p95,
                 'p99': p99,
@@ -150,7 +228,7 @@ class MetricsCollector:
 
     @classmethod
     def to_prometheus_format(cls) -> str:
-        """Exports metrics in OpenMetrics / Prometheus exposition format."""
+        """Exports metrics in OpenMetrics / Prometheus exposition format with histograms."""
         m = cls.get_system_metrics()
         lines = [
             "# HELP skillsphere_requests_total Total HTTP requests in 5m window",
@@ -177,5 +255,24 @@ class MetricsCollector:
             "# HELP skillsphere_queue_dead_letter_tasks Dead letter tasks total",
             "# TYPE skillsphere_queue_dead_letter_tasks gauge",
             f"skillsphere_queue_dead_letter_tasks {m['queue']['dead_letter']}",
+            "# HELP skillsphere_cache_hits_total Total distributed cache hits",
+            "# TYPE skillsphere_cache_hits_total counter",
+            f"skillsphere_cache_hits_total {m['cache']['hits']}",
+            "# HELP skillsphere_cache_misses_total Total distributed cache misses",
+            "# TYPE skillsphere_cache_misses_total counter",
+            f"skillsphere_cache_misses_total {m['cache']['misses']}",
         ]
+
+        # Prometheus histogram buckets
+        with cls._lock:
+            hist_copy = dict(cls._local_histogram)
+        cumulative = 0
+        lines.append("# HELP skillsphere_http_request_duration_ms HTTP request duration histogram")
+        lines.append("# TYPE skillsphere_http_request_duration_ms histogram")
+        for b in LATENCY_BUCKETS:
+            cumulative += hist_copy.get(b, 0)
+            lines.append(f'skillsphere_http_request_duration_ms_bucket{{le="{b}"}} {cumulative}')
+        cumulative += hist_copy.get('+Inf', 0)
+        lines.append(f'skillsphere_http_request_duration_ms_bucket{{le="+Inf"}} {cumulative}')
+
         return "\n".join(lines) + "\n"

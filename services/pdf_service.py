@@ -133,6 +133,55 @@ class PDFService:
             return fallback
 
     @staticmethod
+    def get_certificate_fingerprint(certificate) -> str:
+        """
+        Builds a deterministic document cache fingerprint from every relevant field
+        that affects the rendered certificate PDF.
+        """
+        import hashlib
+        import json
+        cert_id = getattr(certificate, 'certificate_id', certificate.pk)
+        user = getattr(certificate, 'user', None)
+        course = getattr(certificate, 'course', None)
+
+        material = {
+            'layout_version': 'v17_1',
+            'cert_id': str(cert_id),
+            'recipient_name': str(getattr(certificate, 'recipient_name', '')),
+            'recipient_title': str(getattr(certificate, 'recipient_title', '')),
+            'title': str(getattr(certificate, 'title', '')),
+            'verification_status': bool(getattr(certificate, 'verification_status', True)),
+            'issued_at': certificate.issued_at.isoformat() if getattr(certificate, 'issued_at', None) else '',
+            'user_name': user.get_full_name() or user.username if user else '',
+            'course_title': course.title if course else '',
+            'course_version': getattr(course, 'curriculum_version', 1) if course else 1,
+        }
+        serialized = json.dumps(material, sort_keys=True, separators=(',', ':'))
+        return hashlib.sha256(serialized.encode('utf-8')).hexdigest()[:16]
+
+    @staticmethod
+    def get_resume_fingerprint(resume) -> str:
+        """
+        Builds a deterministic document cache fingerprint from every relevant field
+        that affects the rendered resume PDF.
+        """
+        import hashlib
+        import json
+        user = getattr(resume, 'user', None)
+        material = {
+            'layout_version': 'v17_1',
+            'resume_id': str(getattr(resume, 'id', 0)),
+            'title': str(getattr(resume, 'title', '')),
+            'template': str(getattr(resume, 'template', 'ats')),
+            'user_name': user.get_full_name() or user.username if user else '',
+            'user_email': user.email if user else '',
+            'updated_at': resume.updated_at.isoformat() if getattr(resume, 'updated_at', None) else '',
+            'resume_data': getattr(resume, 'resume_data', {})
+        }
+        serialized = json.dumps(material, sort_keys=True, separators=(',', ':'), default=str)
+        return hashlib.sha256(serialized.encode('utf-8')).hexdigest()[:16]
+
+    @staticmethod
     def generate_certificate_pdf(certificate) -> bytes:
         """
         Generates an authentic, high-resolution landscape A4 vector certificate PDF
@@ -149,9 +198,9 @@ class PDFService:
         - Gold accent: Soft gold (#C7A45A)
         """
         cert_id = getattr(certificate, 'certificate_id', certificate.pk)
-        doc_version = int(certificate.updated_at.timestamp()) if getattr(certificate, 'updated_at', None) else 1
-        cache_key = f"cert_pdf_{cert_id}_v{doc_version}"
-        cached = cache.get(cache_key) or cache.get(f"cert_pdf_{cert_id}")
+        fingerprint = PDFService.get_certificate_fingerprint(certificate)
+        cache_key = f"cert_pdf_{cert_id}_{fingerprint}"
+        cached = cache.get(cache_key)
         if cached:
             return cached
 
@@ -1182,8 +1231,8 @@ class PDFService:
         Cached by resume ID and modification version timestamp.
         """
         resume_id = getattr(resume, 'id', '0')
-        doc_version = int(resume.updated_at.timestamp()) if getattr(resume, 'updated_at', None) else 1
-        cache_key = f"resume_pdf_{resume_id}_v{doc_version}"
+        fingerprint = PDFService.get_resume_fingerprint(resume)
+        cache_key = f"resume_pdf_{resume_id}_{fingerprint}"
         cached = cache.get(cache_key)
         if cached:
             return cached

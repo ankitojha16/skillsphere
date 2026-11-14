@@ -57,10 +57,13 @@ class PerformanceMonitoringMiddleware:
         if not request.path.startswith('/static/'):
             try:
                 from services.observability import MetricsCollector
-                prefix = '/' + request.path.strip('/').split('/')[0] if request.path.strip('/') else '/'
+                # Use normalized view name to prevent metric cardinality explosion
+                route_name = getattr(getattr(request, 'resolver_match', None), 'view_name', None)
+                if not route_name:
+                    route_name = '/' + request.path.strip('/').split('/')[0] if request.path.strip('/') else '/'
                 MetricsCollector.record_request(
                     method=request.method,
-                    path_prefix=prefix,
+                    path_prefix=route_name,
                     status_code=response.status_code,
                     duration_ms=total_duration
                 )
@@ -128,10 +131,12 @@ class SecurityCacheHeadersMiddleware:
         return response
 
 
+import re
 import uuid
 import threading
 
 _local = threading.local()
+CORRELATION_ID_REGEX = re.compile(r'^[a-zA-Z0-9_\-]{8,64}$')
 
 def get_current_correlation_id() -> str:
     """Returns the current request correlation ID for structured logging."""
@@ -148,14 +153,20 @@ class CorrelationIdFilter(logging.Filter):
 class RequestCorrelationMiddleware:
     """
     Assigns or preserves a unique X-Request-ID for every incoming request.
-    Propagates the correlation ID across thread-local logging context
-    and injects it into response headers for end-to-end distributed tracing.
+    Strictly validates incoming client-supplied IDs (alphanumeric + _-, 8-64 chars)
+    to prevent log injection, HTTP header splitting, or unbounded memory usage.
+    Propagates correlation ID across thread-local logging context and response headers.
     """
     def __init__(self, get_response):
         self.get_response = get_response
 
     def __call__(self, request):
-        correlation_id = request.headers.get('X-Request-ID') or uuid.uuid4().hex[:16]
+        raw_id = request.headers.get('X-Request-ID', '').strip()
+        if raw_id and CORRELATION_ID_REGEX.match(raw_id):
+            correlation_id = raw_id
+        else:
+            correlation_id = uuid.uuid4().hex[:16]
+
         request.correlation_id = correlation_id
         request.id = correlation_id
         _local.correlation_id = correlation_id

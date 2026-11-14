@@ -7,6 +7,7 @@ from django.http import JsonResponse, HttpResponse
 from django.utils import timezone
 from django.utils.text import slugify
 
+from django.db import transaction, IntegrityError
 logger = logging.getLogger('skillsphere.learning')
 
 from courses.models import Course, Enrollment, CourseModule
@@ -302,37 +303,53 @@ def complete_lesson_toggle(request, course_slug, lesson_id):
             return JsonResponse({'error': 'Not enrolled'}, status=403)
         return redirect('courses:detail', slug=course.slug)
 
-    progress, created = LessonProgress.objects.get_or_create(
-        user=request.user,
-        lesson=lesson,
-        defaults={'is_completed': True, 'completed_at': timezone.now()}
-    )
+    desired_state = request.POST.get('action') or request.POST.get('target_state') or request.GET.get('action')
 
-    if not created:
-        progress.is_completed = not progress.is_completed
-        progress.completed_at = timezone.now() if progress.is_completed else None
-        progress.save()
+    with transaction.atomic():
+        try:
+            with transaction.atomic():
+                progress, created = LessonProgress.objects.get_or_create(
+                    user=request.user,
+                    lesson=lesson,
+                    defaults={'is_completed': True, 'completed_at': timezone.now()}
+                )
+        except IntegrityError:
+            progress = LessonProgress.objects.filter(user=request.user, lesson=lesson).first()
+            created = False
 
-    if progress.is_completed:
-        LearningActivity.objects.create(
-            user=request.user,
-            activity_type='COMPLETE_LESSON',
-            reference_id=lesson.id,
-            description=f"Completed '{lesson.title}' in {course.title}"
-        )
-        award_user_xp(request.user, 25, f"Completed lesson: {lesson.title}", activity_key=f"lesson_{lesson.id}")
+        prev_completed = progress.is_completed if not created else False
 
-        # Telemetry: Lesson completed
-        track_event(
-            user=request.user,
-            event_type='lesson_completed',
-            metadata={'course_id': course.id, 'lesson_id': lesson.id},
-            event_key=f"lesson_comp_{request.user.id}_{lesson.id}"
-        )
+        if desired_state in ('complete', 'completed', 'mark_completed'):
+            target_completed = True
+        elif desired_state in ('incomplete', 'uncompleted', 'mark_incomplete'):
+            target_completed = False
+        else:
+            target_completed = not progress.is_completed if not created else True
 
-        messages.success(request, f"Great job! Marked '{lesson.title}' as completed.")
-    else:
-        messages.info(request, f"Marked '{lesson.title}' as incomplete.")
+        if not created and progress.is_completed != target_completed:
+            progress.is_completed = target_completed
+            progress.completed_at = timezone.now() if target_completed else None
+            progress.save(update_fields=['is_completed', 'completed_at'])
+
+        if target_completed and not prev_completed:
+            LearningActivity.objects.create(
+                user=request.user,
+                activity_type='COMPLETE_LESSON',
+                reference_id=lesson.id,
+                description=f"Completed '{lesson.title}' in {course.title}"
+            )
+            award_user_xp(request.user, 25, f"Completed lesson: {lesson.title}", activity_key=f"lesson_{lesson.id}")
+
+            # Telemetry: Lesson completed
+            track_event(
+                user=request.user,
+                event_type='lesson_completed',
+                metadata={'course_id': course.id, 'lesson_id': lesson.id},
+                event_key=f"lesson_comp_{request.user.id}_{lesson.id}"
+            )
+            messages.success(request, f"Great job! Marked '{lesson.title}' as completed.")
+        elif not target_completed and prev_completed:
+            messages.info(request, f"Marked '{lesson.title}' as incomplete.")
 
     Course.invalidate_user_progress_cache(request.user.id, course.id)
     course_progress = course.get_user_progress(request.user, use_cache=False)
