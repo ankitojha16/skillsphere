@@ -193,7 +193,8 @@ class CollaborationTests(TestCase):
         self.assertEqual(res.status_code, 200)
         data = res.json()
         self.assertEqual(data['status'], 'success')
-        self.assertIn('Computed: 420', data['output'])
+        self.assertEqual(data.get('execution_mode'), 'client_pyodide')
+        self.assertIn('syntax verified', data['output'].lower())
 
     def test_unauthorized_user_blocked_from_pair_room(self):
         from collaboration.models import PairProgrammingRoom

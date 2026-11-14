@@ -53,6 +53,20 @@ class PerformanceMonitoringMiddleware:
                 f"({query_count} queries, {db_duration:.2f}ms in DB)"
             )
 
+        # Telemetry aggregation for SRE metrics & percentiles
+        if not request.path.startswith('/static/'):
+            try:
+                from services.observability import MetricsCollector
+                prefix = '/' + request.path.strip('/').split('/')[0] if request.path.strip('/') else '/'
+                MetricsCollector.record_request(
+                    method=request.method,
+                    path_prefix=prefix,
+                    status_code=response.status_code,
+                    duration_ms=total_duration
+                )
+            except Exception:
+                pass
+
         return response
 
 
@@ -111,4 +125,45 @@ class SecurityCacheHeadersMiddleware:
             if 'Cache-Control' not in response:
                 response['Cache-Control'] = 'public, max-age=0, must-revalidate'
 
+        return response
+
+
+import uuid
+import threading
+
+_local = threading.local()
+
+def get_current_correlation_id() -> str:
+    """Returns the current request correlation ID for structured logging."""
+    return getattr(_local, 'correlation_id', '-')
+
+
+class CorrelationIdFilter(logging.Filter):
+    """Logging filter that injects correlation_id into all log records."""
+    def filter(self, record):
+        record.correlation_id = get_current_correlation_id()
+        return True
+
+
+class RequestCorrelationMiddleware:
+    """
+    Assigns or preserves a unique X-Request-ID for every incoming request.
+    Propagates the correlation ID across thread-local logging context
+    and injects it into response headers for end-to-end distributed tracing.
+    """
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        correlation_id = request.headers.get('X-Request-ID') or uuid.uuid4().hex[:16]
+        request.correlation_id = correlation_id
+        request.id = correlation_id
+        _local.correlation_id = correlation_id
+
+        try:
+            response = self.get_response(request)
+        finally:
+            _local.correlation_id = '-'
+
+        response['X-Request-ID'] = correlation_id
         return response

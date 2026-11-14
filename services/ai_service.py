@@ -406,6 +406,13 @@ class AIService:
             logger.info("[AIService] Gemini API key previously flagged as unavailable (401/403). Fast-failing to Knowledge Engine.")
             return None
 
+        # Circuit Breaker: Fast-fail immediately if external service has experienced consecutive outages
+        from services.resilience import CircuitBreaker
+        circuit = CircuitBreaker(name='gemini_api', failure_threshold=3, recovery_timeout=45.0)
+        if not circuit.can_execute():
+            logger.info("[AIService] Gemini Circuit Breaker is OPEN. Fast-failing to Knowledge Engine fallback.")
+            return None
+
         api_key = (os.getenv('GEMINI_API_KEY') or getattr(settings, 'GEMINI_API_KEY', '') or '').strip()
         if not api_key:
             return None
@@ -490,6 +497,7 @@ class AIService:
                 latency_ms = (time.perf_counter() - call_start) * 1000.0
 
                 if text:
+                    circuit.record_success()
                     cls._record_metric(success=True, model=model, latency_ms=latency_ms, fallback_used=(model_idx > 0))
                     logger.info(
                         f"[AIService] Request successfully handled by model '{model}' in {latency_ms:.1f}ms "
@@ -547,7 +555,8 @@ class AIService:
                     )
 
         total_elapsed_ms = (time.perf_counter() - start_overall) * 1000.0
-        logger.warning(f"[AIService] All Gemini cascade models failed in {total_elapsed_ms:.1f}ms.")
+        circuit.record_failure()
+        logger.warning(f"[AIService] All Gemini cascade models failed in {total_elapsed_ms:.1f}ms. Circuit breaker failure recorded.")
         return None
 
     @classmethod

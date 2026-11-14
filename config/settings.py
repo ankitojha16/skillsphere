@@ -86,6 +86,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'config.middleware.RequestCorrelationMiddleware',
     'config.middleware.PerformanceMonitoringMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -338,3 +339,43 @@ AI_REQUEST_TIMEOUT = int(os.getenv('AI_REQUEST_TIMEOUT', 12))  # per-request tim
 AI_TOTAL_DEADLINE = int(os.getenv('AI_TOTAL_DEADLINE', 25))    # overall execution budget in seconds
 AI_RATE_LIMIT_PER_MINUTE = int(os.getenv('AI_RATE_LIMIT_PER_MINUTE', 20))
 AI_MAX_INPUT_LENGTH = int(os.getenv('AI_MAX_INPUT_LENGTH', 3000))
+
+# Structured Application Logging with Request Correlation IDs
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'filters': {
+        'correlation_id': {
+            '()': 'config.middleware.CorrelationIdFilter',
+        },
+    },
+    'formatters': {
+        'structured': {
+            'format': '[%(asctime)s] [%(correlation_id)s] [%(levelname)s] [%(name)s]: %(message)s',
+            'datefmt': '%Y-%m-%d %H:%M:%S',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'structured',
+            'filters': ['correlation_id'],
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': os.getenv('LOG_LEVEL', 'INFO'),
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),
+            'propagate': False,
+        },
+        'skillsphere': {
+            'handlers': ['console'],
+            'level': 'DEBUG' if DEBUG else 'INFO',
+            'propagate': False,
+        },
+    },
+}

@@ -321,19 +321,20 @@ def room_sync_api(request, room_code):
 
         updated = False
         if 'code' in data and data['code'] is not None:
-            room.code_content = data['code']
+            room.code_content = str(data['code'])[:20000]
             updated = True
         if 'language' in data and data['language'] in ['python', 'javascript', 'sql']:
             room.language = data['language']
             updated = True
         if 'whiteboard' in data and data['whiteboard'] is not None:
             if isinstance(data['whiteboard'], dict):
-                room.whiteboard_data = json.dumps(data['whiteboard'])
+                wb_str = json.dumps(data['whiteboard'])
             else:
-                room.whiteboard_data = str(data['whiteboard'])
+                wb_str = str(data['whiteboard'])
+            room.whiteboard_data = wb_str[:50000]
             updated = True
 
-        chat_text = data.get('chat_message', '').strip()
+        chat_text = data.get('chat_message', '').strip()[:2000]
         if chat_text:
             RoomChatMessage.objects.create(
                 room=room,
@@ -377,7 +378,9 @@ def room_sync_api(request, room_code):
 @login_required
 def run_room_code_api(request, room_code):
     """
-    Safely executes collaborative code and returns stdout/result.
+    Safely validates collaborative code via AST parsing without server-side execution.
+    Untrusted code execution in the Django web process is strictly forbidden.
+    Execution is delegated to the client browser's WebAssembly Pyodide engine.
     Restricted strictly to the room's host and active collaborator.
     """
     if request.method != 'POST':
@@ -393,9 +396,10 @@ def run_room_code_api(request, room_code):
             'status': 'error',
             'message': 'Forbidden: You are not an active member of this pair programming session.'
         }, status=403)
+
     try:
         data = json.loads(request.body.decode('utf-8'))
-        code = data.get('code', room.code_content)
+        code = str(data.get('code', room.code_content))[:20000]
         language = data.get('language', room.language)
     except Exception:
         code = room.code_content
@@ -404,45 +408,43 @@ def run_room_code_api(request, room_code):
     # Save code to room
     room.code_content = code
     room.language = language
-    room.save()
+    room.save(update_fields=['code_content', 'language', 'updated_at'])
+
+    import time
+    start_time = time.perf_counter()
 
     if language == 'python':
-        import io
-        import contextlib
-        import time
-
-        stdout_capture = io.StringIO()
-        start_time = time.time()
+        import ast
         error_msg = None
-
-        safe_globals = {
-            "__builtins__": {
-                "print": print, "range": range, "len": len, "int": int, "float": float,
-                "str": str, "list": list, "dict": dict, "set": set, "tuple": tuple,
-                "bool": bool, "sum": sum, "min": min, "max": max, "sorted": sorted,
-                "abs": abs, "enumerate": enumerate, "zip": zip, "map": map, "filter": filter
-            }
-        }
-
+        syntax_valid = True
         try:
-            with contextlib.redirect_stdout(stdout_capture):
-                exec(code, safe_globals)
-            out = stdout_capture.getvalue()
+            ast.parse(code)
+            output_msg = "Python syntax verified successfully. Ready for browser Pyodide execution."
+        except SyntaxError as se:
+            syntax_valid = False
+            error_msg = f"SyntaxError on line {se.lineno}: {se.msg}"
+            output_msg = ""
         except Exception as e:
-            out = stdout_capture.getvalue()
-            error_msg = f"{type(e).__name__}: {str(e)}"
+            syntax_valid = False
+            error_msg = f"ValidationError: {str(e)}"
+            output_msg = ""
 
-        duration_ms = round((time.time() - start_time) * 1000, 2)
+        duration_ms = round((time.perf_counter() - start_time) * 1000, 2)
         return JsonResponse({
             'status': 'success',
-            'output': out,
+            'syntax_valid': syntax_valid,
+            'output': output_msg,
             'error': error_msg,
+            'execution_mode': 'client_pyodide',
             'duration_ms': duration_ms,
         })
     else:
+        duration_ms = round((time.perf_counter() - start_time) * 1000, 2)
         return JsonResponse({
             'status': 'success',
-            'output': f"Code saved for {language.upper()}! Run client-side execution.",
+            'syntax_valid': True,
+            'output': f"Code saved for {language.upper()}! Execute in browser.",
             'error': None,
-            'duration_ms': 5,
+            'execution_mode': 'client_runtime',
+            'duration_ms': duration_ms,
         })

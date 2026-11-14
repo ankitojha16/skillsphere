@@ -3,6 +3,7 @@ import logging
 from django.utils import timezone
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
+from django.db import IntegrityError
 from django.db.models import Count, Avg, Q
 from django.contrib import messages
 from django.http import HttpResponseRedirect, JsonResponse
@@ -462,6 +463,9 @@ def enroll_course_view(request, slug):
             enrollment = enrollments.first()
             enrollments.exclude(id=enrollment.id).delete()
             created = False
+        except IntegrityError:
+            enrollment = Enrollment.objects.filter(user=request.user, course=course).first()
+            created = False
         except Exception as e:
             logger.error(f"Error enrolling user {request.user.id} in course {slug}: {e}", exc_info=True)
             messages.error(request, f"Unable to process enrollment right now. Please try again.")
@@ -829,6 +833,25 @@ def submit_assessment_view(request, slug, assessment_type):
 
     percentage = int(round((score / total_q) * 100)) if total_q > 0 else 0
     is_passed = percentage >= assessment.passing_percentage
+
+    # Idempotency lock against rapid double-clicks
+    lock_key = f"submit_assess_{request.user.id}_{assessment.id}"
+    if not cache.add(lock_key, 1, timeout=4):
+        recent_attempt = assessment.attempts.filter(user=request.user).order_by('-id').first()
+        if recent_attempt:
+            return render(request, 'courses/assessment_result.html', {
+                'course': course,
+                'assessment': assessment,
+                'attempt': recent_attempt,
+                'is_passed': recent_attempt.is_passed,
+                'percentage': recent_attempt.percentage,
+                'passing_percentage': assessment.passing_percentage,
+                'score': recent_attempt.score,
+                'total_q': recent_attempt.total_questions,
+                'topic_breakdown': topic_breakdown,
+                'questions': questions,
+                'answers_record': json.loads(recent_attempt.answers_json or '{}'),
+            })
 
     attempt_count = assessment.attempts.filter(user=request.user).count() + 1
     attempt = CourseAssessmentAttempt.objects.create(

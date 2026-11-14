@@ -1,4 +1,5 @@
 import os
+import logging
 from django.conf import settings
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render
@@ -53,11 +54,67 @@ from django.db import connection
 from django.core.cache import cache
 from django.utils import timezone
 
+logger = logging.getLogger('skillsphere.health')
+
+def liveness_probe_view(request):
+    """
+    Container / K8s / Cloud Run Liveness Probe: GET /health/live/
+    Returns HTTP 200 immediately if the Django process is responsive.
+    Never fails merely because an external dependency is temporarily reconnecting.
+    """
+    response = JsonResponse({
+        'status': 'alive',
+        'timestamp': timezone.now().isoformat(),
+    })
+    response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    return response
+
+
+def readiness_probe_view(request):
+    """
+    Container / K8s / Cloud Run Readiness Probe: GET /health/ready/
+    Verifies that the instance can handle traffic.
+    Checks database connection and cache responsiveness.
+    Never leaks credentials, connection strings, or internal infrastructure details.
+    """
+    is_ready = True
+    db_status = 'ok'
+    cache_status = 'ok'
+
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+            cursor.fetchone()
+    except Exception as e:
+        is_ready = False
+        db_status = 'unavailable'
+        logger.warning(f"Readiness DB probe failed: {type(e).__name__}")
+
+    try:
+        cache.set('_readiness_probe', 1, 5)
+        if cache.get('_readiness_probe') != 1:
+            cache_status = 'degraded'
+    except Exception as e:
+        cache_status = 'degraded'
+        logger.warning(f"Readiness cache probe degraded: {type(e).__name__}")
+
+    status_code = 200 if is_ready else 503
+    response = JsonResponse({
+        'status': 'ready' if is_ready else 'not_ready',
+        'database': db_status,
+        'cache': cache_status,
+        'timestamp': timezone.now().isoformat(),
+    }, status=status_code)
+    response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    return response
+
+
 def health_check_view(request):
     """
     Production Health Check & Telemetry endpoint for cloud load balancers,
     Kubernetes probes, and uptime monitors.
     Returns 200 OK with system metrics or 503 if critical dependencies are down.
+    Never leaks internal credentials or sensitive connection strings.
     """
     start_time = time.time()
     checks = {}
@@ -76,9 +133,10 @@ def health_check_view(request):
         }
     except Exception as e:
         is_healthy = False
+        logger.error(f"Health check DB error: {type(e).__name__}")
         checks['database'] = {
-            'status': 'error',
-            'message': str(e)
+            'status': 'unavailable',
+            'error_type': type(e).__name__
         }
 
     # 2. Cache Check
@@ -92,9 +150,10 @@ def health_check_view(request):
             'latency_ms': cache_latency_ms
         }
     except Exception as e:
+        logger.warning(f"Health check cache error: {type(e).__name__}")
         checks['cache'] = {
             'status': 'degraded',
-            'message': str(e)
+            'error_type': type(e).__name__
         }
 
     total_latency_ms = round((time.time() - start_time) * 1000, 2)
@@ -102,7 +161,7 @@ def health_check_view(request):
         'status': 'healthy' if is_healthy else 'unhealthy',
         'timestamp': timezone.now().isoformat(),
         'platform': 'SkillSphere Autonomous Education & Career Platform',
-        'version': '2.5.0',
+        'version': '2.6.0',
         'environment': 'production' if not settings.DEBUG else 'development',
         'latency_ms': total_latency_ms,
         'checks': checks
@@ -197,5 +256,30 @@ def terms_of_service_view(request):
     Renders the SkillSphere Beta Terms of Service and Code of Conduct.
     """
     return render(request, 'pages/terms.html')
+
+
+from django.http import HttpResponseForbidden
+
+def metrics_view(request):
+    """
+    Staff-only & APM metrics endpoint: GET /api/metrics/
+    Returns Prometheus exposition format if Accept has text/plain, else JSON.
+    Protected by staff authorization or METRICS_BEARER_TOKEN for cloud scrapers.
+    Never exposes internal secrets or student PII.
+    """
+    auth_header = request.headers.get('Authorization', '')
+    expected_token = os.getenv('METRICS_BEARER_TOKEN')
+    is_token_auth = bool(expected_token and auth_header == f"Bearer {expected_token}")
+    is_staff = hasattr(request, 'user') and request.user.is_authenticated and (request.user.is_staff or request.user.is_superuser)
+
+    if not (is_token_auth or is_staff):
+        return HttpResponseForbidden("Access denied. Staff authorization or valid scraper token required.")
+
+    from services.observability import MetricsCollector
+    if 'text/plain' in request.headers.get('Accept', ''):
+        return HttpResponse(MetricsCollector.to_prometheus_format(), content_type='text/plain; version=0.0.4')
+
+    return JsonResponse(MetricsCollector.get_system_metrics())
+
 
 

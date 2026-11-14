@@ -149,8 +149,9 @@ class PDFService:
         - Gold accent: Soft gold (#C7A45A)
         """
         cert_id = getattr(certificate, 'certificate_id', certificate.pk)
-        cache_key = f"cert_pdf_{cert_id}"
-        cached = cache.get(cache_key)
+        doc_version = int(certificate.updated_at.timestamp()) if getattr(certificate, 'updated_at', None) else 1
+        cache_key = f"cert_pdf_{cert_id}_v{doc_version}"
+        cached = cache.get(cache_key) or cache.get(f"cert_pdf_{cert_id}")
         if cached:
             return cached
 
@@ -1178,7 +1179,15 @@ class PDFService:
     def generate_resume_pdf(resume) -> bytes:
         """
         Generates an ATS-compliant, selectable-text clean resume PDF using ReportLab Platypus.
+        Cached by resume ID and modification version timestamp.
         """
+        resume_id = getattr(resume, 'id', '0')
+        doc_version = int(resume.updated_at.timestamp()) if getattr(resume, 'updated_at', None) else 1
+        cache_key = f"resume_pdf_{resume_id}_v{doc_version}"
+        cached = cache.get(cache_key)
+        if cached:
+            return cached
+
         buffer = io.BytesIO()
         doc = SimpleDocTemplate(
             buffer,
@@ -1397,4 +1406,8 @@ class PDFService:
         doc.build(elements)
         pdf_data = buffer.getvalue()
         buffer.close()
+        try:
+            cache.set(cache_key, pdf_data, 86400)
+        except Exception:
+            pass
         return pdf_data

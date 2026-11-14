@@ -1,6 +1,9 @@
 import time
+import random
 import logging
 import traceback
+from abc import ABC, abstractmethod
+from typing import Optional, Dict, Any
 from datetime import timedelta
 from django.utils import timezone
 from django.db import transaction, models
@@ -10,6 +13,53 @@ logger = logging.getLogger('skillsphere.tasks')
 
 # Registry for task handlers: task_name -> callable(payload)
 TASK_HANDLERS = {}
+
+class BaseTaskQueueBackend(ABC):
+    """Abstract provider-independent background task queue interface."""
+    @abstractmethod
+    def enqueue(
+        self,
+        task_name: str,
+        payload: Optional[Dict[str, Any]] = None,
+        idempotency_key: Optional[str] = None,
+        max_retries: int = 3,
+        timeout_seconds: int = 60,
+        execute_now: bool = False
+    ) -> Any:
+        pass
+
+
+class DatabaseTaskQueueBackend(BaseTaskQueueBackend):
+    """PostgreSQL-backed transactional task queue for zero-dependency persistence."""
+    def enqueue(
+        self,
+        task_name: str,
+        payload: Optional[Dict[str, Any]] = None,
+        idempotency_key: Optional[str] = None,
+        max_retries: int = 3,
+        timeout_seconds: int = 60,
+        execute_now: bool = False
+    ) -> Any:
+        return enqueue_task(
+            task_name=task_name,
+            payload=payload,
+            idempotency_key=idempotency_key,
+            max_retries=max_retries,
+            timeout_seconds=timeout_seconds,
+            execute_now=execute_now
+        )
+
+
+_ACTIVE_BACKEND: BaseTaskQueueBackend = DatabaseTaskQueueBackend()
+
+def get_task_queue_backend() -> BaseTaskQueueBackend:
+    """Returns active provider-independent task queue backend."""
+    return _ACTIVE_BACKEND
+
+def set_task_queue_backend(backend: BaseTaskQueueBackend):
+    """Configures active backend (e.g. for Celery, Redis RQ, SQS, or Cloud Tasks)."""
+    global _ACTIVE_BACKEND
+    _ACTIVE_BACKEND = backend
 
 def register_task(task_name):
     """Decorator to register a function as a durable task handler."""
@@ -94,17 +144,26 @@ def execute_job(job: DurableTaskJob, worker_id: str = 'sync_worker') -> bool:
             logger.error(f"Task {job.task_name} [{job.task_id}] moved to DEAD_LETTER after {job.retries} attempts: {e}")
         else:
             job.status = 'failed'
-            logger.warning(f"Task {job.task_name} [{job.task_id}] failed (attempt {job.retries}/{job.max_retries}): {e}")
+            # Exponential backoff with randomized jitter
+            base_delay = 5.0
+            jitter = random.uniform(0.1, 2.0)
+            backoff_delay = (2 ** job.retries) * base_delay + jitter
+            job.scheduled_at = timezone.now() + timedelta(seconds=backoff_delay)
+            logger.warning(
+                f"Task {job.task_name} [{job.task_id}] failed (attempt {job.retries}/{job.max_retries}). "
+                f"Rescheduled with backoff in {backoff_delay:.1f}s: {e}"
+            )
 
         job.error_message = err_str[:3000]
         job.completed_at = timezone.now()
-        job.save(update_fields=['status', 'retries', 'error_message', 'completed_at'])
+        job.save(update_fields=['status', 'retries', 'error_message', 'completed_at', 'scheduled_at'])
         return False
 
 
 def process_next_job(worker_id: str = 'default_worker') -> bool:
     """
     Claims and processes the next pending job atomically using select_for_update.
+    Honors scheduled_at timestamps with exponential backoff and jitter.
     Returns True if a job was found and processed, False if queue is empty.
     """
     with transaction.atomic():
@@ -117,8 +176,12 @@ def process_next_job(worker_id: str = 'default_worker') -> bool:
 
         job = (
             DurableTaskJob.objects.select_for_update(skip_locked=True)
-            .filter(status__in=['pending', 'failed'], retries__lt=models.F('max_retries'))
-            .order_by('created_at')
+            .filter(
+                status__in=['pending', 'failed'],
+                retries__lt=models.F('max_retries'),
+                scheduled_at__lte=timezone.now()
+            )
+            .order_by('scheduled_at', 'created_at')
             .first()
         )
 

@@ -134,6 +134,7 @@ class DurableTaskJob(models.Model):
     timeout_seconds = models.PositiveIntegerField(default=60)
     error_message = models.TextField(blank=True, default='')
     worker_id = models.CharField(max_length=80, blank=True, default='')
+    scheduled_at = models.DateTimeField(default=timezone.now, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     started_at = models.DateTimeField(null=True, blank=True)
     completed_at = models.DateTimeField(null=True, blank=True)
@@ -141,6 +142,7 @@ class DurableTaskJob(models.Model):
     class Meta:
         ordering = ['created_at']
         indexes = [
+            models.Index(fields=['status', 'scheduled_at']),
             models.Index(fields=['status', 'created_at']),
             models.Index(fields=['task_name', 'status']),
         ]
