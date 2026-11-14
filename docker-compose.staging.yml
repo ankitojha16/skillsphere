@@ -1,0 +1,146 @@
+version: '3.8'
+
+services:
+  lb:
+    image: nginx:1.27-alpine
+    container_name: skillsphere_staging_lb
+    restart: unless-stopped
+    ports:
+      - "8000:80"
+    volumes:
+      - ./nginx/nginx.staging.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - web_instance_1
+      - web_instance_2
+    networks:
+      - skillsphere_net
+
+  web_instance_1:
+    build: .
+    container_name: skillsphere_staging_web_1
+    restart: unless-stopped
+    environment:
+      - DEBUG=False
+      - INSTANCE_ID=staging_web_node_1
+      - ALLOWED_HOSTS=localhost,127.0.0.1,staging.skillsphere.local,web_instance_1,web_instance_2,lb
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/skillsphere_staging
+      - REDIS_URL=redis://redis:6379/0
+      - STORAGE_BACKEND=local
+      - ALLOW_LOCAL_STORAGE_IN_PRODUCTION=True
+      - WEB_CONCURRENCY=2
+      - GUNICORN_THREADS=4
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - skillsphere_net
+
+  web_instance_2:
+    build: .
+    container_name: skillsphere_staging_web_2
+    restart: unless-stopped
+    environment:
+      - DEBUG=False
+      - INSTANCE_ID=staging_web_node_2
+      - ALLOWED_HOSTS=localhost,127.0.0.1,staging.skillsphere.local,web_instance_1,web_instance_2,lb
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/skillsphere_staging
+      - REDIS_URL=redis://redis:6379/0
+      - STORAGE_BACKEND=local
+      - ALLOW_LOCAL_STORAGE_IN_PRODUCTION=True
+      - WEB_CONCURRENCY=2
+      - GUNICORN_THREADS=4
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - skillsphere_net
+
+  worker_instance_1:
+    build: .
+    container_name: skillsphere_staging_worker_1
+    restart: unless-stopped
+    command: ["python", "manage.py", "run_task_worker", "--worker-id=staging_worker_pod_1", "--poll-interval=0.5"]
+    environment:
+      - DEBUG=False
+      - INSTANCE_ID=staging_worker_pod_1
+      - WORKER_ID=staging_worker_pod_1
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/skillsphere_staging
+      - REDIS_URL=redis://redis:6379/0
+      - STORAGE_BACKEND=local
+      - ALLOW_LOCAL_STORAGE_IN_PRODUCTION=True
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - skillsphere_net
+
+  worker_instance_2:
+    build: .
+    container_name: skillsphere_staging_worker_2
+    restart: unless-stopped
+    command: ["python", "manage.py", "run_task_worker", "--worker-id=staging_worker_pod_2", "--poll-interval=0.5"]
+    environment:
+      - DEBUG=False
+      - INSTANCE_ID=staging_worker_pod_2
+      - WORKER_ID=staging_worker_pod_2
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/skillsphere_staging
+      - REDIS_URL=redis://redis:6379/0
+      - STORAGE_BACKEND=local
+      - ALLOW_LOCAL_STORAGE_IN_PRODUCTION=True
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - skillsphere_net
+
+  db:
+    image: postgres:17-alpine
+    container_name: skillsphere_staging_db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=skillsphere_staging
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - staging_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d skillsphere_staging"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+    networks:
+      - skillsphere_net
+
+  redis:
+    image: redis:7-alpine
+    container_name: skillsphere_staging_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - staging_redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+    networks:
+      - skillsphere_net
+
+volumes:
+  staging_pgdata:
+  staging_redisdata:
+
+networks:
+  skillsphere_net:
+    driver: bridge

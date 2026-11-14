@@ -21,9 +21,7 @@ services:
 
   worker:
     build: .
-    container_name: skillsphere_worker
-    restart: always
-    command: python -c "from services.task_queue import process_next_job; import time; print('Worker started'); [time.sleep(0.5) if not process_next_job() else None while True]"
+    command: ["python", "manage.py", "run_task_worker", "--worker-id=docker_dev_worker", "--poll-interval=0.5"]
     environment:
       - DEBUG=False
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/skillsphere_staging

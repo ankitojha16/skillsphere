@@ -20,6 +20,7 @@ urlpatterns = [
     # Infrastructure, Health & Telemetry Routes
     path('health/live/', liveness_probe_view, name='liveness_probe'),
     path('health/ready/', readiness_probe_view, name='readiness_probe'),
+    path('health/startup/', health_check_view, name='startup_probe'),
     path('healthz', health_check_view, name='healthz'),
     path('api/health/', health_check_view, name='api_health'),
     path('api/metrics/', metrics_view, name='api_metrics'),
