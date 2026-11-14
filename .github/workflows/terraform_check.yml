@@ -1,0 +1,104 @@
+name: "Terraform Preflight & Security Audit (Read-Only)"
+
+on:
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - "terraform/**"
+      - ".github/workflows/terraform_check.yml"
+  push:
+    branches: [ "main" ]
+    paths:
+      - "terraform/**"
+  workflow_dispatch:
+
+permissions:
+  id-token: write   # Required for AWS OIDC federation
+  contents: read    # Required to checkout code
+  pull-requests: write
+
+jobs:
+  validate-and-scan:
+    name: "Terraform Lint, Validate & Static Security Scan"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.7.5"
+
+      - name: Terraform Format Check
+        run: |
+          terraform fmt -check -recursive terraform/
+
+      - name: Terraform Init (Module Validation Mode)
+        working-directory: terraform/aws
+        run: |
+          terraform init -backend=false
+
+      - name: Terraform Validate
+        working-directory: terraform/aws
+        run: |
+          terraform validate
+
+      - name: Run Trivy Static Security Scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'config'
+          scan-ref: 'terraform/aws'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '0' # Non-blocking diagnostic audit
+
+  plan-readonly:
+    name: "Terraform Plan (Read-Only via AWS OIDC)"
+    needs: [validate-and-scan]
+    runs-on: ubuntu-latest
+    environment: staging-audit # Protected environment with approval gate
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.7.5"
+
+      # Assume Read-Only Role via AWS IAM OIDC (Zero static credentials stored)
+      # Trust policy condition on AWS side:
+      # {
+      #   "Effect": "Allow",
+      #   "Principal": { "Federated": "arn:aws:iam::<ACCOUNT_ID>:oidc-provider/token.actions.githubusercontent.com" },
+      #   "Action": "sts:AssumeRoleWithWebIdentity",
+      #   "Condition": {
+      #     "StringEquals": {
+      #       "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
+      #     },
+      #     "StringLike": {
+      #       "token.actions.githubusercontent.com:sub": "repo:ankitojha16/ankit-kumar-portfolio:environment:staging-audit"
+      #     }
+      #   }
+      # }
+      - name: Configure AWS Credentials (OIDC Read-Only)
+        if: ${{ secrets.AWS_ROLE_TO_ASSUME_READONLY != '' }}
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME_READONLY }}
+          aws-region: ap-south-1
+          audience: sts.amazonaws.com
+
+      - name: Terraform Init with Backend
+        if: ${{ secrets.AWS_ROLE_TO_ASSUME_READONLY != '' }}
+        working-directory: terraform/aws
+        run: |
+          terraform init
+
+      - name: Terraform Plan (Safe Read-Only Preflight)
+        if: ${{ secrets.AWS_ROLE_TO_ASSUME_READONLY != '' }}
+        working-directory: terraform/aws
+        run: |
+          terraform plan -input=false -no-color

@@ -63,11 +63,20 @@ module "cache" {
   redis_node_type   = var.redis_node_type
 }
 
+# 5b. AWS Secrets Manager for Staging Application Credentials
+resource "aws_secretsmanager_secret" "app_secrets" {
+  name                    = "${var.project_name}-${var.environment}-app-secrets"
+  description             = "Encrypted application credentials (DATABASE_URL, REDIS_URL, SECRET_KEY) for SkillSphere staging"
+  kms_key_id              = "alias/aws/secretsmanager"
+  recovery_window_in_days = 0 # staging immediate deletion on destroy
+}
+
 # 6. ECS Fargate Cluster, Services, ALB & Auto Scaling
 module "ecs" {
   source                   = "./modules/ecs"
   environment              = var.environment
   project_name             = var.project_name
+  aws_region               = var.aws_region
   vpc_id                   = module.vpc.vpc_id
   public_subnet_ids        = module.vpc.public_subnet_ids
   private_subnet_ids       = module.vpc.private_app_subnet_ids
@@ -81,4 +90,7 @@ module "ecs" {
   web_max_capacity         = var.web_max_capacity
   worker_min_capacity      = var.worker_min_capacity
   worker_max_capacity      = var.worker_max_capacity
+  s3_bucket_arn            = module.storage.bucket_arn
+  s3_bucket_name           = module.storage.bucket_name
+  app_secret_arn           = aws_secretsmanager_secret.app_secrets.arn
 }

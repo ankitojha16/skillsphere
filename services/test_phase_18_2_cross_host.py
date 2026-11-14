@@ -283,3 +283,27 @@ class CrossHostBoundaryTests(TestCase):
         )
         self.assertIsNone(s3_service.addressing_style)
         self.assertEqual(s3_service.region_name, 'ap-south-1')
+
+    def test_s3_compatible_storage_iam_role_support(self):
+        """
+        Verify that S3CompatibleStorageService supports AWS ECS Fargate IAM task role
+        authentication without requiring permanent access keys.
+        """
+        import sys
+        mock_boto3 = MagicMock()
+        mock_botocore_config = MagicMock()
+        with patch.dict(sys.modules, {'boto3': mock_boto3, 'botocore.config': mock_botocore_config}):
+            with patch.dict(os.environ, {'STORAGE_USE_IAM_ROLE': 'True'}, clear=False):
+                service = S3CompatibleStorageService(
+                    bucket_name="skillsphere-staging-media-assets",
+                    region_name="ap-south-1"
+                )
+                client = service._get_client()
+                self.assertIsNotNone(client)
+                mock_boto3.client.assert_called_once()
+                call_kwargs = mock_boto3.client.call_args[1]
+                self.assertNotIn('aws_access_key_id', call_kwargs)
+                self.assertNotIn('aws_secret_access_key', call_kwargs)
+                self.assertEqual(call_kwargs['region_name'], 'ap-south-1')
+
+

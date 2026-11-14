@@ -287,7 +287,14 @@ class S3CompatibleStorageService(BaseStorageService):
         if self._s3_client is not None:
             return self._s3_client
 
-        if not (self.access_key and self.secret_key):
+        use_iam_role = (
+            bool(os.getenv('AWS_CONTAINER_CREDENTIALS_RELATIVE_URI')) or
+            bool(os.getenv('AWS_CONTAINER_CREDENTIALS_FULL_URI')) or
+            bool(os.getenv('AWS_ROLE_ARN')) or
+            os.getenv('STORAGE_USE_IAM_ROLE', 'False').lower() in ('true', '1')
+        )
+
+        if not (self.access_key and self.secret_key) and not use_iam_role:
             msg = (
                 f"[S3CompatibleStorage] Missing cloud credentials (STORAGE_ACCESS_KEY / STORAGE_SECRET_KEY). "
                 f"Bucket: '{self.bucket_name}'."
@@ -309,14 +316,16 @@ class S3CompatibleStorageService(BaseStorageService):
             if self.addressing_style:
                 s3_config_args['s3'] = {'addressing_style': self.addressing_style}
             config = Config(**s3_config_args)
-            self._s3_client = boto3.client(
-                's3',
-                aws_access_key_id=self.access_key,
-                aws_secret_access_key=self.secret_key,
-                endpoint_url=self.endpoint_url,
-                region_name=self.region_name,
-                config=config
-            )
+            client_kwargs = {
+                'service_name': 's3',
+                'region_name': self.region_name,
+                'endpoint_url': self.endpoint_url,
+                'config': config,
+            }
+            if self.access_key and self.secret_key:
+                client_kwargs['aws_access_key_id'] = self.access_key
+                client_kwargs['aws_secret_access_key'] = self.secret_key
+            self._s3_client = boto3.client(**client_kwargs)
             return self._s3_client
         except Exception as e:
             if self.is_production:

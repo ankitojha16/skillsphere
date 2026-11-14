@@ -23,6 +23,10 @@ variable "web_min_capacity" { type = number }
 variable "web_max_capacity" { type = number }
 variable "worker_min_capacity" { type = number }
 variable "worker_max_capacity" { type = number }
+variable "s3_bucket_arn" { type = string }
+variable "s3_bucket_name" { type = string }
+variable "app_secret_arn" { type = string }
+variable "aws_region" { type = string; default = "ap-south-1" }
 
 # 1. Application Load Balancer
 resource "aws_lb" "main" {
@@ -97,6 +101,20 @@ resource "aws_iam_role_policy_attachment" "ecs_execution" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
+resource "aws_iam_role_policy" "ecs_execution_secrets" {
+  name = "${var.project_name}-${var.environment}-execution-secrets"
+  role = aws_iam_role.ecs_execution.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = ["secretsmanager:GetSecretValue"]
+      Resource = [var.app_secret_arn]
+    }]
+  })
+}
+
 resource "aws_iam_role" "ecs_task" {
   name = "${var.project_name}-${var.environment}-ecs-task-role"
 
@@ -107,6 +125,32 @@ resource "aws_iam_role" "ecs_task" {
       Effect = "Allow"
       Principal = { Service = "ecs-tasks.amazonaws.com" }
     }]
+  })
+}
+
+# Application Task Role Least-Privilege S3 Policy (No permanent keys in container)
+resource "aws_iam_role_policy" "ecs_task_s3" {
+  name = "${var.project_name}-${var.environment}-task-s3"
+  role = aws_iam_role.ecs_task.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:GetObject",
+          "s3:PutObject",
+          "s3:DeleteObject"
+        ]
+        Resource = ["${var.s3_bucket_arn}/*"]
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["s3:ListBucket"]
+        Resource = [var.s3_bucket_arn]
+      }
+    ]
   })
 }
 
@@ -131,13 +175,22 @@ resource "aws_ecs_task_definition" "web" {
     environment = [
       { name = "DEBUG", value = "False" },
       { name = "WEB_CONCURRENCY", value = "2" },
-      { name = "GUNICORN_THREADS", value = "4" }
+      { name = "GUNICORN_THREADS", value = "4" },
+      { name = "STORAGE_BACKEND", value = "s3" },
+      { name = "AWS_STORAGE_BUCKET_NAME", value = var.s3_bucket_name },
+      { name = "AWS_S3_REGION_NAME", value = var.aws_region },
+      { name = "STORAGE_USE_IAM_ROLE", value = "True" }
+    ]
+    secrets = [
+      { name = "SECRET_KEY", valueFrom = "${var.app_secret_arn}:SECRET_KEY::" },
+      { name = "DATABASE_URL", valueFrom = "${var.app_secret_arn}:DATABASE_URL::" },
+      { name = "REDIS_URL", valueFrom = "${var.app_secret_arn}:REDIS_URL::" }
     ]
     logConfiguration = {
       logDriver = "awslogs"
       options = {
         "awslogs-group"         = "/ecs/${var.project_name}-${var.environment}-web"
-        "awslogs-region"        = "ap-south-1"
+        "awslogs-region"        = var.aws_region
         "awslogs-stream-prefix" = "web"
         "awslogs-create-group"  = "true"
       }
@@ -161,13 +214,22 @@ resource "aws_ecs_task_definition" "worker" {
     essential = true
     command   = ["python", "manage.py", "run_task_worker", "--poll-interval=0.5"]
     environment = [
-      { name = "DEBUG", value = "False" }
+      { name = "DEBUG", value = "False" },
+      { name = "STORAGE_BACKEND", value = "s3" },
+      { name = "AWS_STORAGE_BUCKET_NAME", value = var.s3_bucket_name },
+      { name = "AWS_S3_REGION_NAME", value = var.aws_region },
+      { name = "STORAGE_USE_IAM_ROLE", value = "True" }
+    ]
+    secrets = [
+      { name = "SECRET_KEY", valueFrom = "${var.app_secret_arn}:SECRET_KEY::" },
+      { name = "DATABASE_URL", valueFrom = "${var.app_secret_arn}:DATABASE_URL::" },
+      { name = "REDIS_URL", valueFrom = "${var.app_secret_arn}:REDIS_URL::" }
     ]
     logConfiguration = {
       logDriver = "awslogs"
       options = {
         "awslogs-group"         = "/ecs/${var.project_name}-${var.environment}-worker"
-        "awslogs-region"        = "ap-south-1"
+        "awslogs-region"        = var.aws_region
         "awslogs-stream-prefix" = "worker"
         "awslogs-create-group"  = "true"
       }
