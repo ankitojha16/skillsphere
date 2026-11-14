@@ -79,7 +79,7 @@ jobs:
       #       "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
       #     },
       #     "StringLike": {
-      #       "token.actions.githubusercontent.com:sub": "repo:ankitojha16/ankit-kumar-portfolio:environment:staging-audit"
+      #       "token.actions.githubusercontent.com:sub": "repo:ankitojha16/skillsphere:environment:staging-audit"
       #     }
       #   }
       # }

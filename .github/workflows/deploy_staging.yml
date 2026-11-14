@@ -1,0 +1,114 @@
+name: "Deploy AWS ECS Fargate Staging"
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_apply:
+        description: "Type 'DEPLOY' to authorize live AWS staging provisioning"
+        required: true
+        default: "DRY_RUN"
+
+permissions:
+  id-token: write   # Required for AWS OIDC federation
+  contents: read    # Required to checkout code
+
+concurrency:
+  group: "staging_deployment"
+  cancel-in-progress: false
+
+jobs:
+  validate-and-test:
+    name: "Preflight Test & Asset Validation"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12.16"
+          cache: "pip"
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Django System & Migration Checks
+        run: |
+          python manage.py check
+          python -Wd manage.py check
+          DATABASE_URL="sqlite:////tmp/ci_test.db" python manage.py makemigrations --check --dry-run
+          DATABASE_URL="sqlite:////tmp/ci_test.db" python manage.py migrate --plan
+
+      - name: Run Full Regression Test Suite (369 Tests)
+        run: |
+          python manage.py test
+
+      - name: Validate Static Asset Hashing & Manifest
+        run: |
+          DEBUG=False python manage.py collectstatic --noinput
+          python scripts/deploy_static_assets.py --dry-run
+
+  deploy-staging:
+    name: "Provision Infrastructure & Deploy ECS Tasks"
+    needs: [validate-and-test]
+    if: ${{ github.event.inputs.confirm_apply == 'DEPLOY' }}
+    runs-on: ubuntu-latest
+    environment: staging # Requires GitHub protected environment approval
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup OpenTofu
+        uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_version: "1.13.9"
+
+      - name: Configure AWS Credentials via IAM OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME_DEPLOY }}
+          aws-region: ap-south-1
+          audience: sts.amazonaws.com
+
+      - name: Log in to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag, and push Docker image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: skillsphere
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+      - name: Publish Immutable Static Assets to S3
+        run: |
+          python -m pip install boto3
+          DEBUG=False python manage.py collectstatic --noinput
+          python scripts/deploy_static_assets.py \
+            --bucket "skillsphere-staging-static-assets" \
+            --region "ap-south-1" \
+            --apply
+
+      - name: Provision Infrastructure via OpenTofu
+        working-directory: terraform/aws
+        run: |
+          tofu init -backend=true
+          tofu plan -var="environment=staging" -var="container_image=${{ steps.login-ecr.outputs.registry }}/skillsphere:${{ github.sha }}" -out=staging.tfplan
+          tofu apply staging.tfplan
+
+      - name: Post-Deployment Smoke Probes
+        working-directory: terraform/aws
+        run: |
+          ALB_DNS=$(tofu output -raw alb_dns_name)
+          echo "Probing ALB at: http://${ALB_DNS}/health/live/"
+          curl --fail --retry 5 --retry-delay 10 "http://${ALB_DNS}/health/live/"
