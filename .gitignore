@@ -30,6 +30,7 @@ media/
 .vercel
 .env*
 !.env.example
+!.env.staging.example
 supabase/.temp/
 scratch/
 
