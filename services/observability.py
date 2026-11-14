@@ -13,6 +13,7 @@ SCOPE & ARCHITECTURAL CLARITY:
 import time
 import os
 import math
+import socket
 import logging
 import threading
 from collections import deque
@@ -227,28 +228,50 @@ class MetricsCollector:
         return alerts
 
     @classmethod
+    def get_instance_id(cls) -> str:
+        """
+        Returns stable unique instance identifier for multi-instance Prometheus scraping.
+        Uses SKILLSPHERE_INSTANCE_ID if set, else hostname_pid.
+        """
+        return os.environ.get('SKILLSPHERE_INSTANCE_ID') or f"{socket.gethostname()}_{os.getpid()}"
+
+    @classmethod
     def to_prometheus_format(cls) -> str:
-        """Exports metrics in OpenMetrics / Prometheus exposition format with histograms."""
+        """
+        Exports metrics in OpenMetrics / Prometheus exposition format with histograms
+        and instance labels to support multi-node scraping and fleet aggregation.
+        """
         m = cls.get_system_metrics()
+        inst = cls.get_instance_id()
+
         lines = [
+            "# HELP skillsphere_instance_info Metadata about application instance",
+            "# TYPE skillsphere_instance_info gauge",
+            f'skillsphere_instance_info{{instance="{inst}"}} 1',
             "# HELP skillsphere_requests_total Total HTTP requests in 5m window",
             "# TYPE skillsphere_requests_total counter",
-            f"skillsphere_requests_total {m['traffic']['requests_last_5m']}",
+            f'skillsphere_requests_total{{instance="{inst}"}} {m["traffic"]["requests_last_5m"]}',
+            "# HELP skillsphere_instance_requests_cumulative Monotonic cumulative HTTP requests for this process",
+            "# TYPE skillsphere_instance_requests_cumulative counter",
+            f'skillsphere_instance_requests_cumulative{{instance="{inst}"}} {cls._local_requests}',
             "# HELP skillsphere_errors_total Total HTTP errors in 5m window",
             "# TYPE skillsphere_errors_total counter",
-            f"skillsphere_errors_total {m['traffic']['errors_last_5m']}",
+            f'skillsphere_errors_total{{instance="{inst}"}} {m["traffic"]["errors_last_5m"]}',
+            "# HELP skillsphere_instance_errors_cumulative Monotonic cumulative HTTP errors for this process",
+            "# TYPE skillsphere_instance_errors_cumulative counter",
+            f'skillsphere_instance_errors_cumulative{{instance="{inst}"}} {cls._local_errors}',
             "# HELP skillsphere_latency_p50_ms 50th percentile latency in ms",
             "# TYPE skillsphere_latency_p50_ms gauge",
-            f"skillsphere_latency_p50_ms {m['latency_percentiles_ms']['p50']}",
+            f'skillsphere_latency_p50_ms{{instance="{inst}"}} {m["latency_percentiles_ms"]["p50"]}',
             "# HELP skillsphere_latency_p95_ms 95th percentile latency in ms",
             "# TYPE skillsphere_latency_p95_ms gauge",
-            f"skillsphere_latency_p95_ms {m['latency_percentiles_ms']['p95']}",
+            f'skillsphere_latency_p95_ms{{instance="{inst}"}} {m["latency_percentiles_ms"]["p95"]}',
             "# HELP skillsphere_latency_p99_ms 99th percentile latency in ms",
             "# TYPE skillsphere_latency_p99_ms gauge",
-            f"skillsphere_latency_p99_ms {m['latency_percentiles_ms']['p99']}",
+            f'skillsphere_latency_p99_ms{{instance="{inst}"}} {m["latency_percentiles_ms"]["p99"]}',
             "# HELP skillsphere_db_latency_ms Database probe latency in ms",
             "# TYPE skillsphere_db_latency_ms gauge",
-            f"skillsphere_db_latency_ms {m['database']['probe_latency_ms']}",
+            f'skillsphere_db_latency_ms{{instance="{inst}"}} {m["database"]["probe_latency_ms"]}',
             "# HELP skillsphere_queue_pending_tasks Tasks currently waiting in queue",
             "# TYPE skillsphere_queue_pending_tasks gauge",
             f"skillsphere_queue_pending_tasks {m['queue']['pending']}",
@@ -263,7 +286,7 @@ class MetricsCollector:
             f"skillsphere_cache_misses_total {m['cache']['misses']}",
         ]
 
-        # Prometheus histogram buckets
+        # Prometheus histogram buckets with instance tags
         with cls._lock:
             hist_copy = dict(cls._local_histogram)
         cumulative = 0
@@ -271,8 +294,8 @@ class MetricsCollector:
         lines.append("# TYPE skillsphere_http_request_duration_ms histogram")
         for b in LATENCY_BUCKETS:
             cumulative += hist_copy.get(b, 0)
-            lines.append(f'skillsphere_http_request_duration_ms_bucket{{le="{b}"}} {cumulative}')
+            lines.append(f'skillsphere_http_request_duration_ms_bucket{{instance="{inst}",le="{b}"}} {cumulative}')
         cumulative += hist_copy.get('+Inf', 0)
-        lines.append(f'skillsphere_http_request_duration_ms_bucket{{le="+Inf"}} {cumulative}')
+        lines.append(f'skillsphere_http_request_duration_ms_bucket{{instance="{inst}",le="+Inf"}} {cumulative}')
 
         return "\n".join(lines) + "\n"

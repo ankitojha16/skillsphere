@@ -162,20 +162,71 @@ def execute_job(job: DurableTaskJob, worker_id: str = 'sync_worker') -> bool:
         return False
 
 
+def recover_expired_leases(lease_grace_seconds: int = 30) -> int:
+    """
+    Recovers orphaned jobs from crashed workers or terminated containers.
+    Inspects running jobs whose started_at exceeds their individual timeout_seconds + grace.
+    Atomically increments retries, schedules full-jitter exponential backoff, or moves
+    to dead_letter if max_retries has been reached. Never loses a job permanently.
+    Returns count of recovered jobs.
+    """
+    recovered_count = 0
+    now = timezone.now()
+
+    # Find running jobs whose execution lease has expired
+    running_jobs = list(
+        DurableTaskJob.objects.filter(
+            status='running',
+            started_at__isnull=False
+        ).select_for_update(skip_locked=True)
+    )
+
+    for job in running_jobs:
+        lease_duration = timedelta(seconds=max(30, job.timeout_seconds + lease_grace_seconds))
+        if job.started_at and (now - job.started_at) > lease_duration:
+            job.retries += 1
+            if job.retries >= job.max_retries:
+                job.status = 'dead_letter'
+                job.error_message = (
+                    f"Worker lease expired (worker '{job.worker_id}' crashed or terminated). "
+                    f"Job exceeded max retries ({job.retries}/{job.max_retries})."
+                )
+                logger.error(f"[TaskQueue:Recovery] Job {job.task_name} [{job.task_id}] moved to DEAD_LETTER after lease expiry.")
+            else:
+                job.status = 'failed'
+                base_delay = 5.0
+                cap = 300.0
+                backoff_limit = min(cap, base_delay * (2 ** job.retries))
+                backoff_delay = random.uniform(0.0, backoff_limit)
+                job.scheduled_at = now + timedelta(seconds=backoff_delay)
+                job.error_message = (
+                    f"Worker lease expired (worker '{job.worker_id}' timed out or crashed). "
+                    f"Attempt {job.retries}/{job.max_retries}. Rescheduled in {backoff_delay:.1f}s."
+                )
+                logger.warning(
+                    f"[TaskQueue:Recovery] Recovered stalled job {job.task_name} [{job.task_id}] "
+                    f"from worker '{job.worker_id}'. Rescheduled with jitter."
+                )
+
+            job.completed_at = now
+            job.save(update_fields=['status', 'retries', 'error_message', 'completed_at', 'scheduled_at'])
+            recovered_count += 1
+
+    return recovered_count
+
+
 def process_next_job(worker_id: str = 'default_worker') -> bool:
     """
-    Claims and processes the next pending job atomically using select_for_update.
+    Claims and processes the next pending job atomically using select_for_update(skip_locked=True).
     Honors scheduled_at timestamps with exponential backoff and jitter.
+    Automatically recovers orphaned jobs from crashed workers prior to claiming.
     Returns True if a job was found and processed, False if queue is empty.
     """
     with transaction.atomic():
-        # Clean up stale jobs that timed out
-        stale_cutoff = timezone.now() - timedelta(minutes=10)
-        DurableTaskJob.objects.filter(
-            status='running',
-            started_at__lt=stale_cutoff
-        ).update(status='failed', error_message='Job execution timed out while running')
+        # 1. Recover any expired leases from crashed workers
+        recover_expired_leases(lease_grace_seconds=30)
 
+        # 2. Claim next available job atomically across parallel workers
         job = (
             DurableTaskJob.objects.select_for_update(skip_locked=True)
             .filter(

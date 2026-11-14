@@ -263,6 +263,16 @@ class Bulkhead:
     Uses a threading.BoundedSemaphore per application process to strictly bound
     simultaneous executions per worker, preventing thread exhaustion.
     Guarantees safe permit release via context manager pattern.
+
+    MULTI-INSTANCE CAPACITY MODELING:
+    - Scope: Process-local.
+    - Behavior across N instances: Independent. Total fleet concurrency is:
+        C_fleet = N_instances * C_local
+    - Upstream sizing rule: To protect an upstream service with a global concurrency ceiling
+      of C_upstream across an auto-scaling cluster with up to N_max instances, set:
+        C_local = max(1, floor(C_upstream / N_max))
+    - Failure mode: If Redis or shared infrastructure is unavailable, local Bulkheads continue
+      to operate with zero interruption to student learning workflows.
     """
     def __init__(self, name: str, max_concurrent: int = 15):
         self.name = name
@@ -308,3 +318,99 @@ class Bulkhead:
     def active_permits(self) -> int:
         with self._lock:
             return self._active_count
+
+
+class DistributedBulkhead:
+    """
+    Fleet-wide distributed concurrency limiter coordinating across all application instances.
+    Backed by Redis atomic token counters with lease TTLs to prevent leaks on worker crashes.
+
+    HIGH-AVAILABILITY & FAIL-SAFE DEGRADATION:
+    If Redis is down, unreachable, or unconfigured, DistributedBulkhead automatically
+    degrades to an internal process-local Bulkhead (threading.BoundedSemaphore).
+    Core learning operations (assessments, enrollments, lessons) NEVER crash due to Redis failure.
+    """
+    def __init__(
+        self,
+        name: str,
+        max_fleet_concurrent: int = 50,
+        lease_ttl_seconds: int = 30,
+        fallback_local_concurrent: int = 15
+    ):
+        self.name = name
+        self.max_fleet_concurrent = max_fleet_concurrent
+        self.lease_ttl_seconds = lease_ttl_seconds
+        self.key_prefix = f"bulkhead:fleet:{name}"
+        self._local_fallback = Bulkhead(name=f"{name}_local_fallback", max_concurrent=fallback_local_concurrent)
+
+    def _get_redis_client(self):
+        try:
+            from services.redis_service import RedisService
+            return RedisService.get_client()
+        except Exception:
+            return None
+
+    def acquire(self, token_id: Optional[str] = None, timeout: float = 0.0) -> Optional[str]:
+        """
+        Attempts to acquire a fleet-wide permit.
+        Returns token_id string if acquired, or None if capacity exceeded.
+        """
+        client = self._get_redis_client()
+        if not client:
+            # Fail-open to local process bulkhead
+            acquired = self._local_fallback.acquire(timeout=timeout)
+            return f"local_{time.time()}" if acquired else None
+
+        token = token_id or f"tok_{time.time()}_{random.randint(1000, 9999)}"
+        key = f"{self.key_prefix}:active"
+        now = time.time()
+        start_time = now
+
+        while True:
+            try:
+                # Remove expired tokens from crashed workers (lease expiration)
+                client.zremrangebyscore(key, '-inf', now - self.lease_ttl_seconds)
+                current_active = client.zcard(key)
+
+                if current_active < self.max_fleet_concurrent:
+                    client.zadd(key, {token: now})
+                    client.expire(key, self.lease_ttl_seconds * 2)
+                    return token
+
+                if (time.time() - start_time) >= timeout:
+                    return None
+
+                time.sleep(0.05)
+                now = time.time()
+            except Exception as e:
+                logger.warning(f"[DistributedBulkhead:{self.name}] Redis error ({e}); failing over to local bulkhead.")
+                acquired = self._local_fallback.acquire(timeout=timeout)
+                return f"local_{time.time()}" if acquired else None
+
+    def release(self, token: Optional[str]):
+        """Releases the fleet-wide permit or local fallback permit."""
+        if not token:
+            return
+
+        if token.startswith("local_"):
+            self._local_fallback.release()
+            return
+
+        client = self._get_redis_client()
+        if client:
+            try:
+                key = f"{self.key_prefix}:active"
+                client.zrem(key, token)
+            except Exception as e:
+                logger.warning(f"[DistributedBulkhead:{self.name}] Failed to release token '{token}' in Redis: {e}")
+
+    @contextmanager
+    def acquire_context(self, timeout: float = 0.0):
+        """Context manager guaranteeing token release across distributed or local execution."""
+        token = self.acquire(timeout=timeout)
+        if not token:
+            raise TimeoutError(f"Fleet bulkhead '{self.name}' capacity of {self.max_fleet_concurrent} exceeded.")
+        try:
+            yield token
+        finally:
+            self.release(token)

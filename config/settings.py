@@ -265,6 +265,15 @@ if os.environ.get('VERCEL') or os.environ.get('AWS_LAMBDA_FUNCTION_NAME'):
 else:
     MEDIA_ROOT = BASE_DIR / 'media'
 
+# Provider-Independent Object Storage Configuration (Phase 17.2)
+STORAGE_BACKEND = os.getenv('STORAGE_BACKEND', 'local')
+STORAGE_BUCKET_NAME = os.getenv('STORAGE_BUCKET_NAME', 'skillsphere-media')
+STORAGE_ENDPOINT_URL = os.getenv('STORAGE_ENDPOINT_URL', None)
+STORAGE_ACCESS_KEY = os.getenv('STORAGE_ACCESS_KEY', None)
+STORAGE_SECRET_KEY = os.getenv('STORAGE_SECRET_KEY', None)
+STORAGE_REGION_NAME = os.getenv('STORAGE_REGION_NAME', 'us-east-1')
+STORAGE_PUBLIC_URL_BASE = os.getenv('STORAGE_PUBLIC_URL_BASE', None)
+
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
