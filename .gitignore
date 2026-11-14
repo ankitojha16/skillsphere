@@ -35,3 +35,10 @@ staticfiles/
 supabase/.temp/
 scratch/
 
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+*.tfplan
+

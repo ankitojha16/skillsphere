@@ -26,11 +26,11 @@ resource "aws_db_subnet_group" "rds" {
 # - Automatic failover with automated DNS failover in 60-120 seconds
 # - Zero I/O suspension during daily automated snapshots and PITR
 resource "aws_db_instance" "postgres" {
-  identifier                  = "${var.project_name}-${var.environment}-db"
-  allocated_storage           = 100
-  max_allocated_storage       = 500
-  storage_type                = "gp3"
-  engine                      = "postgres"
+  identifier            = "${var.project_name}-${var.environment}-db"
+  allocated_storage     = 100
+  max_allocated_storage = 500
+  storage_type          = "gp3"
+  engine                = "postgres"
   # Target latest active supported PostgreSQL 17 minor release (17.11)
   # Verify with: aws rds describe-db-engine-versions --region ap-south-1 --engine postgres --engine-version 17.11
   engine_version              = "17.11"

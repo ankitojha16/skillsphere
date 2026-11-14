@@ -22,3 +22,13 @@ output "s3_bucket_name" {
   description = "Name of the media assets S3 bucket"
   value       = module.storage.bucket_name
 }
+
+output "static_s3_bucket_name" {
+  description = "Name of the immutable static assets S3 bucket"
+  value       = module.storage.static_bucket_name
+}
+
+output "cloudfront_domain_name" {
+  description = "Domain name of the CloudFront CDN distribution for static assets"
+  value       = module.storage.cloudfront_domain_name
+}
