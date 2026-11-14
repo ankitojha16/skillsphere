@@ -31,7 +31,9 @@ resource "aws_db_instance" "postgres" {
   max_allocated_storage       = 500
   storage_type                = "gp3"
   engine                      = "postgres"
-  engine_version              = "17.4"
+  # Target latest active supported PostgreSQL 17 minor release (17.11)
+  # Verify with: aws rds describe-db-engine-versions --region ap-south-1 --engine postgres --engine-version 17.11
+  engine_version              = "17.11"
   auto_minor_version_upgrade  = true
   instance_class              = var.instance_class
   db_name                     = "skillsphere"

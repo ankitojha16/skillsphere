@@ -147,13 +147,14 @@ elif os.getenv('DATABASE_URL'):
     )
     # In PgBouncer transaction pooling (port 6543), server-side cursors must be disabled in Django
     default_db['DISABLE_SERVER_SIDE_CURSORS'] = True
-    default_db.setdefault('OPTIONS', {})
-    default_db['OPTIONS'].update({
-        # Fast failure on database network drop (libpq parameter)
-        'connect_timeout': int(os.getenv('DB_CONNECT_TIMEOUT', '5')),
-        # Hard 10-second statement timeout to protect the connection pool from runaway queries
-        'options': f"-c statement_timeout={os.getenv('DB_STATEMENT_TIMEOUT', '10000')}",
-    })
+    if 'postgresql' in default_db.get('ENGINE', ''):
+        default_db.setdefault('OPTIONS', {})
+        default_db['OPTIONS'].update({
+            # Fast failure on database network drop (libpq parameter)
+            'connect_timeout': int(os.getenv('DB_CONNECT_TIMEOUT', '5')),
+            # Hard 10-second statement timeout to protect the connection pool from runaway queries
+            'options': f"-c statement_timeout={os.getenv('DB_STATEMENT_TIMEOUT', '10000')}",
+        })
     DATABASES = {'default': default_db}
 elif not USE_SQLITE_FALLBACK:
     DATABASES = {
@@ -252,11 +253,19 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-# Static files storage
-if DEBUG:
-    STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
-else:
-    STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
+# Static files and default media storage (Django 4.2+ / Django 5.x STORAGES standard)
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": (
+            "django.contrib.staticfiles.storage.StaticFilesStorage"
+            if DEBUG
+            else "whitenoise.storage.CompressedStaticFilesStorage"
+        ),
+    },
+}
 
 # Media files (User uploads, avatars, course thumbnails)
 MEDIA_URL = '/media/'
