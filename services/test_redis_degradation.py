@@ -16,6 +16,10 @@ class RedisDegradationAndRecoveryTests(TestCase):
         cache.clear()
         RedisService.reset_client()
 
+    def tearDown(self):
+        RedisService.reset_client()
+        cache.clear()
+
     def test_01_redis_available_distributed_mode(self):
         """When Redis is reachable, status accurately reports distributed mode."""
         mock_client = MagicMock()

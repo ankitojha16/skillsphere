@@ -12,12 +12,13 @@ SCOPE & ARCHITECTURAL CLARITY:
 
 import time
 import os
+import re
 import math
 import socket
 import logging
 import threading
 from collections import deque
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from django.core.cache import cache
 from django.utils import timezone
 from django.db import connection
@@ -227,13 +228,19 @@ class MetricsCollector:
             alerts.append({'severity': 'WARNING', 'name': 'DeadLetterHigh', 'message': 'Over 20 tasks moved to dead letter.'})
         return alerts
 
+    _cached_instance_id: Optional[str] = None
+
     @classmethod
     def get_instance_id(cls) -> str:
         """
         Returns stable unique instance identifier for multi-instance Prometheus scraping.
         Uses SKILLSPHERE_INSTANCE_ID if set, else hostname_pid.
+        Cached per process for absolute lifecycle stability and sanitized for safe label usage.
         """
-        return os.environ.get('SKILLSPHERE_INSTANCE_ID') or f"{socket.gethostname()}_{os.getpid()}"
+        if cls._cached_instance_id is None:
+            raw_id = os.environ.get('SKILLSPHERE_INSTANCE_ID') or f"{socket.gethostname()}_{os.getpid()}"
+            cls._cached_instance_id = re.sub(r'[^a-zA-Z0-9_\-]', '_', raw_id)
+        return cls._cached_instance_id
 
     @classmethod
     def to_prometheus_format(cls) -> str:

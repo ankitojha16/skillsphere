@@ -19,6 +19,10 @@ class GeminiMultiInstanceHardeningTests(TestCase):
         cache.clear()
         RedisService.reset_client()
 
+    def tearDown(self):
+        RedisService.reset_client()
+        cache.clear()
+
     def test_backend_status_safe_telemetry(self):
         """Backend status returns safe telemetry without leaking credentials or URLs."""
         status = RedisService.get_backend_status()

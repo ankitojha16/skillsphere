@@ -329,7 +329,51 @@ class DistributedBulkhead:
     If Redis is down, unreachable, or unconfigured, DistributedBulkhead automatically
     degrades to an internal process-local Bulkhead (threading.BoundedSemaphore).
     Core learning operations (assessments, enrollments, lessons) NEVER crash due to Redis failure.
+    Degraded mode is explicitly tracked and logged; fleet-wide limits are NOT claimed when degraded.
     """
+    LUA_ACQUIRE = """
+    local key = KEYS[1]
+    local now = tonumber(ARGV[1])
+    local lease_ttl = tonumber(ARGV[2])
+    local max_fleet = tonumber(ARGV[3])
+    local token = ARGV[4]
+
+    -- 1. Remove expired tokens from crashed workers (lease expiration)
+    redis.call('ZREMRANGEBYSCORE', key, '-inf', now - lease_ttl)
+
+    -- 2. Check active concurrency against fleet limit
+    local current_active = redis.call('ZCARD', key)
+    if current_active < max_fleet then
+        redis.call('ZADD', key, now, token)
+        redis.call('EXPIRE', key, lease_ttl * 2)
+        return 1
+    else
+        return 0
+    end
+    """
+
+    LUA_RENEW = """
+    local key = KEYS[1]
+    local token = ARGV[1]
+    local now = tonumber(ARGV[2])
+    local lease_ttl = tonumber(ARGV[3])
+
+    local score = redis.call('ZSCORE', key, token)
+    if score then
+        redis.call('ZADD', key, now, token)
+        redis.call('EXPIRE', key, lease_ttl * 2)
+        return 1
+    else
+        return 0
+    end
+    """
+
+    LUA_RELEASE = """
+    local key = KEYS[1]
+    local token = ARGV[1]
+    return redis.call('ZREM', key, token)
+    """
+
     def __init__(
         self,
         name: str,
@@ -340,26 +384,42 @@ class DistributedBulkhead:
         self.name = name
         self.max_fleet_concurrent = max_fleet_concurrent
         self.lease_ttl_seconds = lease_ttl_seconds
+        self.fallback_local_concurrent = fallback_local_concurrent
         self.key_prefix = f"bulkhead:fleet:{name}"
         self._local_fallback = Bulkhead(name=f"{name}_local_fallback", max_concurrent=fallback_local_concurrent)
+        self._is_degraded = False
+
+    @property
+    def is_degraded(self) -> bool:
+        """Returns True if operating in local fallback mode because Redis is offline."""
+        return self._is_degraded
 
     def _get_redis_client(self):
         try:
             from services.redis_service import RedisService
-            return RedisService.get_client()
+            client = RedisService.get_client()
+            if not client:
+                self._is_degraded = True
+            else:
+                self._is_degraded = False
+            return client
         except Exception:
+            self._is_degraded = True
             return None
 
     def acquire(self, token_id: Optional[str] = None, timeout: float = 0.0) -> Optional[str]:
         """
-        Attempts to acquire a fleet-wide permit.
+        Attempts to acquire a fleet-wide permit atomically via Redis Lua script.
         Returns token_id string if acquired, or None if capacity exceeded.
         """
         client = self._get_redis_client()
         if not client:
-            # Fail-open to local process bulkhead
+            logger.warning(
+                f"[DistributedBulkhead:{self.name}] Redis unavailable; degraded to process-local "
+                f"Bulkhead (capacity={self.fallback_local_concurrent}). Fleet-wide enforcement is INACTIVE."
+            )
             acquired = self._local_fallback.acquire(timeout=timeout)
-            return f"local_{time.time()}" if acquired else None
+            return f"local_{time.time()}_{random.randint(1000, 9999)}" if acquired else None
 
         token = token_id or f"tok_{time.time()}_{random.randint(1000, 9999)}"
         key = f"{self.key_prefix}:active"
@@ -368,14 +428,23 @@ class DistributedBulkhead:
 
         while True:
             try:
-                # Remove expired tokens from crashed workers (lease expiration)
-                client.zremrangebyscore(key, '-inf', now - self.lease_ttl_seconds)
-                current_active = client.zcard(key)
-
-                if current_active < self.max_fleet_concurrent:
-                    client.zadd(key, {token: now})
-                    client.expire(key, self.lease_ttl_seconds * 2)
+                res = client.eval(
+                    self.LUA_ACQUIRE,
+                    1,
+                    key,
+                    now,
+                    self.lease_ttl_seconds,
+                    self.max_fleet_concurrent,
+                    token
+                )
+                if res == 1:
                     return token
+
+                if res != 0:
+                    logger.warning(f"[DistributedBulkhead:{self.name}] Non-standard Redis response ({res!r}), degrading to local fallback.")
+                    self._is_degraded = True
+                    acquired = self._local_fallback.acquire(timeout=timeout)
+                    return f"local_{time.time()}_{random.randint(1000, 9999)}" if acquired else None
 
                 if (time.time() - start_time) >= timeout:
                     return None
@@ -383,26 +452,58 @@ class DistributedBulkhead:
                 time.sleep(0.05)
                 now = time.time()
             except Exception as e:
-                logger.warning(f"[DistributedBulkhead:{self.name}] Redis error ({e}); failing over to local bulkhead.")
+                logger.warning(
+                    f"[DistributedBulkhead:{self.name}] Redis Lua error ({e}); "
+                    f"degraded to process-local fallback."
+                )
+                self._is_degraded = True
                 acquired = self._local_fallback.acquire(timeout=timeout)
-                return f"local_{time.time()}" if acquired else None
+                return f"local_{time.time()}_{random.randint(1000, 9999)}" if acquired else None
 
-    def release(self, token: Optional[str]):
-        """Releases the fleet-wide permit or local fallback permit."""
+    def renew_lease(self, token: Optional[str], extension_seconds: Optional[int] = None) -> bool:
+        """
+        Renews an active lease for long-running operations, preventing premature eviction.
+        Returns True if lease was successfully renewed.
+        """
+        if not token or token.startswith("local_"):
+            return True
+
+        client = self._get_redis_client()
+        if not client:
+            return False
+
+        key = f"{self.key_prefix}:active"
+        ttl = extension_seconds or self.lease_ttl_seconds
+        now = time.time()
+        try:
+            res = client.eval(self.LUA_RENEW, 1, key, token, now, ttl)
+            return bool(res == 1)
+        except Exception as e:
+            logger.warning(f"[DistributedBulkhead:{self.name}] Lease renewal failed for token '{token}': {e}")
+            return False
+
+    def release(self, token: Optional[str]) -> bool:
+        """
+        Releases the acquired permit after verifying token ownership.
+        Returns True if token was released.
+        """
         if not token:
-            return
+            return False
 
         if token.startswith("local_"):
             self._local_fallback.release()
-            return
+            return True
 
         client = self._get_redis_client()
         if client:
             try:
                 key = f"{self.key_prefix}:active"
-                client.zrem(key, token)
+                res = client.eval(self.LUA_RELEASE, 1, key, token)
+                return bool(res == 1)
             except Exception as e:
                 logger.warning(f"[DistributedBulkhead:{self.name}] Failed to release token '{token}' in Redis: {e}")
+                return False
+        return False
 
     @contextmanager
     def acquire_context(self, timeout: float = 0.0):

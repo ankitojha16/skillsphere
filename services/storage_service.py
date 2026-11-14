@@ -52,6 +52,17 @@ class BaseStorageService(ABC):
         """Returns a binary stream of the stored file, or None."""
         pass
 
+    def get_file_chunks(self, path: str, chunk_size: int = 65536):
+        """Yields file content in chunks for memory-efficient streaming of large assets."""
+        stream = self.get_file_stream(path)
+        if stream is None:
+            return
+        while True:
+            chunk = stream.read(chunk_size)
+            if not chunk:
+                break
+            yield chunk
+
     @abstractmethod
     def delete_file(self, path: str) -> bool:
         """Deletes the file at the given path. Returns True if deleted or already absent."""
@@ -204,12 +215,23 @@ class S3CompatibleStorageService(BaseStorageService):
         self._s3_client = None
         self._local_fallback = LocalStorageService()
 
+    @property
+    def is_production(self) -> bool:
+        return not getattr(settings, 'DEBUG', True) or os.getenv('ENVIRONMENT') == 'production'
+
     def _get_client(self):
         if self._s3_client is not None:
             return self._s3_client
 
         if not (self.access_key and self.secret_key):
-            logger.warning("[S3CompatibleStorage] Missing cloud credentials; falling back to local storage.")
+            msg = (
+                f"[S3CompatibleStorage] Missing cloud credentials (STORAGE_ACCESS_KEY / STORAGE_SECRET_KEY). "
+                f"Bucket: '{self.bucket_name}'."
+            )
+            if self.is_production:
+                from django.core.exceptions import ImproperlyConfigured
+                raise ImproperlyConfigured(f"Production storage configuration error: {msg} Ephemeral local fallback is disallowed in production.")
+            logger.warning(f"{msg} Falling back to local storage in development.")
             return None
 
         try:
@@ -230,6 +252,9 @@ class S3CompatibleStorageService(BaseStorageService):
             )
             return self._s3_client
         except Exception as e:
+            if self.is_production:
+                from django.core.exceptions import ImproperlyConfigured
+                raise ImproperlyConfigured(f"[S3CompatibleStorage] boto3 client initialization failed in production: {e}")
             logger.warning(f"[S3CompatibleStorage] boto3 initialization failed ({e}); falling back to local.")
             return None
 
@@ -258,7 +283,9 @@ class S3CompatibleStorageService(BaseStorageService):
             )
             return sanitized
         except Exception as e:
-            logger.error(f"[S3CompatibleStorage] Failed to upload {sanitized}: {e}. Storing locally.")
+            logger.error(f"[S3CompatibleStorage] Failed to upload {sanitized}: {e}.")
+            if self.is_production:
+                raise IOError(f"Cloud storage upload to {sanitized} failed: {e}")
             return self._local_fallback.save_file(path, content, content_type, is_public)
 
     def get_file(self, path: str) -> Optional[bytes]:
@@ -322,13 +349,49 @@ class S3CompatibleStorageService(BaseStorageService):
         return self._local_fallback.get_url(path)
 
 
+def validate_storage_configuration() -> bool:
+    """
+    Validates storage configuration against the active runtime environment.
+    In production (DEBUG=False or ENVIRONMENT=production), if STORAGE_BACKEND is cloud (s3/r2/minio/supabase)
+    and credentials are missing, raises ImproperlyConfigured to prevent silent ephemeral data loss.
+    """
+    is_prod = not getattr(settings, 'DEBUG', True) or os.getenv('ENVIRONMENT') == 'production'
+    backend_type = (os.getenv('STORAGE_BACKEND') or getattr(settings, 'STORAGE_BACKEND', 'local')).lower()
+
+    if backend_type in ('s3', 'r2', 'supabase', 'minio'):
+        access_key = os.getenv('STORAGE_ACCESS_KEY') or getattr(settings, 'STORAGE_ACCESS_KEY', None)
+        secret_key = os.getenv('STORAGE_SECRET_KEY') or getattr(settings, 'STORAGE_SECRET_KEY', None)
+        bucket_name = os.getenv('STORAGE_BUCKET_NAME') or getattr(settings, 'STORAGE_BUCKET_NAME', None)
+        if not (access_key and secret_key and bucket_name):
+            msg = (
+                f"Production storage configuration error: STORAGE_BACKEND='{backend_type}' "
+                f"requires STORAGE_ACCESS_KEY, STORAGE_SECRET_KEY, and STORAGE_BUCKET_NAME to be set. "
+                f"Silent fallback to local ephemeral storage is disabled in production to protect student data."
+            )
+            if is_prod:
+                from django.core.exceptions import ImproperlyConfigured
+                raise ImproperlyConfigured(msg)
+            logger.warning(f"{msg} Using local fallback for development only.")
+            return False
+    elif backend_type == 'local' and is_prod:
+        allow_local = os.getenv('ALLOW_LOCAL_STORAGE_IN_PRODUCTION', 'False').lower() in ('true', '1')
+        if not allow_local:
+            logger.warning(
+                "[StorageService] Running LocalStorageService in production without ALLOW_LOCAL_STORAGE_IN_PRODUCTION=True. "
+                "Uploaded files will NOT be shared across independent container instances unless MEDIA_ROOT is on a shared volume."
+            )
+    return True
+
+
 _STORAGE_INSTANCE: Optional[BaseStorageService] = None
 
 def get_storage_service() -> BaseStorageService:
-    """Returns active provider-independent storage service instance."""
+    """Returns active provider-independent storage service instance after configuration validation."""
     global _STORAGE_INSTANCE
     if _STORAGE_INSTANCE is not None:
         return _STORAGE_INSTANCE
+
+    validate_storage_configuration()
 
     backend_type = getattr(settings, 'STORAGE_BACKEND', os.getenv('STORAGE_BACKEND', 'local')).lower()
     if backend_type in ('s3', 'r2', 'supabase', 'minio'):

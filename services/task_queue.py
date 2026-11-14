@@ -1,4 +1,5 @@
 import time
+import uuid
 import random
 import logging
 import traceback
@@ -109,9 +110,11 @@ def enqueue_task(
     return job
 
 
-def execute_job(job: DurableTaskJob, worker_id: str = 'sync_worker') -> bool:
+def execute_job(job: DurableTaskJob, worker_id: Optional[str] = None) -> bool:
     """
     Executes a single job with timeout protection, retries, and dead-letter handling.
+    Enforces atomic worker fencing: stale or zombie workers cannot overwrite results
+    if their lease expired and the job was reassigned to another worker.
     """
     handler = TASK_HANDLERS.get(job.task_name)
     if not handler:
@@ -121,45 +124,129 @@ def execute_job(job: DurableTaskJob, worker_id: str = 'sync_worker') -> bool:
         job.save(update_fields=['status', 'error_message', 'completed_at'])
         return False
 
-    job.status = 'running'
-    job.started_at = timezone.now()
-    job.worker_id = worker_id
-    job.save(update_fields=['status', 'started_at', 'worker_id'])
+    claimed_worker_id = worker_id or job.worker_id
+    if not claimed_worker_id:
+        fencing_token = uuid.uuid4().hex[:12]
+        claimed_worker_id = f"sync_worker#{fencing_token}"
+
+    if job.id:
+        db_job = DurableTaskJob.objects.filter(id=job.id).values('status', 'worker_id').first()
+        if db_job:
+            if db_job['status'] == 'running':
+                if db_job['worker_id'] and db_job['worker_id'] != claimed_worker_id:
+                    logger.warning(
+                        f"[TaskQueue:Fencing] Zombie worker execution aborted! Worker '{claimed_worker_id}' lease expired "
+                        f"or job [{job.task_id}] is actively owned by '{db_job['worker_id']}'."
+                    )
+                    return False
+            else:
+                rows = DurableTaskJob.objects.filter(id=job.id, status=db_job['status']).update(
+                    status='running',
+                    started_at=timezone.now(),
+                    worker_id=claimed_worker_id
+                )
+                if rows == 0:
+                    logger.warning(f"[TaskQueue:Fencing] Failed to transition job [{job.task_id}] to running.")
+                    return False
+                job.status = 'running'
+                job.worker_id = claimed_worker_id
+        else:
+            job.status = 'running'
+            job.started_at = timezone.now()
+            job.worker_id = claimed_worker_id
+            job.save(update_fields=['status', 'started_at', 'worker_id'])
+    else:
+        job.status = 'running'
+        job.started_at = timezone.now()
+        job.worker_id = claimed_worker_id
+        job.save()
 
     start_t = time.perf_counter()
     try:
         handler(job.payload)
+        now = timezone.now()
+
+        # Atomic fencing verification: update status ONLY if this worker still owns the running lease
+        rows_updated = DurableTaskJob.objects.filter(
+            id=job.id,
+            status='running',
+            worker_id=claimed_worker_id
+        ).update(
+            status='completed',
+            completed_at=now,
+            error_message=''
+        )
+        if rows_updated == 0:
+            logger.warning(
+                f"[TaskQueue:Fencing] Zombie worker detected! Worker '{claimed_worker_id}' lease expired "
+                f"and task [{job.task_id}] was claimed by another worker. Stale completion write aborted."
+            )
+            return False
+
+        # Synchronize in-memory job object
         job.status = 'completed'
-        job.completed_at = timezone.now()
+        job.completed_at = now
         job.error_message = ''
-        job.save(update_fields=['status', 'completed_at', 'error_message'])
+
         logger.info(f"Task {job.task_name} [{job.task_id}] succeeded in {(time.perf_counter() - start_t)*1000:.1f}ms")
         return True
     except Exception as e:
         dur = (time.perf_counter() - start_t) * 1000.0
-        job.retries += 1
         err_str = f"{type(e).__name__}: {str(e)}\n{traceback.format_exc()}"
-        if job.retries >= job.max_retries:
-            job.status = 'dead_letter'
-            logger.error(f"Task {job.task_name} [{job.task_id}] moved to DEAD_LETTER after {job.retries} attempts: {e}")
-        else:
-            job.status = 'failed'
-            # Canonical full-jitter exponential backoff:
-            # delay = random.uniform(0, min(cap, base_delay * (2 ** retry_count)))
-            base_delay = 5.0
-            cap = 300.0  # max 5 minutes backoff
-            backoff_limit = min(cap, base_delay * (2 ** job.retries))
-            backoff_delay = random.uniform(0.0, backoff_limit)
-            job.scheduled_at = timezone.now() + timedelta(seconds=backoff_delay)
+        now = timezone.now()
+
+        # Check if this worker still holds the lease before updating failure/retries
+        current = DurableTaskJob.objects.filter(id=job.id, status='running', worker_id=claimed_worker_id).first()
+        if not current:
             logger.warning(
-                f"Task {job.task_name} [{job.task_id}] failed (attempt {job.retries}/{job.max_retries}). "
+                f"[TaskQueue:Fencing] Zombie worker failure write rejected for task [{job.task_id}]. "
+                f"Ownership has been reassigned to a newer worker."
+            )
+            return False
+
+        current.retries += 1
+        if current.retries >= current.max_retries:
+            current.status = 'dead_letter'
+            logger.error(f"Task {current.task_name} [{current.task_id}] moved to DEAD_LETTER after {current.retries} attempts: {e}")
+        else:
+            current.status = 'failed'
+            # Canonical full-jitter exponential backoff:
+            base_delay = 5.0
+            cap = 300.0
+            backoff_limit = min(cap, base_delay * (2 ** current.retries))
+            backoff_delay = random.uniform(0.0, backoff_limit)
+            current.scheduled_at = now + timedelta(seconds=backoff_delay)
+            logger.warning(
+                f"Task {current.task_name} [{current.task_id}] failed (attempt {current.retries}/{current.max_retries}). "
                 f"Rescheduled with full-jitter backoff in {backoff_delay:.1f}s (cap={backoff_limit:.1f}s): {e}"
             )
 
-        job.error_message = err_str[:3000]
-        job.completed_at = timezone.now()
-        job.save(update_fields=['status', 'retries', 'error_message', 'completed_at', 'scheduled_at'])
+        current.error_message = err_str[:3000]
+        current.completed_at = now
+        current.save(update_fields=['status', 'retries', 'error_message', 'completed_at', 'scheduled_at'])
+
+        # Synchronize in-memory job object
+        job.status = current.status
+        job.retries = current.retries
+        job.completed_at = current.completed_at
+        job.scheduled_at = current.scheduled_at
+        job.error_message = current.error_message
         return False
+
+
+def renew_job_lease(job_id: Any, fencing_token: str, extension_seconds: int = 60) -> bool:
+    """
+    Extends the lease duration for an in-flight job, preventing another worker
+    from reclaiming the job while a long-running task is still actively making progress.
+    """
+    now = timezone.now()
+    rows = DurableTaskJob.objects.filter(
+        id=job_id,
+        status='running'
+    ).filter(
+        models.Q(worker_id=fencing_token) | models.Q(worker_id__endswith=f"#{fencing_token}")
+    ).update(started_at=now)
+    return rows > 0
 
 
 def recover_expired_leases(lease_grace_seconds: int = 30) -> int:
@@ -218,6 +305,7 @@ def recover_expired_leases(lease_grace_seconds: int = 30) -> int:
 def process_next_job(worker_id: str = 'default_worker') -> bool:
     """
     Claims and processes the next pending job atomically using select_for_update(skip_locked=True).
+    Attaches a unique fencing token on claim to guard against zombie worker overwrites.
     Honors scheduled_at timestamps with exponential backoff and jitter.
     Automatically recovers orphaned jobs from crashed workers prior to claiming.
     Returns True if a job was found and processed, False if queue is empty.
@@ -241,14 +329,16 @@ def process_next_job(worker_id: str = 'default_worker') -> bool:
         if not job:
             return False
 
-        # Claim the job
+        # Claim the job with unique worker fencing token
+        fencing_token = uuid.uuid4().hex[:12]
+        claimed_worker_id = f"{worker_id}#{fencing_token}"
         job.status = 'running'
         job.started_at = timezone.now()
-        job.worker_id = worker_id
+        job.worker_id = claimed_worker_id
         job.save(update_fields=['status', 'started_at', 'worker_id'])
 
     # Execute outside transaction so failures don't roll back status updates
-    return execute_job(job, worker_id=worker_id)
+    return execute_job(job, worker_id=claimed_worker_id)
 
 
 def get_queue_health() -> dict:
