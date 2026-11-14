@@ -17,7 +17,12 @@ echo " Duration:                ${RUN_TIME}"
 echo " Spawn Rate:              ${SPAWN_RATE} users/sec"
 echo "=========================================================="
 
-locust \
+LOCUST_BIN="locust"
+if [ -f "./.venv/bin/locust" ]; then
+  LOCUST_BIN="./.venv/bin/locust"
+fi
+
+${LOCUST_BIN} \
   -f load_tests/locustfile_phase18.py \
   --headless \
   --users "${TARGET_USERS}" \

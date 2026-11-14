@@ -35,15 +35,15 @@ class CatalogDiscoveryStudent(HttpUser):
 
     @task(20)
     def search_autocomplete(self):
-        query = random.choice(['python', 'docker', 'machine learning', 'sql', 'system design'])
-        self.client.get(f"/courses/search-autocomplete/?q={query}", name="/courses/search-autocomplete/ [Search]")
+        query = random.choice(['design', 'communication', 'analysis', 'psychology', 'criticism'])
+        self.client.get(f"/courses/api/autocomplete/?q={query}", name="/courses/api/autocomplete/ [Search]")
 
     @task(25)
     def view_course_detail(self):
         slug = random.choice([
-            'machine-learning-foundations',
-            'full-stack-web-development-bootcamp',
-            'cloud-architecture-mastery'
+            'graphic-design-visual-communication',
+            'english-literary-criticism-narrative',
+            'international-relations-geopolitics'
         ])
         self.client.get(f"/courses/{slug}/", name="/courses/<slug>/ [Course Detail]")
 
@@ -72,12 +72,12 @@ class ActiveEnrolledStudent(HttpUser):
 
     @task(20)
     def view_lesson_content(self):
-        self.client.get("/courses/machine-learning-foundations/", name="/courses/<slug>/ [Study View]")
+        self.client.get("/courses/graphic-design-visual-communication/", name="/courses/<slug>/ [Study View]")
 
     @task(15)
     def load_assessment_intro(self):
         self.client.get(
-            "/courses/machine-learning-foundations/assessments/diagnostic/",
+            "/courses/graphic-design-visual-communication/assessments/final_quiz/",
             name="/courses/<slug>/assessments/<type>/ [Quiz Intro]"
         )
 
@@ -106,7 +106,8 @@ class HeavyResourceStudent(HttpUser):
 
     @task(15)
     def check_public_verification(self):
-        self.client.get("/verify/SS-CERT-DEMO-001/", name="/verify/<code/ [Public Cert Verify]")
+        cert_code = random.choice(['SKILL-2026-DEMO001', 'SS-CERT-2026-3C43747C', 'SS-CERT-2026-A737B1DF'])
+        self.client.get(f"/verify/{cert_code}/", name="/verify/<code/ [Public Cert Verify]")
 
     @task(15)
     def read_metrics_health(self):

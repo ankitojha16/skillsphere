@@ -43,12 +43,24 @@ class BaseStorageService(ABC):
         pass
 
     @abstractmethod
+    def save_file_stream(
+        self,
+        path: str,
+        stream: io.IOBase,
+        content_type: str = 'application/octet-stream',
+        is_public: bool = False,
+        content_length: Optional[int] = None
+    ) -> str:
+        """Streams content to the given path and returns the resolved storage path or URL."""
+        pass
+
+    @abstractmethod
     def get_file(self, path: str) -> Optional[bytes]:
         """Retrieves raw file bytes or returns None if the file does not exist."""
         pass
 
     @abstractmethod
-    def get_file_stream(self, path: str) -> Optional[io.BytesIO]:
+    def get_file_stream(self, path: str) -> Optional[Any]:
         """Returns a binary stream of the stored file, or None."""
         pass
 
@@ -57,11 +69,18 @@ class BaseStorageService(ABC):
         stream = self.get_file_stream(path)
         if stream is None:
             return
-        while True:
-            chunk = stream.read(chunk_size)
-            if not chunk:
-                break
-            yield chunk
+        try:
+            while True:
+                chunk = stream.read(chunk_size)
+                if not chunk:
+                    break
+                yield chunk
+        finally:
+            if hasattr(stream, 'close'):
+                try:
+                    stream.close()
+                except Exception:
+                    pass
 
     @abstractmethod
     def delete_file(self, path: str) -> bool:
@@ -75,8 +94,12 @@ class BaseStorageService(ABC):
 
     @abstractmethod
     def get_url(self, path: str) -> str:
-        """Returns a publicly accessible or signed URL for the given path."""
+        """Returns a publicly accessible or default URL for the given path."""
         pass
+
+    def get_signed_url(self, path: str, expires_in: int = 3600) -> str:
+        """Returns a time-limited signed URL for private asset access."""
+        return self.get_url(path)
 
     def verify_ownership_and_get(
         self,
@@ -101,6 +124,27 @@ class BaseStorageService(ABC):
         if data is None:
             raise FileNotFoundError(f"Stored file '{path}' not found.")
         return data
+
+    def verify_ownership_and_get_signed_url(
+        self,
+        path: str,
+        user: Any,
+        resource_type: str,
+        resource_id: Any,
+        expires_in: int = 3600
+    ) -> str:
+        """
+        Enforces user ownership validation prior to issuing a secure pre-signed download URL.
+        Allows offloading large file transfers directly to object storage without Django memory consumption.
+        """
+        if not self.check_access_permission(user, resource_type, resource_id):
+            logger.warning(
+                f"[StorageService] Unauthorized signed URL request: "
+                f"user={getattr(user, 'username', 'anonymous')}, "
+                f"resource_type={resource_type}, resource_id={resource_id}"
+            )
+            raise StoragePermissionDenied("You do not have permission to access this resource.")
+        return self.get_signed_url(path, expires_in=expires_in)
 
     @staticmethod
     def check_access_permission(user, resource_type: str, resource_id: Any) -> bool:
@@ -149,6 +193,21 @@ class LocalStorageService(BaseStorageService):
             raise ValueError(f"Path traversal detected in path '{path}'")
         return cleaned
 
+    def save_file_stream(
+        self,
+        path: str,
+        stream: io.IOBase,
+        content_type: str = 'application/octet-stream',
+        is_public: bool = False,
+        content_length: Optional[int] = None
+    ) -> str:
+        sanitized = self._sanitize_path(path)
+        if default_storage.exists(sanitized):
+            default_storage.delete(sanitized)
+        from django.core.files import File
+        saved_path = default_storage.save(sanitized, File(stream))
+        return saved_path
+
     def save_file(
         self,
         path: str,
@@ -194,7 +253,8 @@ class S3CompatibleStorageService(BaseStorageService):
     """
     Provider-independent S3-compatible cloud object storage service.
     Works natively with AWS S3, Cloudflare R2, MinIO, and Supabase Storage.
-    Gracefully degrades to LocalStorageService if credentials or boto3 are absent.
+    Supports streaming upload/download, presigned download URLs, and path-style addressing.
+    Gracefully degrades to LocalStorageService in development if credentials or boto3 are absent.
     """
 
     def __init__(
@@ -204,7 +264,8 @@ class S3CompatibleStorageService(BaseStorageService):
         access_key: Optional[str] = None,
         secret_key: Optional[str] = None,
         region_name: Optional[str] = None,
-        public_url_base: Optional[str] = None
+        public_url_base: Optional[str] = None,
+        addressing_style: Optional[str] = None
     ):
         self.bucket_name = bucket_name or os.getenv('STORAGE_BUCKET_NAME', 'skillsphere-media')
         self.endpoint_url = endpoint_url or os.getenv('STORAGE_ENDPOINT_URL')
@@ -212,6 +273,9 @@ class S3CompatibleStorageService(BaseStorageService):
         self.secret_key = secret_key or os.getenv('STORAGE_SECRET_KEY')
         self.region_name = region_name or os.getenv('STORAGE_REGION_NAME', 'us-east-1')
         self.public_url_base = public_url_base or os.getenv('STORAGE_PUBLIC_URL_BASE')
+        self.addressing_style = addressing_style or os.getenv('STORAGE_S3_ADDRESSING_STYLE')
+        if not self.addressing_style and self.endpoint_url:
+            self.addressing_style = 'path'
         self._s3_client = None
         self._local_fallback = LocalStorageService()
 
@@ -237,11 +301,14 @@ class S3CompatibleStorageService(BaseStorageService):
         try:
             import boto3
             from botocore.config import Config
-            config = Config(
-                retries={'max_attempts': 3, 'mode': 'standard'},
-                connect_timeout=3,
-                read_timeout=10
-            )
+            s3_config_args = {
+                'retries': {'max_attempts': 3, 'mode': 'standard'},
+                'connect_timeout': 3,
+                'read_timeout': 10
+            }
+            if self.addressing_style:
+                s3_config_args['s3'] = {'addressing_style': self.addressing_style}
+            config = Config(**s3_config_args)
             self._s3_client = boto3.client(
                 's3',
                 aws_access_key_id=self.access_key,
@@ -258,16 +325,17 @@ class S3CompatibleStorageService(BaseStorageService):
             logger.warning(f"[S3CompatibleStorage] boto3 initialization failed ({e}); falling back to local.")
             return None
 
-    def save_file(
+    def save_file_stream(
         self,
         path: str,
-        content: bytes,
+        stream: io.IOBase,
         content_type: str = 'application/octet-stream',
-        is_public: bool = False
+        is_public: bool = False,
+        content_length: Optional[int] = None
     ) -> str:
         client = self._get_client()
         if not client:
-            return self._local_fallback.save_file(path, content, content_type, is_public)
+            return self._local_fallback.save_file_stream(path, stream, content_type, is_public, content_length)
 
         sanitized = path.lstrip('/')
         extra_args = {'ContentType': content_type}
@@ -275,37 +343,59 @@ class S3CompatibleStorageService(BaseStorageService):
             extra_args['ACL'] = 'public-read'
 
         try:
-            client.put_object(
+            client.upload_fileobj(
+                Fileobj=stream,
                 Bucket=self.bucket_name,
                 Key=sanitized,
-                Body=content,
-                **extra_args
+                ExtraArgs=extra_args
             )
             return sanitized
         except Exception as e:
-            logger.error(f"[S3CompatibleStorage] Failed to upload {sanitized}: {e}.")
+            logger.error(f"[S3CompatibleStorage] Failed to stream upload {sanitized}: {e}.")
             if self.is_production:
-                raise IOError(f"Cloud storage upload to {sanitized} failed: {e}")
-            return self._local_fallback.save_file(path, content, content_type, is_public)
+                raise IOError(f"Cloud storage stream upload to {sanitized} failed: {e}")
+            return self._local_fallback.save_file_stream(path, stream, content_type, is_public, content_length)
 
-    def get_file(self, path: str) -> Optional[bytes]:
+    def save_file(
+        self,
+        path: str,
+        content: bytes,
+        content_type: str = 'application/octet-stream',
+        is_public: bool = False
+    ) -> str:
+        return self.save_file_stream(
+            path=path,
+            stream=io.BytesIO(content),
+            content_type=content_type,
+            is_public=is_public,
+            content_length=len(content)
+        )
+
+    def get_file_stream(self, path: str) -> Optional[Any]:
         client = self._get_client()
         if not client:
-            return self._local_fallback.get_file(path)
+            return self._local_fallback.get_file_stream(path)
 
         sanitized = path.lstrip('/')
         try:
             resp = client.get_object(Bucket=self.bucket_name, Key=sanitized)
-            return resp['Body'].read()
+            return resp['Body']
         except Exception as e:
             logger.warning(f"[S3CompatibleStorage] Failed to get object {sanitized}: {e}")
-            return self._local_fallback.get_file(path)
+            return self._local_fallback.get_file_stream(path)
 
-    def get_file_stream(self, path: str) -> Optional[io.BytesIO]:
-        data = self.get_file(path)
-        if data is None:
+    def get_file(self, path: str) -> Optional[bytes]:
+        stream = self.get_file_stream(path)
+        if stream is None:
             return None
-        return io.BytesIO(data)
+        try:
+            return stream.read()
+        finally:
+            if hasattr(stream, 'close'):
+                try:
+                    stream.close()
+                except Exception:
+                    pass
 
     def delete_file(self, path: str) -> bool:
         client = self._get_client()
@@ -346,6 +436,22 @@ class S3CompatibleStorageService(BaseStorageService):
                 )
             except Exception:
                 pass
+        return self._local_fallback.get_url(path)
+
+    def get_signed_url(self, path: str, expires_in: int = 3600) -> str:
+        sanitized = path.lstrip('/')
+        client = self._get_client()
+        if client:
+            try:
+                return client.generate_presigned_url(
+                    'get_object',
+                    Params={'Bucket': self.bucket_name, 'Key': sanitized},
+                    ExpiresIn=expires_in
+                )
+            except Exception as e:
+                logger.error(f"[S3CompatibleStorage] Presigned URL generation failed: {e}")
+                if self.is_production:
+                    raise IOError(f"Failed to generate secure signed URL for {sanitized}: {e}")
         return self._local_fallback.get_url(path)
 
 
