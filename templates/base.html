@@ -263,7 +263,14 @@
                 </a>
 
                 <div class="nav-section-title">Career & Showcase</div>
-                <a href="{% url 'careers:hub' %}" class="sidebar-link {% if request.resolver_match.app_name == 'careers' and 'tracker' not in request.path %}active{% endif %}">
+                <a href="{% url 'careers:studio_dashboard' %}" class="sidebar-link {% if 'career-studio' in request.path %}active{% endif %}">
+                    <i data-lucide="sparkles" style="width: 18px; height: 18px;" class="text-purple"></i>
+                    <span class="d-flex align-items-center justify-content-between flex-grow-1">
+                        Career Studio
+                        <span class="badge bg-purple text-white ms-1" style="font-size: 9px; padding: 2px 6px;">NEW</span>
+                    </span>
+                </a>
+                <a href="{% url 'careers:hub' %}" class="sidebar-link {% if request.resolver_match.app_name == 'careers' and 'tracker' not in request.path and 'career-studio' not in request.path %}active{% endif %}">
                     <i data-lucide="target" style="width: 18px; height: 18px;"></i>
                     <span>Career Hub</span>
                 </a>
@@ -472,6 +479,7 @@
                                     <small class="text-muted">{{ user.email }}</small>
                                 </li>
                                 <li><a class="dropdown-item text-light py-2" href="javascript:void(0)" onclick="triggerPWAInstall()"><i data-lucide="smartphone" class="me-2" style="width: 16px; height: 16px;"></i> Install App</a></li>
+                                <li><a class="dropdown-item text-light py-2" href="{% url 'careers:studio_dashboard' %}"><i data-lucide="sparkles" class="me-2 text-purple" style="width: 16px; height: 16px;"></i> Career Studio</a></li>
                                 <li><a class="dropdown-item text-light py-2" href="{% url 'careers:hub' %}"><i data-lucide="target" class="me-2" style="width: 16px; height: 16px;"></i> Career Hub</a></li>
                                 <li><a class="dropdown-item text-light py-2" href="{% url 'portfolios:builder' %}"><i data-lucide="globe" class="me-2" style="width: 16px; height: 16px;"></i> My Portfolio</a></li>
                                 <li><a class="dropdown-item text-light py-2" href="{% url 'accounts:profile' %}"><i data-lucide="user" class="me-2" style="width: 16px; height: 16px;"></i> My Profile</a></li>

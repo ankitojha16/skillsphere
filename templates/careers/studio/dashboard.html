@@ -1,0 +1,251 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Career Studio — Learn Skills. Build Projects. Track Your Growth. - SkillSphere{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <!-- Hero Banner with Tagline -->
+    <div class="custom-card card-glowing p-4 p-md-5 mb-4 position-relative overflow-hidden" style="background: linear-gradient(135deg, rgba(30, 27, 75, 0.7) 0%, rgba(15, 23, 42, 0.95) 100%); border: 1px solid rgba(139, 92, 246, 0.3);">
+        <div class="row align-items-center g-4 position-relative" style="z-index: 2;">
+            <div class="col-lg-8">
+                <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+                    <span class="badge bg-purple text-white px-3 py-1 rounded-pill fw-semibold">
+                        <i data-lucide="sparkles" style="width: 14px; height: 14px;" class="me-1"></i> Career Studio
+                    </span>
+                    <span class="text-secondary small">Product Tagline</span>
+                </div>
+                <h1 class="display-6 fw-bold text-white mb-2">Learn Skills. Build Projects. Track Your Growth.</h1>
+                <p class="text-secondary fs-6 mb-4" style="max-width: 680px;">
+                    Transform your learning journey into verified proof of engineering capability. Set your target career track, identify transparent skill gaps, execute structured project milestones, and generate ATS-compliant resumes backed by verified platform credentials.
+                </p>
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="{% url 'careers:studio_paths' %}" class="btn btn-primary-custom">
+                        <i data-lucide="compass" style="width: 16px; height: 16px;"></i>
+                        <span>Explore 11 Career Paths</span>
+                    </a>
+                    <a href="{% url 'careers:studio_gap_analyzer' %}" class="btn btn-secondary-custom">
+                        <i data-lucide="activity" style="width: 16px; height: 16px;"></i>
+                        <span>Analyze Skill Gaps</span>
+                    </a>
+                    <a href="{% url 'careers:studio_assistant' %}" class="btn btn-outline-light rounded-pill px-3">
+                        <i data-lucide="bot" style="width: 16px; height: 16px;" class="me-1"></i>
+                        <span>AI Career Mentor</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Overall Readiness Score Gauge -->
+            <div class="col-lg-4 text-center">
+                <div class="p-4 rounded-4" style="background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(139, 92, 246, 0.35); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);">
+                    <div class="text-secondary small fw-medium text-uppercase tracking-wider mb-2">Target Career Track</div>
+                    <h4 class="text-white fw-bold mb-3">{{ primary_track.title|default:"Software Engineer" }}</h4>
+
+                    <div class="position-relative d-inline-flex align-items-center justify-content-center mb-3" style="width: 140px; height: 140px;">
+                        <svg class="w-100 h-100" viewBox="0 0 36 36" style="transform: rotate(-90deg);">
+                            <path stroke="rgba(255, 255, 255, 0.08)" stroke-width="3.5" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                            <path stroke="url(#studioGradient)" stroke-dasharray="{{ readiness_score }}, 100" stroke-width="3.5" stroke-linecap="round" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                            <defs>
+                                <linearGradient id="studioGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stop-color="#8B5CF6" />
+                                    <stop offset="100%" stop-color="#3B82F6" />
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                        <div class="position-absolute text-center">
+                            <span class="display-6 fw-bold text-white">{{ readiness_score }}</span>
+                            <span class="fs-6 text-muted">%</span>
+                            <div class="small text-secondary" style="font-size: 11px;">READINESS</div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-around text-start border-top border-secondary border-opacity-25 pt-3">
+                        <div>
+                            <div class="small text-muted">Verified Evidence</div>
+                            <div class="fw-bold text-white fs-6">{{ verified_evidence_count }} Items</div>
+                        </div>
+                        <div>
+                            <div class="small text-muted">Completed Projects</div>
+                            <div class="fw-bold text-white fs-6">{{ completed_projects_count }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Navigation to Studio Modules -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4 col-lg-2">
+            <a href="{% url 'careers:studio_paths' %}" class="custom-card p-3 text-decoration-none h-100 d-flex flex-column justify-content-between hover-card">
+                <div>
+                    <div class="p-2 rounded-3 bg-purple bg-opacity-10 text-purple d-inline-block mb-2">
+                        <i data-lucide="compass" style="width: 20px; height: 20px;"></i>
+                    </div>
+                    <h6 class="text-white fw-bold mb-1">Career Paths</h6>
+                    <p class="text-secondary small mb-0">11 Curated tracks</p>
+                </div>
+                <div class="text-info small mt-2">Explore Tracks →</div>
+            </a>
+        </div>
+        <div class="col-md-4 col-lg-2">
+            <a href="{% url 'careers:studio_gap_analyzer' %}" class="custom-card p-3 text-decoration-none h-100 d-flex flex-column justify-content-between hover-card">
+                <div>
+                    <div class="p-2 rounded-3 bg-info bg-opacity-10 text-info d-inline-block mb-2">
+                        <i data-lucide="activity" style="width: 20px; height: 20px;"></i>
+                    </div>
+                    <h6 class="text-white fw-bold mb-1">Gap Analyzer</h6>
+                    <p class="text-secondary small mb-0">Transparent scoring</p>
+                </div>
+                <div class="text-info small mt-2">Check Match →</div>
+            </a>
+        </div>
+        <div class="col-md-4 col-lg-2">
+            <a href="{% url 'careers:studio_roadmap' %}" class="custom-card p-3 text-decoration-none h-100 d-flex flex-column justify-content-between hover-card">
+                <div>
+                    <div class="p-2 rounded-3 bg-success bg-opacity-10 text-success d-inline-block mb-2">
+                        <i data-lucide="map" style="width: 20px; height: 20px;"></i>
+                    </div>
+                    <h6 class="text-white fw-bold mb-1">Roadmap</h6>
+                    <p class="text-secondary small mb-0">Milestones & goals</p>
+                </div>
+                <div class="text-info small mt-2">View Steps →</div>
+            </a>
+        </div>
+        <div class="col-md-4 col-lg-2">
+            <a href="{% url 'careers:portfolio_studio' %}" class="custom-card p-3 text-decoration-none h-100 d-flex flex-column justify-content-between hover-card">
+                <div>
+                    <div class="p-2 rounded-3 bg-warning bg-opacity-10 text-warning d-inline-block mb-2">
+                        <i data-lucide="folder-git-2" style="width: 20px; height: 20px;"></i>
+                    </div>
+                    <h6 class="text-white fw-bold mb-1">Project Studio</h6>
+                    <p class="text-secondary small mb-0">5-Stage workflow</p>
+                </div>
+                <div class="text-info small mt-2">Build Projects →</div>
+            </a>
+        </div>
+        <div class="col-md-4 col-lg-2">
+            <a href="{% url 'careers:smart_resume_studio' %}" class="custom-card p-3 text-decoration-none h-100 d-flex flex-column justify-content-between hover-card">
+                <div>
+                    <div class="p-2 rounded-3 bg-primary bg-opacity-10 text-primary d-inline-block mb-2">
+                        <i data-lucide="file-text" style="width: 20px; height: 20px;"></i>
+                    </div>
+                    <h6 class="text-white fw-bold mb-1">Smart Resume</h6>
+                    <p class="text-secondary small mb-0">Verified ATS PDF</p>
+                </div>
+                <div class="text-info small mt-2">Generate PDF →</div>
+            </a>
+        </div>
+        <div class="col-md-4 col-lg-2">
+            <a href="{% url 'careers:studio_assistant' %}" class="custom-card p-3 text-decoration-none h-100 d-flex flex-column justify-content-between hover-card">
+                <div>
+                    <div class="p-2 rounded-3 bg-danger bg-opacity-10 text-danger d-inline-block mb-2">
+                        <i data-lucide="bot" style="width: 20px; height: 20px;"></i>
+                    </div>
+                    <h6 class="text-white fw-bold mb-1">AI Mentor</h6>
+                    <p class="text-secondary small mb-0">Grounded coaching</p>
+                </div>
+                <div class="text-info small mt-2">Ask Question →</div>
+            </a>
+        </div>
+    </div>
+
+    <!-- Active Roadmap & Project Pipeline Grid -->
+    <div class="row g-4">
+        <!-- Left: Active Roadmap Milestones -->
+        <div class="col-lg-6">
+            <div class="custom-card p-4 h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h5 class="fw-bold text-white mb-0">Active Learning Milestones</h5>
+                        <small class="text-secondary">{{ primary_track.title }} Track</small>
+                    </div>
+                    <a href="{% url 'careers:studio_roadmap' %}" class="btn btn-sm btn-outline-light rounded-pill">View All →</a>
+                </div>
+
+                {% if milestones %}
+                    <div class="d-flex flex-column gap-3">
+                        {% for ms in milestones %}
+                        <div class="p-3 rounded-3 d-flex align-items-start gap-3" style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.06);">
+                            <div class="pt-1">
+                                {% if ms.is_completed %}
+                                    <i data-lucide="check-circle" class="text-success" style="width: 20px; height: 20px;"></i>
+                                {% else %}
+                                    <i data-lucide="circle" class="text-secondary" style="width: 20px; height: 20px;"></i>
+                                {% endif %}
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="fw-bold text-white">{{ ms.title }}</span>
+                                    <span class="badge bg-dark text-secondary small">~{{ ms.estimated_weeks }} wks</span>
+                                </div>
+                                <p class="text-secondary small mb-2">{{ ms.description|truncatewords:20 }}</p>
+                                {% if ms.mini_project %}
+                                <div class="small text-info">
+                                    <i data-lucide="package" style="width: 14px; height: 14px;" class="me-1"></i>
+                                    Deliverable: {{ ms.mini_project }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i data-lucide="map" class="text-secondary mb-2" style="width: 36px; height: 36px;"></i>
+                        <p class="text-secondary mb-3">No active milestones yet. Initialize your personalized roadmap now.</p>
+                        <a href="{% url 'careers:studio_roadmap' %}" class="btn btn-sm btn-primary-custom">Generate Roadmap</a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Right: Project Portfolio Pipeline -->
+        <div class="col-lg-6">
+            <div class="custom-card p-4 h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h5 class="fw-bold text-white mb-0">Project Portfolio Pipeline</h5>
+                        <small class="text-secondary">5-Stage Delivery Workflow (Private by default)</small>
+                    </div>
+                    <a href="{% url 'careers:create_studio_project' %}" class="btn btn-sm btn-primary-custom">
+                        <i data-lucide="plus" style="width: 14px; height: 14px;"></i> New Project
+                    </a>
+                </div>
+
+                {% if recent_projects %}
+                    <div class="d-flex flex-column gap-3">
+                        {% for p in recent_projects %}
+                        <div class="p-3 rounded-3" style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.06);">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <a href="{% url 'careers:studio_project_detail' p.id %}" class="fw-bold text-white text-decoration-none hover-text-primary">
+                                    {{ p.title }}
+                                </a>
+                                <span class="badge {% if p.workflow_status == 'published' %}bg-success{% elif p.workflow_status == 'completed' %}bg-primary{% else %}bg-secondary{% endif %}">
+                                    {{ p.get_workflow_status_display }}
+                                </span>
+                            </div>
+                            <p class="text-secondary small mb-2">{{ p.description|default:"No description provided"|truncatewords:18 }}</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="text-muted small">
+                                    <i data-lucide="cpu" style="width: 13px; height: 13px;" class="me-1"></i> {{ p.technology_stack }}
+                                </div>
+                                <span class="badge {% if p.is_public %}bg-info text-dark{% else %}bg-dark text-muted border border-secondary border-opacity-25{% endif %}" style="font-size: 11px;">
+                                    {% if p.is_public %}Public{% else %}Private (Protected){% endif %}
+                                </span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i data-lucide="folder-plus" class="text-secondary mb-2" style="width: 36px; height: 36px;"></i>
+                        <p class="text-secondary mb-3">You haven't initiated any portfolio projects yet. Build projects to earn verified skill proof.</p>
+                        <a href="{% url 'careers:create_studio_project' %}" class="btn btn-sm btn-primary-custom">Create First Project</a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

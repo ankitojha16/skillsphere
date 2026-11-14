@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Create Portfolio Project - SkillSphere Studio{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <div class="max-w-700 mx-auto" style="max-width: 800px;">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-2">
+                <li class="breadcrumb-item"><a href="{% url 'careers:studio_dashboard' %}" class="text-secondary text-decoration-none">Career Studio</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'careers:portfolio_studio' %}" class="text-secondary text-decoration-none">Project Studio</a></li>
+                <li class="breadcrumb-item active text-white" aria-current="page">New Project</li>
+            </ol>
+        </nav>
+        <h2 class="fw-bold text-white mb-1">Create Portfolio Project</h2>
+        <p class="text-secondary mb-4">Establish verified proof of engineering capability. Private by default.</p>
+
+        <div class="custom-card p-4">
+            <form method="POST">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label class="form-label text-white fw-medium">Project Title <span class="text-danger">*</span></label>
+                    <input type="text" name="title" class="form-control bg-dark border-secondary text-white" required placeholder="e.g. Distributed Task Queue Engine" value="{{ request.GET.title|default:'' }}">
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label text-white fw-medium">Category</label>
+                        <select name="category" class="form-select bg-dark border-secondary text-white">
+                            {% for cat_val, cat_label in categories %}
+                            <option value="{{ cat_val }}">{{ cat_label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-white fw-medium">Difficulty Level</label>
+                        <select name="difficulty" class="form-select bg-dark border-secondary text-white">
+                            {% for diff_val, diff_label in difficulties %}
+                            <option value="{{ diff_val }}" {% if diff_val == 'Intermediate' %}selected{% endif %}>{{ diff_label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-white fw-medium">Technology Stack (Comma separated)</label>
+                    <input type="text" name="technology_stack" class="form-control bg-dark border-secondary text-white" placeholder="e.g. Python, Django, PostgreSQL, Redis, Docker" value="{{ request.GET.stack|default:'' }}">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-white fw-medium">Project Description</label>
+                    <textarea name="description" rows="4" class="form-control bg-dark border-secondary text-white" placeholder="Explain the system problem, architectural decisions, and key technical deliverables..."></textarea>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label text-white fw-medium">GitHub Repository URL</label>
+                        <input type="url" name="github_url" class="form-control bg-dark border-secondary text-white" placeholder="https://github.com/username/project">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-white fw-medium">Live Demo URL</label>
+                        <input type="url" name="demo_url" class="form-control bg-dark border-secondary text-white" placeholder="https://my-demo-app.com">
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <label class="form-label text-white fw-medium">Initial Workflow Stage</label>
+                        <select name="workflow_status" class="form-select bg-dark border-secondary text-white">
+                            {% for st_val, st_label in workflow_statuses %}
+                            <option value="{{ st_val }}" {% if st_val == 'planning' %}selected{% endif %}>{{ st_label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-white fw-medium">Privacy Status</label>
+                        <div class="form-check form-switch pt-2">
+                            <input class="form-check-input" type="checkbox" name="is_public" value="true" id="isPublicSwitch">
+                            <label class="form-check-label text-secondary small" for="isPublicSwitch">
+                                Make project public in portfolio (Disabled by default)
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between pt-3 border-top border-secondary border-opacity-25">
+                    <a href="{% url 'careers:portfolio_studio' %}" class="btn btn-outline-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary-custom">
+                        <i data-lucide="plus" style="width: 16px; height: 16px;"></i>
+                        <span>Create Project & Initialize Milestones</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

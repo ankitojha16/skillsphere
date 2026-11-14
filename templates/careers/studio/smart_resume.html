@@ -1,0 +1,246 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Smart Resume Studio — Verified Credentials & ATS PDF - SkillSphere{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <!-- Breadcrumb & Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{% url 'careers:studio_dashboard' %}" class="text-secondary text-decoration-none">Career Studio</a></li>
+                    <li class="breadcrumb-item active text-white" aria-current="page">Smart Resume Studio</li>
+                </ol>
+            </nav>
+            <h1 class="h3 fw-bold text-white mb-1">Smart Resume Studio</h1>
+            <p class="text-secondary mb-0">Pre-populated strictly from verified platform credentials, portfolio projects, and authentic profile data.</p>
+        </div>
+        <div class="d-flex gap-2">
+            {% if primary_resume %}
+            <a href="{% url 'careers:export_smart_resume_pdf' primary_resume.id %}" class="btn btn-secondary-custom">
+                <i data-lucide="download" style="width: 16px; height: 16px;"></i>
+                <span>Download ATS PDF</span>
+            </a>
+            <a href="{% url 'careers:preview_smart_resume' primary_resume.id %}" class="btn btn-outline-light rounded-pill">
+                <i data-lucide="eye" style="width: 16px; height: 16px;" class="me-1"></i> Preview Layout
+            </a>
+            {% endif %}
+            <button class="btn btn-primary-custom" data-bs-toggle="modal" data-bs-target="#regenerateResumeModal">
+                <i data-lucide="refresh-cw" style="width: 16px; height: 16px;"></i>
+                <span>Generate Verified Resume</span>
+            </button>
+        </div>
+    </div>
+
+    {% if primary_resume %}
+    <!-- Resume Overview & ATS Score -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-8">
+            <div class="custom-card p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <span class="badge bg-purple text-white mb-1">Active Primary Resume</span>
+                        <h4 class="text-white fw-bold mb-0">{{ primary_resume.title }}</h4>
+                    </div>
+                    <span class="badge bg-dark text-info border border-secondary border-opacity-25 fs-6">
+                        Template: {{ primary_resume.get_template_display }}
+                    </span>
+                </div>
+
+                <!-- Structured Resume Data Preview -->
+                <div class="p-3 rounded-3 mb-3" style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.06);">
+                    <div class="small text-muted mb-1">Target Role & Headline:</div>
+                    <div class="text-white fw-bold mb-2">{{ resume_data.career_goal|default:resume_data.contact.headline }}</div>
+
+                    <div class="small text-muted mb-1">Verified Technical Skills ({{ resume_data.skills|length }}):</div>
+                    <div class="d-flex flex-wrap gap-1 mb-2">
+                        {% for s in resume_data.skills %}
+                        <span class="badge bg-dark text-light border border-secondary border-opacity-25" style="font-size: 11px;">
+                            {{ s }}
+                        </span>
+                        {% endfor %}
+                    </div>
+
+                    <div class="small text-muted mb-1">Featured Projects ({{ resume_data.projects|length }}):</div>
+                    <ul class="list-unstyled mb-2 d-flex flex-column gap-1">
+                        {% for p in resume_data.projects %}
+                        <li class="small text-secondary">
+                            <b class="text-white">• {{ p.title }}</b> ({{ p.technologies }})
+                        </li>
+                        {% endfor %}
+                    </ul>
+
+                    <div class="small text-muted mb-1">Verified Platform Certifications ({{ resume_data.certifications|length }}):</div>
+                    <ul class="list-unstyled mb-0 d-flex flex-column gap-1">
+                        {% for c in resume_data.certifications %}
+                        <li class="small text-secondary">
+                            <i data-lucide="shield-check" class="text-success me-1" style="width: 13px; height: 13px;"></i>
+                            <span class="text-white">{{ c.title }}</span>
+                        </li>
+                        {% empty %}
+                        <li class="small text-muted">No verified certificates yet.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                <!-- Version Snapshot Button -->
+                <form method="POST" action="{% url 'careers:create_resume_version' primary_resume.id %}" class="d-flex gap-2">
+                    {% csrf_token %}
+                    <input type="text" name="version_title" class="form-control bg-dark border-secondary text-white" placeholder="Version label (e.g. Tailored for FinTech application)">
+                    <button type="submit" class="btn btn-outline-info text-nowrap rounded-pill">
+                        <i data-lucide="camera" style="width: 14px; height: 14px;" class="me-1"></i> Save Version Snapshot
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <!-- ATS Readability Score -->
+            <div class="custom-card p-4 mb-4 text-center">
+                <div class="text-secondary small mb-1">ATS Readability Rating</div>
+                <div class="display-4 fw-bold text-white mb-2">{{ primary_resume.ats_score }}<span class="fs-4 text-muted">/100</span></div>
+                <div class="custom-progress mb-3" style="height: 8px;">
+                    <div class="custom-progress-bar" style="width: {{ primary_resume.ats_score }}%;"></div>
+                </div>
+                <div class="small text-secondary">
+                    Optimized for single-column parsing, standard headings, and machine readability.
+                </div>
+            </div>
+
+            <!-- Dynamic Section Order Reorderer -->
+            <div class="custom-card p-4">
+                <h6 class="fw-bold text-white mb-2">Resume Section Order</h6>
+                <p class="text-secondary small mb-3">Reorder sections to prioritize your strongest assets.</p>
+
+                <div class="d-flex flex-column gap-2" id="section-order-list">
+                    {% for sec in section_order %}
+                    <div class="p-2 px-3 rounded-2 d-flex justify-content-between align-items-center section-drag-item" data-sec="{{ sec }}" style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.06);">
+                        <span class="text-white small fw-medium text-capitalize">{{ sec }}</span>
+                        <div class="d-flex gap-1">
+                            <button class="btn btn-sm btn-link text-secondary p-0 btn-move-up" style="line-height: 1;"><i data-lucide="chevron-up" style="width: 14px; height: 14px;"></i></button>
+                            <button class="btn btn-sm btn-link text-secondary p-0 btn-move-down" style="line-height: 1;"><i data-lucide="chevron-down" style="width: 14px; height: 14px;"></i></button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <button class="btn btn-sm btn-primary-custom w-100 mt-3" id="save-section-order-btn">
+                    Save Section Order
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Version Snapshots History -->
+    <div class="custom-card p-4">
+        <h5 class="fw-bold text-white mb-3">Version Snapshots</h5>
+        {% if versions %}
+        <div class="table-responsive">
+            <table class="table table-dark table-hover mb-0">
+                <thead>
+                    <tr class="text-secondary small">
+                        <th>Version</th>
+                        <th>Title / Snapshot Notes</th>
+                        <th>Template</th>
+                        <th>Created At</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ver in versions %}
+                    <tr>
+                        <td><span class="badge bg-purple">v{{ ver.version_number }}</span></td>
+                        <td class="text-white fw-medium">{{ ver.version_title }}</td>
+                        <td><span class="badge bg-dark text-secondary">{{ ver.template|upper }}</span></td>
+                        <td class="text-muted small">{{ ver.created_at|date:"M d, Y H:i" }}</td>
+                        <td>
+                            <a href="{% url 'careers:preview_smart_resume' primary_resume.id %}" class="btn btn-sm btn-outline-light rounded-pill py-0" style="font-size: 11px;">
+                                View Snapshot
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-secondary small mb-0">No historical versions yet. Save a snapshot before tailoring for different job applications.</p>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<!-- Modal: Generate Verified Resume -->
+<div class="modal fade" id="regenerateResumeModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark border-secondary">
+            <form method="POST" action="{% url 'careers:generate_smart_resume' %}">
+                {% csrf_token %}
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title text-white">Generate Verified Smart Resume</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-secondary small mb-3">
+                        This will audit all your verified courses, assessments, coding exercises, and portfolio projects to create an ATS-optimized tech resume.
+                    </p>
+                    <div class="mb-3">
+                        <label class="form-label text-white">Resume Title</label>
+                        <input type="text" name="title" class="form-control bg-dark border-secondary text-white" placeholder="e.g. Master Full Stack Resume">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-white">Layout Template</label>
+                        <select name="template" class="form-select bg-dark border-secondary text-white">
+                            {% for t_val, t_label in templates %}
+                            <option value="{{ t_val }}">{{ t_label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary-custom">Generate Resume</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Section Reordering Buttons
+    const list = document.getElementById('section-order-list');
+    if (list) {
+        list.addEventListener('click', (e) => {
+            const upBtn = e.target.closest('.btn-move-up');
+            const downBtn = e.target.closest('.btn-move-down');
+            if (upBtn) {
+                const item = upBtn.closest('.section-drag-item');
+                const prev = item.previousElementSibling;
+                if (prev) list.insertBefore(item, prev);
+            }
+            if (downBtn) {
+                const item = downBtn.closest('.section-drag-item');
+                const next = item.nextElementSibling;
+                if (next) list.insertBefore(next, item);
+            }
+        });
+
+        document.getElementById('save-section-order-btn').addEventListener('click', async () => {
+            const items = list.querySelectorAll('.section-drag-item');
+            const order = Array.from(items).map(i => i.dataset.sec);
+            const res = await fetch(`/career-studio/resume/{{ primary_resume.id }}/reorder/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json' },
+                body: JSON.stringify({ section_order: order })
+            });
+            const data = await res.json();
+            if (data.success) {
+                alert("Section order saved! Future PDF exports will reflect this order.");
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

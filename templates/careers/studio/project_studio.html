@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Project Portfolio Studio — 5-Stage Workflow - SkillSphere{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <!-- Breadcrumb & Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{% url 'careers:studio_dashboard' %}" class="text-secondary text-decoration-none">Career Studio</a></li>
+                    <li class="breadcrumb-item active text-white" aria-current="page">Project Studio</li>
+                </ol>
+            </nav>
+            <h1 class="h3 fw-bold text-white mb-1">Project Portfolio Studio</h1>
+            <p class="text-secondary mb-0">5-Stage delivery workflow. Build real-world proof of competence. Private by default.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'portfolios:builder' %}" class="btn btn-secondary-custom">
+                <i data-lucide="globe" style="width: 16px; height: 16px;"></i>
+                <span>Public Portfolio Settings</span>
+            </a>
+            <a href="{% url 'careers:create_studio_project' %}" class="btn btn-primary-custom">
+                <i data-lucide="plus" style="width: 16px; height: 16px;"></i>
+                <span>Create New Project</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Privacy Banner -->
+    <div class="p-3 rounded-3 mb-4 d-flex align-items-center gap-3" style="background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.25);">
+        <i data-lucide="lock" class="text-info" style="width: 22px; height: 22px;"></i>
+        <div class="small text-secondary">
+            <b class="text-white">Student Privacy Safeguard:</b> All projects in your Studio are strictly <b>private by default</b>. Projects are only made public when you explicitly toggle visibility or publish them to your verified portfolio.
+        </div>
+    </div>
+
+    <!-- 5-Stage Pipeline Columns -->
+    <div class="row g-3">
+        <!-- Stage 1: Idea / Concept -->
+        <div class="col-xl">
+            <div class="custom-card p-3 h-100" style="background: rgba(15, 23, 42, 0.6);">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="badge bg-secondary">1. Idea / Concept</span>
+                    <span class="text-muted small">{{ stages.idea|length }}</span>
+                </div>
+                <div class="d-flex flex-column gap-2">
+                    {% for p in stages.idea %}
+                        {% include 'careers/studio/_project_card.html' with project=p %}
+                    {% empty %}
+                        <div class="text-center py-4 text-muted small border border-dashed border-secondary border-opacity-25 rounded-3">
+                            No idea drafts
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Stage 2: Planning & Architecture -->
+        <div class="col-xl">
+            <div class="custom-card p-3 h-100" style="background: rgba(15, 23, 42, 0.6);">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="badge bg-info text-dark">2. Planning</span>
+                    <span class="text-muted small">{{ stages.planning|length }}</span>
+                </div>
+                <div class="d-flex flex-column gap-2">
+                    {% for p in stages.planning %}
+                        {% include 'careers/studio/_project_card.html' with project=p %}
+                    {% empty %}
+                        <div class="text-center py-4 text-muted small border border-dashed border-secondary border-opacity-25 rounded-3">
+                            No planned projects
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Stage 3: In Active Development -->
+        <div class="col-xl">
+            <div class="custom-card p-3 h-100" style="background: rgba(15, 23, 42, 0.6);">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="badge bg-warning text-dark">3. In Progress</span>
+                    <span class="text-muted small">{{ stages.in_progress|length }}</span>
+                </div>
+                <div class="d-flex flex-column gap-2">
+                    {% for p in stages.in_progress %}
+                        {% include 'careers/studio/_project_card.html' with project=p %}
+                    {% empty %}
+                        <div class="text-center py-4 text-muted small border border-dashed border-secondary border-opacity-25 rounded-3">
+                            None in progress
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Stage 4: Completed & Tested -->
+        <div class="col-xl">
+            <div class="custom-card p-3 h-100" style="background: rgba(15, 23, 42, 0.6);">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="badge bg-primary">4. Completed</span>
+                    <span class="text-muted small">{{ stages.completed|length }}</span>
+                </div>
+                <div class="d-flex flex-column gap-2">
+                    {% for p in stages.completed %}
+                        {% include 'careers/studio/_project_card.html' with project=p %}
+                    {% empty %}
+                        <div class="text-center py-4 text-muted small border border-dashed border-secondary border-opacity-25 rounded-3">
+                            None completed yet
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Stage 5: Published in Portfolio -->
+        <div class="col-xl">
+            <div class="custom-card p-3 h-100" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(16, 185, 129, 0.3);">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="badge bg-success">5. Published 🚀</span>
+                    <span class="text-muted small">{{ stages.published|length }}</span>
+                </div>
+                <div class="d-flex flex-column gap-2">
+                    {% for p in stages.published %}
+                        {% include 'careers/studio/_project_card.html' with project=p %}
+                    {% empty %}
+                        <div class="text-center py-4 text-muted small border border-dashed border-secondary border-opacity-25 rounded-3">
+                            None published yet
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

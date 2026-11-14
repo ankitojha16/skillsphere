@@ -1,0 +1,258 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ project.title }} — Project Workspace - SkillSphere Studio{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <!-- Breadcrumb & Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{% url 'careers:studio_dashboard' %}" class="text-secondary text-decoration-none">Career Studio</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'careers:portfolio_studio' %}" class="text-secondary text-decoration-none">Project Studio</a></li>
+                    <li class="breadcrumb-item active text-white" aria-current="page">{{ project.title }}</li>
+                </ol>
+            </nav>
+            <div class="d-flex align-items-center gap-2">
+                <h1 class="h3 fw-bold text-white mb-0">{{ project.title }}</h1>
+                <span class="badge bg-purple">{{ project.get_workflow_status_display }}</span>
+            </div>
+        </div>
+
+        <div class="d-flex gap-2">
+            <button class="btn btn-secondary-custom" id="toggle-privacy-btn">
+                <i data-lucide="{% if project.is_public %}unlock{% else %}lock{% endif %}" id="privacy-icon" style="width: 16px; height: 16px;"></i>
+                <span id="privacy-label">{% if project.is_public %}Public{% else %}Private (Protected){% endif %}</span>
+            </button>
+            <a href="{% url 'careers:portfolio_studio' %}" class="btn btn-outline-light rounded-pill">
+                ← Back to Pipeline
+            </a>
+        </div>
+    </div>
+
+    <!-- Overview & Progress -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-8">
+            <!-- Edit Form Card -->
+            <div class="custom-card p-4">
+                <h5 class="fw-bold text-white mb-3">Project Specifications</h5>
+                <form method="POST">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label text-white fw-medium">Title</label>
+                        <input type="text" name="title" class="form-control bg-dark border-secondary text-white" value="{{ project.title }}" required>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label text-white fw-medium">Workflow Stage</label>
+                            <select name="workflow_status" class="form-select bg-dark border-secondary text-white">
+                                {% for st_val, st_label in workflow_statuses %}
+                                <option value="{{ st_val }}" {% if st_val == project.workflow_status %}selected{% endif %}>{{ st_label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-white fw-medium">Technology Stack</label>
+                            <input type="text" name="technology_stack" class="form-control bg-dark border-secondary text-white" value="{{ project.technology_stack }}">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-white fw-medium">Description</label>
+                        <textarea name="description" rows="3" class="form-control bg-dark border-secondary text-white">{{ project.description }}</textarea>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label text-white fw-medium">GitHub Repository URL</label>
+                            <input type="url" name="github_url" class="form-control bg-dark border-secondary text-white" value="{{ project.github_url|default:'' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-white fw-medium">Live Demo URL</label>
+                            <input type="url" name="demo_url" class="form-control bg-dark border-secondary text-white" value="{{ project.demo_url|default:'' }}">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary-custom">
+                        <i data-lucide="save" style="width: 16px; height: 16px;"></i>
+                        <span>Save Changes</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <!-- Progress Card -->
+            <div class="custom-card p-4 mb-4 text-center">
+                <div class="text-secondary small mb-1">Delivery Progress</div>
+                <div class="display-5 fw-bold text-white mb-2" id="project-pct-display">{{ progress_pct }}%</div>
+                <div class="custom-progress mb-3" style="height: 8px;">
+                    <div class="custom-progress-bar" id="project-pct-bar" style="width: {{ progress_pct }}%;"></div>
+                </div>
+                <div class="small text-muted">
+                    Reference ID: <code class="text-info">{{ project.project_ref }}</code>
+                </div>
+            </div>
+
+            <!-- AI Mentor Card -->
+            <div class="custom-card p-4">
+                <div class="d-flex align-items-center gap-2 mb-2 text-purple">
+                    <i data-lucide="bot" style="width: 20px; height: 20px;"></i>
+                    <h6 class="fw-bold text-white mb-0">AI Project Architect</h6>
+                </div>
+                <p class="text-secondary small mb-3">
+                    Need advice on database schemas, test coverage, or Dockerizing this project?
+                </p>
+                <a href="{% url 'careers:studio_assistant' %}?project_id={{ project.id }}" class="btn btn-sm btn-outline-light rounded-pill w-100">
+                    Get Architecture Advice →
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Milestones Checklist Card -->
+    <div class="custom-card p-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h5 class="fw-bold text-white mb-0">Delivery Checklist Milestones</h5>
+                <small class="text-secondary">Mark milestones complete as you build and test features.</small>
+            </div>
+            <button class="btn btn-sm btn-outline-light rounded-pill" data-bs-toggle="modal" data-bs-target="#addMilestoneModal">
+                <i data-lucide="plus" style="width: 14px; height: 14px;" class="me-1"></i> Add Milestone
+            </button>
+        </div>
+
+        <div class="d-flex flex-column gap-2" id="milestones-checklist">
+            {% for m in milestones %}
+            <div class="p-3 rounded-3 d-flex align-items-center justify-content-between gap-3"
+                 id="pm-card-{{ m.id }}"
+                 style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.06);">
+                <div class="d-flex align-items-center gap-3">
+                    <input class="form-check-input pm-toggle cursor-pointer"
+                           type="checkbox"
+                           data-milestone-id="{{ m.id }}"
+                           {% if m.is_completed %}checked{% endif %}
+                           style="width: 20px; height: 20px; cursor: pointer;">
+                    <div>
+                        <span class="text-white fw-medium {% if m.is_completed %}text-decoration-line-through text-opacity-75{% endif %}" id="pm-title-{{ m.id }}">
+                            {{ m.title }}
+                        </span>
+                        {% if m.description %}
+                        <div class="text-secondary small">{{ m.description }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                <span class="badge bg-dark text-muted" style="font-size: 11px;">#{{ m.order }}</span>
+            </div>
+            {% empty %}
+            <div class="text-center py-4 text-secondary small">
+                No delivery checklist milestones defined yet.
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Add Milestone -->
+<div class="modal fade" id="addMilestoneModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark border-secondary">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title text-white">Add Project Milestone</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label text-white">Milestone Title</label>
+                    <input type="text" id="new-m-title" class="form-control bg-dark border-secondary text-white" placeholder="e.g. Write integration test suite">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label text-white">Description (Optional)</label>
+                    <textarea id="new-m-desc" class="form-control bg-dark border-secondary text-white" rows="2" placeholder="Details of the deliverable..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary-custom" id="submit-add-milestone">Add Milestone</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Milestone toggling
+    document.querySelectorAll('.pm-toggle').forEach(input => {
+        input.addEventListener('change', async function() {
+            const mId = this.dataset.milestoneId;
+            try {
+                const res = await fetch(`/career-studio/projects/{{ project.id }}/milestones/${mId}/toggle/`, {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json' }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    const title = document.getElementById(`pm-title-${mId}`);
+                    if (data.is_completed) {
+                        title.classList.add('text-decoration-line-through', 'text-opacity-75');
+                    } else {
+                        title.classList.remove('text-decoration-line-through', 'text-opacity-75');
+                    }
+                    document.getElementById('project-pct-display').innerText = `${data.progress_pct}%`;
+                    document.getElementById('project-pct-bar').style.width = `${data.progress_pct}%`;
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        });
+    });
+
+    // Privacy Toggle
+    document.getElementById('toggle-privacy-btn').addEventListener('click', async () => {
+        try {
+            const res = await fetch(`/career-studio/projects/{{ project.id }}/visibility/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json' }
+            });
+            const data = await res.json();
+            if (data.success) {
+                document.getElementById('privacy-label').innerText = data.is_public ? 'Public' : 'Private (Protected)';
+                const icon = document.getElementById('privacy-icon');
+                if (data.is_public) {
+                    icon.setAttribute('data-lucide', 'unlock');
+                } else {
+                    icon.setAttribute('data-lucide', 'lock');
+                }
+                lucide.createIcons();
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    });
+
+    // Add Milestone
+    document.getElementById('submit-add-milestone').addEventListener('click', async () => {
+        const title = document.getElementById('new-m-title').value.trim();
+        const desc = document.getElementById('new-m-desc').value.trim();
+        if (!title) return;
+
+        const formData = new FormData();
+        formData.append('title', title);
+        formData.append('description', desc);
+
+        const res = await fetch(`/career-studio/projects/{{ project.id }}/milestones/add/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+            body: formData
+        });
+        const data = await res.json();
+        if (data.success) {
+            location.reload();
+        }
+    });
+});
+</script>
+{% endblock %}

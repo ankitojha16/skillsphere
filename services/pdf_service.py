@@ -176,6 +176,7 @@ class PDFService:
             'user_name': user.get_full_name() or user.username if user else '',
             'user_email': user.email if user else '',
             'updated_at': resume.updated_at.isoformat() if getattr(resume, 'updated_at', None) else '',
+            'section_order': resume.get_section_order() if hasattr(resume, 'get_section_order') else [],
             'resume_data': getattr(resume, 'resume_data', {})
         }
         serialized = json.dumps(material, sort_keys=True, separators=(',', ':'), default=str)
@@ -1350,107 +1351,125 @@ class PDFService:
         elements.append(Spacer(1, 4))
         elements.append(HRFlowable(width="100%", thickness=1.5 if template_name == 'modern' else 1, color=hr_color, spaceAfter=6))
 
-        # 2. Career Objective & Goals / Professional Summary
-        career_goal = str(data.get('career_goal') or '').strip()
-        target_industry = str(data.get('target_industry') or '').strip()
-        summary = str(data.get('career_objective') or data.get('summary') or '').strip()
-        short_term_goals = data.get('short_term_goals', [])
+        # Dynamic Section Ordering
+        section_order = resume.get_section_order() if hasattr(resume, 'get_section_order') else [
+            'summary', 'skills', 'experience', 'projects', 'education', 'certifications'
+        ]
 
-        if summary or career_goal:
-            section_title = "CAREER OBJECTIVE & PROFESSIONAL GOALS" if (career_goal or data.get('career_objective') or template_name in ('fresher', 'modern')) else "PROFESSIONAL SUMMARY"
-            elements.append(Paragraph(section_title, section_style))
-            if career_goal:
-                target_parts = [f"<b>Target Role:</b> {career_goal}"]
-                if target_industry:
-                    target_parts.append(f"<b>Industry:</b> {target_industry}")
-                elements.append(Paragraph(" &nbsp;|&nbsp; ".join(target_parts), item_title_style))
-                elements.append(Spacer(1, 2))
-            if summary:
-                elements.append(Paragraph(summary, body_style))
-            if isinstance(short_term_goals, list):
-                valid_goals = [str(g).strip() for g in short_term_goals if str(g).strip()]
-                if valid_goals:
+        def render_summary():
+            career_goal = str(data.get('career_goal') or '').strip()
+            target_industry = str(data.get('target_industry') or '').strip()
+            summary = str(data.get('career_objective') or data.get('summary') or '').strip()
+            short_term_goals = data.get('short_term_goals', [])
+
+            if summary or career_goal:
+                section_title = "CAREER OBJECTIVE & PROFESSIONAL GOALS" if (career_goal or data.get('career_objective') or template_name in ('fresher', 'modern')) else "PROFESSIONAL SUMMARY"
+                elements.append(Paragraph(section_title, section_style))
+                if career_goal:
+                    target_parts = [f"<b>Target Role:</b> {career_goal}"]
+                    if target_industry:
+                        target_parts.append(f"<b>Industry:</b> {target_industry}")
+                    elements.append(Paragraph(" &nbsp;|&nbsp; ".join(target_parts), item_title_style))
                     elements.append(Spacer(1, 2))
-                    for g in valid_goals[:3]:
-                        elements.append(Paragraph(f"• {g}", body_style))
-            elements.append(Spacer(1, 4))
-
-        # 3. Technical Skills
-        skills = data.get('skills', [])
-        if skills:
-            elements.append(Paragraph("TECHNICAL SKILLS", section_style))
-            skills_text = ", ".join(skills) if isinstance(skills, list) else str(skills)
-            elements.append(Paragraph(skills_text, body_style))
-            elements.append(Spacer(1, 4))
-
-        # 4. Experience & Internships
-        experience = data.get('experience', [])
-        if experience:
-            elements.append(Paragraph("WORK & INTERNSHIP EXPERIENCE", section_style))
-            for exp in experience:
-                role = exp.get('role', '')
-                company = exp.get('company', '')
-                dates = exp.get('dates', '')
-                desc = exp.get('description', '')
-                top_text = f"<b>{role}</b> — {company}" if company else f"<b>{role}</b>"
-                if dates:
-                    top_text += f" <font color='#64748B'>({dates})</font>"
-                elements.append(Paragraph(top_text, item_title_style))
-                if desc:
-                    elements.append(Paragraph(desc, body_style))
+                if summary:
+                    elements.append(Paragraph(summary, body_style))
+                if isinstance(short_term_goals, list):
+                    valid_goals = [str(g).strip() for g in short_term_goals if str(g).strip()]
+                    if valid_goals:
+                        elements.append(Spacer(1, 2))
+                        for g in valid_goals[:3]:
+                            elements.append(Paragraph(f"• {g}", body_style))
                 elements.append(Spacer(1, 4))
 
-        # 5. Projects
-        projects = data.get('projects', [])
-        if projects:
-            elements.append(Paragraph("FEATURED PROJECTS", section_style))
-            for proj in projects:
-                p_title = proj.get('title', '')
-                tech = proj.get('technologies', '')
-                p_desc = proj.get('description', '')
-                github = proj.get('github_url', '')
-                header = f"<b>{p_title}</b>"
-                if tech:
-                    header += f" | <i>{tech}</i>"
-                if github:
-                    header += f" (<a href='{github}' color='#0284C7'>GitHub</a>)"
-                elements.append(Paragraph(header, item_title_style))
-                if p_desc:
-                    elements.append(Paragraph(p_desc, body_style))
+        def render_skills():
+            skills = data.get('skills', [])
+            if skills:
+                elements.append(Paragraph("TECHNICAL SKILLS", section_style))
+                skills_text = ", ".join(skills) if isinstance(skills, list) else str(skills)
+                elements.append(Paragraph(skills_text, body_style))
                 elements.append(Spacer(1, 4))
 
-        # 6. Education
-        education = data.get('education', [])
-        if education:
-            elements.append(Paragraph("EDUCATION", section_style))
-            for edu in education:
-                degree = edu.get('degree', '')
-                school = edu.get('school', '')
-                year = edu.get('year', '')
-                gpa = edu.get('gpa', '')
-                line = f"<b>{degree}</b> — {school}"
-                if year:
-                    line += f" ({year})"
-                if gpa:
-                    line += f" | GPA: {gpa}"
-                elements.append(Paragraph(line, item_title_style))
-                elements.append(Spacer(1, 2))
+        def render_experience():
+            experience = data.get('experience', [])
+            if experience:
+                elements.append(Paragraph("WORK & INTERNSHIP EXPERIENCE", section_style))
+                for exp in experience:
+                    role = exp.get('role', '')
+                    company = exp.get('company', '')
+                    dates = exp.get('dates', '')
+                    desc = exp.get('description', '')
+                    top_text = f"<b>{role}</b> — {company}" if company else f"<b>{role}</b>"
+                    if dates:
+                        top_text += f" <font color='#64748B'>({dates})</font>"
+                    elements.append(Paragraph(top_text, item_title_style))
+                    if desc:
+                        elements.append(Paragraph(desc, body_style))
+                    elements.append(Spacer(1, 4))
 
-        # 7. Certifications
-        certifications = data.get('certifications', [])
-        if certifications:
-            elements.append(Paragraph("CERTIFICATIONS & AWARDS", section_style))
-            for cert in certifications:
-                if isinstance(cert, dict):
-                    c_title = cert.get('title', '')
-                    c_issuer = cert.get('issuer', '')
-                    c_text = f"<b>{c_title}</b>"
-                    if c_issuer:
-                        c_text += f" — <font color='#64748B'>{c_issuer}</font>"
-                else:
-                    c_text = str(cert)
-                elements.append(Paragraph(f"• {c_text}", body_style))
-            elements.append(Spacer(1, 4))
+        def render_projects():
+            projects = data.get('projects', [])
+            if projects:
+                elements.append(Paragraph("FEATURED PROJECTS", section_style))
+                for proj in projects:
+                    p_title = proj.get('title', '')
+                    tech = proj.get('technologies', '')
+                    p_desc = proj.get('description', '')
+                    github = proj.get('github_url', '')
+                    header = f"<b>{p_title}</b>"
+                    if tech:
+                        header += f" | <i>{tech}</i>"
+                    if github:
+                        header += f" (<a href='{github}' color='#0284C7'>GitHub</a>)"
+                    elements.append(Paragraph(header, item_title_style))
+                    if p_desc:
+                        elements.append(Paragraph(p_desc, body_style))
+                    elements.append(Spacer(1, 4))
+
+        def render_education():
+            education = data.get('education', [])
+            if education:
+                elements.append(Paragraph("EDUCATION", section_style))
+                for edu in education:
+                    degree = edu.get('degree', '')
+                    school = edu.get('school', '')
+                    year = edu.get('year', '')
+                    gpa = edu.get('gpa', '')
+                    line = f"<b>{degree}</b> — {school}"
+                    if year:
+                        line += f" ({year})"
+                    if gpa:
+                        line += f" | GPA: {gpa}"
+                    elements.append(Paragraph(line, item_title_style))
+                    elements.append(Spacer(1, 2))
+
+        def render_certifications():
+            certifications = data.get('certifications', [])
+            if certifications:
+                elements.append(Paragraph("CERTIFICATIONS & AWARDS", section_style))
+                for cert in certifications:
+                    if isinstance(cert, dict):
+                        c_title = cert.get('title', '')
+                        c_issuer = cert.get('issuer', '')
+                        c_text = f"<b>{c_title}</b>"
+                        if c_issuer:
+                            c_text += f" — <font color='#64748B'>{c_issuer}</font>"
+                    else:
+                        c_text = str(cert)
+                    elements.append(Paragraph(f"• {c_text}", body_style))
+                elements.append(Spacer(1, 4))
+
+        section_dispatch = {
+            'summary': render_summary,
+            'skills': render_skills,
+            'experience': render_experience,
+            'projects': render_projects,
+            'education': render_education,
+            'certifications': render_certifications,
+        }
+
+        for sec in section_order:
+            if sec in section_dispatch:
+                section_dispatch[sec]()
 
         doc.build(elements)
         pdf_data = buffer.getvalue()

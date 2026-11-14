@@ -1,0 +1,246 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Skill Gap Analyzer — {{ current_track.title }} - SkillSphere{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <!-- Breadcrumb & Track Switcher Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{% url 'careers:studio_dashboard' %}" class="text-secondary text-decoration-none">Career Studio</a></li>
+                    <li class="breadcrumb-item active text-white" aria-current="page">Skill Gap Analyzer</li>
+                </ol>
+            </nav>
+            <h1 class="h3 fw-bold text-white mb-1">Transparent Skill Gap Analyzer</h1>
+            <p class="text-secondary mb-0">Auditable readiness scoring comparing your verified platform artifacts against industry benchmarks.</p>
+        </div>
+
+        <!-- Track Switcher Dropdown -->
+        <div class="d-flex align-items-center gap-2">
+            <label class="text-secondary small text-nowrap">Target Track:</label>
+            <div class="dropdown">
+                <button class="btn btn-outline-light dropdown-toggle rounded-pill" type="button" data-bs-toggle="dropdown">
+                    <i data-lucide="{{ current_track.icon|default:'compass' }}" style="width: 15px; height: 15px;" class="me-1"></i>
+                    {{ current_track.title }}
+                </button>
+                <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end shadow-lg" style="max-height: 380px; overflow-y: auto;">
+                    {% for t in tracks %}
+                    <li>
+                        <a class="dropdown-item d-flex justify-content-between align-items-center py-2 {% if t.id == current_track.id %}active{% endif %}" href="{% url 'careers:studio_gap_analyzer_track' t.slug %}">
+                            <span>{{ t.title }}</span>
+                            <span class="badge bg-dark text-secondary small ms-2">{{ t.market_demand }}</span>
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Transparent Scoring Math Banner -->
+    <div class="custom-card card-glowing p-4 mb-4" style="background: rgba(15, 23, 42, 0.9); border: 1px solid rgba(139, 92, 246, 0.3);">
+        <div class="row align-items-center g-4">
+            <div class="col-lg-3 text-center border-end-lg border-secondary border-opacity-25">
+                <div class="text-secondary small fw-medium text-uppercase mb-1">Verified Readiness Match</div>
+                <div class="display-4 fw-bold text-white mb-1">{{ match_score }}<span class="fs-4 text-muted">%</span></div>
+                <div class="custom-progress mb-2" style="height: 8px;">
+                    <div class="custom-progress-bar" style="width: {{ match_score }}%;"></div>
+                </div>
+                <div class="small text-muted">Audited: {{ report.calculated_at|date:"M d, Y H:i" }}</div>
+            </div>
+
+            <div class="col-lg-9">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <span class="badge bg-purple text-white"><i data-lucide="scale" style="width: 13px; height: 13px;" class="me-1"></i> Transparent Scoring Model</span>
+                    <span class="text-secondary small">Auditable Skill Attribution</span>
+                </div>
+                <p class="text-secondary small mb-3">{{ score_explanation }}</p>
+                <div class="d-flex flex-wrap gap-3 small">
+                    <div class="d-flex align-items-center gap-1 text-success">
+                        <i data-lucide="check-circle-2" style="width: 15px; height: 15px;"></i>
+                        <span><b>Demonstrated (100% credit):</b> {{ demonstrated|length }} skills</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-1 text-warning">
+                        <i data-lucide="clock" style="width: 15px; height: 15px;"></i>
+                        <span><b>Improving (40% credit):</b> {{ improving|length }} skills</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-1 text-danger">
+                        <i data-lucide="alert-circle" style="width: 15px; height: 15px;"></i>
+                        <span><b>Missing (0% credit):</b> {{ missing|length }} skills</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Skills Breakdown Columns -->
+    <div class="row g-4 mb-4">
+        <!-- 1. Demonstrated Skills -->
+        <div class="col-lg-4">
+            <div class="custom-card p-4 h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="p-2 rounded-2 bg-success bg-opacity-10 text-success">
+                            <i data-lucide="badge-check" style="width: 18px; height: 18px;"></i>
+                        </div>
+                        <div>
+                            <h6 class="fw-bold text-white mb-0">Demonstrated Skills</h6>
+                            <span class="text-secondary small">Verified by platform artifacts</span>
+                        </div>
+                    </div>
+                    <span class="badge bg-success rounded-pill">{{ demonstrated|length }}</span>
+                </div>
+
+                {% if demonstrated %}
+                    <div class="d-flex flex-column gap-3">
+                        {% for s in demonstrated %}
+                        <div class="p-3 rounded-3" style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.2);">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="fw-bold text-white">{{ s.skill_name }}</span>
+                                <span class="badge bg-success text-white small" style="font-size: 11px;">
+                                    {{ s.confidence_score }}% Confidence
+                                </span>
+                            </div>
+                            <div class="small text-secondary mb-1">
+                                <i data-lucide="shield-check" class="text-success me-1" style="width: 13px; height: 13px;"></i>
+                                {{ s.evidence_title }}
+                            </div>
+                            <div class="d-flex justify-content-between text-muted" style="font-size: 11px;">
+                                <span>Weight: {{ s.weight }}× ({{ s.importance|title }})</span>
+                                <span class="text-success">Verified</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-4 text-secondary small">
+                        <i data-lucide="info" class="mb-2" style="width: 24px; height: 24px;"></i>
+                        <p class="mb-0">No verified skills demonstrated yet for this track. Complete platform courses, assessments, or projects to establish proof.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 2. Improving / Self-Reported Skills -->
+        <div class="col-lg-4">
+            <div class="custom-card p-4 h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="p-2 rounded-2 bg-warning bg-opacity-10 text-warning">
+                            <i data-lucide="trending-up" style="width: 18px; height: 18px;"></i>
+                        </div>
+                        <div>
+                            <h6 class="fw-bold text-white mb-0">Improving Skills</h6>
+                            <span class="text-secondary small">In-progress or self-reported</span>
+                        </div>
+                    </div>
+                    <span class="badge bg-warning text-dark rounded-pill">{{ improving|length }}</span>
+                </div>
+
+                {% if improving %}
+                    <div class="d-flex flex-column gap-3">
+                        {% for s in improving %}
+                        <div class="p-3 rounded-3" style="background: rgba(245, 158, 11, 0.05); border: 1px solid rgba(245, 158, 11, 0.2);">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="fw-bold text-white">{{ s.skill_name }}</span>
+                                <span class="badge bg-warning text-dark small" style="font-size: 11px;">
+                                    {{ s.confidence_score }}% Confidence
+                                </span>
+                            </div>
+                            <div class="small text-secondary mb-1">{{ s.evidence_title }}</div>
+                            <div class="d-flex justify-content-between text-muted" style="font-size: 11px;">
+                                <span>Weight: {{ s.weight }}× (40% partial credit)</span>
+                                <span class="text-warning">Needs Assessment / Project</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-4 text-secondary small">
+                        <i data-lucide="check" class="mb-2 text-success" style="width: 24px; height: 24px;"></i>
+                        <p class="mb-0">No skills currently in intermediate / unverified status.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 3. Missing Skills -->
+        <div class="col-lg-4">
+            <div class="custom-card p-4 h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="p-2 rounded-2 bg-danger bg-opacity-10 text-danger">
+                            <i data-lucide="alert-triangle" style="width: 18px; height: 18px;"></i>
+                        </div>
+                        <div>
+                            <h6 class="fw-bold text-white mb-0">Missing Benchmarks</h6>
+                            <span class="text-secondary small">Required to reach 100%</span>
+                        </div>
+                    </div>
+                    <span class="badge bg-danger rounded-pill">{{ missing|length }}</span>
+                </div>
+
+                {% if missing %}
+                    <div class="d-flex flex-column gap-3">
+                        {% for s in missing %}
+                        <div class="p-3 rounded-3" style="background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.2);">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="fw-bold text-white">{{ s.skill_name }}</span>
+                                <span class="badge bg-dark text-danger border border-danger border-opacity-25 small" style="font-size: 11px;">
+                                    {{ s.importance|title }} ({{ s.weight }}×)
+                                </span>
+                            </div>
+                            <p class="text-secondary small mb-2">{{ s.benchmark }}</p>
+                            <a href="{% url 'courses:list' %}?q={{ s.skill_name|urlencode }}" class="btn btn-sm btn-outline-light rounded-pill py-0" style="font-size: 11px;">
+                                Find Relevant Course →
+                            </a>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-4 text-success small">
+                        <i data-lucide="award" class="mb-2" style="width: 32px; height: 32px;"></i>
+                        <p class="mb-0 fw-bold">Outstanding! You have evidenced all required skills for {{ current_track.title }}.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Plan & Mentorship Section -->
+    <div class="custom-card p-4">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+            <div>
+                <h5 class="fw-bold text-white mb-0">Prioritized Action Plan</h5>
+                <small class="text-secondary">Execute these tasks to close your skill gaps for {{ current_track.title }}.</small>
+            </div>
+            <a href="{% url 'careers:studio_assistant' %}" class="btn btn-sm btn-primary-custom">
+                <i data-lucide="bot" style="width: 14px; height: 14px;"></i>
+                <span>Ask AI Mentor for Advice</span>
+            </a>
+        </div>
+
+        <div class="row g-3">
+            {% for act in action_plan %}
+            <div class="col-md-6 col-lg-3">
+                <div class="p-3 rounded-3 h-100 d-flex flex-column justify-content-between" style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.06);">
+                    <div>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="badge {% if act.importance == 'essential' %}bg-danger{% else %}bg-warning text-dark{% endif %} small">
+                                {{ act.importance|title }}
+                            </span>
+                            <span class="text-secondary small">{{ act.type|title }}</span>
+                        </div>
+                        <h6 class="fw-bold text-white mb-1">{{ act.title }}</h6>
+                        <p class="text-secondary small mb-0">{{ act.description }}</p>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

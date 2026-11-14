@@ -1,0 +1,208 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ track.title }} Curriculum & Benchmarks - SkillSphere{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <!-- Breadcrumb & Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{% url 'careers:studio_dashboard' %}" class="text-secondary text-decoration-none">Career Studio</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'careers:studio_paths' %}" class="text-secondary text-decoration-none">Path Explorer</a></li>
+                    <li class="breadcrumb-item active text-white" aria-current="page">{{ track.title }}</li>
+                </ol>
+            </nav>
+            <h1 class="h3 fw-bold text-white mb-1">{{ track.title }}</h1>
+            <p class="text-secondary mb-0">{{ track.summary }}</p>
+        </div>
+        <div class="d-flex gap-2">
+            {% if is_primary %}
+                <span class="badge bg-success d-inline-flex align-items-center px-3 py-2 rounded-pill fs-6">
+                    <i data-lucide="check" style="width: 16px; height: 16px;" class="me-1"></i> Current Primary Goal
+                </span>
+            {% else %}
+                <form method="POST" action="{% url 'careers:studio_set_goal' track.slug %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-primary-custom">
+                        <i data-lucide="target" style="width: 16px; height: 16px;"></i>
+                        <span>Set as My Primary Track</span>
+                    </button>
+                </form>
+            {% endif %}
+            <a href="{% url 'careers:studio_gap_analyzer_track' track.slug %}" class="btn btn-secondary-custom">
+                <i data-lucide="activity" style="width: 16px; height: 16px;"></i>
+                <span>Analyze Skill Gap</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Overview Banner -->
+    <div class="custom-card p-4 mb-4">
+        <div class="row g-4 align-items-center">
+            <div class="col-lg-8">
+                <h5 class="fw-bold text-white mb-2">Role Overview & Responsibilities</h5>
+                <p class="text-secondary mb-3">{{ track.overview|default:track.summary }}</p>
+                <div class="d-flex flex-wrap gap-2">
+                    <span class="badge bg-purple text-white">{{ track.badge }}</span>
+                    <span class="badge bg-dark text-secondary border border-secondary border-opacity-25">{{ track.difficulty_level }}</span>
+                    <span class="badge bg-dark text-info border border-secondary border-opacity-25">Salary: {{ track.average_salary_range }}</span>
+                    <span class="badge bg-dark text-success border border-secondary border-opacity-25">Demand: {{ track.market_demand }}</span>
+                </div>
+            </div>
+            <div class="col-lg-4 text-center">
+                <div class="p-3 rounded-4" style="background: rgba(139, 92, 246, 0.08); border: 1px solid rgba(139, 92, 246, 0.25);">
+                    <div class="text-secondary small mb-1">Your Verified Match for this Track</div>
+                    <div class="display-6 fw-bold text-white mb-1">{{ gap_report.overall_match_percentage|default:0 }}%</div>
+                    <div class="custom-progress mb-2" style="height: 8px;">
+                        <div class="custom-progress-bar" style="width: {{ gap_report.overall_match_percentage|default:0 }}%;"></div>
+                    </div>
+                    <a href="{% url 'careers:studio_gap_analyzer_track' track.slug %}" class="text-info small text-decoration-none">
+                        View Transparent Scoring Breakdown →
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Curriculum Milestones & Skill Requirements -->
+    <div class="row g-4">
+        <!-- Left: Skill Requirements (Essential, Recommended, Bonus) -->
+        <div class="col-lg-7">
+            <div class="custom-card p-4 mb-4">
+                <h5 class="fw-bold text-white mb-1">Technical Skill Benchmarks</h5>
+                <p class="text-secondary small mb-3">Weighted criteria used to evaluate verified engineering competence.</p>
+
+                <!-- Essential Skills (3x) -->
+                <div class="mb-4">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <span class="badge bg-danger">Essential Core (3× Weight)</span>
+                        <span class="text-secondary small">Required for entry-level competence</span>
+                    </div>
+                    <div class="d-flex flex-column gap-2">
+                        {% for s in essential_skills %}
+                        <div class="p-3 rounded-3" style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05);">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="fw-bold text-white">{{ s.skill_name }}</span>
+                                <span class="badge bg-dark text-secondary small">{{ s.get_category_display }}</span>
+                            </div>
+                            <p class="text-secondary small mb-1">{{ s.description }}</p>
+                            <div class="small text-info">
+                                <i data-lucide="shield-check" style="width: 13px; height: 13px;" class="me-1"></i>
+                                Benchmark: {{ s.benchmark_description }}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Recommended Skills (2x) -->
+                {% if recommended_skills %}
+                <div class="mb-4">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <span class="badge bg-warning text-dark">Recommended (2× Weight)</span>
+                        <span class="text-secondary small">Differentiates candidates in technical screens</span>
+                    </div>
+                    <div class="d-flex flex-column gap-2">
+                        {% for s in recommended_skills %}
+                        <div class="p-3 rounded-3" style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05);">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="fw-bold text-white">{{ s.skill_name }}</span>
+                                <span class="badge bg-dark text-secondary small">{{ s.get_category_display }}</span>
+                            </div>
+                            <p class="text-secondary small mb-0">{{ s.description }}</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Bonus Skills (1x) -->
+                {% if bonus_skills %}
+                <div>
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <span class="badge bg-secondary">Bonus / Advanced (1× Weight)</span>
+                        <span class="text-secondary small">Next-level seniority and specialized skills</span>
+                    </div>
+                    <div class="d-flex flex-column gap-2">
+                        {% for s in bonus_skills %}
+                        <div class="p-3 rounded-3" style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05);">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="fw-bold text-white">{{ s.skill_name }}</span>
+                                <span class="badge bg-dark text-secondary small">{{ s.get_category_display }}</span>
+                            </div>
+                            <p class="text-secondary small mb-0">{{ s.description }}</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Right: Milestones & Suggested Projects -->
+        <div class="col-lg-5">
+            <!-- Learning Milestones -->
+            <div class="custom-card p-4 mb-4">
+                <h5 class="fw-bold text-white mb-2">Learning Roadmap Phases</h5>
+                <div class="d-flex flex-column gap-3">
+                    {% for m in milestones %}
+                    <div class="p-3 rounded-3" style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05);">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="fw-bold text-white">{{ m.title }}</span>
+                            <span class="badge bg-dark text-secondary small">~{{ m.weeks }} wks</span>
+                        </div>
+                        <p class="text-secondary small mb-2">{{ m.description }}</p>
+                        {% if m.mini_project %}
+                        <div class="small text-info">
+                            <i data-lucide="package" style="width: 14px; height: 14px;" class="me-1"></i>
+                            Project: {{ m.mini_project }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Suggested Portfolio Projects -->
+            <div class="custom-card p-4 mb-4">
+                <h5 class="fw-bold text-white mb-2">Recommended Capstone Projects</h5>
+                <div class="d-flex flex-column gap-3">
+                    {% for p in suggested_projects %}
+                    <div class="p-3 rounded-3" style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05);">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="fw-bold text-white">{{ p.title }}</span>
+                            <span class="badge bg-dark text-secondary small">{{ p.difficulty }}</span>
+                        </div>
+                        <p class="text-secondary small mb-2">{{ p.description }}</p>
+                        <div class="small text-muted mb-2">
+                            <b>Stack:</b> {{ p.stack }}
+                        </div>
+                        <a href="{% url 'careers:create_studio_project' %}?title={{ p.title|urlencode }}&stack={{ p.stack|urlencode }}" class="btn btn-sm btn-outline-info rounded-pill">
+                            <i data-lucide="plus" style="width: 13px; height: 13px;" class="me-1"></i> Add to Portfolio Studio
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Interview Topics -->
+            {% if interview_topics %}
+            <div class="custom-card p-4">
+                <h5 class="fw-bold text-white mb-2">Interview Topics to Master</h5>
+                <ul class="list-unstyled mb-0 d-flex flex-column gap-2">
+                    {% for topic in interview_topics %}
+                    <li class="small text-secondary d-flex align-items-start gap-2">
+                        <i data-lucide="help-circle" class="text-info mt-1" style="width: 14px; height: 14px;"></i>
+                        <span>{{ topic }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

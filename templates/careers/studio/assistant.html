@@ -1,0 +1,186 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}AI Career Mentor — Grounded Career Coaching - SkillSphere{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <!-- Breadcrumb & Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{% url 'careers:studio_dashboard' %}" class="text-secondary text-decoration-none">Career Studio</a></li>
+                    <li class="breadcrumb-item active text-white" aria-current="page">AI Career Mentor</li>
+                </ol>
+            </nav>
+            <div class="d-flex align-items-center gap-2">
+                <h1 class="h3 fw-bold text-white mb-0">AI Career Mentor</h1>
+                <span class="badge bg-purple"><i data-lucide="bot" style="width: 13px; height: 13px;" class="me-1"></i> Grounded AI</span>
+            </div>
+            <p class="text-secondary mb-0">Personalized mentoring grounded strictly in your verified platform credentials, projects, and target career track.</p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-dark text-success border border-success border-opacity-25 px-3 py-2 rounded-pill">
+                <i data-lucide="shield-check" style="width: 14px; height: 14px;" class="me-1"></i> Grounded & Verified
+            </span>
+        </div>
+    </div>
+
+    <!-- Student Grounding Bar -->
+    <div class="p-3 rounded-3 mb-4 d-flex flex-wrap justify-content-between align-items-center gap-3" style="background: rgba(139, 92, 246, 0.08); border: 1px solid rgba(139, 92, 246, 0.25);">
+        <div class="d-flex flex-wrap align-items-center gap-3 small">
+            <div>
+                <span class="text-muted">Target Track:</span>
+                <b class="text-white ms-1">{{ student_context.target_track }}</b>
+            </div>
+            <div>•</div>
+            <div>
+                <span class="text-muted">Readiness:</span>
+                <b class="text-info ms-1">{{ student_context.match_score }}%</b>
+            </div>
+            <div>•</div>
+            <div>
+                <span class="text-muted">Verified Evidence:</span>
+                <b class="text-success ms-1">{{ student_context.verified_evidence_count }} Items</b>
+            </div>
+        </div>
+        <div class="text-muted small">
+            Zero Hallucination Policy
+        </div>
+    </div>
+
+    <!-- Chat Console -->
+    <div class="custom-card p-0 overflow-hidden d-flex flex-column" style="height: 620px;">
+        <!-- Message Stream -->
+        <div class="p-4 flex-grow-1 overflow-auto d-flex flex-column gap-3" id="chat-stream">
+            <!-- Assistant Greeting Message -->
+            <div class="d-flex gap-3 align-items-start">
+                <div class="p-2 rounded-circle bg-purple text-white flex-shrink-0" style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;">
+                    <i data-lucide="bot" style="width: 18px; height: 18px;"></i>
+                </div>
+                <div class="p-3 rounded-4" style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); max-width: 820px;">
+                    <div class="text-purple small fw-bold mb-1">Career Mentor</div>
+                    <div class="text-secondary small chat-content" style="line-height: 1.6;">
+                        <p class="mb-2">Hello <b>{{ student_context.full_name }}</b>! I am your SkillSphere Career Mentor. I've audited your current platform progress:</p>
+                        <ul class="mb-2">
+                            <li>Target Career Track: <b>{{ student_context.target_track }}</b></li>
+                            <li>Current Readiness Match: <b>{{ student_context.match_score }}%</b></li>
+                            <li>Verified Evidence Items: <b>{{ student_context.verified_evidence_count }}</b></li>
+                        </ul>
+                        <p class="mb-0">How can I help accelerate your career growth today? You can choose one of the suggestions below or ask anything about project architecture, technical interview questions, or closing skill gaps.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Prompt Suggestions Chips -->
+        <div class="p-3 border-top border-secondary border-opacity-25 d-flex flex-wrap gap-2" style="background: rgba(0, 0, 0, 0.2);">
+            <button class="btn btn-sm btn-outline-light rounded-pill prompt-chip" style="font-size: 12px;" data-topic="gap_guidance">
+                📊 How do I close my skill gaps?
+            </button>
+            <button class="btn btn-sm btn-outline-light rounded-pill prompt-chip" style="font-size: 12px;" data-topic="project_architecture">
+                🛠️ Suggest 3-tier architecture for my portfolio project
+            </button>
+            <button class="btn btn-sm btn-outline-light rounded-pill prompt-chip" style="font-size: 12px;" data-topic="interview_prep">
+                🎯 Technical & behavioral mock interview questions
+            </button>
+            <button class="btn btn-sm btn-outline-light rounded-pill prompt-chip" style="font-size: 12px;" data-topic="general_chat">
+                📝 What does a recruiter look for in {{ student_context.target_track }}?
+            </button>
+        </div>
+
+        <!-- Input Bar -->
+        <div class="p-3 border-top border-secondary border-opacity-25" style="background: rgba(15, 23, 42, 0.95);">
+            <form id="chat-form" class="d-flex gap-2">
+                <input type="text" id="chat-input" class="form-control bg-dark border-secondary text-white" placeholder="Ask about system design, resume bullets, or interview strategies..." autocomplete="off">
+                <button type="submit" class="btn btn-primary-custom" id="send-btn">
+                    <i data-lucide="send" style="width: 16px; height: 16px;"></i>
+                    <span>Send</span>
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const form = document.getElementById('chat-form');
+    const input = document.getElementById('chat-input');
+    const stream = document.getElementById('chat-stream');
+    const sendBtn = document.getElementById('send-btn');
+
+    function appendMessage(sender, text, isUser=false) {
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `d-flex gap-3 align-items-start ${isUser ? 'justify-content-end' : ''}`;
+        
+        const avatar = isUser ? '' : `
+            <div class="p-2 rounded-circle bg-purple text-white flex-shrink-0" style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;">
+                <i data-lucide="bot" style="width: 18px; height: 18px;"></i>
+            </div>
+        `;
+
+        const cardBg = isUser ? 'background: rgba(139, 92, 246, 0.15); border: 1px solid rgba(139, 92, 246, 0.3);' : 'background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08);';
+
+        // Basic formatting of markdown bold, code, and linebreaks
+        const formatted = text
+            .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+            .replace(/`([^`]+)`/g, '<code class="text-info bg-dark px-1 rounded">$1</code>')
+            .replace(/\n\n/g, '<br/><br/>')
+            .replace(/\n/g, '<br/>');
+
+        msgDiv.innerHTML = `
+            ${!isUser ? avatar : ''}
+            <div class="p-3 rounded-4" style="${cardBg} max-width: 820px;">
+                <div class="text-${isUser ? 'info' : 'purple'} small fw-bold mb-1">${sender}</div>
+                <div class="text-secondary small chat-content" style="line-height: 1.6;">${formatted}</div>
+            </div>
+        `;
+        stream.appendChild(msgDiv);
+        stream.scrollTop = stream.scrollHeight;
+        if (window.lucide) lucide.createIcons();
+    }
+
+    async function sendMessage(text, topic='general_chat') {
+        if (!text.trim()) return;
+        appendMessage('You', text, true);
+        input.value = '';
+        sendBtn.disabled = true;
+
+        try {
+            const res = await fetch("{% url 'careers:studio_assistant_query' %}", {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ prompt: text, topic: topic })
+            });
+            const data = await res.json();
+            if (data.success) {
+                appendMessage('Career Mentor', data.content, false);
+            } else {
+                appendMessage('System', data.error || 'Failed to generate advice. Please try again.', false);
+            }
+        } catch (err) {
+            appendMessage('System', 'Network error reaching career mentor.', false);
+        } finally {
+            sendBtn.disabled = false;
+        }
+    }
+
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        sendMessage(input.value);
+    });
+
+    document.querySelectorAll('.prompt-chip').forEach(chip => {
+        chip.addEventListener('click', function() {
+            const promptText = this.innerText.trim();
+            const topic = this.dataset.topic;
+            sendMessage(promptText, topic);
+        });
+    });
+});
+</script>
+{% endblock %}
