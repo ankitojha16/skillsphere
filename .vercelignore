@@ -1,0 +1,33 @@
+# Vercel Ignore File
+# Prevents bulky infrastructure, local databases, docs, and test files from being bundled into Serverless Functions
+
+.git
+.github
+.venv
+venv
+env
+__pycache__
+*.pyc
+
+# Local data & backups
+*.sqlite3
+*.sqlite3*
+*.bak
+db.sqlite3
+
+# Infrastructure & Providers (prevents >600MB AWS provider bundle bloat)
+terraform/
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+
+# Load tests, tests, benchmarks, docs
+load_tests/
+docs/
+scratch/
+tests/
+
+# Static and media build outputs (WhiteNoise / S3 handles static)
+staticfiles/
+media/
