@@ -59,7 +59,39 @@
                     <!-- Description -->
                     <div class="mb-3">
                         <label for="feedbackModalDesc" class="form-label text-white small fw-semibold mb-1">Details / What happened?</label>
-                        <textarea class="form-control form-control-sm" id="feedbackModalDesc" name="description" rows="3" placeholder="Tell us what you noticed or how we can improve..." required style="background: rgba(15, 23, 42, 0.9); color: #fff; border-color: rgba(255, 255, 255, 0.15);"></textarea>
+                        <textarea class="form-control form-control-sm" id="feedbackModalDesc" name="description" rows="3" placeholder="Tell us what you noticed, what was easy, or what should improve..." required style="background: rgba(15, 23, 42, 0.9); color: #fff; border-color: rgba(255, 255, 255, 0.15);"></textarea>
+                    </div>
+
+                    <!-- 5 Structured Beta Evaluation Questions (Optional) -->
+                    <div class="mb-3">
+                        <a class="text-warning text-decoration-none small d-inline-flex align-items-center gap-1" data-bs-toggle="collapse" href="#structuredBetaFields" role="button" aria-expanded="false" aria-controls="structuredBetaFields">
+                            <i data-lucide="help-circle" style="width: 14px; height: 14px;"></i>
+                            <span>Answer 5 Quick Beta Evaluation Questions (Optional)</span>
+                        </a>
+                        <div class="collapse mt-2" id="structuredBetaFields">
+                            <div class="p-2.5 rounded border border-secondary border-opacity-20 bg-dark bg-opacity-50">
+                                <div class="mb-2">
+                                    <label class="form-label text-white small mb-0.5" style="font-size: 0.74rem;">1. What was easy to use?</label>
+                                    <input type="text" name="easy" class="form-control form-control-sm text-light bg-dark border-secondary border-opacity-25" placeholder="e.g. Navigating courses, daily planner..." style="font-size: 0.78rem;">
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label text-white small mb-0.5" style="font-size: 0.74rem;">2. What was confusing or unclear?</label>
+                                    <input type="text" name="confusing" class="form-control form-control-sm text-light bg-dark border-secondary border-opacity-25" placeholder="e.g. Roadmap milestones, PDF download..." style="font-size: 0.78rem;">
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label text-white small mb-0.5" style="font-size: 0.74rem;">3. Which feature was most useful?</label>
+                                    <input type="text" name="most_useful" class="form-control form-control-sm text-light bg-dark border-secondary border-opacity-25" placeholder="e.g. ATS Resume Studio, Opportunities, AI Assistant..." style="font-size: 0.78rem;">
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label text-white small mb-0.5" style="font-size: 0.74rem;">4. What did you expect but could not find?</label>
+                                    <input type="text" name="missing_expected" class="form-control form-control-sm text-light bg-dark border-secondary border-opacity-25" placeholder="e.g. Specific course topic, internship location..." style="font-size: 0.78rem;">
+                                </div>
+                                <div class="mb-1">
+                                    <label class="form-label text-white small mb-0.5" style="font-size: 0.74rem;">5. What should be improved?</label>
+                                    <input type="text" name="improvements" class="form-control form-control-sm text-light bg-dark border-secondary border-opacity-25" placeholder="e.g. Mobile speed, more video explanations..." style="font-size: 0.78rem;">
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Optional Screenshot -->

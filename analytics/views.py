@@ -77,6 +77,36 @@ def submit_feedback_api(request):
         page_url = request.POST.get('page_url', '')
         screenshot_file = request.FILES.get('screenshot')
 
+    # Extract structured beta survey questions if provided
+    if request.content_type == 'application/json':
+        easy = data.get('easy', '').strip()
+        confusing = data.get('confusing', '').strip()
+        most_useful = data.get('most_useful', '').strip()
+        missing_expected = data.get('missing_expected', '').strip()
+        improvements = data.get('improvements', '').strip()
+    else:
+        easy = request.POST.get('easy', '').strip()
+        confusing = request.POST.get('confusing', '').strip()
+        most_useful = request.POST.get('most_useful', '').strip()
+        missing_expected = request.POST.get('missing_expected', '').strip()
+        improvements = request.POST.get('improvements', '').strip()
+
+    if easy or confusing or most_useful or missing_expected or improvements:
+        parts = []
+        if easy:
+            parts.append(f"**What was easy:** {easy}")
+        if confusing:
+            parts.append(f"**What was confusing:** {confusing}")
+        if most_useful:
+            parts.append(f"**Most useful feature:** {most_useful}")
+        if missing_expected:
+            parts.append(f"**Expected but could not find:** {missing_expected}")
+        if improvements:
+            parts.append(f"**What should be improved:** {improvements}")
+        if description:
+            parts.append(f"**Additional notes:** {description}")
+        description = "\n\n".join(parts)
+
     if not description:
         return JsonResponse({'success': False, 'error': 'Description is required'}, status=400)
 

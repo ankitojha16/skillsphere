@@ -230,12 +230,25 @@ def onboarding_recommendations_view(request):
     if top_course:
         first_lesson = Lesson.objects.filter(course=top_course).order_by('lesson_order', 'id').first()
 
+    from careers.models import CareerTrack, StudentCareerGoal
+    career_tracks = list(CareerTrack.objects.filter(is_active=True).order_by('display_order')[:4])
+    active_career_goal = StudentCareerGoal.objects.filter(user=request.user).select_related('primary_track').first()
+
+    suggested_project = None
+    if active_career_goal and active_career_goal.primary_track and active_career_goal.primary_track.suggested_projects:
+        suggested_project = active_career_goal.primary_track.suggested_projects[0]
+    elif career_tracks and career_tracks[0].suggested_projects:
+        suggested_project = career_tracks[0].suggested_projects[0]
+
     from .onboarding_service import OnboardingLaunchpadService
     return render(request, 'accounts/onboarding_recommendations.html', {
         'profile': profile,
         'recommended_courses': matched_courses,
         'top_course': top_course,
         'first_lesson': first_lesson,
+        'career_tracks': career_tracks,
+        'active_career_goal': active_career_goal,
+        'suggested_project': suggested_project,
         'onboarding_launchpad': OnboardingLaunchpadService.get_status(request.user),
     })
 

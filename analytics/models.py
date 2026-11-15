@@ -14,6 +14,7 @@ class ProductEvent(models.Model):
         ('registration_completed', 'Registration Completed'),
         ('first_login', 'First Login'),
         ('login', 'User Login'),
+        ('returning_login', 'Returning Student Login'),
         ('onboarding_completed', 'Onboarding Completed'),
         ('course_viewed', 'Course Viewed'),
         ('course_enrolled', 'Course Enrolled'),
@@ -21,6 +22,10 @@ class ProductEvent(models.Model):
         ('lesson_completed', 'Lesson Completed'),
         ('course_completed', 'Course Completed'),
         ('assessment_attempted', 'Assessment Attempted'),
+        ('first_project_created', 'First Project Created'),
+        ('resume_generated', 'Resume Generated'),
+        ('opportunity_saved', 'Opportunity Saved'),
+        ('opportunity_applied', 'Opportunity Applied'),
         ('certificate_earned', 'Certificate Earned'),
         ('active_user_ping', 'Active User Ping'),
     ]
@@ -60,6 +65,22 @@ class ProductEvent(models.Model):
     def __str__(self):
         user_label = self.user.username if self.user else 'Anonymous'
         return f"[{self.timestamp:%Y-%m-%d %H:%M}] {self.event_type} ({user_label})"
+
+    @classmethod
+    def track(cls, user, event_type, metadata=None, session_key='', idempotency_key=None):
+        """
+        Idempotent privacy-first product telemetry logging.
+        """
+        try:
+            return cls.objects.create(
+                user=user if user and getattr(user, 'is_authenticated', False) else None,
+                event_type=event_type,
+                event_key=idempotency_key or '',
+                metadata=metadata or {},
+                session_key=session_key
+            )
+        except Exception:
+            return None
 
 
 class BetaFeedback(models.Model):

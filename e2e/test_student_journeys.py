@@ -208,8 +208,39 @@ def run_standalone_e2e_check():
     assert resp.status_code == 200, f"Expected 200 for admin moderation, got {resp.status_code}"
     results.append(("Admin: Content Moderation Dashboard", "PASS"))
 
-    # 4. Student Data Portability (Export)
-    client.login(username=TestSkillSphereE2E.username, password=TestSkillSphereE2E.password)
+    # Journey P: Beta Onboarding Recommendations & First Lesson Discovery
+    resp = client.get('/accounts/onboarding/recommendations/')
+    assert resp.status_code == 200, f"Onboarding recommendations returned {resp.status_code}"
+    assert b"Recommended Courses" in resp.content or b"First Lesson" in resp.content
+    results.append(("Journey P: Onboarding Starter Recommendations & Goal Selection", "PASS"))
+
+    # Journey Q: Beta 5-Question Feedback Mechanism
+    import json
+    feedback_data = {
+        'page_url': '/dashboard/',
+        'sentiment': 'positive',
+        'easy': 'Navigating the 5 core sections (Home, Learn, Practice, Projects, Career) was smooth.',
+        'confusing': 'Nothing blocker level; clear layout.',
+        'most_useful': 'ATS Resume Builder and Skill Gap Analyzer.',
+        'missing_expected': 'More coding challenges in cloud devops.',
+        'improvements': 'Dark mode high contrast toggle.',
+        'description': 'Beta experience test review.'
+    }
+    resp = client.post('/analytics/api/feedback/submit/', data=json.dumps(feedback_data), content_type='application/json')
+    assert resp.status_code == 200, f"Feedback submission returned {resp.status_code}: {resp.content}"
+    assert resp.json().get('success') is True, f"Feedback response unexpected: {resp.json()}"
+    results.append(("Journey Q: 5-Question Structured Beta Feedback Submission", "PASS"))
+
+    # Journey R: Returning Student Persistence & Auth Re-entry
+    client.logout()
+    login_success = client.login(username=TestSkillSphereE2E.username, password=TestSkillSphereE2E.password)
+    assert login_success is True, "Returning student login failed"
+    resp = client.get('/dashboard/')
+    assert resp.status_code == 200
+    assert b"Student Launchpad" in resp.content or b"SkillSphere" in resp.content
+    results.append(("Journey R: Returning Student Persistence & Session Re-entry", "PASS"))
+
+    # Security & Privacy: Student Data Portability (Export)
     resp = client.get('/accounts/export-data/')
     assert resp.status_code == 200
     assert resp['Content-Type'] == 'application/json'
