@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}My Opportunity Listings - SkillSphere Recruiter{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <!-- Breadcrumb -->
+    <nav class="mb-3" aria-label="breadcrumb">
+        <ol class="breadcrumb small">
+            <li class="breadcrumb-item"><a href="{% url 'opportunities:list' %}" class="text-secondary text-decoration-none">Opportunities</a></li>
+            <li class="breadcrumb-item active text-white" aria-current="page">Recruiter Dashboard</li>
+        </ol>
+    </nav>
+
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <h1 class="h3 fw-bold text-white mb-0">My Published Listings</h1>
+                <span class="badge bg-purple bg-opacity-25 text-purple border border-purple border-opacity-25 small px-2 py-1">
+                    {{ total_listings }} Listings
+                </span>
+            </div>
+            <p class="text-secondary mb-0">
+                Manage your organization's active opportunities and review qualified candidate submissions.
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'opportunities:talent_portal' %}" class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-2">
+                <i data-lucide="users" style="width: 15px; height: 15px;"></i> Candidate Talent Pool
+            </a>
+            <a href="{% url 'opportunities:recruiter_post' %}" class="btn btn-primary-custom btn-sm d-flex align-items-center gap-2">
+                <i data-lucide="plus-circle" style="width: 15px; height: 15px;"></i> Post New Opportunity
+            </a>
+        </div>
+    </div>
+
+    <!-- Listings Table -->
+    <div class="custom-card p-0 overflow-hidden">
+        <div class="table-responsive">
+            <table class="table table-dark table-hover mb-0 align-middle">
+                <thead class="text-secondary small text-uppercase" style="background: rgba(255,255,255,0.02);">
+                    <tr>
+                        <th class="ps-4 py-3">Opportunity & Company</th>
+                        <th class="py-3">Type</th>
+                        <th class="py-3">Applicants</th>
+                        <th class="py-3">Deadline</th>
+                        <th class="py-3">Status</th>
+                        <th class="pe-4 py-3 text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="border-top border-secondary border-opacity-25">
+                    {% for opp in listings %}
+                    <tr>
+                        <td class="ps-4 py-3">
+                            <div class="fw-bold text-white mb-1">
+                                <a href="{% url 'opportunities:detail' pk=opp.pk %}" class="text-white text-decoration-none hover-white">
+                                    {{ opp.title }}
+                                </a>
+                            </div>
+                            <div class="text-secondary small">
+                                {{ opp.organization }} • <span class="text-muted">{{ opp.location }}</span>
+                            </div>
+                        </td>
+                        <td class="py-3">
+                            <span class="badge bg-purple bg-opacity-25 text-purple border border-purple border-opacity-25 small">
+                                {{ opp.get_opportunity_type_display }}
+                            </span>
+                        </td>
+                        <td class="py-3">
+                            <a href="{% url 'opportunities:recruiter_applicants' pk=opp.pk %}" class="badge bg-info bg-opacity-25 text-info border border-info border-opacity-25 text-decoration-none px-2 py-1">
+                                <i data-lucide="users" style="width: 12px; height: 12px;"></i> {{ opp.applicant_count }} Applicants
+                            </a>
+                        </td>
+                        <td class="py-3 text-secondary small">
+                            {% if opp.deadline %}
+                                {{ opp.deadline|date:"M d, Y" }}
+                                {% if opp.is_expired %}<span class="badge bg-danger ms-1">Expired</span>{% endif %}
+                            {% else %}
+                                Rolling
+                            {% endif %}
+                        </td>
+                        <td class="py-3">
+                            {% if opp.is_archived %}
+                            <span class="badge bg-secondary small">Archived</span>
+                            {% elif opp.is_active %}
+                            <span class="badge bg-success bg-opacity-25 text-success small">Active</span>
+                            {% else %}
+                            <span class="badge bg-warning small">Draft</span>
+                            {% endif %}
+                        </td>
+                        <td class="pe-4 py-3 text-end">
+                            <div class="d-flex justify-content-end gap-2">
+                                <a href="{% url 'opportunities:recruiter_applicants' pk=opp.pk %}" class="btn btn-outline-info btn-sm" title="Review Applicants">
+                                    <i data-lucide="users" style="width: 13px; height: 13px;"></i>
+                                </a>
+                                <a href="{% url 'opportunities:recruiter_edit_listing' pk=opp.pk %}" class="btn btn-outline-secondary btn-sm" title="Edit Listing">
+                                    <i data-lucide="edit-2" style="width: 13px; height: 13px;"></i>
+                                </a>
+                                <a href="{% url 'opportunities:recruiter_toggle_archive' pk=opp.pk %}" class="btn btn-outline-warning btn-sm" title="{% if opp.is_archived %}Activate{% else %}Archive{% endif %}">
+                                    <i data-lucide="archive" style="width: 13px; height: 13px;"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-5 text-secondary">
+                            <i data-lucide="briefcase" class="mb-2" style="width: 32px; height: 32px;"></i>
+                            <div class="text-white fw-medium">No opportunities published yet</div>
+                            <p class="small text-secondary mb-3">Create your first listing to start receiving qualified student applications.</p>
+                            <a href="{% url 'opportunities:recruiter_post' %}" class="btn btn-primary-custom btn-sm">Post First Opportunity</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

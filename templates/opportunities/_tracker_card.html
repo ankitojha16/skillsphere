@@ -1,21 +1,55 @@
-<div class="p-3 rounded-3" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);">
+<div class="p-3 rounded-3 position-relative" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);">
     <div class="d-flex justify-content-between align-items-start mb-1">
         <a href="{% url 'opportunities:detail' pk=item.opportunity.pk %}" class="fw-bold text-white small text-decoration-none hover-white">
             {{ item.opportunity.title }}
         </a>
     </div>
-    <div class="text-secondary small" style="font-size: 0.82rem;">{{ item.opportunity.organization }}</div>
-    
-    {% if item.application_notes %}
-    <p class="text-secondary small mt-2 mb-2 fst-italic" style="font-size: 0.82rem;">"{{ item.application_notes|truncatechars:45 }}"</p>
+    <div class="text-secondary small" style="font-size: 0.8rem;">
+        {{ item.opportunity.organization }}
+    </div>
+
+    <!-- Resume Version Badge -->
+    {% if item.resume_version %}
+    <div class="mt-2">
+        <span class="badge bg-purple bg-opacity-25 text-purple border border-purple border-opacity-25" style="font-size: 0.72rem;">
+            <i data-lucide="file-check" style="width: 10px; height: 10px;"></i> Resume v{{ item.resume_version.version_number }}
+        </span>
+    </div>
     {% endif %}
 
+    <!-- External Ref & Follow-up Date -->
+    {% if item.external_reference %}
+    <div class="text-muted small mt-1" style="font-size: 0.75rem;">
+        Ref: <span class="text-light">{{ item.external_reference }}</span>
+    </div>
+    {% endif %}
+
+    {% if item.follow_up_date %}
+    <div class="text-warning small mt-1 d-flex align-items-center gap-1" style="font-size: 0.75rem;">
+        <i data-lucide="calendar" style="width: 11px; height: 11px;"></i>
+        Follow-up: {{ item.follow_up_date|date:"M d" }}
+    </div>
+    {% endif %}
+
+    {% if item.application_notes %}
+    <p class="text-secondary small mt-2 mb-2 fst-italic" style="font-size: 0.78rem;">
+        "{{ item.application_notes|truncatechars:45 }}"
+    </p>
+    {% endif %}
+
+    <!-- Actions -->
     <div class="mt-2 pt-2 border-top border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
-        <button type="button" class="btn btn-sm text-info p-0 small" onclick="openStatusModal('{{ item.id }}', '{{ item.opportunity.title|escapejs }}', '{{ item.application_status }}', '{{ item.application_notes|escapejs }}')">
+        <button type="button" class="btn btn-sm text-info p-0 small d-flex align-items-center gap-1"
+                onclick="openStatusModal('{{ item.id }}', '{{ item.opportunity.title|escapejs }}', '{{ item.application_status }}', '{{ item.application_notes|escapejs }}', '{{ item.follow_up_date|date:'Y-m-d'|default:'' }}', '{{ item.external_reference|escapejs }}')">
             <i data-lucide="edit-3" style="width: 12px; height: 12px;"></i> Move
         </button>
-        <a href="{{ item.opportunity.application_url }}" target="_blank" class="text-muted hover-white" title="Official Link">
-            <i data-lucide="external-link" style="width: 12px; height: 12px;"></i>
-        </a>
+        <div class="d-flex align-items-center gap-2">
+            <a href="{% url 'opportunities:interview_prep' pk=item.opportunity.pk %}" class="text-secondary hover-white" title="AI Interview Prep">
+                <i data-lucide="sparkles" style="width: 12px; height: 12px;"></i>
+            </a>
+            <a href="{{ item.opportunity.application_url }}" target="_blank" rel="noopener noreferrer" class="text-muted hover-white" title="Official Application Portal">
+                <i data-lucide="external-link" style="width: 12px; height: 12px;"></i>
+            </a>
+        </div>
     </div>
 </div>

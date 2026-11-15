@@ -1,0 +1,284 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}AI Interview Prep: {{ opportunity.title }} - SkillSphere{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <!-- Breadcrumbs -->
+    <nav class="mb-3" aria-label="breadcrumb">
+        <ol class="breadcrumb small">
+            <li class="breadcrumb-item"><a href="{% url 'opportunities:list' %}" class="text-secondary text-decoration-none">Opportunities</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'opportunities:detail' pk=opportunity.pk %}" class="text-secondary text-decoration-none">{{ opportunity.title }}</a></li>
+            <li class="breadcrumb-item active text-white" aria-current="page">AI Interview Prep</li>
+        </ol>
+    </nav>
+
+    <!-- Header Banner -->
+    <div class="custom-card card-glowing p-4 mb-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div>
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <span class="badge bg-purple bg-opacity-25 text-purple border border-purple border-opacity-25 small px-2 py-1">
+                        <i data-lucide="sparkles" style="width: 12px; height: 12px;"></i> AI Career Mentor
+                    </span>
+                    <span class="badge bg-dark border border-secondary text-info small">{{ opportunity.get_work_mode_display }}</span>
+                </div>
+                <h1 class="h3 fw-bold text-white mb-1">Role-Specific Interview Prep</h1>
+                <p class="text-secondary mb-0">
+                    {{ opportunity.title }} at <strong class="text-light">{{ opportunity.organization }}</strong>
+                </p>
+            </div>
+            <a href="{% url 'opportunities:detail' pk=opportunity.pk %}" class="btn btn-secondary-custom btn-sm d-flex align-items-center gap-1">
+                <i data-lucide="arrow-left" style="width: 15px; height: 15px;"></i> Back to Listing
+            </a>
+        </div>
+    </div>
+
+    <!-- AI Transparency & Simulation Disclaimer Notice -->
+    <div class="p-3 rounded-3 mb-4" style="background: rgba(139, 92, 246, 0.08); border: 1px solid rgba(139, 92, 246, 0.25);">
+        <div class="d-flex align-items-center gap-2 text-purple fw-bold small mb-1">
+            <i data-lucide="info" style="width: 16px; height: 16px;"></i>
+            <span>Educational AI Practice Simulation</span>
+        </div>
+        <p class="text-secondary small mb-0">
+            {{ prep_deck.disclaimer }} SkillSphere AI feedback provides personalized practice recommendations and is independent of employer hiring decisions.
+        </p>
+    </div>
+
+    <!-- Main Content Tabs -->
+    <ul class="nav nav-pills mb-4 gap-2" id="prepTab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active rounded-pill px-3" id="tech-tab" data-bs-toggle="pill" data-bs-target="#tech" type="button" role="tab" aria-selected="true">
+                <i data-lucide="code-2" style="width: 14px; height: 14px;" class="me-1"></i> Technical Screening
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link rounded-pill px-3" id="star-tab" data-bs-toggle="pill" data-bs-target="#star" type="button" role="tab" aria-selected="false">
+                <i data-lucide="star" style="width: 14px; height: 14px;" class="me-1"></i> Behavioral (STAR Method)
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link rounded-pill px-3" id="projects-tab" data-bs-toggle="pill" data-bs-target="#projects" type="button" role="tab" aria-selected="false">
+                <i data-lucide="layers" style="width: 14px; height: 14px;" class="me-1"></i> Project Presentation
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link rounded-pill px-3" id="tips-tab" data-bs-toggle="pill" data-bs-target="#tips" type="button" role="tab" aria-selected="false">
+                <i data-lucide="lightbulb" style="width: 14px; height: 14px;" class="me-1"></i> Company Tips
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="prepTabContent">
+        <!-- 1. Technical Screening Tab -->
+        <div class="tab-pane fade show active" id="tech" role="tabpanel" aria-labelledby="tech-tab">
+            <div class="row g-4">
+                <div class="col-lg-7">
+                    <div class="d-flex flex-column gap-3">
+                        {% for q in prep_deck.technical_questions %}
+                        <div class="custom-card p-4">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <span class="badge bg-purple bg-opacity-25 text-purple small">Question #{{ forloop.counter }}</span>
+                            </div>
+                            <h4 class="h6 fw-bold text-white mb-3">{{ q.question }}</h4>
+
+                            <div class="mb-3">
+                                <div class="text-secondary small fw-bold mb-1">Key Concepts to Touch:</div>
+                                <div class="d-flex flex-wrap gap-1">
+                                    {% for c in q.key_concepts %}
+                                    <span class="badge bg-dark border border-secondary text-light small">{{ c }}</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            <div class="p-3 rounded-3 mb-3" style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.06);">
+                                <div class="text-secondary small fw-bold mb-1">Recommended Approach:</div>
+                                <p class="text-light small mb-0">{{ q.recommended_approach }}</p>
+                            </div>
+
+                            <!-- Interactive Practice Button -->
+                            <button type="button" class="btn btn-outline-info btn-sm" onclick="selectQuestionForPractice('{{ q.question|escapejs }}')">
+                                <i data-lucide="edit" style="width: 12px; height: 12px;"></i> Practice Typing Your Answer
+                            </button>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Right Column: Interactive Practice Sandbox -->
+                <div class="col-lg-5">
+                    <div class="custom-card p-4 sticky-top" style="top: 20px;">
+                        <h5 class="fw-bold text-white mb-2 d-flex align-items-center gap-2">
+                            <i data-lucide="cpu" class="text-purple" style="width: 18px; height: 18px;"></i>
+                            <span>AI Practice Evaluator</span>
+                        </h5>
+                        <p class="text-secondary small mb-3">
+                            Type your answer to receive real-time feedback on technical depth and structured STAR communication.
+                        </p>
+
+                        <div class="mb-3">
+                            <label class="form-label text-secondary small">Selected Question</label>
+                            <textarea id="practiceQuestion" class="form-control bg-dark text-white border-secondary small" rows="2" readonly>
+{{ prep_deck.technical_questions.0.question }}
+                            </textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label text-secondary small">Your Practice Answer</label>
+                            <textarea id="practiceAnswer" class="form-control bg-dark text-white border-secondary" rows="6"
+                                      placeholder="Type your response here... (Aim for at least 3-4 sentences detailing tools, approaches, and trade-offs)"></textarea>
+                        </div>
+
+                        <button type="button" id="submitAnswerBtn" class="btn btn-primary-custom w-100 mb-3" onclick="submitPracticeAnswer()">
+                            <i data-lucide="sparkles" style="width: 15px; height: 15px;"></i> Evaluate Response
+                        </button>
+
+                        <!-- Feedback Container -->
+                        <div id="feedbackContainer" class="d-none p-3 rounded-3" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="fw-bold text-white small">AI Feedback</span>
+                                <span id="feedbackScoreBadge" class="badge bg-success">85% Depth</span>
+                            </div>
+                            <p id="feedbackText" class="text-light small mb-2"></p>
+                            <div class="mb-2">
+                                <div class="text-success small fw-bold">Strengths:</div>
+                                <ul id="feedbackStrengths" class="text-secondary small ps-3 mb-1"></ul>
+                            </div>
+                            <div>
+                                <div class="text-warning small fw-bold">Areas to Polish:</div>
+                                <ul id="feedbackImprovements" class="text-secondary small ps-3 mb-0"></ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Behavioral STAR Tab -->
+        <div class="tab-pane fade" id="star" role="tabpanel" aria-labelledby="star-tab">
+            <div class="row g-4">
+                {% for b in prep_deck.behavioral_questions %}
+                <div class="col-md-6">
+                    <div class="custom-card p-4 h-100">
+                        <span class="badge bg-warning text-dark small mb-2">Scenario Question #{{ forloop.counter }}</span>
+                        <h4 class="h6 fw-bold text-white mb-3">{{ b.question }}</h4>
+
+                        <div class="d-flex flex-column gap-2 small">
+                            <div class="p-2 rounded-2" style="background: rgba(255,255,255,0.02);">
+                                <span class="text-primary fw-bold">Situation & Task:</span>
+                                <p class="text-secondary mb-0">{{ b.star_situation }}</p>
+                            </div>
+                            <div class="p-2 rounded-2" style="background: rgba(255,255,255,0.02);">
+                                <span class="text-warning fw-bold">Action Taken:</span>
+                                <p class="text-secondary mb-0">{{ b.star_action }}</p>
+                            </div>
+                            <div class="p-2 rounded-2" style="background: rgba(255,255,255,0.02);">
+                                <span class="text-success fw-bold">Result & Learning:</span>
+                                <p class="text-secondary mb-0">{{ b.star_result }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- 3. Project Walkthrough Tab -->
+        <div class="tab-pane fade" id="projects" role="tabpanel" aria-labelledby="projects-tab">
+            <div class="row g-4">
+                {% for p in prep_deck.project_talking_points %}
+                <div class="col-md-6">
+                    <div class="custom-card p-4 h-100">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <i data-lucide="layers" class="text-purple" style="width: 18px; height: 18px;"></i>
+                            <h5 class="h6 fw-bold text-white mb-0">{{ p.title }}</h5>
+                        </div>
+                        <p class="text-secondary small mb-0" style="line-height: 1.7;">
+                            {{ p.guidance }}
+                        </p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- 4. Company Tips Tab -->
+        <div class="tab-pane fade" id="tips" role="tabpanel" aria-labelledby="tips-tab">
+            <div class="custom-card p-4">
+                <h5 class="h6 fw-bold text-white mb-3">Preparation Strategy for {{ opportunity.organization }}</h5>
+                <ul class="text-secondary small mb-0 d-flex flex-column gap-2 ps-3">
+                    {% for tip in prep_deck.company_prep_tips %}
+                    <li>{{ tip }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function selectQuestionForPractice(q) {
+    document.getElementById('practiceQuestion').value = q;
+    document.getElementById('practiceAnswer').focus();
+}
+
+function submitPracticeAnswer() {
+    const q = document.getElementById('practiceQuestion').value.trim();
+    const a = document.getElementById('practiceAnswer').value.trim();
+    const btn = document.getElementById('submitAnswerBtn');
+
+    if (!a) {
+        alert("Please write a practice answer before requesting AI evaluation.");
+        return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Analyzing...';
+
+    fetch("{% url 'opportunities:interview_prep' pk=opportunity.pk %}", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": "{{ csrf_token }}",
+            "X-Requested-With": "XMLHttpRequest"
+        },
+        body: JSON.stringify({ question: q, answer: a })
+    })
+    .then(res => res.json())
+    .then(data => {
+        btn.disabled = false;
+        btn.innerHTML = '<i data-lucide="sparkles" style="width: 15px; height: 15px;"></i> Evaluate Response';
+        if (data.status === 'success') {
+            const ev = data.evaluation;
+            const container = document.getElementById('feedbackContainer');
+            container.classList.remove('d-none');
+            document.getElementById('feedbackScoreBadge').innerText = ev.score + "% Depth Score";
+            document.getElementById('feedbackText').innerText = ev.feedback;
+
+            const stUl = document.getElementById('feedbackStrengths');
+            stUl.innerHTML = '';
+            (ev.strengths || []).forEach(s => {
+                const li = document.createElement('li');
+                li.innerText = s;
+                stUl.appendChild(li);
+            });
+
+            const imUl = document.getElementById('feedbackImprovements');
+            imUl.innerHTML = '';
+            (ev.areas_to_improve || []).forEach(s => {
+                const li = document.createElement('li');
+                li.innerText = s;
+                imUl.appendChild(li);
+            });
+        }
+        if (window.lucide) lucide.createIcons();
+    })
+    .catch(err => {
+        btn.disabled = false;
+        btn.innerHTML = 'Evaluate Response';
+        alert("Evaluation service encountered a temporary error. Please try again.");
+    });
+}
+</script>
+{% endblock %}

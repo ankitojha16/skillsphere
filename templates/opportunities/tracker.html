@@ -8,115 +8,174 @@
     <!-- Header -->
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <div>
-            <h1 class="h3 fw-bold text-white mb-1">Application Pipeline Tracker</h1>
-            <p class="text-secondary mb-0">Track your progress from bookmark to interview and offer.</p>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <h1 class="h3 fw-bold text-white mb-0">Application Pipeline Tracker</h1>
+                <span class="badge bg-purple bg-opacity-25 text-purple border border-purple border-opacity-25 small px-2 py-1">
+                    {{ total_tracked }} Tracked Roles
+                </span>
+            </div>
+            <p class="text-secondary mb-0">
+                Manage your journey from discovery to offer. Record resume versions, notes, and follow-ups.
+            </p>
         </div>
         <div class="d-flex gap-2">
-            <a href="{% url 'opportunities:list' %}" class="btn btn-secondary-custom">
-                <i data-lucide="compass" style="width: 16px; height: 16px;"></i> Browse Opportunities
+            <a href="{% url 'opportunities:list' %}" class="btn btn-secondary-custom btn-sm d-flex align-items-center gap-2">
+                <i data-lucide="compass" style="width: 15px; height: 15px;"></i> Browse Opportunities
             </a>
         </div>
     </div>
 
-    <!-- Pipeline Columns Grid -->
-    <div class="row g-3">
-        <!-- 1. Interested -->
-        <div class="col-lg-2 col-md-4 col-sm-6">
-            <div class="p-3 rounded-4 h-100" style="background: rgba(17, 24, 43, 0.7); border: 1px solid rgba(255, 255, 255, 0.08);">
+    <!-- Upcoming Follow-up Reminders -->
+    {% if upcoming_followups %}
+    <div class="p-3 rounded-3 mb-4" style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25);">
+        <div class="d-flex align-items-center gap-2 text-warning fw-bold small mb-2">
+            <i data-lucide="bell" style="width: 16px; height: 16px;"></i>
+            <span>Upcoming Action Reminders (Next 7 Days):</span>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            {% for item in upcoming_followups %}
+            <div class="badge bg-dark border border-warning text-warning p-2 d-flex align-items-center gap-2">
+                <span>{{ item.opportunity.title }} ({{ item.opportunity.organization }})</span>
+                <span class="badge bg-warning text-dark">{{ item.follow_up_date|date:"M d" }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 8-Stage Pipeline Kanban Grid -->
+    <div class="row g-3 overflow-auto flex-nowrap pb-3" style="min-height: 520px;">
+        <!-- 1. Saved -->
+        <div class="col-12 col-sm-6 col-md-4 col-xl" style="min-width: 230px;">
+            <div class="p-3 rounded-4 h-100 d-flex flex-column" style="background: rgba(17, 24, 43, 0.7); border: 1px solid rgba(255, 255, 255, 0.08);">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <span class="fw-bold text-white small text-uppercase">1. Interested</span>
-                    <span class="badge bg-secondary rounded-pill">{{ pipeline.interested|length }}</span>
+                    <span class="fw-bold text-secondary small text-uppercase">1. Saved</span>
+                    <span class="badge bg-secondary rounded-pill">{{ pipeline.saved|length }}</span>
                 </div>
-                <div class="d-flex flex-column gap-2">
-                    {% for item in pipeline.interested %}
+                <div class="d-flex flex-column gap-2 flex-grow-1">
+                    {% for item in pipeline.saved %}
                         {% include "opportunities/_tracker_card.html" with item=item %}
                     {% empty %}
-                        <div class="text-center py-4 text-muted small">No items</div>
+                        <div class="text-center py-4 text-muted small">No saved roles</div>
                     {% endfor %}
                 </div>
             </div>
         </div>
 
         <!-- 2. Preparing -->
-        <div class="col-lg-2 col-md-4 col-sm-6">
-            <div class="p-3 rounded-4 h-100" style="background: rgba(17, 24, 43, 0.7); border: 1px solid rgba(255, 255, 255, 0.08);">
+        <div class="col-12 col-sm-6 col-md-4 col-xl" style="min-width: 230px;">
+            <div class="p-3 rounded-4 h-100 d-flex flex-column" style="background: rgba(17, 24, 43, 0.7); border: 1px solid rgba(255, 255, 255, 0.08);">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <span class="fw-bold text-info small text-uppercase">2. Preparing</span>
                     <span class="badge bg-info bg-opacity-25 text-info rounded-pill">{{ pipeline.preparing|length }}</span>
                 </div>
-                <div class="d-flex flex-column gap-2">
+                <div class="d-flex flex-column gap-2 flex-grow-1">
                     {% for item in pipeline.preparing %}
                         {% include "opportunities/_tracker_card.html" with item=item %}
                     {% empty %}
-                        <div class="text-center py-4 text-muted small">No items</div>
+                        <div class="text-center py-4 text-muted small">None preparing</div>
                     {% endfor %}
                 </div>
             </div>
         </div>
 
         <!-- 3. Applied -->
-        <div class="col-lg-2 col-md-4 col-sm-6">
-            <div class="p-3 rounded-4 h-100" style="background: rgba(17, 24, 43, 0.7); border: 1px solid rgba(255, 255, 255, 0.08);">
+        <div class="col-12 col-sm-6 col-md-4 col-xl" style="min-width: 230px;">
+            <div class="p-3 rounded-4 h-100 d-flex flex-column" style="background: rgba(17, 24, 43, 0.7); border: 1px solid rgba(255, 255, 255, 0.08);">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <span class="fw-bold text-purple small text-uppercase">3. Applied</span>
                     <span class="badge bg-purple rounded-pill">{{ pipeline.applied|length }}</span>
                 </div>
-                <div class="d-flex flex-column gap-2">
+                <div class="d-flex flex-column gap-2 flex-grow-1">
                     {% for item in pipeline.applied %}
                         {% include "opportunities/_tracker_card.html" with item=item %}
                     {% empty %}
-                        <div class="text-center py-4 text-muted small">No items</div>
+                        <div class="text-center py-4 text-muted small">None applied</div>
                     {% endfor %}
                 </div>
             </div>
         </div>
 
-        <!-- 4. Interview -->
-        <div class="col-lg-2 col-md-4 col-sm-6">
-            <div class="p-3 rounded-4 h-100" style="background: rgba(17, 24, 43, 0.7); border: 1px solid rgba(255, 255, 255, 0.08);">
+        <!-- 4. Assessment -->
+        <div class="col-12 col-sm-6 col-md-4 col-xl" style="min-width: 230px;">
+            <div class="p-3 rounded-4 h-100 d-flex flex-column" style="background: rgba(17, 24, 43, 0.7); border: 1px solid rgba(255, 255, 255, 0.08);">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <span class="fw-bold text-warning small text-uppercase">4. Interview</span>
+                    <span class="fw-bold text-primary small text-uppercase">4. Assessment</span>
+                    <span class="badge bg-primary bg-opacity-25 text-primary rounded-pill">{{ pipeline.assessment|length }}</span>
+                </div>
+                <div class="d-flex flex-column gap-2 flex-grow-1">
+                    {% for item in pipeline.assessment %}
+                        {% include "opportunities/_tracker_card.html" with item=item %}
+                    {% empty %}
+                        <div class="text-center py-4 text-muted small">No active assessments</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. Interview -->
+        <div class="col-12 col-sm-6 col-md-4 col-xl" style="min-width: 230px;">
+            <div class="p-3 rounded-4 h-100 d-flex flex-column" style="background: rgba(17, 24, 43, 0.7); border: 1px solid rgba(255, 255, 255, 0.08);">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="fw-bold text-warning small text-uppercase">5. Interview</span>
                     <span class="badge bg-warning text-dark rounded-pill">{{ pipeline.interview|length }}</span>
                 </div>
-                <div class="d-flex flex-column gap-2">
+                <div class="d-flex flex-column gap-2 flex-grow-1">
                     {% for item in pipeline.interview %}
                         {% include "opportunities/_tracker_card.html" with item=item %}
                     {% empty %}
-                        <div class="text-center py-4 text-muted small">No items</div>
+                        <div class="text-center py-4 text-muted small">No active interviews</div>
                     {% endfor %}
                 </div>
             </div>
         </div>
 
-        <!-- 5. Selected / Offer -->
-        <div class="col-lg-2 col-md-4 col-sm-6">
-            <div class="p-3 rounded-4 h-100" style="background: rgba(17, 24, 43, 0.7); border: 1px solid rgba(255, 255, 255, 0.08);">
+        <!-- 6. Selected / Offer -->
+        <div class="col-12 col-sm-6 col-md-4 col-xl" style="min-width: 230px;">
+            <div class="p-3 rounded-4 h-100 d-flex flex-column" style="background: rgba(17, 24, 43, 0.7); border: 1px solid rgba(255, 255, 255, 0.08);">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <span class="fw-bold text-success small text-uppercase">5. Selected 🎉</span>
+                    <span class="fw-bold text-success small text-uppercase">6. Selected 🎉</span>
                     <span class="badge bg-success rounded-pill">{{ pipeline.selected|length }}</span>
                 </div>
-                <div class="d-flex flex-column gap-2">
+                <div class="d-flex flex-column gap-2 flex-grow-1">
                     {% for item in pipeline.selected %}
                         {% include "opportunities/_tracker_card.html" with item=item %}
                     {% empty %}
-                        <div class="text-center py-4 text-muted small">No items</div>
+                        <div class="text-center py-4 text-muted small">No offers yet</div>
                     {% endfor %}
                 </div>
             </div>
         </div>
 
-        <!-- 6. Archived / Rejected -->
-        <div class="col-lg-2 col-md-4 col-sm-6">
-            <div class="p-3 rounded-4 h-100" style="background: rgba(17, 24, 43, 0.7); border: 1px solid rgba(255, 255, 255, 0.08);">
+        <!-- 7. Rejected / Archived -->
+        <div class="col-12 col-sm-6 col-md-4 col-xl" style="min-width: 230px;">
+            <div class="p-3 rounded-4 h-100 d-flex flex-column" style="background: rgba(17, 24, 43, 0.7); border: 1px solid rgba(255, 255, 255, 0.08);">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <span class="fw-bold text-secondary small text-uppercase">6. Closed</span>
-                    <span class="badge bg-dark border border-secondary text-secondary rounded-pill">{{ pipeline.rejected|length }}</span>
+                    <span class="fw-bold text-danger small text-uppercase">7. Rejected</span>
+                    <span class="badge bg-danger bg-opacity-25 text-danger rounded-pill">{{ pipeline.rejected|length }}</span>
                 </div>
-                <div class="d-flex flex-column gap-2">
+                <div class="d-flex flex-column gap-2 flex-grow-1">
                     {% for item in pipeline.rejected %}
                         {% include "opportunities/_tracker_card.html" with item=item %}
                     {% empty %}
-                        <div class="text-center py-4 text-muted small">No items</div>
+                        <div class="text-center py-4 text-muted small">None</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- 8. Withdrawn -->
+        <div class="col-12 col-sm-6 col-md-4 col-xl" style="min-width: 230px;">
+            <div class="p-3 rounded-4 h-100 d-flex flex-column" style="background: rgba(17, 24, 43, 0.7); border: 1px solid rgba(255, 255, 255, 0.08);">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="fw-bold text-secondary small text-uppercase">8. Withdrawn</span>
+                    <span class="badge bg-secondary rounded-pill">{{ pipeline.withdrawn|length }}</span>
+                </div>
+                <div class="d-flex flex-column gap-2 flex-grow-1">
+                    {% for item in pipeline.withdrawn %}
+                        {% include "opportunities/_tracker_card.html" with item=item %}
+                    {% empty %}
+                        <div class="text-center py-4 text-muted small">None</div>
                     {% endfor %}
                 </div>
             </div>
@@ -125,49 +184,75 @@
 </div>
 
 <!-- Status Update Modal -->
-<div class="modal fade" id="statusModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="statusModal" tabindex="-1" aria-labelledby="statusModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content text-white" style="background-color: #11182B; border: 1px solid rgba(255,255,255,0.12);">
-            <form method="post">
+        <div class="modal-content bg-dark text-white border-secondary">
+            <form method="post" action="{% url 'opportunities:tracker' %}">
                 {% csrf_token %}
                 <input type="hidden" name="saved_id" id="modalSavedId">
-                <div class="modal-header border-secondary border-opacity-25">
-                    <h5 class="modal-title fw-bold" id="modalOppTitle">Update Status</h5>
+                <input type="hidden" name="action" value="update_status">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title h6" id="statusModalLabel">Update Application Stage</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label class="form-label text-secondary small">Pipeline Stage</label>
+                        <label class="form-label small text-secondary">Opportunity</label>
+                        <input type="text" id="modalOppTitle" class="form-control bg-secondary bg-opacity-25 text-white border-0" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small text-secondary">Pipeline Stage</label>
                         <select name="status" id="modalStatusSelect" class="form-select bg-dark text-white border-secondary">
-                            {% for s_val, s_label in statuses %}
-                            <option value="{{ s_val }}">{{ s_label }}</option>
+                            {% for key, val in statuses %}
+                            <option value="{{ key }}">{{ val }}</option>
                             {% endfor %}
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label text-secondary small">Application Notes & Interview Dates</label>
-                        <textarea name="notes" id="modalNotes" rows="3" class="form-control bg-dark text-white border-secondary" placeholder="e.g. Applied via official portal on Nov 4; scheduled technical screen for Tuesday..."></textarea>
+                        <label class="form-label small text-secondary">External Reference / Portal ID</label>
+                        <input type="text" name="external_reference" id="modalExtRef" class="form-control bg-dark text-white border-secondary" placeholder="e.g. APP-8472">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small text-secondary">Follow-up Reminder Date</label>
+                        <input type="date" name="follow_up_date" id="modalFollowUp" class="form-control bg-dark text-white border-secondary">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small text-secondary">Private Notes</label>
+                        <textarea name="notes" id="modalNotes" rows="3" class="form-control bg-dark text-white border-secondary" placeholder="Add next steps or notes..."></textarea>
                     </div>
                 </div>
-                <div class="modal-footer border-secondary border-opacity-25">
-                    <button type="button" class="btn btn-secondary-custom" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary-custom">Update Tracker</button>
+                <div class="modal-footer border-secondary d-flex justify-content-between">
+                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="deleteTrackedEntry()">
+                        Remove from Tracker
+                    </button>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary-custom btn-sm">Save Changes</button>
+                    </div>
                 </div>
             </form>
         </div>
     </div>
 </div>
-{% endblock %}
 
-{% block extra_js %}
 <script>
-function openStatusModal(savedId, oppTitle, currentStatus, currentNotes) {
-    document.getElementById('modalSavedId').value = savedId;
-    document.getElementById('modalOppTitle').innerText = oppTitle;
-    document.getElementById('modalStatusSelect').value = currentStatus;
-    document.getElementById('modalNotes').value = currentNotes;
-    const modal = new bootstrap.Modal(document.getElementById('statusModal'));
+function openStatusModal(id, title, status, notes, followUp, extRef) {
+    document.getElementById('modalSavedId').value = id;
+    document.getElementById('modalOppTitle').value = title;
+    document.getElementById('modalStatusSelect').value = status;
+    document.getElementById('modalNotes').value = notes || '';
+    document.getElementById('modalFollowUp').value = followUp || '';
+    document.getElementById('modalExtRef').value = extRef || '';
+    var modal = new bootstrap.Modal(document.getElementById('statusModal'));
     modal.show();
+}
+
+function deleteTrackedEntry() {
+    if (confirm("Are you sure you want to remove this opportunity from your tracker?")) {
+        const form = document.querySelector('#statusModal form');
+        form.querySelector('input[name="action"]').value = 'delete';
+        form.submit();
+    }
 }
 </script>
 {% endblock %}

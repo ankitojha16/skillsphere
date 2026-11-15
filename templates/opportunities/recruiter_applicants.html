@@ -1,0 +1,178 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Applicants: {{ opportunity.title }} - SkillSphere Recruiter{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <!-- Breadcrumb -->
+    <nav class="mb-3" aria-label="breadcrumb">
+        <ol class="breadcrumb small">
+            <li class="breadcrumb-item"><a href="{% url 'opportunities:list' %}" class="text-secondary text-decoration-none">Opportunities</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'opportunities:recruiter_listings' %}" class="text-secondary text-decoration-none">Recruiter Listings</a></li>
+            <li class="breadcrumb-item active text-white" aria-current="page">Applicants</li>
+        </ol>
+    </nav>
+
+    <!-- Header Banner -->
+    <div class="custom-card card-glowing p-4 mb-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div>
+                <span class="badge bg-purple bg-opacity-25 text-purple border border-purple border-opacity-25 small mb-2">
+                    {{ opportunity.get_opportunity_type_display }}
+                </span>
+                <h1 class="h3 fw-bold text-white mb-1">Applicants: {{ opportunity.title }}</h1>
+                <p class="text-secondary mb-0">
+                    {{ opportunity.organization }} • <span class="text-info">{{ total_applicants }} Total Applicants</span>
+                </p>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{% url 'opportunities:recruiter_listings' %}" class="btn btn-secondary-custom btn-sm">
+                    Back to Listings
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Student Privacy & Safe Recruitment Banner -->
+    <div class="p-3 rounded-3 mb-4" style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.2);">
+        <div class="d-flex align-items-center gap-2 text-success fw-bold small mb-1">
+            <i data-lucide="shield-check" style="width: 16px; height: 16px;"></i>
+            <span>Privacy Guard & Minor Protection Active</span>
+        </div>
+        <p class="text-secondary small mb-0">
+            Student contact details and private portfolios are shielded by default. Advance candidates through official platform stages (Assessment, Interview, Offer) to maintain transparent audit logs. Direct unmoderated recruiter contact with minor students is prohibited.
+        </p>
+    </div>
+
+    <!-- Applicants Table -->
+    <div class="custom-card p-0 overflow-hidden">
+        <div class="table-responsive">
+            <table class="table table-dark table-hover mb-0 align-middle">
+                <thead class="text-secondary small text-uppercase" style="background: rgba(255,255,255,0.02);">
+                    <tr>
+                        <th class="ps-4 py-3">Candidate</th>
+                        <th class="py-3">Demonstrated Match</th>
+                        <th class="py-3">Submitted Resume</th>
+                        <th class="py-3">Application Stage</th>
+                        <th class="py-3">Applied On</th>
+                        <th class="pe-4 py-3 text-end">Update Stage</th>
+                    </tr>
+                </thead>
+                <tbody class="border-top border-secondary border-opacity-25">
+                    {% for row in applicant_data %}
+                    {% with app=row.application u=row.user prof=row.profile is_minor=row.is_minor %}
+                    <tr id="applicant-row-{{ app.id }}">
+                        <td class="ps-4 py-3">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="rounded-circle d-flex align-items-center justify-content-center bg-purple bg-opacity-25 text-purple fw-bold"
+                                     style="width: 36px; height: 36px; font-size: 0.85rem;">
+                                    {{ u.username|slice:":2"|upper }}
+                                </div>
+                                <div>
+                                    <div class="fw-bold text-white small">@{{ u.username }}</div>
+                                    <div class="text-secondary small" style="font-size: 0.75rem;">
+                                        {% if is_minor %}
+                                        <span class="badge bg-info bg-opacity-25 text-info border border-info border-opacity-25">Minor Student</span>
+                                        {% else %}
+                                        <span>{{ prof.get_education_level_display|default:'Student' }}</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+
+                        <!-- Demonstrated Skill Match -->
+                        <td class="py-3">
+                            <span class="badge bg-{{ row.badge_color }} bg-opacity-25 text-{{ row.badge_color }} border border-{{ row.badge_color }} border-opacity-25 small fw-bold">
+                                {{ row.match_score }}% Match
+                            </span>
+                            <div class="text-muted small mt-1" style="font-size: 0.72rem;">{{ row.match_level }}</div>
+                        </td>
+
+                        <!-- Resume Version -->
+                        <td class="py-3">
+                            {% if row.resume_version %}
+                            <div class="small text-white">
+                                <i data-lucide="file-check" class="text-purple" style="width: 12px; height: 12px;"></i>
+                                {{ row.resume_version.resume.title }} (v{{ row.resume_version.version_number }})
+                            </div>
+                            <div class="text-secondary small" style="font-size: 0.72rem;">{{ row.resume_version.version_title }}</div>
+                            {% else %}
+                            <span class="text-muted small">Standard Profile Submission</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Current Stage -->
+                        <td class="py-3">
+                            <span id="stage-badge-{{ app.id }}" class="badge bg-purple bg-opacity-25 text-purple small">
+                                {{ app.get_application_status_display }}
+                            </span>
+                        </td>
+
+                        <!-- Applied Date -->
+                        <td class="py-3 text-secondary small">
+                            {{ app.applied_at|date:"M d, Y"|default:app.created_at|date:"M d, Y" }}
+                        </td>
+
+                        <!-- Update Stage Dropdown & Action -->
+                        <td class="pe-4 py-3 text-end">
+                            <div class="d-inline-flex gap-2 align-items-center">
+                                <select id="stage-select-{{ app.id }}" class="form-select form-select-sm bg-dark text-white border-secondary" style="width: auto;">
+                                    {% for key, label in statuses %}
+                                    <option value="{{ key }}" {% if app.application_status == key %}selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                                <button type="button" class="btn btn-primary-custom btn-sm" onclick="updateApplicantStage('{{ app.id }}')">
+                                    Update
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endwith %}
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-5 text-secondary">
+                            <i data-lucide="inbox" class="mb-2" style="width: 32px; height: 32px;"></i>
+                            <div class="text-white fw-medium">No candidates have applied to this listing yet.</div>
+                            <p class="small text-secondary mb-0">Applications will appear here as students discover and apply through the Opportunity Hub.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+function updateApplicantStage(appId) {
+    const select = document.getElementById('stage-select-' + appId);
+    const newStatus = select.value;
+
+    fetch("/opportunities/recruiter/applicants/" + appId + "/status/", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": "{{ csrf_token }}",
+            "X-Requested-With": "XMLHttpRequest"
+        },
+        body: JSON.stringify({ status: newStatus })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === 'success') {
+            const badge = document.getElementById('stage-badge-' + appId);
+            badge.innerText = data.new_status_display;
+            badge.className = "badge bg-success bg-opacity-25 text-success small";
+            alert("Candidate application stage successfully updated!");
+        } else {
+            alert(data.message || "Failed to update applicant stage.");
+        }
+    })
+    .catch(err => {
+        alert("Server error updating applicant status.");
+    });
+}
+</script>
+{% endblock %}

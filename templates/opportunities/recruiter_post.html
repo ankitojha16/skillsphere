@@ -1,0 +1,170 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{% if opportunity %}Edit Listing: {{ opportunity.title }}{% else %}Publish New Opportunity{% endif %} - SkillSphere Recruiter{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <!-- Breadcrumb -->
+    <nav class="mb-3" aria-label="breadcrumb">
+        <ol class="breadcrumb small">
+            <li class="breadcrumb-item"><a href="{% url 'opportunities:list' %}" class="text-secondary text-decoration-none">Opportunities</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'opportunities:recruiter_listings' %}" class="text-secondary text-decoration-none">Recruiter Listings</a></li>
+            <li class="breadcrumb-item active text-white" aria-current="page">{% if opportunity %}Edit Listing{% else %}Publish Opportunity{% endif %}</li>
+        </ol>
+    </nav>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-9 col-xl-8">
+            <div class="custom-card p-4 p-md-5">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <span class="badge bg-purple bg-opacity-25 text-purple border border-purple border-opacity-25 small px-2 py-1">
+                        <i data-lucide="shield-check" style="width: 12px; height: 12px;"></i> Verified Recruiter Portal
+                    </span>
+                </div>
+                <h1 class="h3 fw-bold text-white mb-2">
+                    {% if opportunity %}Edit Opportunity Listing{% else %}Publish Verified Opportunity Listing{% endif %}
+                </h1>
+                <p class="text-secondary small mb-4">
+                    Target skilled candidates using SkillSphere's verified credential network. Specify technical requirements, work mode, and eligibility clearly.
+                </p>
+
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="row g-3">
+                        <!-- Title -->
+                        <div class="col-md-8">
+                            <label class="form-label text-secondary small">Opportunity Title *</label>
+                            <input type="text" name="title" class="form-control bg-dark text-white border-secondary"
+                                   placeholder="e.g. Junior Backend Python Developer Intern" value="{{ opportunity.title|default:'' }}" required>
+                        </div>
+
+                        <!-- Organization -->
+                        <div class="col-md-4">
+                            <label class="form-label text-secondary small">Hiring Organization / Company *</label>
+                            <input type="text" name="organization" class="form-control bg-dark text-white border-secondary"
+                                   placeholder="e.g. Acme Tech Labs" value="{{ opportunity.organization|default:'' }}" required>
+                        </div>
+
+                        <!-- Opportunity Type & Category -->
+                        <div class="col-md-6">
+                            <label class="form-label text-secondary small">Opportunity Type *</label>
+                            <select name="opportunity_type" class="form-select bg-dark text-white border-secondary" required>
+                                {% for val, label in opportunity_types %}
+                                <option value="{{ val }}" {% if opportunity.opportunity_type == val %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label text-secondary small">Technical Domain *</label>
+                            <select name="category" class="form-select bg-dark text-white border-secondary" required>
+                                {% for val, label in categories %}
+                                <option value="{{ val }}" {% if opportunity.category == val %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Description -->
+                        <div class="col-12">
+                            <label class="form-label text-secondary small">Role Description & Responsibilities *</label>
+                            <textarea name="description" rows="5" class="form-control bg-dark text-white border-secondary"
+                                      placeholder="Provide an overview of the role, day-to-day projects, team culture..." required>{{ opportunity.description|default:'' }}</textarea>
+                        </div>
+
+                        <!-- Required Skills & Preferred Skills -->
+                        <div class="col-md-6">
+                            <label class="form-label text-secondary small">Required Skills (Comma-separated) *</label>
+                            <input type="text" name="required_skills" class="form-control bg-dark text-white border-secondary"
+                                   placeholder="e.g. Python, Django, REST API, PostgreSQL" value="{{ opportunity.required_skills|default:'' }}" required>
+                            <div class="text-muted small mt-1" style="font-size: 0.75rem;">Core mandatory skills evaluated by the Skill Match Engine.</div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label text-secondary small">Preferred / Bonus Skills (Optional)</label>
+                            <input type="text" name="preferred_skills" class="form-control bg-dark text-white border-secondary"
+                                   placeholder="e.g. Docker, Redis, Celery, AWS" value="{{ opportunity.preferred_skills|default:'' }}">
+                            <div class="text-muted small mt-1" style="font-size: 0.75rem;">Nice-to-have capabilities providing bonus match score.</div>
+                        </div>
+
+                        <!-- Eligibility -->
+                        <div class="col-12">
+                            <label class="form-label text-secondary small">Eligibility Criteria</label>
+                            <textarea name="eligibility" rows="2" class="form-control bg-dark text-white border-secondary"
+                                      placeholder="Academic standing, graduation year, or prerequisite background...">{{ opportunity.eligibility|default:'' }}</textarea>
+                        </div>
+
+                        <!-- Work Mode & Location -->
+                        <div class="col-md-6">
+                            <label class="form-label text-secondary small">Work Arrangement *</label>
+                            <select name="work_mode" class="form-select bg-dark text-white border-secondary">
+                                {% for val, label in work_modes %}
+                                <option value="{{ val }}" {% if opportunity.work_mode == val %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label text-secondary small">Location *</label>
+                            <input type="text" name="location" class="form-control bg-dark text-white border-secondary"
+                                   placeholder="e.g. Remote, Bangalore, San Francisco" value="{{ opportunity.location|default:'Remote' }}" required>
+                        </div>
+
+                        <!-- Compensation & Award -->
+                        <div class="col-md-6">
+                            <label class="form-label text-secondary small">Compensation / Stipend Details</label>
+                            <input type="text" name="compensation_details" class="form-control bg-dark text-white border-secondary"
+                                   placeholder="e.g. ₹25,000/month or $2,000/mo stipend" value="{{ opportunity.compensation_details|default:opportunity.stipend_information|default:'' }}">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label text-secondary small">Funding / Award Amount ($ USD or INR)</label>
+                            <input type="number" step="0.01" name="funding_amount" class="form-control bg-dark text-white border-secondary"
+                                   placeholder="e.g. 5000" value="{{ opportunity.funding_amount|default:'' }}">
+                        </div>
+
+                        <!-- Application Link & Deadline -->
+                        <div class="col-md-8">
+                            <label class="form-label text-secondary small">Official Application URL *</label>
+                            <input type="url" name="application_url" class="form-control bg-dark text-white border-secondary"
+                                   placeholder="https://company.com/careers/role" value="{{ opportunity.application_url|default:'' }}" required>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label text-secondary small">Application Deadline</label>
+                            <input type="date" name="deadline" class="form-control bg-dark text-white border-secondary"
+                                   value="{{ opportunity.deadline|date:'Y-m-d'|default:'' }}">
+                        </div>
+
+                        <!-- Minor Protection & Age Settings -->
+                        <div class="col-md-6">
+                            <label class="form-label text-secondary small">Minimum Age Requirement</label>
+                            <input type="number" name="min_age" class="form-control bg-dark text-white border-secondary"
+                                   value="{{ opportunity.min_age|default:18 }}" min="14" max="99">
+                            <div class="text-muted small mt-1" style="font-size: 0.75rem;">14+ for high school challenges/hackathons, 18+ for employment.</div>
+                        </div>
+
+                        <div class="col-md-6 d-flex align-items-center mt-4">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="is_minor_safe" value="true" id="minorSafeSwitch"
+                                       {% if opportunity.is_minor_safe or not opportunity %}checked{% endif %}>
+                                <label class="form-check-label text-light small" for="minorSafeSwitch">
+                                    Approved for High School & Minor Student Participation
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <div class="col-12 mt-4 pt-3 border-top border-secondary border-opacity-25 d-flex justify-content-end gap-2">
+                            <a href="{% url 'opportunities:recruiter_listings' %}" class="btn btn-secondary btn-sm">Cancel</a>
+                            <button type="submit" class="btn btn-primary-custom px-4">
+                                {% if opportunity %}Save Changes{% else %}Publish Opportunity Listing{% endif %}
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,45 +1,105 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Internships & Opportunities - SkillSphere{% endblock %}
+{% block title %}Opportunity Hub - SkillSphere{% endblock %}
 
 {% block content %}
 <div class="container-fluid p-4">
-    <!-- Header & Tracker Link -->
+    <!-- Header & Action Controls -->
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <div>
-            <h1 class="h3 fw-bold text-white mb-1">Internships & Career Opportunities</h1>
-            <p class="text-secondary mb-0">Discover verified tech internships, graduate programs, and open-source fellowships.</p>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <h1 class="h3 fw-bold text-white mb-0">Opportunity Hub</h1>
+                <span class="badge bg-purple bg-opacity-25 text-purple border border-purple border-opacity-25 small px-2 py-1">
+                    <i data-lucide="sparkles" style="width: 12px; height: 12px;"></i> AI-Powered Matching
+                </span>
+            </div>
+            <p class="text-secondary mb-0">
+                Connect your verified platform learning, credentials, and projects directly to vetted internships, jobs, scholarships, and hackathons.
+            </p>
         </div>
-        <a href="{% url 'opportunities:tracker' %}" class="btn btn-primary-custom">
-            <i data-lucide="columns" style="width: 16px; height: 16px;"></i>
-            <span>My Application Tracker</span>
+        <div class="d-flex flex-wrap gap-2">
+            {% if user.is_staff or user.is_superuser or user.profile.role == 'recruiter' %}
+            <a href="{% url 'opportunities:recruiter_listings' %}" class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-2">
+                <i data-lucide="briefcase" style="width: 15px; height: 15px;"></i> Recruiter Listings
+            </a>
+            <a href="{% url 'opportunities:recruiter_post' %}" class="btn btn-primary-custom btn-sm d-flex align-items-center gap-2">
+                <i data-lucide="plus-circle" style="width: 15px; height: 15px;"></i> Post Opportunity
+            </a>
+            {% endif %}
+            <a href="{% url 'opportunities:my_applications' %}" class="btn btn-secondary-custom btn-sm d-flex align-items-center gap-2">
+                <i data-lucide="kanban" style="width: 15px; height: 15px;"></i> My Applications Tracker
+            </a>
+        </div>
+    </div>
+
+    <!-- Student Safety & Authenticity Guarantee -->
+    <div class="p-3 rounded-3 mb-4" style="background: rgba(139, 92, 246, 0.05); border: 1px solid rgba(139, 92, 246, 0.2);">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <div class="d-flex align-items-center gap-2 text-white small">
+                <i data-lucide="shield-check" class="text-success" style="width: 18px; height: 18px;"></i>
+                <span><strong>Zero Fabrication Guarantee:</strong> Every listing is verified from official partner portals, academic institutions, and vetted recruiters. Never pay any fee to apply.</span>
+            </div>
+            {% if is_minor %}
+            <span class="badge bg-info bg-opacity-25 text-info border border-info border-opacity-25 small">
+                <i data-lucide="user-check" style="width: 12px; height: 12px;"></i> Minor-Safe Filtering Active
+            </span>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Opportunity Type Tabs -->
+    <div class="d-flex flex-wrap gap-2 mb-4 pb-2 border-bottom border-secondary border-opacity-25">
+        <a href="?type=all{% if query %}&q={{ query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_work_mode %}&work_mode={{ selected_work_mode }}{% endif %}"
+           class="btn btn-sm {% if selected_type == 'all' %}btn-primary-custom{% else %}btn-outline-secondary text-secondary{% endif %} rounded-pill px-3">
+            All <span class="badge bg-dark ms-1">{{ type_counts.all }}</span>
+        </a>
+        <a href="?type=internship{% if query %}&q={{ query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_work_mode %}&work_mode={{ selected_work_mode }}{% endif %}"
+           class="btn btn-sm {% if selected_type == 'internship' %}btn-primary-custom{% else %}btn-outline-secondary text-secondary{% endif %} rounded-pill px-3">
+            <i data-lucide="briefcase" style="width: 13px; height: 13px;"></i> Internships <span class="badge bg-dark ms-1">{{ type_counts.internship }}</span>
+        </a>
+        <a href="?type=job{% if query %}&q={{ query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_work_mode %}&work_mode={{ selected_work_mode }}{% endif %}"
+           class="btn btn-sm {% if selected_type == 'job' %}btn-primary-custom{% else %}btn-outline-secondary text-secondary{% endif %} rounded-pill px-3">
+            <i data-lucide="award" style="width: 13px; height: 13px;"></i> Jobs <span class="badge bg-dark ms-1">{{ type_counts.job }}</span>
+        </a>
+        <a href="?type=scholarship{% if query %}&q={{ query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_work_mode %}&work_mode={{ selected_work_mode }}{% endif %}"
+           class="btn btn-sm {% if selected_type == 'scholarship' %}btn-primary-custom{% else %}btn-outline-secondary text-secondary{% endif %} rounded-pill px-3">
+            <i data-lucide="graduation-cap" style="width: 13px; height: 13px;"></i> Scholarships & Grants <span class="badge bg-dark ms-1">{{ type_counts.scholarship }}</span>
+        </a>
+        <a href="?type=hackathon{% if query %}&q={{ query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_work_mode %}&work_mode={{ selected_work_mode }}{% endif %}"
+           class="btn btn-sm {% if selected_type == 'hackathon' %}btn-primary-custom{% else %}btn-outline-secondary text-secondary{% endif %} rounded-pill px-3">
+            <i data-lucide="code" style="width: 13px; height: 13px;"></i> Hackathons <span class="badge bg-dark ms-1">{{ type_counts.hackathon }}</span>
+        </a>
+        <a href="?type=competition{% if query %}&q={{ query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_work_mode %}&work_mode={{ selected_work_mode }}{% endif %}"
+           class="btn btn-sm {% if selected_type == 'competition' %}btn-primary-custom{% else %}btn-outline-secondary text-secondary{% endif %} rounded-pill px-3">
+            <i data-lucide="trophy" style="width: 13px; height: 13px;"></i> Competitions <span class="badge bg-dark ms-1">{{ type_counts.competition }}</span>
+        </a>
+        <a href="?type=challenge{% if query %}&q={{ query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_work_mode %}&work_mode={{ selected_work_mode }}{% endif %}"
+           class="btn btn-sm {% if selected_type == 'challenge' %}btn-primary-custom{% else %}btn-outline-secondary text-secondary{% endif %} rounded-pill px-3">
+            <i data-lucide="target" style="width: 13px; height: 13px;"></i> Student Challenges <span class="badge bg-dark ms-1">{{ type_counts.challenge }}</span>
+        </a>
+        <a href="?type=mentorship{% if query %}&q={{ query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_work_mode %}&work_mode={{ selected_work_mode }}{% endif %}"
+           class="btn btn-sm {% if selected_type == 'mentorship' %}btn-primary-custom{% else %}btn-outline-secondary text-secondary{% endif %} rounded-pill px-3">
+            <i data-lucide="users" style="width: 13px; height: 13px;"></i> Mentorship <span class="badge bg-dark ms-1">{{ type_counts.mentorship }}</span>
         </a>
     </div>
 
-    <!-- Fraud Awareness & Protection Notice -->
-    <div class="p-3 rounded-3 mb-4" style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25);">
-        <div class="d-flex align-items-center gap-2 text-danger fw-bold small mb-1">
-            <i data-lucide="shield-alert" style="width: 16px; height: 16px;"></i>
-            <span>Student Career Safety Notice</span>
-        </div>
-        <p class="text-secondary small mb-0">
-            Never pay any fee, deposit, or training charge to apply for an internship or job. All SkillSphere opportunities are curated exclusively from trusted official corporate portals, open-source foundations, and legitimate student programs.
-        </p>
-    </div>
-
-    <!-- Filters & Search Form -->
+    <!-- Search & Filter Controls -->
     <div class="custom-card p-3 mb-4">
         <form method="get" class="row g-3 align-items-center">
-            <div class="col-md-5">
+            <input type="hidden" name="type" value="{{ selected_type }}">
+            <div class="col-md-4">
                 <div class="input-group">
-                    <span class="input-group-text bg-dark border-secondary text-secondary"><i data-lucide="search" style="width: 16px; height: 16px;"></i></span>
-                    <input type="text" name="q" class="form-control bg-dark text-white border-secondary" placeholder="Search by role, organization, or tech skill..." value="{{ query }}">
+                    <span class="input-group-text bg-dark border-secondary text-secondary">
+                        <i data-lucide="search" style="width: 16px; height: 16px;"></i>
+                    </span>
+                    <input type="text" name="q" class="form-control bg-dark text-white border-secondary"
+                           placeholder="Search role, skills, organization..." value="{{ query }}">
                 </div>
             </div>
             <div class="col-md-3">
                 <select name="category" class="form-select bg-dark text-white border-secondary">
-                    <option value="">All Technical Domains</option>
+                    <option value="">All Domains</option>
                     {% for cat_val, cat_label in categories %}
                     <option value="{{ cat_val }}" {% if selected_category == cat_val %}selected{% endif %}>{{ cat_label }}</option>
                     {% endfor %}
@@ -47,33 +107,38 @@
             </div>
             <div class="col-md-2">
                 <select name="work_mode" class="form-select bg-dark text-white border-secondary">
-                    <option value="">All Work Modes</option>
+                    <option value="">All Work Arrangements</option>
                     {% for wm_val, wm_label in work_modes %}
                     <option value="{{ wm_val }}" {% if selected_work_mode == wm_val %}selected{% endif %}>{{ wm_label }}</option>
                     {% endfor %}
                 </select>
             </div>
-            <div class="col-md-2 d-flex gap-2">
-                <button type="submit" class="btn btn-secondary-custom w-100">Filter</button>
-                {% if query or selected_category or selected_work_mode %}
-                <a href="{% url 'opportunities:list' %}" class="btn btn-outline-secondary btn-sm d-flex align-items-center">Reset</a>
-                {% endif %}
+            <div class="col-md-2">
+                <select name="sort" class="form-select bg-dark text-white border-secondary">
+                    <option value="deadline" {% if selected_sort == 'deadline' %}selected{% endif %}>Sort by Deadline</option>
+                    <option value="newest" {% if selected_sort == 'newest' %}selected{% endif %}>Sort by Newest</option>
+                    <option value="award" {% if selected_sort == 'award' %}selected{% endif %}>Sort by Award / Pay</option>
+                </select>
+            </div>
+            <div class="col-md-1 d-flex gap-2">
+                <button type="submit" class="btn btn-secondary-custom w-100">Apply</button>
             </div>
         </form>
     </div>
 
     <!-- Opportunities Grid -->
     <div class="row g-4 mb-4">
-        {% for opp in opportunities %}
+        {% for item in evaluated_opportunities %}
+        {% with opp=item.opp match=item.match saved=item.saved_entry %}
         <div class="col-md-6 col-xl-4">
-            <div class="custom-card p-4 h-100 d-flex flex-column justify-content-between">
+            <div class="custom-card p-4 h-100 d-flex flex-column justify-content-between position-relative">
                 <div>
-                    <!-- Top Badges -->
-                    <div class="d-flex justify-content-between align-items-start mb-2">
+                    <!-- Top Category & Verification Tags -->
+                    <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
                         <span class="badge-category">{{ opp.get_category_display }}</span>
                         <div class="d-flex align-items-center gap-1">
                             {% if opp.verification_status %}
-                            <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25 small" title="Verified Authentic Listing">
+                            <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25 small" title="Verified Authentic Opportunity">
                                 <i data-lucide="check-circle" style="width: 12px; height: 12px;"></i> Verified
                             </span>
                             {% endif %}
@@ -81,53 +146,137 @@
                         </div>
                     </div>
 
-                    <h4 class="h5 fw-bold text-white mb-1">{{ opp.title }}</h4>
-                    <div class="text-secondary small fw-medium mb-2">{{ opp.organization }} • <span class="text-muted">{{ opp.location }}</span></div>
+                    <!-- Title & Organization -->
+                    <h3 class="h5 fw-bold text-white mb-1">
+                        <a href="{% url 'opportunities:detail' pk=opp.pk %}" class="text-white text-decoration-none hover-white">
+                            {{ opp.title }}
+                        </a>
+                    </h3>
+                    <div class="text-secondary small fw-medium mb-3">
+                        <span class="text-light">{{ opp.organization }}</span> • <span class="text-muted">{{ opp.location }}</span>
+                    </div>
 
-                    <p class="text-secondary small mb-3">{{ opp.description|truncatewords:24 }}</p>
+                    <!-- Intelligent Skill Match Score Indicator -->
+                    <div class="p-2 rounded-3 mb-3" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="small text-secondary d-flex align-items-center gap-1">
+                                <i data-lucide="cpu" style="width: 13px; height: 13px;" class="text-purple"></i>
+                                Demonstrated Skill Match:
+                            </span>
+                            <span class="badge bg-{{ match.badge_color }} bg-opacity-25 text-{{ match.badge_color }} border border-{{ match.badge_color }} border-opacity-25 fw-bold">
+                                {{ match.match_percentage }}% • {{ match.match_level }}
+                            </span>
+                        </div>
+                        <div class="progress" style="height: 5px; background: rgba(255,255,255,0.08);">
+                            <div class="progress-bar bg-{{ match.badge_color }}" role="progressbar" style="width: {{ match.match_percentage }}%;" aria-valuenow="{{ match.match_percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                        <div class="text-secondary small mt-1" style="font-size: 0.78rem;">
+                            {{ match.summary_explanation|truncatechars:100 }}
+                        </div>
+                    </div>
 
+                    <!-- Required Skills -->
                     <div class="mb-3">
                         <div class="text-muted small mb-1">Required Skills:</div>
                         <div class="d-flex flex-wrap gap-1">
-                            {% for skill in opp.required_skills.split %}
+                            {% for skill in opp.get_required_skills_list %}
                             <span class="badge bg-dark border border-secondary text-light small">{{ skill }}</span>
                             {% endfor %}
                         </div>
                     </div>
 
-                    {% if opp.stipend_information %}
-                    <div class="text-success small fw-medium mb-2">
-                        <i data-lucide="dollar-sign" style="width: 13px; height: 13px;"></i> {{ opp.stipend_information }}
+                    <!-- Compensation & Awards -->
+                    {% if opp.compensation_details or opp.stipend_information %}
+                    <div class="text-success small fw-medium mb-2 d-flex align-items-center gap-1">
+                        <i data-lucide="badge-dollar-sign" style="width: 14px; height: 14px;"></i>
+                        <span>{{ opp.compensation_details|default:opp.stipend_information }}</span>
                     </div>
-                    {% endif %}
-
-                    {% if opp.deadline %}
-                    <div class="text-muted small mb-3">
-                        <i data-lucide="calendar" style="width: 13px; height: 13px;"></i> Deadline: {{ opp.deadline|date:"M d, Y" }}
+                    {% elif opp.funding_amount %}
+                    <div class="text-success small fw-medium mb-2 d-flex align-items-center gap-1">
+                        <i data-lucide="trophy" style="width: 14px; height: 14px;"></i>
+                        <span>Award / Pool: ${{ opp.funding_amount }}</span>
                     </div>
                     {% endif %}
                 </div>
 
-                <div class="pt-3 border-top border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
-                    <form method="post" action="{% url 'opportunities:toggle_save_opportunity' pk=opp.pk %}">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-sm {% if opp.pk in saved_opp_ids %}btn-success{% else %}btn-outline-light{% endif %}" title="{% if opp.pk in saved_opp_ids %}Saved to Tracker{% else %}Save Opportunity{% endif %}">
-                            <i data-lucide="bookmark" style="width: 14px; height: 14px;"></i> {% if opp.pk in saved_opp_ids %}Saved{% else %}Track{% endif %}
-                        </button>
-                    </form>
+                <!-- Footer & Action Controls -->
+                <div class="mt-3 pt-3 border-top border-secondary border-opacity-25">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div class="text-secondary small">
+                            {% if opp.deadline %}
+                            <i data-lucide="clock" style="width: 12px; height: 12px;"></i>
+                            {% if opp.is_expired %}
+                                <span class="text-danger">Expired</span>
+                            {% else %}
+                                <span>Deadline: {{ opp.deadline|date:"M d, Y" }}</span>
+                            {% endif %}
+                            {% else %}
+                            <span>Open Rolling</span>
+                            {% endif %}
+                        </div>
+                        {% if saved %}
+                        <span class="badge bg-info bg-opacity-25 text-info border border-info border-opacity-25 small">
+                            {{ saved.get_application_status_display }}
+                        </span>
+                        {% endif %}
+                    </div>
 
-                    <a href="{{ opp.application_url }}" target="_blank" class="btn btn-sm btn-primary-custom">
-                        Official Apply <i data-lucide="arrow-up-right" style="width: 14px; height: 14px;"></i>
-                    </a>
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'opportunities:detail' pk=opp.pk %}" class="btn btn-outline-secondary btn-sm flex-grow-1">
+                            Details & Match
+                        </a>
+                        <a href="{% url 'opportunities:interview_prep' pk=opp.pk %}" class="btn btn-sm btn-outline-info" title="AI Interview Prep">
+                            <i data-lucide="sparkles" style="width: 14px; height: 14px;"></i>
+                        </a>
+                        <form method="post" action="{% url 'opportunities:toggle_save_opportunity' pk=opp.pk %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                            <button type="submit" class="btn btn-sm {% if saved %}btn-purple text-white{% else %}btn-outline-secondary text-secondary{% endif %}" title="Bookmark / Save">
+                                <i data-lucide="bookmark" style="width: 14px; height: 14px;"></i>
+                            </button>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
+        {% endwith %}
         {% empty %}
-        <div class="col-12 text-center py-5 text-muted">
-            <i data-lucide="inbox" style="width: 36px; height: 36px;" class="mb-2 d-block mx-auto opacity-50"></i>
-            No opportunities match your search criteria. Try removing filters.
+        <div class="col-12 py-5 text-center">
+            <i data-lucide="inbox" class="text-secondary mb-3" style="width: 48px; height: 48px;"></i>
+            <h4 class="text-white">No opportunities found</h4>
+            <p class="text-secondary small">Try adjusting your keyword search, domain filters, or check back soon for verified partner updates.</p>
+            <a href="{% url 'opportunities:list' %}" class="btn btn-secondary-custom btn-sm">Reset All Filters</a>
         </div>
         {% endfor %}
     </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <nav class="d-flex justify-content-center my-4" aria-label="Opportunity list pagination">
+        <ul class="pagination pagination-sm">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link bg-dark text-white border-secondary" href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_work_mode %}&work_mode={{ selected_work_mode }}{% endif %}{% if selected_sort %}&sort={{ selected_sort }}{% endif %}">
+                    Previous
+                </a>
+            </li>
+            {% endif %}
+
+            <li class="page-item disabled">
+                <span class="page-link bg-dark text-secondary border-secondary">
+                    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                </span>
+            </li>
+
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link bg-dark text-white border-secondary" href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_work_mode %}&work_mode={{ selected_work_mode }}{% endif %}{% if selected_sort %}&sort={{ selected_sort }}{% endif %}">
+                    Next
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
 </div>
 {% endblock %}

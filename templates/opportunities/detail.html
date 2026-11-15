@@ -5,6 +5,7 @@
 
 {% block content %}
 <div class="container-fluid p-4">
+    <!-- Breadcrumb Navigation -->
     <nav class="mb-3" aria-label="breadcrumb">
         <ol class="breadcrumb small">
             <li class="breadcrumb-item"><a href="{% url 'opportunities:list' %}" class="text-secondary text-decoration-none">Opportunities</a></li>
@@ -12,65 +13,247 @@
         </ol>
     </nav>
 
+    <!-- Header Banner -->
     <div class="custom-card card-glowing p-4 p-md-5 mb-4">
         <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
             <div>
-                <div class="d-flex align-items-center gap-2 mb-2">
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
                     <span class="badge-category">{{ opportunity.get_category_display }}</span>
+                    <span class="badge bg-purple bg-opacity-25 text-purple border border-purple border-opacity-25">
+                        {{ opportunity.get_opportunity_type_display }}
+                    </span>
                     <span class="badge bg-dark border border-secondary text-info">{{ opportunity.get_work_mode_display }}</span>
                     {% if opportunity.verification_status %}
-                    <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25">Verified Authenticity</span>
+                    <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25">
+                        <i data-lucide="check-circle" style="width: 12px; height: 12px;"></i> Verified Official Source
+                    </span>
+                    {% endif %}
+                    {% if opportunity.is_minor_safe %}
+                    <span class="badge bg-info bg-opacity-25 text-info border border-info border-opacity-25">
+                        <i data-lucide="user-check" style="width: 12px; height: 12px;"></i> Minor Student Eligible
+                    </span>
                     {% endif %}
                 </div>
                 <h1 class="display-6 fw-bold text-white mb-1">{{ opportunity.title }}</h1>
                 <h3 class="h5 text-secondary mb-3">{{ opportunity.organization }} • {{ opportunity.location }}</h3>
             </div>
-            <div class="d-flex gap-2">
-                <form method="post" action="{% url 'opportunities:toggle_save_opportunity' pk=opportunity.pk %}">
-                    {% csrf_token %}
-                    <button type="submit" class="btn {% if saved_entry %}btn-success{% else %}btn-secondary-custom{% endif %}">
-                        <i data-lucide="bookmark" style="width: 16px; height: 16px;"></i> {% if saved_entry %}Tracked in Pipeline{% else %}Save Opportunity{% endif %}
-                    </button>
-                </form>
-                <a href="{{ opportunity.application_url }}" target="_blank" class="btn btn-primary-custom">
-                    Official Application Portal <i data-lucide="arrow-up-right" style="width: 16px; height: 16px;"></i>
+            <div class="d-flex flex-wrap gap-2">
+                <a href="{% url 'opportunities:interview_prep' pk=opportunity.pk %}" class="btn btn-outline-info d-flex align-items-center gap-2">
+                    <i data-lucide="sparkles" style="width: 16px; height: 16px;"></i> AI Interview Prep
                 </a>
+                <a href="{{ opportunity.application_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-primary-custom d-flex align-items-center gap-2">
+                    <span>Official Application Portal</span>
+                    <i data-lucide="external-link" style="width: 16px; height: 16px;"></i>
+                </a>
+                <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#reportModal" title="Report Inaccuracy or Scam">
+                    <i data-lucide="flag" style="width: 14px; height: 14px;"></i>
+                </button>
             </div>
         </div>
 
         <div class="row g-4 mt-2">
+            <!-- Left Column: Overview, Intelligent Match & Requirements -->
             <div class="col-lg-8">
-                <h4 class="h5 fw-bold text-white mb-2">Opportunity Overview</h4>
-                <p class="text-secondary mb-4" style="line-height: 1.8;">{{ opportunity.description }}</p>
+                <!-- Intelligent Skill Match Box -->
+                <div class="p-4 rounded-4 mb-4" style="background: rgba(139, 92, 246, 0.08); border: 1px solid rgba(139, 92, 246, 0.3);">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                        <div class="d-flex align-items-center gap-2">
+                            <i data-lucide="cpu" class="text-purple" style="width: 22px; height: 22px;"></i>
+                            <h4 class="h5 fw-bold text-white mb-0">Demonstrated Skill Match Engine</h4>
+                        </div>
+                        <span class="badge bg-{{ match.badge_color }} text-{{ match.badge_color }} bg-opacity-25 border border-{{ match.badge_color }} border-opacity-25 fs-6 px-3 py-1 fw-bold">
+                            {{ match.match_percentage }}% Match • {{ match.match_level }}
+                        </span>
+                    </div>
 
-                <h4 class="h5 fw-bold text-white mb-2">Required Skills & Technologies</h4>
+                    <p class="text-light small mb-3">
+                        {{ match.summary_explanation }}
+                    </p>
+
+                    <!-- Breakdown Table -->
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="p-3 rounded-3" style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.06);">
+                                <div class="text-success small fw-bold mb-2 d-flex align-items-center gap-1">
+                                    <i data-lucide="check" style="width: 14px; height: 14px;"></i> Matched Required Skills:
+                                </div>
+                                {% if match.required_skills_summary.matched %}
+                                <div class="d-flex flex-column gap-1">
+                                    {% for m in match.required_skills_summary.matched %}
+                                    <div class="d-flex justify-content-between align-items-center small py-1 border-bottom border-secondary border-opacity-10">
+                                        <span class="text-white fw-medium">{{ m.skill }}</span>
+                                        <span class="text-secondary" style="font-size: 0.75rem;" title="{{ m.evidence }}">
+                                            <i data-lucide="award" style="width: 11px; height: 11px;" class="text-success"></i> {{ m.evidence|truncatechars:24 }}
+                                        </span>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                {% else %}
+                                <div class="text-secondary small fst-italic">No required skills verified yet.</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="p-3 rounded-3" style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.06);">
+                                <div class="text-warning small fw-bold mb-2 d-flex align-items-center gap-1">
+                                    <i data-lucide="target" style="width: 14px; height: 14px;"></i> Growth Focus (Missing Skills):
+                                </div>
+                                {% if match.required_skills_summary.missing %}
+                                <div class="d-flex flex-wrap gap-1">
+                                    {% for sk in match.required_skills_summary.missing %}
+                                    <span class="badge bg-dark border border-warning text-warning small">{{ sk }}</span>
+                                    {% endfor %}
+                                </div>
+                                <div class="text-secondary small mt-2" style="font-size: 0.75rem;">
+                                    Tip: Complete corresponding courses or arena challenges to build verified evidence.
+                                </div>
+                                {% else %}
+                                <div class="text-success small">100% of required skills covered by your verified evidence!</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if match.preferred_skills_summary.matched %}
+                    <div class="mt-3 pt-2 border-top border-secondary border-opacity-25 small text-secondary">
+                        <span class="text-purple fw-bold">Bonus Preferred Skills:</span>
+                        {% for p in match.preferred_skills_summary.matched %}
+                        <span class="badge bg-purple bg-opacity-25 text-purple border border-purple border-opacity-25 ms-1">{{ p.skill }}</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Opportunity Description -->
+                <h4 class="h5 fw-bold text-white mb-2">Opportunity Overview</h4>
+                <div class="text-secondary mb-4" style="line-height: 1.8; white-space: pre-line;">{{ opportunity.description }}</div>
+
+                <!-- Required Skills -->
+                <h4 class="h5 fw-bold text-white mb-2">Required Core Skills</h4>
                 <div class="d-flex flex-wrap gap-2 mb-4">
-                    {% for skill in opportunity.required_skills.split %}
+                    {% for skill in opportunity.get_required_skills_list %}
                     <span class="badge bg-dark border border-secondary text-light px-3 py-2 fs-6">{{ skill }}</span>
                     {% endfor %}
                 </div>
 
+                <!-- Preferred Skills -->
+                {% if opportunity.preferred_skills %}
+                <h4 class="h5 fw-bold text-white mb-2">Preferred / Bonus Skills</h4>
+                <div class="d-flex flex-wrap gap-2 mb-4">
+                    {% for skill in opportunity.get_preferred_skills_list %}
+                    <span class="badge bg-dark border border-purple text-purple px-3 py-2 fs-6">{{ skill }}</span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <!-- Eligibility Criteria -->
                 {% if opportunity.eligibility %}
-                <h4 class="h5 fw-bold text-white mb-2">Eligibility Criteria</h4>
-                <p class="text-secondary mb-4">{{ opportunity.eligibility }}</p>
+                <h4 class="h5 fw-bold text-white mb-2">Eligibility & Prerequisites</h4>
+                <div class="p-3 rounded-3 mb-4 text-secondary" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); line-height: 1.7;">
+                    {{ opportunity.eligibility }}
+                </div>
+                {% endif %}
+
+                <!-- Required Documents -->
+                {% if opportunity.required_documents %}
+                <h4 class="h5 fw-bold text-white mb-2">Required Application Materials</h4>
+                <div class="d-flex flex-wrap gap-2 mb-4">
+                    {% for doc in opportunity.required_documents %}
+                    <span class="badge bg-dark border border-info text-info px-3 py-2"><i data-lucide="file-text" style="width: 12px; height: 12px;"></i> {{ doc }}</span>
+                    {% endfor %}
+                </div>
                 {% endif %}
             </div>
 
+            <!-- Right Column: Tracker & Specs -->
             <div class="col-lg-4">
-                <div class="p-4 rounded-4" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08);">
+                <!-- Application Pipeline Tracker Card -->
+                <div class="custom-card p-4 mb-4">
+                    <h5 class="fw-bold text-white mb-3 d-flex align-items-center gap-2">
+                        <i data-lucide="kanban" class="text-purple" style="width: 18px; height: 18px;"></i>
+                        <span>Application Pipeline</span>
+                    </h5>
+
+                    <form method="post" action="{% url 'opportunities:apply' pk=opportunity.pk %}">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label text-secondary small">Pipeline Stage</label>
+                            <select name="status" class="form-select bg-dark text-white border-secondary">
+                                <option value="saved" {% if saved_entry.application_status == 'saved' or saved_entry.application_status == 'interested' %}selected{% endif %}>Saved / Wishlist</option>
+                                <option value="preparing" {% if saved_entry.application_status == 'preparing' %}selected{% endif %}>Preparing Application</option>
+                                <option value="applied" {% if saved_entry.application_status == 'applied' %}selected{% endif %}>Applied</option>
+                                <option value="assessment" {% if saved_entry.application_status == 'assessment' %}selected{% endif %}>Assessment / Test</option>
+                                <option value="interview" {% if saved_entry.application_status == 'interview' %}selected{% endif %}>Interview</option>
+                                <option value="selected" {% if saved_entry.application_status == 'selected' %}selected{% endif %}>Selected / Offer 🎉</option>
+                                <option value="rejected" {% if saved_entry.application_status == 'rejected' %}selected{% endif %}>Rejected / Archived</option>
+                                <option value="withdrawn" {% if saved_entry.application_status == 'withdrawn' %}selected{% endif %}>Withdrawn</option>
+                            </select>
+                        </div>
+
+                        <!-- Resume Version Linkage -->
+                        <div class="mb-3">
+                            <label class="form-label text-secondary small">Linked Resume Snapshot</label>
+                            <select name="resume_version_id" class="form-select bg-dark text-white border-secondary">
+                                <option value="">-- Select Resume Version --</option>
+                                {% for ver in resume_versions %}
+                                <option value="{{ ver.id }}" {% if saved_entry.resume_version_id == ver.id %}selected{% endif %}>
+                                    {{ ver.resume.title }} (v{{ ver.version_number }}) - {{ ver.version_title }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <div class="text-muted small mt-1" style="font-size: 0.75rem;">
+                                Keeps an immutable record of the resume sent to this employer.
+                            </div>
+                        </div>
+
+                        <!-- External Reference -->
+                        <div class="mb-3">
+                            <label class="form-label text-secondary small">External Reference / Portal ID</label>
+                            <input type="text" name="external_reference" class="form-control bg-dark text-white border-secondary"
+                                   placeholder="e.g. REQ-94821 or App ID" value="{{ saved_entry.external_reference|default:'' }}">
+                        </div>
+
+                        <!-- Follow-up Date -->
+                        <div class="mb-3">
+                            <label class="form-label text-secondary small">Follow-up Reminder Date</label>
+                            <input type="date" name="follow_up_date" class="form-control bg-dark text-white border-secondary"
+                                   value="{{ saved_entry.follow_up_date|date:'Y-m-d'|default:'' }}">
+                        </div>
+
+                        <!-- Notes -->
+                        <div class="mb-3">
+                            <label class="form-label text-secondary small">Private Application Notes</label>
+                            <textarea name="notes" rows="3" class="form-control bg-dark text-white border-secondary"
+                                      placeholder="Next steps, recruiter contacts, or interview dates...">{{ saved_entry.application_notes|default:'' }}</textarea>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary-custom w-100">
+                            {% if saved_entry %}Update Pipeline Record{% else %}Save & Track Application{% endif %}
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Key Specifications -->
+                <div class="p-4 rounded-4 mb-4" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08);">
                     <h5 class="fw-bold text-white mb-3">Key Details</h5>
-                    
-                    {% if opportunity.stipend_information %}
+
+                    {% if opportunity.compensation_details or opportunity.stipend_information %}
                     <div class="mb-3">
-                        <div class="text-secondary small">Stipend / Compensation</div>
-                        <div class="text-success fw-bold">{{ opportunity.stipend_information }}</div>
+                        <div class="text-secondary small">Compensation / Award</div>
+                        <div class="text-success fw-bold">{{ opportunity.compensation_details|default:opportunity.stipend_information }}</div>
                     </div>
                     {% endif %}
 
                     {% if opportunity.deadline %}
                     <div class="mb-3">
                         <div class="text-secondary small">Application Deadline</div>
-                        <div class="text-white fw-bold">{{ opportunity.deadline|date:"F d, Y" }}</div>
+                        <div class="text-white fw-bold">
+                            {{ opportunity.deadline|date:"F d, Y" }}
+                            {% if opportunity.is_expired %}
+                            <span class="badge bg-danger ms-1">Expired</span>
+                            {% endif %}
+                        </div>
                     </div>
                     {% endif %}
 
@@ -80,13 +263,18 @@
                     </div>
 
                     <div class="mb-3">
-                        <div class="text-secondary small">Source Authenticity</div>
-                        <div class="text-info small">Official corporate portal / career page</div>
+                        <div class="text-secondary small">Age Requirement</div>
+                        <div class="text-white fw-bold">{{ opportunity.min_age }}+ years</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="text-secondary small">Source & Verification</div>
+                        <div class="text-info small">{{ opportunity.source_name }} (Verified: {{ opportunity.last_verified_at|date:"M Y" }})</div>
                     </div>
                 </div>
 
-                <!-- Candidate Prep & Application Deck -->
-                <div class="p-4 rounded-4 mt-3" style="background: rgba(139, 92, 246, 0.05); border: 1px solid rgba(139, 92, 246, 0.25);">
+                <!-- Candidate Prep Deck -->
+                <div class="p-4 rounded-4 mb-4" style="background: rgba(139, 92, 246, 0.05); border: 1px solid rgba(139, 92, 246, 0.25);">
                     <h5 class="fw-bold text-white mb-2 d-flex align-items-center gap-2">
                         <i data-lucide="sparkles" class="text-primary-accent" style="width: 18px; height: 18px;"></i>
                         <span>Candidate Prep Deck</span>
@@ -94,32 +282,85 @@
                     <p class="text-secondary small mb-3">Accelerate your application readiness with SkillSphere tools:</p>
 
                     <div class="d-flex flex-column gap-2">
-                        <a href="{% url 'interviews:setup' %}?category={{ opportunity.title|urlencode }}" class="btn btn-sm btn-outline-info text-start d-flex align-items-center justify-content-between p-2">
+                        <a href="{% url 'opportunities:interview_prep' pk=opportunity.pk %}" class="btn btn-sm btn-outline-info text-start d-flex align-items-center justify-content-between p-2">
                             <span class="d-flex align-items-center gap-2">
                                 <i data-lucide="mic" style="width: 15px; height: 15px;"></i>
                                 <span>Practice Mock Interview</span>
                             </span>
-                            <i data-lucide="arrow-right" style="width: 14px; height: 14px;"></i>
+                            <i data-lucide="chevron-right" style="width: 14px; height: 14px;"></i>
                         </a>
-
-                        <a href="{% url 'resumes:builder' %}?target_role={{ opportunity.title|urlencode }}" class="btn btn-sm btn-outline-light text-start d-flex align-items-center justify-content-between p-2">
+                        <a href="{% url 'resumes:builder' %}" class="btn btn-sm btn-outline-secondary text-start d-flex align-items-center justify-content-between p-2">
                             <span class="d-flex align-items-center gap-2">
                                 <i data-lucide="file-text" style="width: 15px; height: 15px;"></i>
                                 <span>Optimize ATS Resume</span>
                             </span>
-                            <i data-lucide="arrow-right" style="width: 14px; height: 14px;"></i>
+                            <i data-lucide="chevron-right" style="width: 14px; height: 14px;"></i>
                         </a>
-
-                        <a href="{% url 'goals:index' %}?preset_title=Apply%20to%20{{ opportunity.title|urlencode }}&preset_desc=Targeting%20{{ opportunity.title|urlencode }}%20at%20{{ opportunity.organization|urlencode }}" class="btn btn-sm btn-outline-success text-start d-flex align-items-center justify-content-between p-2">
+                        <a href="{% url 'goals:index' %}" class="btn btn-sm btn-outline-secondary text-start d-flex align-items-center justify-content-between p-2">
                             <span class="d-flex align-items-center gap-2">
                                 <i data-lucide="target" style="width: 15px; height: 15px;"></i>
                                 <span>Track as 30-Day Goal</span>
                             </span>
-                            <i data-lucide="arrow-right" style="width: 14px; height: 14px;"></i>
+                            <i data-lucide="chevron-right" style="width: 14px; height: 14px;"></i>
                         </a>
                     </div>
                 </div>
+
+                <!-- Status Transition History -->
+                {% if history %}
+                <div class="custom-card p-3">
+                    <h6 class="fw-bold text-white mb-2 small text-uppercase">Status History</h6>
+                    <div class="d-flex flex-column gap-2 small">
+                        {% for h in history %}
+                        <div class="border-start border-purple ps-2 py-1">
+                            <div class="text-white fw-medium">{{ h.from_status|title }} → {{ h.to_status|title }}</div>
+                            <div class="text-secondary" style="font-size: 0.72rem;">{{ h.created_at|date:"M d, Y H:i" }} • {{ h.notes|truncatechars:40 }}</div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Report Listing Modal -->
+<div class="modal fade" id="reportModal" tabindex="-1" aria-labelledby="reportModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-white border-secondary">
+            <form method="post" action="{% url 'opportunities:report_opportunity' pk=opportunity.pk %}">
+                {% csrf_token %}
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title h6" id="reportModalLabel">
+                        <i data-lucide="shield-alert" class="text-danger me-1" style="width: 18px; height: 18px;"></i>
+                        Report Listing Issue
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small text-secondary">Reason for Report</label>
+                        <select name="reason" class="form-select bg-dark text-white border-secondary" required>
+                            <option value="scam">Suspicious or Scam Listing</option>
+                            <option value="expired">Expired Opportunity / Past Deadline</option>
+                            <option value="broken_link">Broken Application URL</option>
+                            <option value="inaccurate_info">Inaccurate Requirements or Compensation</option>
+                            <option value="minor_safety">Unsafe / Inappropriate for Minors</option>
+                            <option value="other">Other Issue</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small text-secondary">Details</label>
+                        <textarea name="details" rows="3" class="form-control bg-dark text-white border-secondary"
+                                  placeholder="Describe the issue in detail..." required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger btn-sm">Submit Report</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
