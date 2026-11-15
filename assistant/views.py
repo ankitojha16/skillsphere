@@ -11,18 +11,28 @@ from django.core.cache import cache
 
 @login_required
 def assistant_view(request, conversation_id=None):
+    mode_param = request.GET.get('mode')
     user_conversations = AIConversation.objects.filter(user=request.user)
 
     current_conv = None
     if conversation_id:
         current_conv = get_object_or_404(AIConversation, id=conversation_id, user=request.user)
+    elif mode_param and mode_param in dict(AIConversation.MODE_CHOICES):
+        current_conv = user_conversations.filter(mode=mode_param).first()
+        if not current_conv:
+            mode_label = dict(AIConversation.MODE_CHOICES).get(mode_param, 'Session')
+            current_conv = AIConversation.objects.create(
+                user=request.user,
+                title=f'New {mode_label}',
+                mode=mode_param
+            )
     elif user_conversations.exists():
         current_conv = user_conversations.first()
     else:
         current_conv = AIConversation.objects.create(
             user=request.user,
             title='New Study Session',
-            mode='detailed'
+            mode='study'
         )
 
     # Handle question submission
@@ -83,9 +93,21 @@ def assistant_view(request, conversation_id=None):
             for m in recent_msgs
         ]
 
+        augmented_q = question
+        if current_conv.mode == 'mentor':
+            from careers.models import StudentCareerGoal
+            goal = StudentCareerGoal.objects.filter(user=request.user, status='active').first()
+            if goal and goal.target_track:
+                augmented_q = f"[Target Track: {goal.target_track.title}] {question}"
+        elif current_conv.mode == 'study':
+            from courses.models import Enrollment
+            enrolled = list(Enrollment.objects.filter(user=request.user).values_list('course__title', flat=True)[:3])
+            if enrolled:
+                augmented_q = f"[Enrolled Courses: {', '.join(enrolled)}] {question}"
+
         # Call AI Engine with explicit metadata and user-isolated cache
         ai_meta = AIService.ask_study_assistant_with_meta(
-            question=question,
+            question=augmented_q,
             mode=current_conv.mode,
             conversation_history=history,
             user_id=request.user.id
@@ -133,13 +155,14 @@ def assistant_view(request, conversation_id=None):
 
 @login_required
 def new_conversation_view(request):
-    mode = request.GET.get('mode', 'detailed')
+    mode = request.GET.get('mode', 'study')
     if mode not in dict(AIConversation.MODE_CHOICES):
-        mode = 'detailed'
+        mode = 'study'
 
+    mode_label = dict(AIConversation.MODE_CHOICES).get(mode, 'Study')
     conv = AIConversation.objects.create(
         user=request.user,
-        title='New Study Session',
+        title=f'New {mode_label} Session',
         mode=mode
     )
     return redirect('assistant:chat_detail', conversation_id=conv.id)

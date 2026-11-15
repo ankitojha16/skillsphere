@@ -3,6 +3,10 @@ from django.contrib.auth.models import User
 
 class AIConversation(models.Model):
     MODE_CHOICES = [
+        ('study', 'Study & Concepts'),
+        ('mentor', 'Career Mentor'),
+        ('interview', 'Mock Interview'),
+        ('resume', 'Resume Review'),
         ('detailed', 'Detailed Explanation'),
         ('simple', 'Simple / Beginner Friendly'),
         ('code', 'Code Explanation & Snippet'),
@@ -12,7 +16,7 @@ class AIConversation(models.Model):
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='ai_conversations')
     title = models.CharField(max_length=200, default='New Study Session')
-    mode = models.CharField(max_length=20, choices=MODE_CHOICES, default='detailed')
+    mode = models.CharField(max_length=20, choices=MODE_CHOICES, default='study')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

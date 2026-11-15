@@ -233,166 +233,104 @@
 
 
             <div class="sidebar-nav">
-                <div class="nav-section-title">Learning Core</div>
+                <!-- 1. HOME -->
                 <a href="{% url 'dashboard:index' %}" class="sidebar-link {% if request.resolver_match.app_name == 'dashboard' and request.resolver_match.url_name == 'index' %}active{% endif %}">
                     <i data-lucide="layout-dashboard" style="width: 18px; height: 18px;"></i>
-                    <span>Dashboard</span>
+                    <span>Home</span>
                 </a>
-                <a href="{% url 'workspace:dashboard' %}" class="sidebar-link {% if request.resolver_match.app_name == 'workspace' %}active{% endif %}">
-                    <i data-lucide="briefcase" style="width: 18px; height: 18px;" class="text-primary"></i>
-                    <span class="d-flex align-items-center justify-content-between flex-grow-1">
-                        Workspace
-                        <span class="badge bg-primary text-white ms-1" style="font-size: 9px; padding: 2px 6px;">HUB</span>
-                    </span>
-                </a>
+
+                <!-- 2. LEARN -->
+                <div class="nav-section-title">Learn</div>
                 <a href="{% url 'courses:list' %}" class="sidebar-link {% if request.resolver_match.app_name == 'courses' and request.resolver_match.url_name == 'list' %}active{% endif %}">
                     <i data-lucide="compass" style="width: 18px; height: 18px;"></i>
-                    <span>Explore Courses</span>
+                    <span>Course Catalog</span>
                 </a>
                 <a href="{% url 'courses:my_learning' %}" class="sidebar-link {% if request.resolver_match.url_name == 'my_learning' %}active{% endif %}">
                     <i data-lucide="book-marked" style="width: 18px; height: 18px;"></i>
                     <span>My Learning</span>
                 </a>
-                <a href="{% url 'learning:flashcards_hub' %}" class="sidebar-link {% if 'flashcards' in request.path %}active{% endif %}">
-                    <i data-lucide="layers" style="width: 18px; height: 18px;"></i>
-                    <span>Flashcards (SM-2)</span>
-                </a>
-                <a href="{% url 'dashboard:study_lounge' %}" class="sidebar-link {% if 'study-lounge' in request.path %}active{% endif %}">
-                    <i data-lucide="headphones" style="width: 18px; height: 18px;"></i>
-                    <span>Study Lounge & Pomodoro</span>
-                </a>
-
-                <div class="nav-section-title">AI & Practice</div>
-                <a href="{% url 'assistant:index' %}" class="sidebar-link {% if request.resolver_match.app_name == 'assistant' %}active{% endif %}">
-                    <i data-lucide="bot" style="width: 18px; height: 18px;"></i>
-                    <span>AI Assistant</span>
-                </a>
-                <a href="{% url 'roadmaps:list' %}" class="sidebar-link {% if request.resolver_match.app_name == 'roadmaps' %}active{% endif %}">
+                <a href="{% url 'roadmaps:list' %}" class="sidebar-link {% if request.resolver_match.app_name == 'roadmaps' or 'roadmap' in request.path %}active{% endif %}">
                     <i data-lucide="map" style="width: 18px; height: 18px;"></i>
                     <span>Learning Roadmap</span>
                 </a>
-                <a href="{% url 'assessments:challenge_list' %}" class="sidebar-link {% if 'challenges' in request.path %}active{% endif %}">
-                    <i data-lucide="code-2" style="width: 18px; height: 18px;"></i>
-                    <span>Code Challenges</span>
-                    <span class="badge bg-primary text-white rounded-pill px-2 py-0 ms-auto" style="font-size: 0.65rem;">Judge</span>
+                <a href="{% url 'assistant:index' %}?mode=study" class="sidebar-link {% if request.resolver_match.app_name == 'assistant' and request.GET.mode == 'study' %}active{% endif %}">
+                    <i data-lucide="sparkles" style="width: 18px; height: 18px;"></i>
+                    <span>AI Study Assistant</span>
                 </a>
+
+                <!-- 3. PRACTICE -->
+                <div class="nav-section-title">Practice</div>
                 <a href="{% url 'assessments:list' %}" class="sidebar-link {% if request.resolver_match.app_name == 'assessments' and 'challenges' not in request.path %}active{% endif %}">
                     <i data-lucide="clipboard-check" style="width: 18px; height: 18px;"></i>
-                    <span>Skill Assessment</span>
+                    <span>Skill Assessments</span>
                 </a>
-                <a href="{% url 'resumes:mock_interview' %}" class="sidebar-link {% if 'mock-interview-studio' in request.path %}active{% endif %}">
-                    <i data-lucide="mic" style="width: 18px; height: 18px;"></i>
-                    <span>AI Voice Interview</span>
+                <a href="{% url 'assessments:challenge_list' %}" class="sidebar-link {% if 'challenges' in request.path %}active{% endif %}">
+                    <i data-lucide="code-2" style="width: 18px; height: 18px;"></i>
+                    <span>Coding Challenges</span>
                 </a>
-                <a href="{% url 'interviews:setup' %}" class="sidebar-link {% if request.resolver_match.app_name == 'interviews' %}active{% endif %}">
+                <a href="{% url 'interviews:setup' %}" class="sidebar-link {% if request.resolver_match.app_name == 'interviews' or 'interview' in request.path %}active{% endif %}">
                     <i data-lucide="message-square-code" style="width: 18px; height: 18px;"></i>
                     <span>Mock Interview</span>
                 </a>
+
+                <!-- 4. PROJECTS -->
+                <div class="nav-section-title">Projects</div>
+                <a href="{% url 'portfolios:builder' %}" class="sidebar-link {% if request.resolver_match.app_name == 'portfolios' %}active{% endif %}">
+                    <i data-lucide="folder-git-2" style="width: 18px; height: 18px;"></i>
+                    <span>Project Portfolio</span>
+                </a>
                 <a href="{% url 'projects:generator' %}" class="sidebar-link {% if request.resolver_match.app_name == 'projects' %}active{% endif %}">
-                    <i data-lucide="sparkles" style="width: 18px; height: 18px;"></i>
+                    <i data-lucide="lightbulb" style="width: 18px; height: 18px;"></i>
                     <span>Project Generator</span>
                 </a>
 
-                <div class="nav-section-title">Career & Showcase</div>
-                <a href="{% url 'careers:studio_dashboard' %}" class="sidebar-link {% if 'career-studio' in request.path %}active{% endif %}">
-                    <i data-lucide="sparkles" style="width: 18px; height: 18px;" class="text-purple"></i>
-                    <span class="d-flex align-items-center justify-content-between flex-grow-1">
-                        Career Studio
-                        <span class="badge bg-purple text-white ms-1" style="font-size: 9px; padding: 2px 6px;">NEW</span>
-                    </span>
-                </a>
-                <a href="{% url 'careers:hub' %}" class="sidebar-link {% if request.resolver_match.app_name == 'careers' and 'tracker' not in request.path and 'career-studio' not in request.path %}active{% endif %}">
+                <!-- 5. CAREER -->
+                <div class="nav-section-title">Career</div>
+                <a href="{% url 'careers:studio_dashboard' %}" class="sidebar-link {% if 'career-studio' in request.path and 'resume' not in request.path and 'gap' not in request.path %}active{% endif %}">
                     <i data-lucide="target" style="width: 18px; height: 18px;"></i>
-                    <span>Career Hub</span>
+                    <span>Career Studio</span>
                 </a>
-                <a href="{% url 'careers:job_tracker' %}" class="sidebar-link {% if 'tracker' in request.path %}active{% endif %}">
-                    <i data-lucide="kanban" style="width: 18px; height: 18px;"></i>
-                    <span>Job Tracker & AI Co-Pilot</span>
+                <a href="{% url 'careers:studio_gap_analyzer' %}" class="sidebar-link {% if 'gap-analyzer' in request.path %}active{% endif %}">
+                    <i data-lucide="activity" style="width: 18px; height: 18px;"></i>
+                    <span>Skill Gap Analyzer</span>
                 </a>
-                <a href="{% url 'resumes:builder' %}" class="sidebar-link {% if request.resolver_match.app_name == 'resumes' and 'mock-interview-studio' not in request.path %}active{% endif %}">
+                <a href="{% url 'resumes:builder' %}" class="sidebar-link {% if request.resolver_match.app_name == 'resumes' or 'resume' in request.path %}active{% endif %}">
                     <i data-lucide="file-text" style="width: 18px; height: 18px;"></i>
-                    <span>Resume Builder</span>
+                    <span>Resume Studio</span>
                 </a>
-                <a href="{% url 'portfolios:builder' %}" class="sidebar-link {% if request.resolver_match.app_name == 'portfolios' %}active{% endif %}">
-                    <i data-lucide="globe" style="width: 18px; height: 18px;"></i>
-                    <span>Portfolio</span>
-                </a>
-                <a href="{% url 'opportunities:list' %}" class="sidebar-link {% if request.resolver_match.app_name == 'opportunities' and 'talent' not in request.path %}active{% endif %}">
+                <a href="{% url 'opportunities:list' %}" class="sidebar-link {% if request.resolver_match.app_name == 'opportunities' and 'applications' not in request.path and 'moderation' not in request.path %}active{% endif %}">
                     <i data-lucide="briefcase" style="width: 18px; height: 18px;"></i>
                     <span>Opportunities</span>
                 </a>
-                <a href="{% url 'opportunities:talent_portal' %}" class="sidebar-link {% if 'talent' in request.path %}active{% endif %}">
-                    <i data-lucide="scan-face" style="width: 18px; height: 18px;"></i>
-                    <span>Recruiter Talent</span>
-                    <span class="badge bg-success text-white rounded-pill px-2 py-0 ms-auto" style="font-size: 0.65rem;">Scout</span>
+                <a href="{% url 'opportunities:my_applications' %}" class="sidebar-link {% if 'applications' in request.path or 'tracker' in request.path %}active{% endif %}">
+                    <i data-lucide="check-circle" style="width: 18px; height: 18px;"></i>
+                    <span>Application Tracker</span>
                 </a>
 
-                <div class="nav-section-title">Community & Teams</div>
-                <a href="{% url 'community:feed' %}" class="sidebar-link {% if request.resolver_match.app_name == 'community' %}active{% endif %}">
-                    <i data-lucide="message-square" style="width: 18px; height: 18px;"></i>
-                    <span>Community</span>
+                <!-- PRODUCTIVITY & UTILITIES -->
+                <div class="nav-section-title">Productivity &amp; Utilities</div>
+                <a href="{% url 'workspace:dashboard' %}" class="sidebar-link {% if request.resolver_match.app_name == 'workspace' %}active{% endif %}">
+                    <i data-lucide="calendar-check" style="width: 18px; height: 18px;"></i>
+                    <span>Student Workspace</span>
                 </a>
-                <a href="{% url 'collaboration:list' %}" class="sidebar-link {% if request.resolver_match.app_name == 'collaboration' and 'lounge' not in request.path %}active{% endif %}">
-                    <i data-lucide="users" style="width: 18px; height: 18px;"></i>
-                    <span>Collaboration</span>
-                </a>
-                <a href="{% url 'collaboration:lounge_hub' %}" class="sidebar-link {% if 'lounge' in request.path %}active{% endif %}">
-                    <i data-lucide="split" style="width: 18px; height: 18px;"></i>
-                    <span>Pair Lounge &amp; Board</span>
-                    <span class="badge bg-danger text-white rounded-pill px-2 py-0 ms-auto" style="font-size: 0.65rem;">Live</span>
-                </a>
-                <a href="{% url 'events:list' %}" class="sidebar-link {% if request.resolver_match.app_name == 'events' %}active{% endif %}">
-                    <i data-lucide="calendar" style="width: 18px; height: 18px;"></i>
-                    <span>Events & Hackathons</span>
-                </a>
-
-                <div class="nav-section-title">Credentials & Settings</div>
-                <a href="{% url 'certificates:center' %}" class="sidebar-link {% if request.resolver_match.app_name == 'certificates' and 'verify' not in request.path %}active{% endif %}">
-                    <i data-lucide="file-check" style="width: 18px; height: 18px;"></i>
+                <a href="{% url 'certificates:center' %}" class="sidebar-link {% if request.resolver_match.app_name == 'certificates' %}active{% endif %}">
+                    <i data-lucide="award" style="width: 18px; height: 18px;"></i>
                     <span>Certificates</span>
                 </a>
-                <a href="{% url 'certificates:verify_portal_short' %}" class="sidebar-link {% if 'verify' in request.path %}active{% endif %}">
-                    <i data-lucide="qr-code" style="width: 18px; height: 18px;"></i>
-                    <span>Verify Credential (QR)</span>
-                </a>
-                <a href="{% url 'gamification:arena_hub' %}" class="sidebar-link {% if 'arena' in request.path %}active{% endif %}">
-                    <i data-lucide="swords" style="width: 18px; height: 18px;"></i>
-                    <span>1v1 Code Arena</span>
-                    <span class="badge bg-danger text-white rounded-pill px-2 py-0 ms-auto" style="font-size: 0.65rem;">Ranked</span>
-                </a>
-                <a href="{% url 'gamification:leagues' %}" class="sidebar-link {% if 'leagues' in request.path %}active{% endif %}">
-                    <i data-lucide="trophy" style="width: 18px; height: 18px;"></i>
-                    <span>Competitive Leagues</span>
-                </a>
-                <a href="{% url 'gamification:achievements' %}" class="sidebar-link {% if request.resolver_match.app_name == 'gamification' and 'leagues' not in request.path %}active{% endif %}">
-                    <i data-lucide="award" style="width: 18px; height: 18px;"></i>
-                    <span>Achievements</span>
+                <a href="{% url 'assistant:index' %}" class="sidebar-link {% if request.resolver_match.app_name == 'assistant' and not request.GET.mode %}active{% endif %}">
+                    <i data-lucide="bot" style="width: 18px; height: 18px;"></i>
+                    <span>AI Assistant</span>
                 </a>
                 <a href="{% url 'accounts:profile' %}" class="sidebar-link {% if request.resolver_match.url_name == 'profile' %}active{% endif %}">
                     <i data-lucide="settings" style="width: 18px; height: 18px;"></i>
-                    <span>Settings & Profile</span>
+                    <span>Settings &amp; Profile</span>
                 </a>
 
-                <a href="javascript:void(0)" data-bs-toggle="modal" data-bs-target="#betaFeedbackModal" class="sidebar-link text-warning">
-                    <i data-lucide="message-square-plus" style="width: 18px; height: 18px;"></i>
-                    <span>Beta Feedback</span>
-                    <span class="badge bg-warning text-dark rounded-pill px-1.5 py-0 ms-auto" style="font-size: 0.65rem;">Beta</span>
-                </a>
-
-                <a href="javascript:void(0)" onclick="triggerPWAInstall()" class="sidebar-link pwa-install-trigger text-info" style="display: none;">
-                    <i data-lucide="smartphone" style="width: 18px; height: 18px;"></i>
-                    <span>Install App</span>
-                </a>
                 {% if user.is_staff %}
-                <a href="{% url 'analytics:admin_beta_dashboard' %}" class="sidebar-link {% if 'analytics' in request.path %}active{% endif %}">
-                    <i data-lucide="line-chart" style="width: 18px; height: 18px;"></i>
-                    <span>Beta Operations</span>
-                    <span class="badge bg-purple text-white rounded-pill px-2 py-0 ms-auto" style="font-size: 0.65rem;">Staff</span>
-                </a>
+                <div class="nav-section-title">Administration</div>
                 <a href="{% url 'opportunities:moderation_dashboard' %}" class="sidebar-link {% if 'moderation' in request.path %}active{% endif %}">
                     <i data-lucide="shield-alert" style="width: 18px; height: 18px;"></i>
                     <span>Moderation Hub</span>
-                    <span class="badge bg-danger text-white rounded-pill px-2 py-0 ms-auto" style="font-size: 0.65rem;">Admin</span>
                 </a>
                 <a href="/admin/" target="_blank" class="sidebar-link">
                     <i data-lucide="shield" style="width: 18px; height: 18px;"></i>
@@ -519,8 +457,7 @@
                                 <li><a class="dropdown-item text-light py-2" href="{% url 'careers:hub' %}"><i data-lucide="target" class="me-2" style="width: 16px; height: 16px;"></i> Career Hub</a></li>
                                 <li><a class="dropdown-item text-light py-2" href="{% url 'portfolios:builder' %}"><i data-lucide="globe" class="me-2" style="width: 16px; height: 16px;"></i> My Portfolio</a></li>
                                 <li><a class="dropdown-item text-light py-2" href="{% url 'accounts:profile' %}"><i data-lucide="user" class="me-2" style="width: 16px; height: 16px;"></i> My Profile</a></li>
-                                <li><a class="dropdown-item text-light py-2" href="{% url 'courses:my_learning' %}"><i data-lucide="book-marked" class="me-2" style="width: 16px; height: 16px;"></i> My Learning</a></li>
-                                <li><a class="dropdown-item text-light py-2" href="{% url 'certificates:center' %}"><i data-lucide="award" class="me-2" style="width: 16px; height: 16px;"></i> Certificates</a></li>
+                                <li><a class="dropdown-item text-light py-2" href="{% url 'accounts:export_data' %}"><i data-lucide="download" class="me-2" style="width: 16px; height: 16px;"></i> Export My Data (JSON)</a></li>
                                 <li><hr class="dropdown-divider" style="border-color: rgba(255,255,255,0.08);"></li>
                                 <li><a class="dropdown-item text-danger py-2" href="{% url 'accounts:logout' %}"><i data-lucide="log-out" class="me-2" style="width: 16px; height: 16px;"></i> Logout</a></li>
                             </ul>

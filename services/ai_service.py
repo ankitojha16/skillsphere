@@ -807,6 +807,22 @@ class AIService:
         clean_q = (question or "").strip()[:2000]
 
         mode_instructions = {
+            'study': (
+                "Provide an educational, course-aligned breakdown of the academic concept or programming topic. "
+                "Highlight key principles, syntax, code examples, and practical exercises."
+            ),
+            'mentor': (
+                "Act as a senior software engineering career mentor. Advise the student on industry tech stacks, "
+                "essential benchmark skills, how to bridge skill gaps, build high-impact portfolio projects, and navigate tech hiring."
+            ),
+            'interview': (
+                "Act as a technical and behavioral interview simulator. Provide interview questions or evaluate student answers. "
+                "Assess technical depth, problem-solving structure, communication clarity, and offer actionable rubrics."
+            ),
+            'resume': (
+                "Act as an expert ATS Resume Coach. Analyze resume bullet points, suggest strong action verbs, "
+                "quantifiable metrics, and structural recommendations to maximize educational ATS readability."
+            ),
             'simple': (
                 "Provide a clear, simple, accessible explanation suitable for a beginner student. "
                 "Use everyday real-world analogies, avoid excessive technical jargon, and provide an intuitive example."
@@ -828,7 +844,7 @@ class AIService:
                 "formulas or time complexities, common pitfalls to avoid, and 3 rapid self-check questions with answers."
             )
         }
-        instruction = mode_instructions.get(mode, mode_instructions['detailed'])
+        instruction = mode_instructions.get(mode, mode_instructions['study'])
         system_prompt = (
             "You are SkillSphere AI, the dedicated academic tutor and university course mentor for students "
             "enrolled in B.Tech, M.Tech, BCA, B.Sc, BBA, MBA, and B.Com degree programs.\n"
