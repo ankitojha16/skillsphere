@@ -1,0 +1,288 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Smart Calendar — SkillSphere{% endblock %}
+
+{% block extra_head %}
+<!-- FullCalendar v6 CDN -->
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+<style>
+    .fc {
+        --fc-border-color: rgba(255, 255, 255, 0.08);
+        --fc-page-bg-color: transparent;
+        --fc-neutral-bg-color: rgba(15, 23, 42, 0.6);
+        --fc-today-bg-color: rgba(99, 102, 241, 0.12);
+        color: #f8fafc;
+    }
+    .fc .fc-toolbar-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #ffffff;
+    }
+    .fc .fc-button {
+        background-color: rgba(30, 41, 59, 0.8);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        color: #f8fafc;
+        border-radius: 9999px;
+        padding: 0.35rem 0.85rem;
+        font-size: 0.85rem;
+        font-weight: 500;
+        text-transform: capitalize;
+    }
+    .fc .fc-button-primary:not(:disabled).fc-button-active,
+    .fc .fc-button-primary:not(:disabled):active,
+    .fc .fc-button:hover {
+        background-color: #6366f1;
+        border-color: #6366f1;
+        color: #ffffff;
+    }
+    .fc .fc-col-header-cell {
+        background: rgba(15, 23, 42, 0.8);
+        padding: 8px 0;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #94a3b8;
+    }
+    .fc-theme-standard td, .fc-theme-standard th {
+        border-color: rgba(255, 255, 255, 0.08);
+    }
+    .fc-event {
+        border-radius: 6px;
+        padding: 2px 6px;
+        font-size: 0.8rem;
+        cursor: pointer;
+        border: none !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <!-- Header -->
+    <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <a href="{% url 'workspace:dashboard' %}" class="text-secondary small text-decoration-none">
+                    <i data-lucide="arrow-left" style="width: 14px; height: 14px;"></i> Workspace
+                </a>
+                <span class="text-secondary small">/</span>
+                <span class="text-white small fw-semibold">Smart Calendar</span>
+            </div>
+            <h2 class="text-white fw-bold mb-0">Smart Calendar</h2>
+            <p class="text-secondary small mb-0">Unified timeline of personal study tasks, project targets, hackathons, and official program deadlines.</p>
+        </div>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <span class="badge bg-dark border border-secondary text-secondary px-3 py-2 rounded-pill small">
+                <i data-lucide="clock" style="width: 13px; height: 13px;" class="me-1"></i> Timezone: <span id="tzLabel">UTC</span>
+            </span>
+            <button type="button" class="btn btn-primary-custom" data-bs-toggle="modal" data-bs-target="#addEventModal">
+                <i data-lucide="plus" style="width: 16px; height: 16px;"></i> Add Event
+            </button>
+        </div>
+    </div>
+
+    <!-- Calendar Legend & Filter Summary -->
+    <div class="custom-card p-3 mb-4 d-flex align-items-center justify-content-between flex-wrap gap-3">
+        <div class="d-flex align-items-center gap-3 flex-wrap">
+            <span class="text-secondary small fw-semibold text-uppercase tracking-wider">Legend:</span>
+            <span class="badge rounded-pill" style="background: #ec4899; color: white;">
+                ● Official Deadline
+            </span>
+            <span class="badge rounded-pill" style="background: #3b82f6; color: white;">
+                ● Task Due
+            </span>
+            <span class="badge rounded-pill" style="background: #10b981; color: white;">
+                ● Task Completed
+            </span>
+            <span class="badge rounded-pill" style="background: #6366f1; color: white;">
+                ● Personal Event
+            </span>
+            <span class="badge rounded-pill" style="background: #8b5cf6; color: white;">
+                ● Project Target
+            </span>
+            <span class="badge rounded-pill" style="background: #f59e0b; color: white;">
+                ● Hackathon / Event
+            </span>
+        </div>
+        <div class="text-secondary small">
+            <i data-lucide="info" style="width: 14px; height: 14px;" class="me-1"></i> Click any event to view details or remove personal entries.
+        </div>
+    </div>
+
+    <!-- Calendar Container Card -->
+    <div class="custom-card p-3 p-md-4 mb-4" style="background: rgba(15, 23, 42, 0.85); min-height: 680px;">
+        <div id="calendar"></div>
+    </div>
+</div>
+
+<!-- Modal: Add Calendar Event -->
+<div class="modal fade" id="addEventModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-white border-secondary">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title fw-bold">Schedule Personal Event</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{% url 'workspace:calendar_event_create' %}" method="POST">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small text-secondary">Event Title *</label>
+                        <input type="text" name="title" class="form-control bg-black text-white border-secondary" placeholder="e.g. Django ORM Deep Dive" required>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small text-secondary">Event Type</label>
+                            <select name="event_type" class="form-select bg-black text-white border-secondary">
+                                <option value="personal">Personal Event</option>
+                                <option value="study">Study Session</option>
+                                <option value="deadline">Deadline Reminder</option>
+                                <option value="review">Milestone Review</option>
+                                <option value="exam">Assessment / Exam</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small text-secondary">Color</label>
+                            <select name="color" class="form-select bg-black text-white border-secondary">
+                                <option value="#6366f1" selected>Indigo (Personal)</option>
+                                <option value="#3b82f6">Blue (Study)</option>
+                                <option value="#10b981">Green (Goal)</option>
+                                <option value="#f59e0b">Amber (Review)</option>
+                                <option value="#ef4444">Red (Urgent)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small text-secondary">Start Time *</label>
+                            <input type="datetime-local" name="start_time" id="start_time_input" class="form-control bg-black text-white border-secondary" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small text-secondary">End Time *</label>
+                            <input type="datetime-local" name="end_time" id="end_time_input" class="form-control bg-black text-white border-secondary" required>
+                        </div>
+                    </div>
+
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" name="is_all_day" value="1" id="allDaySwitch">
+                        <label class="form-check-label text-secondary small" for="allDaySwitch">All-day event</label>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small text-secondary">Description (Optional)</label>
+                        <textarea name="description" rows="2" class="form-control bg-black text-white border-secondary" placeholder="Location, agenda, or study notes..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary-custom">Schedule Event</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Event Details & Delete -->
+<div class="modal fade" id="eventDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-white border-secondary">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title fw-bold" id="detailModalTitle">Event Details</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-2">
+                    <span class="badge rounded-pill" id="detailModalBadge">Category</span>
+                </div>
+                <p class="text-white" id="detailModalDesc"></p>
+                <div class="text-secondary small mb-1" id="detailModalTime"></div>
+            </div>
+            <div class="modal-footer border-secondary d-flex justify-content-between">
+                <div id="detailActionWrapper"></div>
+                <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Set user timezone label
+    try {
+        const userTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        document.getElementById('tzLabel').textContent = userTz || 'UTC';
+    } catch(e) {}
+
+    // Initialize datetime defaults
+    const now = new Date();
+    const isoNow = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    const later = new Date(now.getTime() + 60*60*1000 - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    document.getElementById('start_time_input').value = isoNow;
+    document.getElementById('end_time_input').value = later;
+
+    const calendarEl = document.getElementById('calendar');
+    const calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,timeGridDay,listMonth'
+        },
+        buttonText: {
+            today: 'Today',
+            month: 'Month',
+            week: 'Week',
+            day: 'Day',
+            list: 'Agenda'
+        },
+        events: '{% url "workspace:calendar_events_json" %}',
+        eventClick: function(info) {
+            const ev = info.event;
+            const props = ev.extendedProps;
+
+            document.getElementById('detailModalTitle').textContent = ev.title;
+            document.getElementById('detailModalDesc').textContent = props.description || 'No additional notes provided.';
+            document.getElementById('detailModalBadge').textContent = props.category_label || props.type || 'Event';
+            document.getElementById('detailModalBadge').style.backgroundColor = ev.backgroundColor || '#6366f1';
+
+            const startStr = ev.start ? ev.start.toLocaleString() : '';
+            const endStr = ev.end ? ` – ${ev.end.toLocaleString()}` : '';
+            document.getElementById('detailModalTime').textContent = `Time: ${startStr}${endStr}`;
+
+            const actionWrapper = document.getElementById('detailActionWrapper');
+            actionWrapper.innerHTML = '';
+
+            if (props.can_edit && props.type !== 'task_deadline') {
+                actionWrapper.innerHTML = `
+                    <form action="/workspace/calendar/events/${props.raw_id}/delete/" method="POST" onsubmit="return confirm('Delete this event?');">
+                        <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+                        <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill">
+                            <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i> Delete Event
+                        </button>
+                    </form>
+                `;
+            } else if (props.url) {
+                actionWrapper.innerHTML = `
+                    <a href="${props.url}" class="btn btn-sm btn-outline-primary rounded-pill">
+                        View Details →
+                    </a>
+                `;
+            }
+
+            const modal = new bootstrap.Modal(document.getElementById('eventDetailModal'));
+            modal.show();
+            if (window.lucide) lucide.createIcons();
+        },
+        height: 'auto',
+        navLinks: true,
+        editable: false,
+        dayMaxEvents: true
+    });
+    calendar.render();
+});
+</script>
+{% endblock %}

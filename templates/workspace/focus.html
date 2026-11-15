@@ -1,0 +1,319 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Focus Sessions & Study Timer — SkillSphere{% endblock %}
+
+{% block extra_head %}
+<style>
+    .timer-ring-container {
+        position: relative;
+        width: 260px;
+        height: 260px;
+        margin: 0 auto;
+    }
+    .timer-display {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+    }
+    .timer-btn-pill {
+        border-radius: 9999px;
+        padding: 0.5rem 1.75rem;
+        font-weight: 600;
+        font-size: 1rem;
+        transition: all 0.2s ease;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <!-- Header -->
+    <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <a href="{% url 'workspace:dashboard' %}" class="text-secondary small text-decoration-none">
+                    <i data-lucide="arrow-left" style="width: 14px; height: 14px;"></i> Workspace
+                </a>
+                <span class="text-secondary small">/</span>
+                <span class="text-white small fw-semibold">Focus Lounge</span>
+            </div>
+            <h2 class="text-white fw-bold mb-0">Focus Sessions & Study Timer</h2>
+            <p class="text-secondary small mb-0">Deep work intervals, Pomodoro cycles, and structured study session tracking.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'workspace:planner' %}" class="btn btn-secondary-custom">
+                <i data-lucide="check-square" style="width: 16px; height: 16px;"></i> Planner
+            </a>
+            <a href="{% url 'workspace:weekly_report' %}" class="btn btn-outline-info rounded-pill px-3">
+                <i data-lucide="bar-chart-2" style="width: 16px; height: 16px;"></i> Weekly Report
+            </a>
+        </div>
+    </div>
+
+    <!-- Educational Anti-Fabrication Notice -->
+    <div class="alert alert-dark border-secondary border-opacity-50 py-2 px-3 mb-4 d-flex align-items-center gap-2 text-secondary small" style="background: rgba(15, 23, 42, 0.6);">
+        <i data-lucide="shield-check" class="text-info" style="width: 16px; height: 16px;"></i>
+        <span><strong>SkillSphere Verification Standard:</strong> Focus sessions log study dedication. In adherence to our authentic skill evidence policy, timer durations do not artificially inflate platform XP. Verified learning milestones and code submissions remain the sole determinants of certified skills.</span>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <!-- Timer Column -->
+        <div class="col-lg-6">
+            <div class="custom-card p-4 p-md-5 text-center h-100 d-flex flex-column justify-content-between">
+                <!-- Mode Selector Tabs -->
+                <div class="btn-group rounded-pill p-1 mb-4 mx-auto" style="background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(255, 255, 255, 0.1);">
+                    <button type="button" class="btn btn-sm rounded-pill btn-primary" id="modePomodoro" onclick="setTimerMode('pomodoro', 25)">
+                        Pomodoro (25m)
+                    </button>
+                    <button type="button" class="btn btn-sm rounded-pill btn-dark text-secondary" id="modeDeep" onclick="setTimerMode('deep_work', 50)">
+                        Deep Work (50m)
+                    </button>
+                    <button type="button" class="btn btn-sm rounded-pill btn-dark text-secondary" id="modeShortBreak" onclick="setTimerMode('short_break', 5)">
+                        Break (5m)
+                    </button>
+                    <button type="button" class="btn btn-sm rounded-pill btn-dark text-secondary" id="modeLongBreak" onclick="setTimerMode('long_break', 15)">
+                        Long Break (15m)
+                    </button>
+                </div>
+
+                <!-- Circular Progress Timer -->
+                <div class="timer-ring-container my-3">
+                    <svg class="w-100 h-100" viewBox="0 0 100 100" style="transform: rotate(-90deg);">
+                        <circle cx="50" cy="50" r="44" stroke="rgba(255, 255, 255, 0.08)" stroke-width="6" fill="none" />
+                        <circle id="timerProgressRing" cx="50" cy="50" r="44" stroke="#6366f1" stroke-width="6" stroke-linecap="round" fill="none" stroke-dasharray="276.46" stroke-dashoffset="0" />
+                    </svg>
+                    <div class="timer-display">
+                        <div class="display-3 fw-bold text-white mb-0" id="timeRemaining">25:00</div>
+                        <div class="text-secondary small text-uppercase tracking-wider fw-semibold" id="modeLabel">Pomodoro Focus</div>
+                    </div>
+                </div>
+
+                <!-- Controls -->
+                <div class="d-flex justify-content-center gap-3 mt-4">
+                    <button type="button" class="btn btn-primary timer-btn-pill px-4" id="btnStartPause" onclick="toggleTimer()">
+                        <i data-lucide="play" style="width: 18px; height: 18px;" class="me-1"></i> Start
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary timer-btn-pill px-3" onclick="resetTimer()">
+                        <i data-lucide="rotate-ccw" style="width: 18px; height: 18px;"></i> Reset
+                    </button>
+                </div>
+
+                <!-- Session Context Dropdowns -->
+                <div class="row g-2 mt-4 text-start">
+                    <div class="col-md-6">
+                        <label class="form-label text-secondary small">Course (Optional)</label>
+                        <select id="sessionCourse" class="form-select form-select-sm bg-dark text-white border-secondary">
+                            <option value="">Independent Study</option>
+                            {% for c in enrolled_courses %}
+                            <option value="{{ c.id }}">{{ c.title }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-secondary small">Project (Optional)</label>
+                        <select id="sessionProject" class="form-select form-select-sm bg-dark text-white border-secondary">
+                            <option value="">None</option>
+                            {% for p in active_projects %}
+                            <option value="{{ p.id }}">{{ p.title }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-12 mt-2">
+                        <label class="form-label text-secondary small">Session Notes</label>
+                        <input type="text" id="sessionNotes" class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="What are you working on in this session?">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Focus Stats & History -->
+        <div class="col-lg-6">
+            <!-- Stats Summary Cards -->
+            <div class="row g-3 mb-4">
+                <div class="col-6">
+                    <div class="custom-card p-3 text-center">
+                        <div class="text-secondary small fw-medium mb-1">Today's Focus</div>
+                        <div class="display-6 fw-bold text-primary">{{ today_minutes }}m</div>
+                        <div class="text-secondary small">{{ today_count }} session(s)</div>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="custom-card p-3 text-center">
+                        <div class="text-secondary small fw-medium mb-1">Past 7 Days</div>
+                        <div class="display-6 fw-bold text-warning">{{ week_minutes }}m</div>
+                        <div class="text-secondary small">{{ week_count }} session(s)</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Sessions History -->
+            <div class="custom-card p-4">
+                <h5 class="text-white fw-bold mb-3 d-flex align-items-center gap-2">
+                    <i data-lucide="history" class="text-info" style="width: 18px; height: 18px;"></i>
+                    Recent Focus History
+                </h5>
+
+                {% if recent_sessions %}
+                <div class="list-group list-group-flush">
+                    {% for s in recent_sessions %}
+                    <div class="list-group-item bg-transparent text-white px-0 py-2 border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="fw-medium text-white">
+                                {{ s.get_session_type_display }} • <span class="text-info fw-bold">{{ s.duration_minutes }}m</span>
+                            </div>
+                            <div class="text-secondary small">
+                                {% if s.course %}Course: {{ s.course.title }} • {% endif %}
+                                {% if s.project %}Project: {{ s.project.title }} • {% endif %}
+                                {% if s.notes %}"{{ s.notes }}" • {% endif %}
+                                {{ s.created_at|date:"M d, H:i" }}
+                            </div>
+                        </div>
+                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2">
+                            Logged
+                        </span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-4 text-secondary">
+                    <i data-lucide="coffee" style="width: 36px; height: 36px;" class="mb-2"></i>
+                    <p class="small mb-0">No focus sessions recorded yet today. Hit Start above to log your first session!</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let timerInterval = null;
+let currentMode = 'pomodoro';
+let totalDurationSeconds = 25 * 60;
+let remainingSeconds = 25 * 60;
+let isRunning = false;
+const circumference = 2 * Math.PI * 44; // 276.46
+
+function setTimerMode(mode, minutes) {
+    if (isRunning) {
+        if (!confirm("A focus session is currently running. Switch modes?")) return;
+        clearInterval(timerInterval);
+        isRunning = false;
+        document.getElementById('btnStartPause').innerHTML = '<i data-lucide="play" style="width: 18px; height: 18px;" class="me-1"></i> Start';
+    }
+
+    currentMode = mode;
+    totalDurationSeconds = minutes * 60;
+    remainingSeconds = totalDurationSeconds;
+
+    // Reset tabs
+    ['modePomodoro', 'modeDeep', 'modeShortBreak', 'modeLongBreak'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.className = 'btn btn-sm rounded-pill btn-dark text-secondary';
+        }
+    });
+
+    const activeBtnMap = {
+        'pomodoro': 'modePomodoro',
+        'deep_work': 'modeDeep',
+        'short_break': 'modeShortBreak',
+        'long_break': 'modeLongBreak'
+    };
+    if (activeBtnMap[mode]) {
+        document.getElementById(activeBtnMap[mode]).className = 'btn btn-sm rounded-pill btn-primary';
+    }
+
+    const labelMap = {
+        'pomodoro': 'Pomodoro Focus',
+        'deep_work': 'Deep Work Focus',
+        'short_break': 'Short Recharge',
+        'long_break': 'Long Recharge'
+    };
+    document.getElementById('modeLabel').textContent = labelMap[mode] || 'Focus Session';
+
+    updateDisplay();
+    if (window.lucide) lucide.createIcons();
+}
+
+function updateDisplay() {
+    const mins = Math.floor(remainingSeconds / 60);
+    const secs = remainingSeconds % 60;
+    const str = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    document.getElementById('timeRemaining').textContent = str;
+    document.title = `(${str}) Focus Lounge — SkillSphere`;
+
+    // Ring offset
+    const fraction = (totalDurationSeconds - remainingSeconds) / totalDurationSeconds;
+    const offset = circumference * (1 - fraction);
+    document.getElementById('timerProgressRing').style.strokeDashoffset = offset;
+}
+
+function toggleTimer() {
+    if (isRunning) {
+        clearInterval(timerInterval);
+        isRunning = false;
+        document.getElementById('btnStartPause').innerHTML = '<i data-lucide="play" style="width: 18px; height: 18px;" class="me-1"></i> Resume';
+    } else {
+        isRunning = true;
+        document.getElementById('btnStartPause').innerHTML = '<i data-lucide="pause" style="width: 18px; height: 18px;" class="me-1"></i> Pause';
+        timerInterval = setInterval(() => {
+            if (remainingSeconds > 0) {
+                remainingSeconds--;
+                updateDisplay();
+            } else {
+                clearInterval(timerInterval);
+                isRunning = false;
+                onTimerFinished();
+            }
+        }, 1000);
+    }
+    if (window.lucide) lucide.createIcons();
+}
+
+function resetTimer() {
+    if (isRunning) {
+        clearInterval(timerInterval);
+        isRunning = false;
+    }
+    remainingSeconds = totalDurationSeconds;
+    document.getElementById('btnStartPause').innerHTML = '<i data-lucide="play" style="width: 18px; height: 18px;" class="me-1"></i> Start';
+    updateDisplay();
+    if (window.lucide) lucide.createIcons();
+}
+
+function onTimerFinished() {
+    // Only log focus sessions (not breaks)
+    if (currentMode === 'pomodoro' || currentMode === 'deep_work') {
+        const durationMins = Math.round(totalDurationSeconds / 60);
+        const courseId = document.getElementById('sessionCourse').value || null;
+        const projectId = document.getElementById('sessionProject').value || null;
+        const notes = document.getElementById('sessionNotes').value || '';
+
+        fetch('{% url "workspace:focus_log_api" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+                duration_minutes: durationMins,
+                session_type: currentMode,
+                course_id: courseId,
+                project_id: projectId,
+                notes: notes
+            })
+        }).then(r => r.json()).then(data => {
+            alert(`Great work! Completed a ${durationMins}-minute ${currentMode} focus session.`);
+            window.location.reload();
+        }).catch(err => {
+            alert(`Focus session complete!`);
+        });
+    } else {
+        alert("Break complete! Ready to dive back in?");
+    }
+}
+</script>
+{% endblock %}

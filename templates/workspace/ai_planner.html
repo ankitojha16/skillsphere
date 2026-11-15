@@ -1,0 +1,155 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}AI Study Planner — SkillSphere{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <!-- Header -->
+    <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <a href="{% url 'workspace:dashboard' %}" class="text-secondary small text-decoration-none">
+                    <i data-lucide="arrow-left" style="width: 14px; height: 14px;"></i> Workspace
+                </a>
+                <span class="text-secondary small">/</span>
+                <span class="text-white small fw-semibold">AI Study Planner</span>
+            </div>
+            <h2 class="text-white fw-bold mb-0">AI Study Planner</h2>
+            <p class="text-secondary small mb-0">Context-grounded study prioritization, roadmap acceleration, and schedule health checks.</p>
+        </div>
+        <div>
+            <a href="{% url 'workspace:planner' %}" class="btn btn-secondary-custom">
+                <i data-lucide="check-square" style="width: 16px; height: 16px;"></i> Daily Planner
+            </a>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Main Chat / Query Area -->
+        <div class="col-lg-8">
+            <!-- Quick Prompt Suggestions Chips -->
+            <div class="custom-card p-3 mb-4">
+                <div class="text-secondary small fw-bold text-uppercase tracking-wider mb-2">
+                    <i data-lucide="zap" class="text-warning" style="width: 14px; height: 14px;"></i> Quick Questions Grounded In Your Data
+                </div>
+                <div class="d-flex flex-wrap gap-2">
+                    <button type="button" class="btn btn-sm btn-outline-primary rounded-pill" onclick="setQuery('What should I learn today?')">
+                        🎯 What should I learn today?
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-info rounded-pill" onclick="setQuery('Which skill should I improve?')">
+                        📈 Which skill should I improve?
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-warning rounded-pill" onclick="setQuery('How can I finish my current roadmap?')">
+                        🗺️ How can I finish my roadmap?
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-purple rounded-pill" onclick="setQuery('Which project should I work on next?')">
+                        🚀 Which project should I work on next?
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-danger rounded-pill" onclick="setQuery('Am I falling behind my own schedule?')">
+                        ⏱️ Am I falling behind schedule?
+                    </button>
+                </div>
+            </div>
+
+            <!-- Query Input Form -->
+            <div class="custom-card p-4 mb-4">
+                <form method="POST" id="aiPlannerForm">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label text-white fw-semibold">Ask Your AI Study Mentor</label>
+                        <div class="input-group">
+                            <input type="text" name="question" id="queryInput" value="{{ user_question }}" class="form-control bg-dark text-white border-secondary p-3" placeholder="e.g. What should I prioritize today given my pending deadlines?" required>
+                            <button type="submit" class="btn btn-primary-custom px-4" id="submitBtn">
+                                <i data-lucide="send" style="width: 18px; height: 18px;"></i> Ask
+                            </button>
+                        </div>
+                    </div>
+                </form>
+
+                <div class="text-secondary small">
+                    <i data-lucide="shield-check" class="text-success" style="width: 13px; height: 13px;"></i>
+                    Strict Student Control: The AI never alters, reschedules, or deletes your tasks without your manual approval.
+                </div>
+            </div>
+
+            <!-- AI Response Box -->
+            {% if ai_response %}
+            <div class="custom-card p-4 p-md-5 mb-4 position-relative" style="background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.9) 100%); border-left: 4px solid #6366f1;">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="p-2 rounded-circle bg-primary text-white">
+                            <i data-lucide="bot" style="width: 20px; height: 20px;"></i>
+                        </div>
+                        <div>
+                            <div class="fw-bold text-white fs-6">SkillSphere Study Mentor</div>
+                            <div class="text-secondary small">Grounded in your authentic course & project records</div>
+                        </div>
+                    </div>
+                    {% if is_fallback %}
+                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill px-2">
+                        Offline Knowledge Engine
+                    </span>
+                    {% else %}
+                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2">
+                        Live AI Intelligence
+                    </span>
+                    {% endif %}
+                </div>
+
+                <div class="text-white fs-6 mb-4" style="white-space: pre-wrap; line-height: 1.6;">{{ ai_response }}</div>
+
+                <div class="pt-3 border-top border-secondary border-opacity-25 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <span class="text-secondary small">Want to execute this recommendation?</span>
+                    <a href="{% url 'workspace:planner' %}" class="btn btn-sm btn-primary-custom">
+                        <i data-lucide="calendar-plus" style="width: 14px; height: 14px;"></i> Open Daily Planner
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Sidebar: Active Context Grounding -->
+        <div class="col-lg-4">
+            <div class="custom-card p-4">
+                <h5 class="text-white fw-bold mb-3 d-flex align-items-center gap-2">
+                    <i data-lucide="database" class="text-info" style="width: 18px; height: 18px;"></i>
+                    Active Platform Context
+                </h5>
+                <p class="text-secondary small mb-3">The AI study mentor reasons using only your authentic platform telemetry:</p>
+
+                <div class="list-group list-group-flush">
+                    <div class="list-group-item bg-transparent text-white px-0 py-2 border-secondary border-opacity-25">
+                        <div class="text-secondary small">Enrolled Courses</div>
+                        <div class="fw-medium text-white">{{ context_data.active_courses|join:", "|default:"No active courses" }}</div>
+                    </div>
+                    <div class="list-group-item bg-transparent text-white px-0 py-2 border-secondary border-opacity-25">
+                        <div class="text-secondary small">Active Roadmap</div>
+                        <div class="fw-medium text-white">{{ context_data.roadmap_title }} ({{ context_data.roadmap_progress }})</div>
+                        <div class="text-info small">Next: {{ context_data.next_roadmap_milestone }}</div>
+                    </div>
+                    <div class="list-group-item bg-transparent text-white px-0 py-2 border-secondary border-opacity-25">
+                        <div class="text-secondary small">Active Projects</div>
+                        <div class="fw-medium text-white">{{ context_data.active_projects|join:", "|default:"No active projects" }}</div>
+                    </div>
+                    <div class="list-group-item bg-transparent text-white px-0 py-2 border-secondary border-opacity-25">
+                        <div class="text-secondary small">Pending Tasks / Overdue</div>
+                        <div class="fw-medium text-white">{{ context_data.pending_tasks_count }} pending ({{ context_data.overdue_tasks_count }} overdue)</div>
+                    </div>
+                    <div class="list-group-item bg-transparent text-white px-0 py-2 border-secondary border-opacity-25">
+                        <div class="text-secondary small">Focus Time This Week</div>
+                        <div class="fw-medium text-white">{{ context_data.focus_minutes_week }} minutes logged</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function setQuery(text) {
+    document.getElementById('queryInput').value = text;
+    document.getElementById('aiPlannerForm').submit();
+}
+</script>
+{% endblock %}

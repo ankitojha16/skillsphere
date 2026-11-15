@@ -82,6 +82,9 @@ INSTALLED_APPS = [
 
     # Phase 15 Analytics & Beta Operations
     'analytics.apps.AnalyticsConfig',
+
+    # Phase 22 Student Workspace & Smart Productivity Hub
+    'workspace.apps.WorkspaceConfig',
 ]
 
 MIDDLEWARE = [

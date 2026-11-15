@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Notification Preferences — SkillSphere{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <!-- Header -->
+    <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <a href="{% url 'workspace:dashboard' %}" class="text-secondary small text-decoration-none">
+                    <i data-lucide="arrow-left" style="width: 14px; height: 14px;"></i> Workspace
+                </a>
+                <span class="text-secondary small">/</span>
+                <span class="text-white small fw-semibold">Settings</span>
+            </div>
+            <h2 class="text-white fw-bold mb-0">Smart Notification Preferences</h2>
+            <p class="text-secondary small mb-0">Control when and how you receive study reminders, deadline alerts, and opportunity notices.</p>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="custom-card p-4 p-md-5">
+                <form method="POST">
+                    {% csrf_token %}
+
+                    <h5 class="text-white fw-bold mb-3 d-flex align-items-center gap-2">
+                        <i data-lucide="bell" class="text-primary" style="width: 20px; height: 20px;"></i>
+                        Alert Categories
+                    </h5>
+
+                    <!-- Toggles -->
+                    <div class="list-group list-group-flush mb-4">
+                        <div class="list-group-item bg-transparent text-white px-0 py-3 border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="fw-semibold text-white">Upcoming Deadlines</div>
+                                <div class="text-secondary small">Get notified before course assignments and official program deadlines.</div>
+                            </div>
+                            <div class="form-check form-switch fs-5">
+                                <input class="form-check-input" type="checkbox" name="notify_deadlines" {% if prefs.notify_deadlines %}checked{% endif %}>
+                            </div>
+                        </div>
+
+                        <div class="list-group-item bg-transparent text-white px-0 py-3 border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="fw-semibold text-white">Unfinished & Overdue Tasks</div>
+                                <div class="text-secondary small">Gentle daily reminder for pending tasks scheduled for today or past due.</div>
+                            </div>
+                            <div class="form-check form-switch fs-5">
+                                <input class="form-check-input" type="checkbox" name="notify_unfinished_tasks" {% if prefs.notify_unfinished_tasks %}checked{% endif %}>
+                            </div>
+                        </div>
+
+                        <div class="list-group-item bg-transparent text-white px-0 py-3 border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="fw-semibold text-white">Scheduled Learning Sessions</div>
+                                <div class="text-secondary small">Reminders when a planned study session or personal calendar event is starting.</div>
+                            </div>
+                            <div class="form-check form-switch fs-5">
+                                <input class="form-check-input" type="checkbox" name="notify_scheduled_learning" {% if prefs.notify_scheduled_learning %}checked{% endif %}>
+                            </div>
+                        </div>
+
+                        <div class="list-group-item bg-transparent text-white px-0 py-3 border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="fw-semibold text-white">Project Milestones</div>
+                                <div class="text-secondary small">Checklist alerts to maintain delivery momentum on your active portfolio projects.</div>
+                            </div>
+                            <div class="form-check form-switch fs-5">
+                                <input class="form-check-input" type="checkbox" name="notify_project_milestones" {% if prefs.notify_project_milestones %}checked{% endif %}>
+                            </div>
+                        </div>
+
+                        <div class="list-group-item bg-transparent text-white px-0 py-3 border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="fw-semibold text-white">Application Follow-ups</div>
+                                <div class="text-secondary small">Timely notifications for interview prep and recruiter correspondence.</div>
+                            </div>
+                            <div class="form-check form-switch fs-5">
+                                <input class="form-check-input" type="checkbox" name="notify_application_followups" {% if prefs.notify_application_followups %}checked{% endif %}>
+                            </div>
+                        </div>
+
+                        <div class="list-group-item bg-transparent text-white px-0 py-3 border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="fw-semibold text-white">New Relevant Opportunities</div>
+                                <div class="text-secondary small">Alerts when authentic hackathons, internships, or scholarships match your skills.</div>
+                            </div>
+                            <div class="form-check form-switch fs-5">
+                                <input class="form-check-input" type="checkbox" name="notify_new_opportunities" {% if prefs.notify_new_opportunities %}checked{% endif %}>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h5 class="text-white fw-bold mb-3 d-flex align-items-center gap-2">
+                        <i data-lucide="sliders" class="text-info" style="width: 20px; height: 20px;"></i>
+                        Delivery Cadence & Lead Time
+                    </h5>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label text-secondary small">Digest Frequency</label>
+                            <select name="digest_frequency" class="form-select bg-dark text-white border-secondary">
+                                <option value="immediate" {% if prefs.digest_frequency == 'immediate' %}selected{% endif %}>Immediate Notification</option>
+                                <option value="daily" {% if prefs.digest_frequency == 'daily' %}selected{% endif %}>Daily Morning Digest</option>
+                                <option value="weekly" {% if prefs.digest_frequency == 'weekly' %}selected{% endif %}>Weekly Summary</option>
+                                <option value="off" {% if prefs.digest_frequency == 'off' %}selected{% endif %}>Mute All (Quiet Mode)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-secondary small">Advance Deadline Warning (Hours)</label>
+                            <input type="number" name="advance_reminder_hours" value="{{ prefs.advance_reminder_hours }}" class="form-control bg-dark text-white border-secondary" min="1" max="168">
+                            <div class="text-muted small mt-1">e.g. 24 hours = 1 day before deadline</div>
+                        </div>
+                    </div>
+
+                    <div class="text-end">
+                        <button type="submit" class="btn btn-primary-custom px-4">
+                            Save Preferences
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

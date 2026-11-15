@@ -1,0 +1,309 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Smart Daily Planner — SkillSphere{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <!-- Header -->
+    <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <a href="{% url 'workspace:dashboard' %}" class="text-secondary small text-decoration-none">
+                    <i data-lucide="arrow-left" style="width: 14px; height: 14px;"></i> Workspace
+                </a>
+                <span class="text-secondary small">/</span>
+                <span class="text-white small fw-semibold">Daily Planner</span>
+            </div>
+            <h2 class="text-white fw-bold mb-0">Smart Daily Planner</h2>
+            <p class="text-secondary small mb-0">Plan daily learning, reschedule tasks, prioritize projects, and conquer your schedule.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-primary-custom" data-bs-toggle="modal" data-bs-target="#addTaskModal">
+                <i data-lucide="plus" style="width: 16px; height: 16px;"></i> Add New Task
+            </button>
+            <a href="{% url 'workspace:calendar' %}" class="btn btn-secondary-custom">
+                <i data-lucide="calendar" style="width: 16px; height: 16px;"></i> Calendar View
+            </a>
+        </div>
+    </div>
+
+    <!-- Suggested Daily Tasks Bar -->
+    {% if suggestions %}
+    <div class="custom-card p-3 mb-4" style="background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.25);">
+        <div class="d-flex align-items-center gap-2 mb-2">
+            <i data-lucide="sparkles" class="text-primary" style="width: 16px; height: 16px;"></i>
+            <span class="text-white fw-bold small text-uppercase tracking-wider">Suggested Tasks Based On Your Real Learning Records</span>
+        </div>
+        <div class="row g-2">
+            {% for sugg in suggestions %}
+            <div class="col-md-4">
+                <div class="p-2 rounded-2 d-flex flex-column justify-content-between h-100" style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.08);">
+                    <div>
+                        <div class="fw-medium text-white small mb-1">{{ sugg.title }}</div>
+                        <div class="text-secondary" style="font-size: 11px;">{{ sugg.description|truncatechars:90 }}</div>
+                    </div>
+                    <div class="mt-2 text-end">
+                        <form action="{% url 'workspace:task_adopt_suggestion' %}" method="POST" class="d-inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="title" value="{{ sugg.title }}">
+                            <input type="hidden" name="description" value="{{ sugg.description }}">
+                            <input type="hidden" name="task_type" value="{{ sugg.task_type }}">
+                            <input type="hidden" name="priority" value="{{ sugg.priority }}">
+                            <input type="hidden" name="estimated_minutes" value="{{ sugg.estimated_minutes }}">
+                            {% if sugg.course_id %}<input type="hidden" name="course_id" value="{{ sugg.course_id }}">{% endif %}
+                            {% if sugg.lesson_id %}<input type="hidden" name="lesson_id" value="{{ sugg.lesson_id }}">{% endif %}
+                            {% if sugg.project_id %}<input type="hidden" name="project_id" value="{{ sugg.project_id }}">{% endif %}
+                            {% if sugg.roadmap_milestone_id %}<input type="hidden" name="roadmap_milestone_id" value="{{ sugg.roadmap_milestone_id }}">{% endif %}
+                            {% if sugg.saved_opportunity_id %}<input type="hidden" name="saved_opportunity_id" value="{{ sugg.saved_opportunity_id }}">{% endif %}
+                            <button type="submit" class="btn btn-sm btn-outline-primary py-0 px-2 rounded-pill" style="font-size: 11px;">
+                                + Adopt to Today
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Status Filter Pills -->
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+        <div class="d-flex flex-wrap gap-2">
+            <a href="?status=all" class="btn btn-sm rounded-pill {% if current_status == 'all' %}btn-primary{% else %}btn-outline-secondary text-secondary{% endif %}">
+                All ({{ counts.all }})
+            </a>
+            <a href="?status=today" class="btn btn-sm rounded-pill {% if current_status == 'today' %}btn-primary{% else %}btn-outline-secondary text-secondary{% endif %}">
+                Today ({{ counts.today }})
+            </a>
+            <a href="?status=overdue" class="btn btn-sm rounded-pill {% if current_status == 'overdue' %}btn-danger text-white{% else %}btn-outline-danger{% endif %}">
+                Overdue ({{ counts.overdue }})
+            </a>
+            <a href="?status=pending" class="btn btn-sm rounded-pill {% if current_status == 'pending' %}btn-warning text-dark{% else %}btn-outline-secondary text-secondary{% endif %}">
+                Pending ({{ counts.pending }})
+            </a>
+            <a href="?status=completed" class="btn btn-sm rounded-pill {% if current_status == 'completed' %}btn-success text-white{% else %}btn-outline-secondary text-secondary{% endif %}">
+                Completed ({{ counts.completed }})
+            </a>
+        </div>
+
+        <!-- Task Type Filter -->
+        <div class="d-flex align-items-center gap-2">
+            <span class="text-secondary small">Filter:</span>
+            <select class="form-select form-select-sm bg-dark text-white border-secondary rounded-pill" style="width: auto;" onchange="window.location.href='?status={{ current_status }}&type=' + this.value;">
+                <option value="all" {% if current_type == 'all' %}selected{% endif %}>All Types</option>
+                <option value="personal" {% if current_type == 'personal' %}selected{% endif %}>Personal</option>
+                <option value="course" {% if current_type == 'course' %}selected{% endif %}>Course Study</option>
+                <option value="exercise" {% if current_type == 'exercise' %}selected{% endif %}>Coding Exercise</option>
+                <option value="project" {% if current_type == 'project' %}selected{% endif %}>Project Milestone</option>
+                <option value="career" {% if current_type == 'career' %}selected{% endif %}>Career / Application</option>
+                <option value="assessment" {% if current_type == 'assessment' %}selected{% endif %}>Assessment</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Task List -->
+    <div class="custom-card p-0 overflow-hidden mb-4">
+        {% if tasks %}
+        <div class="list-group list-group-flush">
+            {% for task in tasks %}
+            <div class="list-group-item bg-transparent text-white p-3 border-secondary border-opacity-25 d-flex align-items-center justify-content-between flex-wrap gap-2 {% if task.is_completed %}opacity-60{% endif %}">
+                <!-- Checkbox & Title -->
+                <div class="d-flex align-items-center gap-3" style="max-width: 65%;">
+                    <form action="{% url 'workspace:task_toggle' task.id %}" method="POST" class="d-inline">
+                        {% csrf_token %}
+                        <button type="submit" class="btn p-0 {% if task.is_completed %}text-success{% else %}text-secondary{% endif %}" title="Toggle Complete">
+                            {% if task.is_completed %}
+                            <i data-lucide="check-circle-2" style="width: 22px; height: 22px;"></i>
+                            {% else %}
+                            <i data-lucide="circle" style="width: 22px; height: 22px;"></i>
+                            {% endif %}
+                        </button>
+                    </form>
+                    <div>
+                        <div class="fw-semibold text-white fs-6 {% if task.is_completed %}text-decoration-line-through text-muted{% endif %}">
+                            {{ task.title }}
+                        </div>
+                        <div class="text-secondary small d-flex align-items-center gap-2 flex-wrap">
+                            <!-- Type Badge -->
+                            <span class="badge bg-dark border border-secondary text-secondary py-0 px-2" style="font-size: 11px;">
+                                {{ task.get_task_type_display }}
+                            </span>
+                            <!-- Priority Badge -->
+                            <span class="badge {% if task.priority == 'urgent' %}bg-danger{% elif task.priority == 'high' %}bg-warning text-dark{% elif task.priority == 'medium' %}bg-primary{% else %}bg-secondary{% endif %} py-0 px-2" style="font-size: 11px;">
+                                {{ task.get_priority_display }}
+                            </span>
+                            <!-- Due Date -->
+                            {% if task.due_date %}
+                            <span class="{% if task.is_overdue %}text-danger fw-bold{% elif task.is_due_today %}text-warning fw-bold{% endif %}">
+                                <i data-lucide="calendar" style="width: 12px; height: 12px;"></i> {{ task.due_date|date:"M d, Y" }}
+                                {% if task.is_overdue %}(Overdue){% elif task.is_due_today %}(Today){% endif %}
+                            </span>
+                            {% else %}
+                            <span class="text-muted">No Due Date</span>
+                            {% endif %}
+                            <!-- Estimated Time -->
+                            <span>• {{ task.estimated_minutes }} mins</span>
+                        </div>
+                        {% if task.description %}
+                        <div class="text-secondary small mt-1" style="font-size: 12px;">
+                            {{ task.description }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Actions: Focus, Reschedule, Delete -->
+                <div class="d-flex align-items-center gap-2">
+                    {% if not task.is_completed %}
+                    <a href="{% url 'workspace:focus' %}?task_id={{ task.id }}" class="btn btn-sm btn-outline-warning rounded-pill py-1 px-3">
+                        <i data-lucide="timer" style="width: 14px; height: 14px;" class="me-1"></i> Focus
+                    </a>
+
+                    <!-- Reschedule Dropdown -->
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-secondary text-secondary rounded-pill py-1 px-2 dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            Reschedule
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end">
+                            <li>
+                                <form action="{% url 'workspace:task_reschedule' task.id %}" method="POST">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="target" value="today">
+                                    <button type="submit" class="dropdown-item">Due Today</button>
+                                </form>
+                            </li>
+                            <li>
+                                <form action="{% url 'workspace:task_reschedule' task.id %}" method="POST">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="target" value="tomorrow">
+                                    <button type="submit" class="dropdown-item">Due Tomorrow</button>
+                                </form>
+                            </li>
+                            <li>
+                                <form action="{% url 'workspace:task_reschedule' task.id %}" method="POST">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="target" value="next_week">
+                                    <button type="submit" class="dropdown-item">Due Next Week</button>
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
+                    {% endif %}
+
+                    <!-- Delete Button -->
+                    <form action="{% url 'workspace:task_delete' task.id %}" method="POST" onsubmit="return confirm('Delete this task?');">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-outline-danger border-0 p-1" title="Delete Task">
+                            <i data-lucide="trash-2" style="width: 16px; height: 16px;"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i data-lucide="check-square" class="text-secondary mb-3" style="width: 48px; height: 48px;"></i>
+            <h5 class="text-white mb-2">No tasks found</h5>
+            <p class="text-secondary small mb-3">Add a new task or adopt one from the suggested study items above.</p>
+            <button type="button" class="btn btn-primary-custom" data-bs-toggle="modal" data-bs-target="#addTaskModal">
+                <i data-lucide="plus" style="width: 16px; height: 16px;"></i> Create First Task
+            </button>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal: Add New Task -->
+<div class="modal fade" id="addTaskModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-white border-secondary">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title fw-bold">Add Task to Planner</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{% url 'workspace:task_create' %}" method="POST">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small text-secondary">Task Title *</label>
+                        <input type="text" name="title" class="form-control bg-black text-white border-secondary" placeholder="e.g. Finish Module 2 Coding Exercise" required>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small text-secondary">Category</label>
+                            <select name="task_type" class="form-select bg-black text-white border-secondary">
+                                <option value="personal">Personal Task</option>
+                                <option value="course">Course Study</option>
+                                <option value="exercise">Coding Exercise</option>
+                                <option value="project">Project Milestone</option>
+                                <option value="career">Career & Application</option>
+                                <option value="assessment">Assessment Prep</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small text-secondary">Priority</label>
+                            <select name="priority" class="form-select bg-black text-white border-secondary">
+                                <option value="medium" selected>Medium</option>
+                                <option value="high">High</option>
+                                <option value="urgent">Urgent</option>
+                                <option value="low">Low</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small text-secondary">Due Date</label>
+                            <input type="date" name="due_date" class="form-control bg-black text-white border-secondary" value="{{ today|date:'Y-m-d' }}">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small text-secondary">Estimated Minutes</label>
+                            <input type="number" name="estimated_minutes" class="form-control bg-black text-white border-secondary" value="30" min="5" max="360">
+                        </div>
+                    </div>
+
+                    {% if enrolled_courses or active_projects %}
+                    <div class="row g-2 mb-3">
+                        {% if enrolled_courses %}
+                        <div class="col-6">
+                            <label class="form-label small text-secondary">Link Course (Optional)</label>
+                            <select name="course_id" class="form-select bg-black text-white border-secondary">
+                                <option value="">None</option>
+                                {% for c in enrolled_courses %}
+                                <option value="{{ c.id }}">{{ c.title }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        {% endif %}
+                        {% if active_projects %}
+                        <div class="col-6">
+                            <label class="form-label small text-secondary">Link Project (Optional)</label>
+                            <select name="project_id" class="form-select bg-black text-white border-secondary">
+                                <option value="">None</option>
+                                {% for p in active_projects %}
+                                <option value="{{ p.id }}">{{ p.title }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <label class="form-label small text-secondary">Description / Notes (Optional)</label>
+                        <textarea name="description" rows="2" class="form-control bg-black text-white border-secondary" placeholder="Specific notes or checklist..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary-custom">Save Task</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

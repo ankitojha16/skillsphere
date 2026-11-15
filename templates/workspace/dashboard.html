@@ -1,0 +1,420 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Student Workspace — SkillSphere{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <!-- Top Workspace Banner -->
+    <div class="custom-card card-glowing p-4 p-md-5 mb-4 position-relative overflow-hidden" style="background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.9) 100%); border: 1px solid rgba(99, 102, 241, 0.35);">
+        <div class="row align-items-center g-4 position-relative" style="z-index: 2;">
+            <div class="col-lg-8">
+                <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+                    <span class="badge bg-primary text-white px-3 py-1 rounded-pill fw-semibold">
+                        <i data-lucide="layout-dashboard" style="width: 14px; height: 14px;" class="me-1"></i> Student Workspace
+                    </span>
+                    <span class="text-secondary small">{{ summary.day_name }}, {{ summary.today_formatted }}</span>
+                </div>
+                <h1 class="display-6 fw-bold text-white mb-2">Welcome back, {{ request.user.first_name|default:request.user.username }}!</h1>
+                <p class="text-secondary fs-6 mb-4" style="max-width: 680px;">
+                    Your unified command center for daily learning, project delivery, calendar commitments, focus sessions, and career readiness.
+                </p>
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="{% url 'workspace:planner' %}" class="btn btn-primary-custom">
+                        <i data-lucide="check-square" style="width: 16px; height: 16px;"></i>
+                        <span>Daily Planner</span>
+                    </a>
+                    <a href="{% url 'workspace:calendar' %}" class="btn btn-secondary-custom">
+                        <i data-lucide="calendar" style="width: 16px; height: 16px;"></i>
+                        <span>Smart Calendar</span>
+                    </a>
+                    <a href="{% url 'workspace:focus' %}" class="btn btn-outline-light rounded-pill px-3">
+                        <i data-lucide="timer" style="width: 16px; height: 16px;" class="me-1"></i>
+                        <span>Focus Sessions</span>
+                    </a>
+                    <a href="{% url 'workspace:notes' %}" class="btn btn-outline-light rounded-pill px-3">
+                        <i data-lucide="file-text" style="width: 16px; height: 16px;" class="me-1"></i>
+                        <span>Notes & Bookmarks</span>
+                    </a>
+                    <a href="{% url 'workspace:weekly_report' %}" class="btn btn-outline-info rounded-pill px-3">
+                        <i data-lucide="bar-chart-2" style="width: 16px; height: 16px;" class="me-1"></i>
+                        <span>Weekly Intelligence</span>
+                    </a>
+                    <a href="{% url 'workspace:ai_planner' %}" class="btn btn-outline-warning rounded-pill px-3">
+                        <i data-lucide="bot" style="width: 16px; height: 16px;" class="me-1"></i>
+                        <span>AI Study Planner</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Quick Metrics Snapshot -->
+            <div class="col-lg-4">
+                <div class="row g-2">
+                    <div class="col-6">
+                        <div class="p-3 rounded-3 text-center" style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.08);">
+                            <div class="display-6 fw-bold text-primary">{{ summary.total_pending_count }}</div>
+                            <div class="text-secondary small">Pending Tasks</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-3 rounded-3 text-center" style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.08);">
+                            <div class="display-6 fw-bold {% if summary.overdue_count > 0 %}text-danger{% else %}text-success{% endif %}">{{ summary.overdue_count }}</div>
+                            <div class="text-secondary small">Overdue Tasks</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-3 rounded-3 text-center" style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.08);">
+                            <div class="display-6 fw-bold text-warning">{{ summary.focus_minutes_week }}m</div>
+                            <div class="text-secondary small">Focus This Week</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-3 rounded-3 text-center" style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.08);">
+                            <div class="display-6 fw-bold text-info">{{ summary.current_streak }} 🔥</div>
+                            <div class="text-secondary small">Day Streak</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Suggested Tasks Notification Bar (if any suggestions exist) -->
+    {% if suggestions %}
+    <div class="custom-card p-3 mb-4" style="background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.3);">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-primary text-white rounded-pill px-2 py-1">
+                    <i data-lucide="sparkles" style="width: 14px; height: 14px;"></i> Smart Suggestion
+                </span>
+                <span class="text-white fw-medium">{{ suggestions.0.title }}</span>
+                <span class="text-secondary small d-none d-md-inline">— {{ suggestions.0.description }}</span>
+            </div>
+            <form action="{% url 'workspace:task_adopt_suggestion' %}" method="POST" class="d-inline">
+                {% csrf_token %}
+                <input type="hidden" name="title" value="{{ suggestions.0.title }}">
+                <input type="hidden" name="description" value="{{ suggestions.0.description }}">
+                <input type="hidden" name="task_type" value="{{ suggestions.0.task_type }}">
+                <input type="hidden" name="priority" value="{{ suggestions.0.priority }}">
+                <input type="hidden" name="estimated_minutes" value="{{ suggestions.0.estimated_minutes }}">
+                {% if suggestions.0.course_id %}<input type="hidden" name="course_id" value="{{ suggestions.0.course_id }}">{% endif %}
+                {% if suggestions.0.lesson_id %}<input type="hidden" name="lesson_id" value="{{ suggestions.0.lesson_id }}">{% endif %}
+                {% if suggestions.0.project_id %}<input type="hidden" name="project_id" value="{{ suggestions.0.project_id }}">{% endif %}
+                {% if suggestions.0.roadmap_milestone_id %}<input type="hidden" name="roadmap_milestone_id" value="{{ suggestions.0.roadmap_milestone_id }}">{% endif %}
+                {% if suggestions.0.saved_opportunity_id %}<input type="hidden" name="saved_opportunity_id" value="{{ suggestions.0.saved_opportunity_id }}">{% endif %}
+                <button type="submit" class="btn btn-sm btn-primary-custom">
+                    <i data-lucide="plus" style="width: 14px; height: 14px;"></i> Add to Today's Plan
+                </button>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="row g-4">
+        <!-- Left Column: Tasks, Courses, Roadmap -->
+        <div class="col-lg-7">
+            <!-- Today's Action Plan -->
+            <div class="custom-card p-4 mb-4">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <i data-lucide="check-circle-2" class="text-primary" style="width: 20px; height: 20px;"></i>
+                        <h4 class="text-white fw-bold mb-0">Today's Action Plan</h4>
+                    </div>
+                    <a href="{% url 'workspace:planner' %}" class="btn btn-sm btn-outline-light rounded-pill px-3">
+                        View Planner <i data-lucide="arrow-right" style="width: 14px; height: 14px;"></i>
+                    </a>
+                </div>
+
+                {% if summary.overdue_tasks %}
+                <div class="mb-3">
+                    <div class="text-danger small fw-semibold text-uppercase tracking-wider mb-2">
+                        <i data-lucide="alert-circle" style="width: 14px; height: 14px;"></i> Overdue Tasks ({{ summary.overdue_tasks.count }})
+                    </div>
+                    <div class="list-group list-group-flush">
+                        {% for task in summary.overdue_tasks %}
+                        <div class="list-group-item bg-transparent text-white px-0 py-2 border-secondary border-opacity-25 d-flex align-items-center justify-content-between">
+                            <div class="d-flex align-items-center gap-3">
+                                <form action="{% url 'workspace:task_toggle' task.id %}" method="POST" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm p-0 text-secondary" title="Mark Done">
+                                        <i data-lucide="circle" style="width: 18px; height: 18px;"></i>
+                                    </button>
+                                </form>
+                                <div>
+                                    <div class="fw-medium text-white">{{ task.title }}</div>
+                                    <div class="text-secondary small">
+                                        <span class="badge bg-danger text-white py-0 px-1 me-1">Overdue</span>
+                                        Due: {{ task.due_date|date:"M d" }} • {{ task.get_task_type_display }}
+                                    </div>
+                                </div>
+                            </div>
+                            <form action="{% url 'workspace:task_reschedule' task.id %}" method="POST" class="d-inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="target" value="today">
+                                <button type="submit" class="btn btn-sm btn-outline-warning rounded-pill py-0 px-2" style="font-size: 11px;">
+                                    Reschedule Today
+                                </button>
+                            </form>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if summary.today_tasks %}
+                <div class="list-group list-group-flush">
+                    {% for task in summary.today_tasks %}
+                    <div class="list-group-item bg-transparent text-white px-0 py-2 border-secondary border-opacity-25 d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center gap-3">
+                            <form action="{% url 'workspace:task_toggle' task.id %}" method="POST" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm p-0 text-secondary" title="Mark Done">
+                                    <i data-lucide="circle" style="width: 18px; height: 18px;"></i>
+                                </button>
+                            </form>
+                            <div>
+                                <div class="fw-medium text-white">{{ task.title }}</div>
+                                <div class="text-secondary small">
+                                    <span class="badge {% if task.priority == 'urgent' %}bg-danger{% elif task.priority == 'high' %}bg-warning text-dark{% else %}bg-secondary{% endif %} py-0 px-1 me-1">
+                                        {{ task.get_priority_display }}
+                                    </span>
+                                    {{ task.estimated_minutes }} mins • {{ task.get_task_type_display }}
+                                </div>
+                            </div>
+                        </div>
+                        <a href="{% url 'workspace:focus' %}?task_id={{ task.id }}" class="btn btn-sm btn-outline-primary rounded-pill py-0 px-2" style="font-size: 11px;">
+                            <i data-lucide="timer" style="width: 12px; height: 12px;"></i> Focus
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% elif not summary.overdue_tasks %}
+                <div class="text-center py-4">
+                    <i data-lucide="check-circle" class="text-success mb-2" style="width: 36px; height: 36px;"></i>
+                    <p class="text-secondary mb-2">No pending tasks scheduled for today.</p>
+                    <a href="{% url 'workspace:planner' %}" class="btn btn-sm btn-primary-custom">
+                        <i data-lucide="plus" style="width: 14px; height: 14px;"></i> Add a Task
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Active Enrolled Courses -->
+            <div class="custom-card p-4 mb-4">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <i data-lucide="book-open" class="text-info" style="width: 20px; height: 20px;"></i>
+                        <h4 class="text-white fw-bold mb-0">Active Courses</h4>
+                    </div>
+                    <a href="{% url 'courses:my_learning' %}" class="btn btn-sm btn-outline-light rounded-pill px-3">
+                        My Learning
+                    </a>
+                </div>
+
+                {% if summary.active_courses %}
+                <div class="row g-3">
+                    {% for course in summary.active_courses %}
+                    <div class="col-md-6">
+                        <div class="p-3 rounded-3" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08);">
+                            <div class="fw-bold text-white mb-1 text-truncate">{{ course.title }}</div>
+                            <div class="d-flex justify-content-between text-secondary small mb-2">
+                                <span>{{ course.completed_lessons }}/{{ course.total_lessons }} lessons</span>
+                                <span class="text-info fw-bold">{{ course.progress_percentage }}%</span>
+                            </div>
+                            <div class="progress mb-3" style="height: 6px; background: rgba(255, 255, 255, 0.1);">
+                                <div class="progress-bar bg-info" style="width: {{ course.progress_percentage }}%;"></div>
+                            </div>
+                            {% if course.next_lesson %}
+                            <a href="{% url 'learning:lesson_detail' course.slug course.next_lesson.id %}" class="btn btn-sm btn-outline-info w-100 rounded-pill py-1">
+                                Continue: {{ course.next_lesson.title|truncatechars:24 }}
+                            </a>
+                            {% else %}
+                            <a href="{% url 'courses:detail' course.slug %}" class="btn btn-sm btn-outline-light w-100 rounded-pill py-1">
+                                View Course
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-3 text-secondary">
+                    <p class="mb-2">No active course enrollments yet.</p>
+                    <a href="{% url 'courses:list' %}" class="btn btn-sm btn-primary-custom">Explore Courses</a>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Learning Roadmap Snapshot -->
+            {% if summary.roadmap_summary %}
+            <div class="custom-card p-4">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <i data-lucide="map" class="text-warning" style="width: 20px; height: 20px;"></i>
+                        <h4 class="text-white fw-bold mb-0">Roadmap Progress</h4>
+                    </div>
+                    <a href="{% url 'roadmaps:list' %}" class="btn btn-sm btn-outline-light rounded-pill px-3">
+                        Full Roadmap
+                    </a>
+                </div>
+                <div class="p-3 rounded-3" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08);">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h5 class="text-white mb-0">{{ summary.roadmap_summary.title }}</h5>
+                        <span class="badge bg-warning text-dark fw-bold">{{ summary.roadmap_summary.percentage }}%</span>
+                    </div>
+                    <div class="progress mb-3" style="height: 6px; background: rgba(255, 255, 255, 0.1);">
+                        <div class="progress-bar bg-warning" style="width: {{ summary.roadmap_summary.percentage }}%;"></div>
+                    </div>
+                    {% if summary.roadmap_summary.next_milestone %}
+                    <div class="text-secondary small">
+                        <span class="text-white fw-semibold">Next Milestone:</span> {{ summary.roadmap_summary.next_milestone.title }}
+                        <div class="text-muted mt-1">{{ summary.roadmap_summary.next_milestone.description|truncatechars:120 }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Right Column: Projects, Opportunities, Focus, Notes -->
+        <div class="col-lg-5">
+            <!-- Active Projects -->
+            <div class="custom-card p-4 mb-4">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <i data-lucide="folder-git-2" class="text-purple" style="width: 20px; height: 20px;"></i>
+                        <h4 class="text-white fw-bold mb-0">Active Projects</h4>
+                    </div>
+                    <a href="{% url 'careers:studio_dashboard' %}" class="btn btn-sm btn-outline-light rounded-pill px-3">
+                        Portfolio Studio
+                    </a>
+                </div>
+
+                {% if summary.active_projects %}
+                <div class="d-flex flex-column gap-3">
+                    {% for proj in summary.active_projects %}
+                    <div class="p-3 rounded-3" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08);">
+                        <div class="d-flex justify-content-between align-items-start mb-1">
+                            <span class="fw-bold text-white">{{ proj.title }}</span>
+                            <span class="badge bg-purple text-white py-0 px-2" style="font-size: 10px;">{{ proj.workflow_status }}</span>
+                        </div>
+                        <div class="progress mb-2" style="height: 5px; background: rgba(255, 255, 255, 0.1);">
+                            <div class="progress-bar bg-purple" style="width: {{ proj.progress_percentage }}%;"></div>
+                        </div>
+                        {% if proj.next_milestone %}
+                        <div class="text-secondary small">
+                            <span class="text-white fw-medium">Next:</span> {{ proj.next_milestone.title }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-3 text-secondary">
+                    <p class="mb-2">No active projects in development.</p>
+                    <a href="{% url 'projects:generator' %}" class="btn btn-sm btn-outline-purple rounded-pill">Generate a Project</a>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Opportunity Deadlines -->
+            <div class="custom-card p-4 mb-4">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <i data-lucide="target" class="text-danger" style="width: 20px; height: 20px;"></i>
+                        <h4 class="text-white fw-bold mb-0">Opportunity Deadlines</h4>
+                    </div>
+                    <a href="{% url 'opportunities:tracker' %}" class="btn btn-sm btn-outline-light rounded-pill px-3">
+                        Tracker
+                    </a>
+                </div>
+
+                {% if summary.opportunity_deadlines %}
+                <div class="list-group list-group-flush">
+                    {% for opp in summary.opportunity_deadlines %}
+                    <div class="list-group-item bg-transparent text-white px-0 py-2 border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="fw-medium text-white">{{ opp.title }}</div>
+                            <div class="text-secondary small">{{ opp.company }} • Status: {{ opp.application_status|title }}</div>
+                        </div>
+                        <div class="text-end">
+                            {% if opp.deadline %}
+                            <div class="fw-bold {% if opp.is_urgent %}text-danger{% elif opp.is_expired %}text-muted{% else %}text-white{% endif %}" style="font-size: 13px;">
+                                {{ opp.deadline|date:"M d" }}
+                            </div>
+                            <div class="text-secondary small" style="font-size: 11px;">
+                                {% if opp.days_left is not None %}
+                                    {% if opp.days_left < 0 %}Expired{% elif opp.days_left == 0 %}Today!{% else %}{{ opp.days_left }}d left{% endif %}
+                                {% endif %}
+                            </div>
+                            {% else %}
+                            <span class="text-secondary small">Rolling</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-3 text-secondary">
+                    <p class="mb-2">No saved opportunities with upcoming deadlines.</p>
+                    <a href="{% url 'opportunities:list' %}" class="btn btn-sm btn-outline-primary rounded-pill">Explore Opportunities</a>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Focus Session Quick Start Card -->
+            <div class="custom-card p-4 mb-4 text-center" style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.95) 100%);">
+                <i data-lucide="timer" class="text-warning mb-2" style="width: 32px; height: 32px;"></i>
+                <h5 class="text-white fw-bold mb-1">Focus Lounge</h5>
+                <p class="text-secondary small mb-3">Today's Focus: <span class="text-white fw-bold">{{ summary.focus_minutes_today }} mins</span> across {{ summary.focus_sessions_today_count }} sessions</p>
+                <a href="{% url 'workspace:focus' %}" class="btn btn-warning text-dark fw-bold rounded-pill px-4">
+                    <i data-lucide="play" style="width: 14px; height: 14px;" class="me-1"></i> Start 25m Pomodoro
+                </a>
+            </div>
+
+            <!-- Pinned Notes & Bookmarks -->
+            <div class="custom-card p-4">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <i data-lucide="bookmark" class="text-success" style="width: 20px; height: 20px;"></i>
+                        <h4 class="text-white fw-bold mb-0">Notes & References</h4>
+                    </div>
+                    <a href="{% url 'workspace:notes' %}" class="btn btn-sm btn-outline-light rounded-pill px-3">
+                        View All
+                    </a>
+                </div>
+
+                {% if pinned_notes %}
+                <div class="mb-3">
+                    <div class="text-secondary small text-uppercase fw-semibold mb-2">📌 Pinned Notes</div>
+                    {% for note in pinned_notes %}
+                    <a href="{% url 'workspace:notes' %}?q={{ note.title|urlencode }}" class="text-decoration-none d-block p-2 rounded-2 mb-1" style="background: rgba(255, 255, 255, 0.04);">
+                        <div class="text-white fw-medium text-truncate">{{ note.title }}</div>
+                        <div class="text-secondary small">{{ note.folder }} • {{ note.updated_at|date:"M d" }}</div>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                {% if recent_bookmarks %}
+                <div>
+                    <div class="text-secondary small text-uppercase fw-semibold mb-2">🔖 Recent Bookmarks</div>
+                    {% for bm in recent_bookmarks %}
+                    <a href="{{ bm.url }}" target="_blank" rel="noopener noreferrer" class="text-decoration-none d-block p-2 rounded-2 mb-1" style="background: rgba(255, 255, 255, 0.04);">
+                        <div class="text-info fw-medium text-truncate">{{ bm.title }} <i data-lucide="external-link" style="width: 12px; height: 12px;"></i></div>
+                        <div class="text-secondary small">{{ bm.get_bookmark_type_display }}</div>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                {% if not pinned_notes and not recent_bookmarks %}
+                <div class="text-center py-2 text-secondary small">
+                    Keep quick study notes and bookmark course lessons.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

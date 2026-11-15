@@ -1,0 +1,151 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Weekly Progress Intelligence — SkillSphere{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <!-- Header -->
+    <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <a href="{% url 'workspace:dashboard' %}" class="text-secondary small text-decoration-none">
+                    <i data-lucide="arrow-left" style="width: 14px; height: 14px;"></i> Workspace
+                </a>
+                <span class="text-secondary small">/</span>
+                <span class="text-white small fw-semibold">Weekly Report</span>
+            </div>
+            <h2 class="text-white fw-bold mb-0">Weekly Progress Intelligence</h2>
+            <p class="text-secondary small mb-0">Auditable, data-grounded performance metrics for the period: <strong class="text-white">{{ report.period_label }}</strong></p>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-light rounded-pill px-3" onclick="window.print();">
+                <i data-lucide="printer" style="width: 16px; height: 16px;" class="me-1"></i> Print / Save PDF
+            </button>
+            <a href="{% url 'workspace:ai_planner' %}" class="btn btn-primary-custom">
+                <i data-lucide="bot" style="width: 16px; height: 16px;"></i> Ask AI Mentor
+            </a>
+        </div>
+    </div>
+
+    <!-- Verified Data Integrity Standard -->
+    <div class="alert alert-dark border-secondary border-opacity-50 py-2 px-3 mb-4 d-flex align-items-center gap-2 text-secondary small" style="background: rgba(15, 23, 42, 0.6);">
+        <i data-lucide="shield-check" class="text-success" style="width: 16px; height: 16px;"></i>
+        <span><strong>SkillSphere Zero-Fabrication Metric Standard:</strong> All values displayed below reflect verifiable database activities recorded by your account during the past 7 days. SkillSphere never invents study hours or creates phantom milestones.</span>
+    </div>
+
+    <!-- Metrics Cards Grid -->
+    <div class="row g-3 mb-4">
+        <!-- Lessons Completed -->
+        <div class="col-sm-6 col-lg-3">
+            <div class="custom-card p-4 text-center h-100">
+                <div class="p-2 rounded-circle d-inline-flex mb-2" style="background: rgba(59, 130, 246, 0.15);">
+                    <i data-lucide="book-open" class="text-primary" style="width: 24px; height: 24px;"></i>
+                </div>
+                <div class="display-6 fw-bold text-white mb-1">{{ report.lessons_completed }}</div>
+                <div class="text-secondary small fw-medium">Lessons Completed</div>
+            </div>
+        </div>
+
+        <!-- Focus Time -->
+        <div class="col-sm-6 col-lg-3">
+            <div class="custom-card p-4 text-center h-100">
+                <div class="p-2 rounded-circle d-inline-flex mb-2" style="background: rgba(245, 158, 11, 0.15);">
+                    <i data-lucide="timer" class="text-warning" style="width: 24px; height: 24px;"></i>
+                </div>
+                <div class="display-6 fw-bold text-white mb-1">{{ report.focus_minutes }}m</div>
+                <div class="text-secondary small fw-medium">Focus Time ({{ report.focus_sessions }} sessions)</div>
+            </div>
+        </div>
+
+        <!-- Exercises Passed -->
+        <div class="col-sm-6 col-lg-3">
+            <div class="custom-card p-4 text-center h-100">
+                <div class="p-2 rounded-circle d-inline-flex mb-2" style="background: rgba(16, 185, 129, 0.15);">
+                    <i data-lucide="code-2" class="text-success" style="width: 24px; height: 24px;"></i>
+                </div>
+                <div class="display-6 fw-bold text-white mb-1">{{ report.exercises_passed }}</div>
+                <div class="text-secondary small fw-medium">Exercises Passed</div>
+            </div>
+        </div>
+
+        <!-- Project Milestones -->
+        <div class="col-sm-6 col-lg-3">
+            <div class="custom-card p-4 text-center h-100">
+                <div class="p-2 rounded-circle d-inline-flex mb-2" style="background: rgba(139, 92, 246, 0.15);">
+                    <i data-lucide="folder-git-2" class="text-purple" style="width: 24px; height: 24px;"></i>
+                </div>
+                <div class="display-6 fw-bold text-white mb-1">{{ report.project_milestones_done }}</div>
+                <div class="text-secondary small fw-medium">Project Milestones Done</div>
+            </div>
+        </div>
+
+        <!-- Roadmap Milestones -->
+        <div class="col-sm-6 col-lg-3">
+            <div class="custom-card p-4 text-center h-100">
+                <div class="p-2 rounded-circle d-inline-flex mb-2" style="background: rgba(236, 72, 153, 0.15);">
+                    <i data-lucide="map" class="text-pink" style="width: 24px; height: 24px;"></i>
+                </div>
+                <div class="display-6 fw-bold text-white mb-1">{{ report.roadmap_milestones_done }}</div>
+                <div class="text-secondary small fw-medium">Roadmap Milestones</div>
+            </div>
+        </div>
+
+        <!-- Applications Progressed -->
+        <div class="col-sm-6 col-lg-3">
+            <div class="custom-card p-4 text-center h-100">
+                <div class="p-2 rounded-circle d-inline-flex mb-2" style="background: rgba(239, 68, 68, 0.15);">
+                    <i data-lucide="briefcase" class="text-danger" style="width: 24px; height: 24px;"></i>
+                </div>
+                <div class="display-6 fw-bold text-white mb-1">{{ report.apps_updated }}</div>
+                <div class="text-secondary small fw-medium">Applications Updated</div>
+            </div>
+        </div>
+
+        <!-- Certificates Earned -->
+        <div class="col-sm-6 col-lg-3">
+            <div class="custom-card p-4 text-center h-100">
+                <div class="p-2 rounded-circle d-inline-flex mb-2" style="background: rgba(14, 165, 233, 0.15);">
+                    <i data-lucide="award" class="text-info" style="width: 24px; height: 24px;"></i>
+                </div>
+                <div class="display-6 fw-bold text-white mb-1">{{ report.certs_earned }}</div>
+                <div class="text-secondary small fw-medium">Certificates Earned</div>
+            </div>
+        </div>
+
+        <!-- Tasks Completed -->
+        <div class="col-sm-6 col-lg-3">
+            <div class="custom-card p-4 text-center h-100">
+                <div class="p-2 rounded-circle d-inline-flex mb-2" style="background: rgba(99, 102, 241, 0.15);">
+                    <i data-lucide="check-circle-2" class="text-primary" style="width: 24px; height: 24px;"></i>
+                </div>
+                <div class="display-6 fw-bold text-white mb-1">{{ report.tasks_completed }}</div>
+                <div class="text-secondary small fw-medium">Tasks Completed</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recommendations for Following Week -->
+    <div class="custom-card p-4 mb-4">
+        <h4 class="text-white fw-bold mb-3 d-flex align-items-center gap-2">
+            <i data-lucide="compass" class="text-warning" style="width: 22px; height: 22px;"></i>
+            Strategic Recommendations for Next Week
+        </h4>
+
+        <div class="row g-3">
+            {% for rec in report.recommendations %}
+            <div class="col-md-6">
+                <div class="p-3 rounded-3 h-100 d-flex align-items-start gap-3" style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.08);">
+                    <div class="badge bg-primary-subtle text-primary rounded-circle p-2 mt-1">
+                        {{ forloop.counter }}
+                    </div>
+                    <div class="text-white fs-6">
+                        {{ rec }}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

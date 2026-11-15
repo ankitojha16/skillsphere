@@ -59,6 +59,9 @@ urlpatterns = [
     path('', include('certificates.urls', namespace='certificates')),
     path('', include('notifications.urls', namespace='notifications')),
 
+    # Phase 22 Student Workspace & Smart Productivity Hub
+    path('workspace/', include('workspace.urls', namespace='workspace')),
+
     # Phase 15 Legal, Privacy & Analytics Routes
     path('privacy/', privacy_policy_view, name='privacy_policy'),
     path('terms/', terms_of_service_view, name='terms_of_service'),
