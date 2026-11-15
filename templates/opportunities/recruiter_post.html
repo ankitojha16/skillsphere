@@ -114,7 +114,7 @@
                         <div class="col-md-6">
                             <label class="form-label text-secondary small">Compensation / Stipend Details</label>
                             <input type="text" name="compensation_details" class="form-control bg-dark text-white border-secondary"
-                                   placeholder="e.g. ₹25,000/month or $2,000/mo stipend" value="{{ opportunity.compensation_details|default:opportunity.stipend_information|default:'' }}">
+                                   placeholder="e.g. ₹25,000/month or $2,000/mo stipend" value="{% if opportunity %}{{ opportunity.compensation_details|default:opportunity.stipend_information }}{% endif %}">
                         </div>
 
                         <div class="col-md-6">

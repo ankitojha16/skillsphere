@@ -1,0 +1,61 @@
+{% if onboarding_launchpad and not onboarding_launchpad.is_all_completed %}
+<div class="custom-card card-glowing p-4 mb-4 border border-primary border-opacity-30" style="background: radial-gradient(circle at top right, rgba(99, 102, 241, 0.15), rgba(15, 23, 42, 0.98));">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="badge bg-primary text-white rounded-pill px-2.5 py-0.5 small fw-semibold">
+                    <i data-lucide="rocket" style="width: 12px; height: 12px;"></i> Getting Started
+                </span>
+                <span class="text-secondary small fw-medium">Student Launchpad</span>
+            </div>
+            <h3 class="h5 fw-bold text-white mb-0">Complete Your SkillSphere Onboarding</h3>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-dark border border-secondary text-info fw-bold">
+                {{ onboarding_launchpad.completed_count }}/{{ onboarding_launchpad.total_steps }} Steps ({{ onboarding_launchpad.progress_percent }}%)
+            </span>
+        </div>
+    </div>
+
+    <!-- Progress Bar -->
+    <div class="progress mb-4" style="height: 8px; background: rgba(255,255,255,0.08); border-radius: 9999px;">
+        <div class="progress-bar bg-gradient-primary" role="progressbar" style="width: {{ onboarding_launchpad.progress_percent }}%; border-radius: 9999px;" aria-valuenow="{{ onboarding_launchpad.progress_percent }}" aria-valuemin="0" aria-valuemax="100"></div>
+    </div>
+
+    <!-- Steps Grid -->
+    <div class="row g-3">
+        {% for step in onboarding_launchpad.steps %}
+        <div class="col-md-6 col-lg-4">
+            <div class="p-3 rounded-3 h-100 d-flex flex-column justify-content-between" style="background: rgba(255,255,255,0.03); border: 1px solid {% if step.is_completed %}rgba(34, 197, 94, 0.3){% else %}rgba(255,255,255,0.08){% endif %};">
+                <div>
+                    <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="p-1.5 rounded-circle {% if step.is_completed %}bg-success bg-opacity-20 text-success{% else %}bg-secondary bg-opacity-20 text-secondary{% endif %}">
+                                <i data-lucide="{{ step.icon }}" style="width: 14px; height: 14px;"></i>
+                            </span>
+                            <span class="fw-bold {% if step.is_completed %}text-white{% else %}text-light{% endif %} small">
+                                {{ step.title }}
+                            </span>
+                        </div>
+                        {% if step.is_completed %}
+                        <span class="badge bg-success bg-opacity-20 text-success border border-success border-opacity-25" style="font-size: 0.7rem;">
+                            <i data-lucide="check" style="width: 11px; height: 11px;"></i> Done
+                        </span>
+                        {% endif %}
+                    </div>
+                    <p class="text-secondary small mb-3" style="font-size: 0.78rem; line-height: 1.4;">
+                        {{ step.description }}
+                    </p>
+                </div>
+                <div>
+                    <a href="{{ step.url }}" class="btn btn-sm {% if step.is_completed %}btn-outline-secondary text-secondary{% else %}btn-primary-custom{% endif %} w-100 py-1.5 rounded-pill d-inline-flex align-items-center justify-content-center gap-1.5" style="font-size: 0.78rem;">
+                        <span>{{ step.action_label }}</span>
+                        <i data-lucide="arrow-right" style="width: 13px; height: 13px;"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}

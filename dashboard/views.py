@@ -13,6 +13,7 @@ from roadmaps.models import LearningRoadmap
 from assessments.models import SkillAssessment, AssessmentAttempt
 from projects.models import ProjectIdea
 from certificates.models import Certificate
+from accounts.onboarding_service import OnboardingLaunchpadService
 
 from django.core.cache import cache
 from django.db.models import Count, Avg, Q
@@ -28,6 +29,7 @@ def dashboard_view(request):
     if cached_context is not None:
         cached_context['student_profile'] = profile
         cached_context['today_date'] = timezone.now().date()
+        cached_context['onboarding_launchpad'] = OnboardingLaunchpadService.get_status(user)
         return render(request, 'dashboard/index.html', cached_context)
 
     # 1. Total Enrolled Courses (evaluated as list for reuse)
@@ -350,6 +352,7 @@ def dashboard_view(request):
         'weekly_in_progress_count': len(in_progress_courses),
         'weekly_goals_achieved': completed_goals_count,
         'weekly_milestones_pending': len(pending_milestones),
+        'onboarding_launchpad': OnboardingLaunchpadService.get_status(user),
     }
 
     try:

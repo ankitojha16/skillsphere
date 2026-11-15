@@ -230,11 +230,13 @@ def onboarding_recommendations_view(request):
     if top_course:
         first_lesson = Lesson.objects.filter(course=top_course).order_by('lesson_order', 'id').first()
 
+    from .onboarding_service import OnboardingLaunchpadService
     return render(request, 'accounts/onboarding_recommendations.html', {
         'profile': profile,
         'recommended_courses': matched_courses,
         'top_course': top_course,
         'first_lesson': first_lesson,
+        'onboarding_launchpad': OnboardingLaunchpadService.get_status(request.user),
     })
 
 
@@ -256,6 +258,11 @@ def export_user_data_view(request):
 
     user = request.user
     profile, _ = StudentProfile.objects.get_or_create(user=user)
+
+    from workspace.models import WorkspaceTask, CalendarEvent, FocusSession, PersonalNote, WorkspaceBookmark
+    from projects.models import ProjectIdea
+    from resumes.models import Resume
+    from opportunities.models import SavedOpportunity
 
     data = {
         'export_metadata': {
@@ -331,7 +338,90 @@ def export_user_data_view(request):
                 'created_at': f.created_at.isoformat(),
             }
             for f in BetaFeedback.objects.filter(user=user)
-        ]
+        ],
+        'workspace': {
+            'tasks': [
+                {
+                    'title': t.title,
+                    'is_completed': t.is_completed,
+                    'priority': t.priority,
+                    'task_type': t.task_type,
+                    'due_date': t.due_date.isoformat() if t.due_date else None,
+                    'estimated_minutes': t.estimated_minutes,
+                }
+                for t in WorkspaceTask.objects.filter(user=user)
+            ],
+            'calendar_events': [
+                {
+                    'title': ev.title,
+                    'event_type': ev.event_type,
+                    'start_time': ev.start_time.isoformat() if ev.start_time else None,
+                    'end_time': ev.end_time.isoformat() if ev.end_time else None,
+                }
+                for ev in CalendarEvent.objects.filter(user=user)
+            ],
+            'focus_sessions': [
+                {
+                    'session_type': fs.session_type,
+                    'duration_minutes': fs.duration_minutes,
+                    'completed': fs.completed,
+                    'notes': fs.notes,
+                    'created_at': fs.created_at.isoformat() if fs.created_at else None,
+                }
+                for fs in FocusSession.objects.filter(user=user)
+            ],
+            'personal_notes': [
+                {
+                    'title': n.title,
+                    'content': n.content,
+                    'folder': n.folder,
+                    'is_pinned': n.is_pinned,
+                    'created_at': n.created_at.isoformat() if n.created_at else None,
+                }
+                for n in PersonalNote.objects.filter(user=user)
+            ],
+            'bookmarks': [
+                {
+                    'title': b.title,
+                    'url': b.url,
+                    'bookmark_type': b.bookmark_type,
+                    'category': b.category,
+                    'notes': b.notes,
+                }
+                for b in WorkspaceBookmark.objects.filter(user=user)
+            ],
+        },
+        'career_portfolio': {
+            'projects': [
+                {
+                    'title': p.title,
+                    'status': p.status,
+                    'description': p.description,
+                    'demo_url': p.demo_url,
+                    'github_url': p.github_url,
+                    'is_public': p.is_public,
+                }
+                for p in ProjectIdea.objects.filter(user=user)
+            ],
+            'resumes': [
+                {
+                    'title': r.title,
+                    'ats_score': r.ats_score,
+                    'summary': r.summary,
+                    'updated_at': r.updated_at.isoformat() if r.updated_at else None,
+                }
+                for r in Resume.objects.filter(user=user)
+            ],
+            'applications': [
+                {
+                    'opportunity': app.opportunity.title if app.opportunity else '',
+                    'organization': app.opportunity.organization if app.opportunity else '',
+                    'status': app.application_status,
+                    'applied_at': app.applied_at.isoformat() if app.applied_at else None,
+                }
+                for app in SavedOpportunity.objects.filter(user=user).select_related('opportunity')
+            ],
+        }
     }
 
     json_bytes = json.dumps(data, indent=2).encode('utf-8')

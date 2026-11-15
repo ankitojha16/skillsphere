@@ -158,6 +158,49 @@ class Opportunity(models.Model):
             return False
         return self.deadline < timezone.now().date()
 
+    @property
+    def is_stale(self):
+        if not self.last_verified_at:
+            return True
+        return (timezone.now() - self.last_verified_at).days > 60
+
+    @property
+    def days_until_deadline(self):
+        if not self.deadline:
+            return None
+        delta = (self.deadline - timezone.now().date()).days
+        return delta
+
+    @property
+    def freshness_status(self):
+        """
+        Determines current cycle status:
+        - 'expired': deadline has passed
+        - 'stale': not verified in last 60 days
+        - 'closing_soon': deadline is within 7 days
+        - 'active': verified and active cycle
+        """
+        if self.is_expired:
+            return 'expired'
+        if self.is_stale:
+            return 'stale'
+        days = self.days_until_deadline
+        if days is not None and days <= 7:
+            return 'closing_soon'
+        return 'active'
+
+    @property
+    def freshness_label(self):
+        status = self.freshness_status
+        if status == 'expired':
+            return 'Cycle Closed'
+        elif status == 'stale':
+            return 'Verification Pending'
+        elif status == 'closing_soon':
+            days = self.days_until_deadline
+            return f'Closing in {days}d' if days and days > 0 else 'Closing Today'
+        return 'Verified Active'
+
 
 class OpportunitySkill(models.Model):
     """

@@ -31,4 +31,7 @@ urlpatterns = [
     path('talent/candidate/<str:username>/shortlist/', views.toggle_shortlist_candidate_api, name='toggle_shortlist'),
     path('talent/candidate/<str:username>/invite/', views.send_interview_invitation_api, name='send_interview_invitation'),
     path('talent/shortlist/', views.recruiter_shortlist_view, name='my_shortlist'),
+    path('opportunities/moderation/', views.moderation_dashboard_view, name='moderation_dashboard'),
+    path('opportunities/moderation/reports/<int:report_id>/action/', views.moderate_report_action_view, name='moderate_report_action'),
+    path('opportunities/moderation/users/<int:user_id>/toggle-suspension/', views.toggle_user_suspension_view, name='toggle_user_suspension'),
 ]

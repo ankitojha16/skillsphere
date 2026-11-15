@@ -23,9 +23,21 @@
                         {{ opportunity.get_opportunity_type_display }}
                     </span>
                     <span class="badge bg-dark border border-secondary text-info">{{ opportunity.get_work_mode_display }}</span>
-                    {% if opportunity.verification_status %}
-                    <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25">
-                        <i data-lucide="check-circle" style="width: 12px; height: 12px;"></i> Verified Official Source
+                    {% if opportunity.freshness_status == 'expired' %}
+                    <span class="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-25">
+                        <i data-lucide="clock" style="width: 12px; height: 12px;"></i> Application Cycle Closed
+                    </span>
+                    {% elif opportunity.freshness_status == 'stale' %}
+                    <span class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-25" title="Last verified > 60 days ago">
+                        <i data-lucide="alert-triangle" style="width: 12px; height: 12px;"></i> Verification Pending
+                    </span>
+                    {% elif opportunity.freshness_status == 'closing_soon' %}
+                    <span class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-25">
+                        <i data-lucide="flame" style="width: 12px; height: 12px;"></i> {{ opportunity.freshness_label }}
+                    </span>
+                    {% elif opportunity.verification_status %}
+                    <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25" title="Verified: {{ opportunity.last_verified_at|date:'M d, Y' }}">
+                        <i data-lucide="check-circle" style="width: 12px; height: 12px;"></i> Verified Official Cycle
                     </span>
                     {% endif %}
                     {% if opportunity.is_minor_safe %}

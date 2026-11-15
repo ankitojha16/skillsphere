@@ -1,0 +1,183 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Opportunity & Content Moderation - SkillSphere Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-25">Admin Portal</span>
+                <span class="badge bg-dark border border-secondary text-secondary">Content & Trust Moderation</span>
+            </div>
+            <h1 class="h3 fw-bold text-white mb-0">Platform Content & Opportunity Moderation</h1>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'opportunities:list' %}" class="btn btn-outline-secondary btn-sm">
+                <i data-lucide="arrow-left" style="width: 14px; height: 14px;"></i> Return to Hub
+            </a>
+            <a href="/admin/" class="btn btn-secondary-custom btn-sm">
+                <i data-lucide="shield" style="width: 14px; height: 14px;"></i> Django Admin
+            </a>
+        </div>
+    </div>
+
+    <!-- Overview Counters -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="custom-card p-3">
+                <div class="text-secondary small fw-medium">Pending Reports</div>
+                <div class="display-6 fw-bold text-warning mb-0">{{ total_pending }}</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="custom-card p-3">
+                <div class="text-secondary small fw-medium">Active Opportunities</div>
+                <div class="display-6 fw-bold text-success mb-0">{{ total_active }}</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="custom-card p-3">
+                <div class="text-secondary small fw-medium">Resolved Reports</div>
+                <div class="display-6 fw-bold text-info mb-0">{{ resolved_reports.count }}</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="custom-card p-3">
+                <div class="text-secondary small fw-medium">Stale Listings Audited</div>
+                <div class="display-6 fw-bold text-purple mb-0">{{ stale_opportunities.count }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pending Reports Table -->
+    <div class="custom-card p-4 mb-4">
+        <h2 class="h5 fw-bold text-white mb-3 d-flex align-items-center gap-2">
+            <i data-lucide="alert-circle" class="text-warning" style="width: 18px; height: 18px;"></i>
+            <span>Pending Abuse / Inaccuracy Reports ({{ pending_reports.count }})</span>
+        </h2>
+        
+        <div class="table-responsive">
+            <table class="table table-dark table-hover align-middle mb-0">
+                <thead>
+                    <tr class="text-secondary small">
+                        <th>Opportunity</th>
+                        <th>Reported By</th>
+                        <th>Reason</th>
+                        <th>Details</th>
+                        <th>Date</th>
+                        <th class="text-end">Moderation Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rep in pending_reports %}
+                    <tr>
+                        <td>
+                            <div class="fw-bold text-white">{{ rep.opportunity.title }}</div>
+                            <div class="text-muted small">{{ rep.opportunity.organization }}</div>
+                        </td>
+                        <td>
+                            <span class="text-light">{{ rep.reported_by.username }}</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-25">
+                                {{ rep.get_reason_display }}
+                            </span>
+                        </td>
+                        <td class="small text-secondary" style="max-width: 250px;">
+                            {{ rep.details|truncatechars:80 }}
+                        </td>
+                        <td class="small text-muted">{{ rep.created_at|date:"M d, Y" }}</td>
+                        <td class="text-end">
+                            <form action="{% url 'opportunities:moderate_report_action' report_id=rep.id %}" method="post" class="d-inline-flex gap-1">
+                                {% csrf_token %}
+                                <button type="submit" name="action" value="verify" class="btn btn-outline-success btn-sm" title="Mark Opportunity as Verified & Close Report">
+                                    <i data-lucide="check" style="width: 14px; height: 14px;"></i> Verify
+                                </button>
+                                <button type="submit" name="action" value="deactivate" class="btn btn-outline-danger btn-sm" title="Deactivate Opportunity & Close Report">
+                                    <i data-lucide="eye-off" style="width: 14px; height: 14px;"></i> Deactivate
+                                </button>
+                                <button type="submit" name="action" value="dismiss" class="btn btn-outline-secondary btn-sm" title="Dismiss Invalid Report">
+                                    <i data-lucide="x" style="width: 14px; height: 14px;"></i> Dismiss
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-4 text-muted">
+                            <i data-lucide="check-circle" class="text-success mb-2" style="width: 24px; height: 24px;"></i>
+                            <div>No pending reports. All opportunity listings are in good standing.</div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Opportunity Freshness Audit Table -->
+    <div class="custom-card p-4">
+        <h2 class="h5 fw-bold text-white mb-3 d-flex align-items-center gap-2">
+            <i data-lucide="refresh-cw" class="text-info" style="width: 18px; height: 18px;"></i>
+            <span>Opportunity Freshness & Verification Status</span>
+        </h2>
+        
+        <div class="table-responsive">
+            <table class="table table-dark table-hover align-middle mb-0">
+                <thead>
+                    <tr class="text-secondary small">
+                        <th>Title & Organization</th>
+                        <th>Type</th>
+                        <th>Deadline</th>
+                        <th>Cycle Status</th>
+                        <th>Last Verified</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for opp in stale_opportunities %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'opportunities:detail' pk=opp.pk %}" class="fw-bold text-white text-decoration-none hover-white">
+                                {{ opp.title }}
+                            </a>
+                            <div class="text-muted small">{{ opp.organization }}</div>
+                        </td>
+                        <td><span class="badge bg-dark border border-secondary text-info">{{ opp.get_opportunity_type_display }}</span></td>
+                        <td class="small">
+                            {% if opp.deadline %}
+                                <span class="{% if opp.is_expired %}text-danger{% else %}text-light{% endif %}">
+                                    {{ opp.deadline|date:"M d, Y" }}
+                                </span>
+                            {% else %}
+                                <span class="text-muted">Rolling</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if opp.freshness_status == 'expired' %}
+                            <span class="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-25">Closed</span>
+                            {% elif opp.freshness_status == 'stale' %}
+                            <span class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-25">Pending Check</span>
+                            {% else %}
+                            <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25">Active</span>
+                            {% endif %}
+                        </td>
+                        <td class="small text-muted">{{ opp.last_verified_at|date:"M d, Y" }}</td>
+                        <td class="text-end">
+                            <a href="{% url 'opportunities:detail' pk=opp.pk %}" class="btn btn-outline-info btn-sm">
+                                View
+                            </a>
+                            <a href="/admin/opportunities/opportunity/{{ opp.id }}/change/" class="btn btn-outline-secondary btn-sm">
+                                Edit
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -530,6 +530,7 @@ def recruiter_post_opportunity_view(request):
         return redirect('opportunities:recruiter_listings')
 
     context = {
+        'opportunity': None,
         'categories': Opportunity.CATEGORY_CHOICES,
         'opportunity_types': Opportunity.OPPORTUNITY_TYPE_CHOICES,
         'work_modes': Opportunity.WORK_MODE_CHOICES,
@@ -981,3 +982,79 @@ def recruiter_shortlist_view(request):
         'candidates': candidates_data,
         'total_shortlisted': len(candidates_data),
     })
+
+
+# =============================================================================
+# 5. ADMINISTRATOR MODERATION & USER SUSPENSION
+# =============================================================================
+
+@login_required
+def moderation_dashboard_view(request):
+    """
+    Administrator and staff moderation dashboard for managing reported listings,
+    verifying partner opportunities, archiving stale items, and managing users.
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        return HttpResponseForbidden("Administrator access required.")
+
+    pending_reports = OpportunityReport.objects.filter(status='pending').select_related('opportunity', 'reported_by')
+    resolved_reports = OpportunityReport.objects.exclude(status='pending').select_related('opportunity', 'reported_by').order_by('-created_at')[:20]
+    stale_opportunities = Opportunity.objects.filter(is_active=True).order_by('last_verified_at')[:20]
+
+    return render(request, 'opportunities/moderation.html', {
+        'pending_reports': pending_reports,
+        'resolved_reports': resolved_reports,
+        'stale_opportunities': stale_opportunities,
+        'total_active': Opportunity.objects.filter(is_active=True).count(),
+        'total_pending': pending_reports.count(),
+    })
+
+
+@login_required
+def moderate_report_action_view(request, report_id):
+    if not (request.user.is_staff or request.user.is_superuser):
+        return HttpResponseForbidden("Administrator access required.")
+
+    report = get_object_or_404(OpportunityReport, id=report_id)
+    action = request.POST.get('action')
+
+    if action == 'deactivate':
+        report.status = 'resolved'
+        report.admin_notes = f"Deactivated listing by staff action {request.user.username}"
+        report.save(update_fields=['status', 'admin_notes'])
+        report.opportunity.is_active = False
+        report.opportunity.save(update_fields=['is_active'])
+        messages.success(request, f"Opportunity '{report.opportunity.title}' has been deactivated and report resolved.")
+    elif action == 'verify':
+        report.status = 'resolved'
+        report.admin_notes = f"Verified listing authenticity by staff {request.user.username}"
+        report.save(update_fields=['status', 'admin_notes'])
+        report.opportunity.verification_status = True
+        report.opportunity.last_verified_at = timezone.now()
+        report.opportunity.save(update_fields=['verification_status', 'last_verified_at'])
+        messages.success(request, f"Opportunity '{report.opportunity.title}' marked as verified active.")
+    elif action == 'dismiss':
+        report.status = 'dismissed'
+        report.admin_notes = f"Dismissed as invalid by staff {request.user.username}"
+        report.save(update_fields=['status', 'admin_notes'])
+        messages.info(request, f"Report on '{report.opportunity.title}' dismissed.")
+
+    return redirect('opportunities:moderation_dashboard')
+
+
+@login_required
+def toggle_user_suspension_view(request, user_id):
+    if not (request.user.is_staff or request.user.is_superuser):
+        return HttpResponseForbidden("Administrator access required.")
+
+    target_user = get_object_or_404(User, id=user_id)
+    if target_user.is_superuser:
+        messages.error(request, "Cannot suspend superuser accounts.")
+        return redirect('opportunities:moderation_dashboard')
+
+    target_user.is_active = not target_user.is_active
+    target_user.save(update_fields=['is_active'])
+    status_label = "restored" if target_user.is_active else "suspended"
+    messages.success(request, f"User account '{target_user.username}' has been {status_label}.")
+    return redirect('opportunities:moderation_dashboard')
+
