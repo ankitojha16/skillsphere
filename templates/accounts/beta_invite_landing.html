@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Welcome to Beta Cohort 1 - SkillSphere{% endblock %}
+
+{% block sidebar %}{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-center min-vh-100 py-5 px-3">
+    <div class="custom-card card-glowing" style="max-width: 620px; width: 100%;">
+        <!-- Header -->
+        <div class="text-center mb-4">
+            <div class="brand-icon-sphere mx-auto mb-3" style="width: 60px; height: 60px;">
+                <img src="{% static 'images/logo-icon.svg' %}" alt="SkillSphere" class="brand-sphere-img" width="60" height="60">
+            </div>
+            <span class="badge bg-purple-subtle text-purple border border-purple-subtle px-3 py-1 rounded-pill small fw-semibold mb-2">
+                Controlled Student Beta • Cohort 1
+            </span>
+            <h1 class="h3 fw-bold text-white mb-2">Welcome to SkillSphere</h1>
+            <p class="text-secondary small mb-0">
+                You have been invited to participate in our exclusive first student cohort.
+            </p>
+        </div>
+
+        <!-- Invitation Status Card -->
+        <div class="p-3.5 rounded-3 mb-4 border {% if is_valid %}border-success border-opacity-30 bg-success bg-opacity-10{% else %}border-warning border-opacity-30 bg-warning bg-opacity-10{% endif %}">
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                <div class="d-flex align-items-center gap-2.5">
+                    <i data-lucide="{% if is_valid %}check-circle-2{% else %}alert-circle{% endif %}" style="width: 22px; height: 22px;" class="{% if is_valid %}text-success{% else %}text-warning{% endif %}"></i>
+                    <div>
+                        <div class="fw-bold text-white small">Invitation Token: <code>{{ code }}</code></div>
+                        <div class="text-secondary" style="font-size: 0.75rem;">
+                            {% if is_valid %}
+                                Verified Active • 1 Student Seat Reserved
+                            {% elif invitation and invitation.status == 'accepted' %}
+                                Already Claimed • This invitation token was already activated.
+                            {% else %}
+                                Invalid or Expired Token • Please verify your link or contact beta support.
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <span class="badge {% if is_valid %}bg-success{% else %}bg-secondary{% endif %} text-dark fw-bold text-uppercase px-2.5 py-1" style="font-size: 0.7rem;">
+                    {{ invitation.status|default:"Unverified" }}
+                </span>
+            </div>
+        </div>
+
+        <!-- Welcome Instructions -->
+        <div class="mb-4">
+            <h3 class="h6 fw-bold text-white mb-3 d-flex align-items-center gap-2">
+                <i data-lucide="list-ordered" style="width: 16px; height: 16px;" class="text-primary"></i>
+                <span>Your Cohort 1 Journey Steps</span>
+            </h3>
+            <div class="d-flex flex-column gap-2.5">
+                <div class="p-2.5 rounded-3 bg-dark bg-opacity-40 border border-secondary border-opacity-15 d-flex gap-3 align-items-start">
+                    <span class="badge bg-primary text-white rounded-circle p-1 d-inline-flex align-items-center justify-content-center" style="width: 22px; height: 22px; font-size: 0.75rem;">1</span>
+                    <div>
+                        <div class="fw-semibold text-white small">Register &amp; Claim Seat</div>
+                        <div class="text-secondary" style="font-size: 0.78rem;">Create your secure password and accept terms. Zero credit cards or fees required.</div>
+                    </div>
+                </div>
+                <div class="p-2.5 rounded-3 bg-dark bg-opacity-40 border border-secondary border-opacity-15 d-flex gap-3 align-items-start">
+                    <span class="badge bg-primary text-white rounded-circle p-1 d-inline-flex align-items-center justify-content-center" style="width: 22px; height: 22px; font-size: 0.75rem;">2</span>
+                    <div>
+                        <div class="fw-semibold text-white small">Personalized Career Goal &amp; Starter Course</div>
+                        <div class="text-secondary" style="font-size: 0.78rem;">Choose from 11 industry career tracks and get an instant recommended starter course.</div>
+                    </div>
+                </div>
+                <div class="p-2.5 rounded-3 bg-dark bg-opacity-40 border border-secondary border-opacity-15 d-flex gap-3 align-items-start">
+                    <span class="badge bg-primary text-white rounded-circle p-1 d-inline-flex align-items-center justify-content-center" style="width: 22px; height: 22px; font-size: 0.75rem;">3</span>
+                    <div>
+                        <div class="fw-semibold text-white small">Learn, Practice, and Build Portfolio</div>
+                        <div class="text-secondary" style="font-size: 0.78rem;">Complete lessons, solve coding challenges, build your project portfolio, and generate ATS resumes.</div>
+                    </div>
+                </div>
+                <div class="p-2.5 rounded-3 bg-dark bg-opacity-40 border border-secondary border-opacity-15 d-flex gap-3 align-items-start">
+                    <span class="badge bg-primary text-white rounded-circle p-1 d-inline-flex align-items-center justify-content-center" style="width: 22px; height: 22px; font-size: 0.75rem;">4</span>
+                    <div>
+                        <div class="fw-semibold text-white small">Shape the Platform (Give Feedback)</div>
+                        <div class="text-secondary" style="font-size: 0.78rem;">Click the top bar "Give Feedback" button anytime to report bugs, confusion, or feature requests.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Student Privacy & Minor Safeguard Notice -->
+        <div class="p-3 rounded-3 bg-info bg-opacity-10 border border-info border-opacity-20 mb-4">
+            <div class="d-flex align-items-start gap-2.5">
+                <i data-lucide="shield-check" style="width: 18px; height: 18px;" class="text-info mt-0.5 flex-shrink-0"></i>
+                <div style="font-size: 0.76rem; color: #cbd5e1; line-height: 1.45;">
+                    <strong class="text-white">Privacy-First &amp; Minor Safeguards:</strong> SkillSphere respects student privacy. Student personal notes, study schedules, and draft resumes are private by default. For students under 18 or high-school level, profiles are automatically shielded from recruiter discovery.
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        {% if is_valid %}
+            <a href="{% url 'accounts:signup' %}?invite={{ code }}" class="btn btn-primary-custom w-100 justify-content-center py-2.5 mb-3">
+                <i data-lucide="sparkles" style="width: 18px; height: 18px;"></i>
+                <span>Accept Invitation &amp; Register</span>
+            </a>
+        {% elif invitation and invitation.status == 'accepted' %}
+            <a href="{% url 'accounts:login' %}" class="btn btn-primary-custom w-100 justify-content-center py-2.5 mb-3">
+                <i data-lucide="log-in" style="width: 18px; height: 18px;"></i>
+                <span>Log In to Your Account</span>
+            </a>
+        {% else %}
+            <a href="{% url 'accounts:signup' %}" class="btn btn-outline-secondary w-100 justify-content-center py-2.5 mb-3 text-white">
+                <span>Continue to Standard Registration</span>
+            </a>
+        {% endif %}
+
+        <!-- Support Contact Information -->
+        <div class="pt-3 border-top border-secondary border-opacity-15 text-center">
+            <div class="text-secondary small" style="font-size: 0.75rem;">
+                Need assistance during the beta? Contact the Beta Operations Team at <a href="mailto:beta-support@skillsphere.test" class="text-info text-decoration-none">beta-support@skillsphere.test</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

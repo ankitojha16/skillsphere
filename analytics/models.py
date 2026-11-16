@@ -89,10 +89,12 @@ class BetaFeedback(models.Model):
     Restricted to authorized staff triage.
     """
     CATEGORY_CHOICES = [
-        ('feedback', 'General Feedback & Suggestion'),
         ('bug', 'Bug Report'),
+        ('usability', 'Usability Problem'),
+        ('missing_feature', 'Missing Functionality'),
         ('content', 'Course Content Issue'),
-        ('feature', 'Feature Request'),
+        ('feature', 'Feature Suggestion'),
+        ('feedback', 'General Feedback'),
         ('other', 'Other'),
     ]
 
@@ -100,6 +102,13 @@ class BetaFeedback(models.Model):
         ('new', 'New'),
         ('reviewing', 'Reviewing'),
         ('resolved', 'Resolved'),
+    ]
+
+    PRIORITY_CHOICES = [
+        ('low', 'Low'),
+        ('medium', 'Medium'),
+        ('high', 'High'),
+        ('critical', 'Critical (P0 Blocker)'),
     ]
 
     user = models.ForeignKey(
@@ -110,6 +119,7 @@ class BetaFeedback(models.Model):
         related_name='beta_feedbacks'
     )
     category = models.CharField(max_length=32, choices=CATEGORY_CHOICES, default='feedback', db_index=True)
+    priority = models.CharField(max_length=20, choices=PRIORITY_CHOICES, default='medium', db_index=True)
     rating = models.PositiveSmallIntegerField(null=True, blank=True, help_text="Rating 1-5")
     description = models.TextField()
     page_url = models.CharField(max_length=500, blank=True)
@@ -125,10 +135,55 @@ class BetaFeedback(models.Model):
         indexes = [
             models.Index(fields=['status', 'created_at']),
             models.Index(fields=['category', 'created_at']),
+            models.Index(fields=['priority', 'created_at']),
         ]
 
     def __str__(self):
-        return f"{self.get_category_display()} #{self.id} ({self.status})"
+        return f"[{self.get_priority_display()}] {self.get_category_display()} #{self.id} ({self.status})"
+
+
+class BetaInvitation(models.Model):
+    """
+    Manages controlled, invite-only access for student beta cohorts (10-20 students).
+    """
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('accepted', 'Accepted'),
+        ('expired', 'Expired'),
+        ('revoked', 'Revoked'),
+    ]
+
+    email = models.EmailField(db_index=True)
+    code = models.CharField(max_length=32, unique=True, db_index=True)
+    cohort_name = models.CharField(max_length=64, default='Cohort 1')
+    invited_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='issued_beta_invitations'
+    )
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    accepted_at = models.DateTimeField(null=True, blank=True)
+    registered_user = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='beta_invitation'
+    )
+    notes = models.CharField(max_length=255, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['status', 'cohort_name']),
+        ]
+
+    def __str__(self):
+        return f"Invite [{self.code}] for {self.email} ({self.status})"
+
 
 
 class DurableTaskJob(models.Model):

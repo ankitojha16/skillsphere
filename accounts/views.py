@@ -13,6 +13,12 @@ def signup_view(request):
     if request.user.is_authenticated:
         return redirect('dashboard:index')
 
+    invite_code = (request.GET.get('invite') or request.POST.get('invite_code') or '').strip()
+    invitation = None
+    if invite_code:
+        from analytics.models import BetaInvitation
+        invitation = BetaInvitation.objects.filter(code__iexact=invite_code).first()
+
     if request.method == 'POST':
         form = UserRegistrationForm(request.POST)
         if form.is_valid():
@@ -45,6 +51,16 @@ def signup_view(request):
             profile.full_name = full_name
             profile.save()
 
+            # Link invitation if valid and pending
+            cohort_name = 'Open Beta'
+            if invitation and invitation.status == 'pending':
+                from django.utils import timezone
+                invitation.status = 'accepted'
+                invitation.accepted_at = timezone.now()
+                invitation.registered_user = user
+                invitation.save()
+                cohort_name = invitation.cohort_name
+
             # Log registration activity
             LearningActivity.objects.create(
                 user=user,
@@ -56,7 +72,7 @@ def signup_view(request):
             track_event(
                 user=user,
                 event_type='registration_completed',
-                metadata={'method': 'email_signup'},
+                metadata={'method': 'email_signup', 'cohort': cohort_name, 'has_invite': bool(invitation)},
                 event_key=f"reg_{user.id}"
             )
 
@@ -67,7 +83,24 @@ def signup_view(request):
     else:
         form = UserRegistrationForm()
 
-    return render(request, 'accounts/signup.html', {'form': form})
+    return render(request, 'accounts/signup.html', {
+        'form': form,
+        'invite_code': invite_code,
+        'invitation': invitation,
+    })
+
+
+def beta_invite_landing_view(request, code):
+    """
+    Dedicated welcome and verification landing page for Beta Cohort 1 invited students.
+    """
+    from analytics.models import BetaInvitation
+    invitation = BetaInvitation.objects.filter(code__iexact=code.strip()).first()
+    return render(request, 'accounts/beta_invite_landing.html', {
+        'code': code,
+        'invitation': invitation,
+        'is_valid': bool(invitation and invitation.status == 'pending'),
+    })
 
 
 def login_view(request):

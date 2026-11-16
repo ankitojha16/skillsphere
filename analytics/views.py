@@ -236,17 +236,58 @@ def admin_beta_dashboard_view(request):
     total_certificates = Certificate.objects.count()
     total_assessments_taken = AssessmentAttempt.objects.count()
 
-    # Event Funnel Counts
+    # Event Funnel Counts (Cohort 1 Milestones)
+    first_lesson_count = ProductEvent.objects.filter(event_type__in=['first_lesson_started', 'lesson_completed']).values('user_id').distinct().count()
+    returning_student_count = ProductEvent.objects.filter(event_type='returning_login').values('user_id').distinct().count()
+    projects_created_count = ProductEvent.objects.filter(event_type='first_project_created').values('user_id').distinct().count()
+    resumes_generated_count = ProductEvent.objects.filter(event_type='resume_generated').values('user_id').distinct().count()
+    opportunities_saved_count = ProductEvent.objects.filter(event_type__in=['opportunity_saved', 'opportunity_applied']).values('user_id').distinct().count()
+    errors_count = ProductEvent.objects.filter(event_type__icontains='error').count()
+
     funnel = {
         'registrations': total_users,
         'onboarding': onboarding_completed_count,
         'enrolled': Enrollment.objects.values('user_id').distinct().count(),
-        'first_lesson': ProductEvent.objects.filter(event_type='first_lesson_started').values('user_id').distinct().count(),
+        'first_lesson': first_lesson_count,
+        'returning_student': returning_student_count,
+        'projects_created': projects_created_count,
+        'resumes_generated': resumes_generated_count,
+        'opportunities_saved': opportunities_saved_count,
+        'errors_encountered': errors_count,
         'course_completed': CourseCompletion.objects.filter(is_completed=True).values('user_id').distinct().count(),
         'certificates': Certificate.objects.values('user_id').distinct().count(),
     }
 
-    # Feedback triage counts
+    # Beta Invitations Management (Cohort 1)
+    from .models import BetaInvitation
+    invitations_qs = BetaInvitation.objects.select_related('invited_by', 'registered_user').order_by('-created_at')
+    total_invitations = invitations_qs.count()
+    pending_invitations = invitations_qs.filter(status='pending').count()
+    accepted_invitations = invitations_qs.filter(status='accepted').count()
+    invitations_list = invitations_qs[:20]
+
+    # Active Students (Privacy-Shielded: Zero exposure of private notes, calendars, or resumes)
+    active_user_ids = list(dau_users | dau_events | wau_users | wau_events)
+    if not active_user_ids:
+        active_user_ids = list(User.objects.order_by('-last_login', '-date_joined').values_list('id', flat=True)[:15])
+
+    active_students = []
+    for u in User.objects.filter(id__in=active_user_ids[:20]).select_related('profile'):
+        courses_count = Enrollment.objects.filter(user=u).count()
+        lessons_done = LessonProgress.objects.filter(user=u, is_completed=True).count()
+        prof = getattr(u, 'profile', None)
+        active_students.append({
+            'id': u.id,
+            'masked_name': (prof.full_name[:2] + '*** ' + prof.full_name.split()[-1][:1] + '***') if prof and prof.full_name else (u.username[:3] + '***'),
+            'role': getattr(prof, 'role', 'student'),
+            'education_level': getattr(prof, 'get_education_level_display', lambda: 'Undergraduate')() if prof else 'Undergraduate',
+            'onboarding_completed': getattr(prof, 'onboarding_completed', False) if prof else False,
+            'courses_enrolled': courses_count,
+            'lessons_completed': lessons_done,
+            'last_active': u.last_login or u.date_joined,
+        })
+
+    # Feedback triage & categorization breakdown
     feedbacks_qs = BetaFeedback.objects.select_related('user').order_by('-created_at')
     total_feedback = feedbacks_qs.count()
     unresolved_bugs = feedbacks_qs.filter(category='bug').exclude(status='resolved').count()
@@ -254,12 +295,29 @@ def admin_beta_dashboard_view(request):
     avg_rating = feedbacks_qs.filter(rating__isnull=False).aggregate(avg=Avg('rating'))['avg']
     avg_rating_display = round(avg_rating, 1) if avg_rating else 'N/A'
 
+    category_counts = {
+        'bug': feedbacks_qs.filter(category='bug').count(),
+        'usability': feedbacks_qs.filter(category='usability').count(),
+        'missing_feature': feedbacks_qs.filter(category='missing_feature').count(),
+        'content': feedbacks_qs.filter(category='content').count(),
+        'feature': feedbacks_qs.filter(category='feature').count(),
+        'feedback': feedbacks_qs.filter(category='feedback').count(),
+    }
+
+    # Open Bugs (prioritized by critical & high)
+    open_bugs = feedbacks_qs.filter(category='bug').exclude(status='resolved').order_by('-priority', '-created_at')[:10]
+
     # Filter feedback list
     status_filter = request.GET.get('status', 'all')
+    category_filter = request.GET.get('category', 'all')
+
+    filtered_feedbacks = feedbacks_qs
     if status_filter in ['new', 'reviewing', 'resolved']:
-        display_feedbacks = feedbacks_qs.filter(status=status_filter)[:30]
-    else:
-        display_feedbacks = feedbacks_qs[:30]
+        filtered_feedbacks = filtered_feedbacks.filter(status=status_filter)
+    if category_filter in dict(BetaFeedback.CATEGORY_CHOICES).keys():
+        filtered_feedbacks = filtered_feedbacks.filter(category=category_filter)
+
+    display_feedbacks = filtered_feedbacks[:30]
 
     # Recent Telemetry Log
     recent_events = ProductEvent.objects.select_related('user').order_by('-timestamp')[:25]
@@ -279,12 +337,21 @@ def admin_beta_dashboard_view(request):
         'total_certificates': total_certificates,
         'total_assessments_taken': total_assessments_taken,
         'funnel': funnel,
+        'total_invitations': total_invitations,
+        'pending_invitations': pending_invitations,
+        'accepted_invitations': accepted_invitations,
+        'invitations_list': invitations_list,
+        'active_students': active_students,
         'total_feedback': total_feedback,
         'unresolved_bugs': unresolved_bugs,
         'new_feedbacks': new_feedbacks,
         'avg_rating_display': avg_rating_display,
+        'category_counts': category_counts,
+        'open_bugs': open_bugs,
         'feedbacks': display_feedbacks,
         'status_filter': status_filter,
+        'category_filter': category_filter,
+        'category_choices': BetaFeedback.CATEGORY_CHOICES,
         'recent_events': recent_events,
     })
 

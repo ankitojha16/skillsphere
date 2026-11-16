@@ -14,10 +14,22 @@
             </div>
             <h2 class="fw-bold mb-1"><span class="text-white">Create</span> <span class="brand-gradient-text">Account</span></h2>
             <p class="text-secondary small mb-0">Join SkillSphere and accelerate your technical journey.</p>
+        {% if invite_code %}
+        <div class="p-3 rounded-3 mb-3 border {% if invitation and invitation.status == 'pending' %}border-success border-opacity-30 bg-success bg-opacity-10{% else %}border-info border-opacity-30 bg-info bg-opacity-10{% endif %}">
+            <div class="d-flex align-items-center gap-2">
+                <i data-lucide="check-circle" style="width: 16px; height: 16px;" class="text-success"></i>
+                <div class="text-white small">
+                    <strong>Beta Cohort 1 Token Applied:</strong> <code>{{ invite_code }}</code>
+                </div>
+            </div>
         </div>
+        {% endif %}
 
         <form method="post" novalidate>
             {% csrf_token %}
+            {% if invite_code %}
+            <input type="hidden" name="invite_code" value="{{ invite_code }}">
+            {% endif %}
 
             {% if form.non_field_errors %}
                 <div class="alert alert-danger py-2 px-3 small border-0 mb-3" style="background-color: rgba(239, 68, 68, 0.2); color: #FCA5A5;">

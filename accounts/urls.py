@@ -13,6 +13,7 @@ urlpatterns = [
     path('onboarding/recommendations/', views.onboarding_recommendations_view, name='onboarding_recommendations'),
     path('profile/', views.profile_view, name='profile'),
     path('profile/edit/', views.profile_edit_view, name='profile_edit'),
+    path('invite/<str:code>/', views.beta_invite_landing_view, name='beta_invite_landing'),
     path('export-data/', views.export_user_data_view, name='export_data'),
     path('delete-account/', views.delete_account_view, name='delete_account'),
 
