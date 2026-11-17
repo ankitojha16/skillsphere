@@ -9,6 +9,7 @@ urlpatterns = [
     path('api/feedback/submit/', views.submit_feedback_api, name='submit_feedback_api'),
     path('api/feedback/<int:feedback_id>/status/', views.update_feedback_status_api, name='update_feedback_status_api'),
 
-    # Admin Beta Operations Dashboard (Staff-Only)
+    # Admin Beta Operations Dashboard & Export (Staff-Only)
     path('beta/', views.admin_beta_dashboard_view, name='admin_beta_dashboard'),
+    path('beta/export-feedback/', views.export_beta_feedback_csv, name='export_beta_feedback_csv'),
 ]

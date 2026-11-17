@@ -416,3 +416,45 @@ class Phase16ScalingAndArchitectureTests(TestCase):
                 if old_allow is not None:
                     os.environ['ALLOW_SYNTHETIC_DATA'] = old_allow
 
+    def test_export_beta_feedback_csv(self):
+        """Verifies staff can download beta feedback as CSV and non-staff is redirected."""
+        staff = User.objects.create_user(username='staff_csv', email='staff_csv@test.com', password='Password123!', is_staff=True)
+        student = User.objects.create_user(username='student_csv', email='stud_csv@test.com', password='Password123!')
+
+        BetaFeedback.objects.create(
+            user=student,
+            category='bug',
+            priority='high',
+            rating=4,
+            page_url='/courses/',
+            description='Test bug report for CSV export verification'
+        )
+
+        client = Client()
+        # Non-staff receives redirect
+        client.login(username='student_csv', password='Password123!')
+        resp_student = client.get(reverse('analytics:export_beta_feedback_csv'))
+        self.assertEqual(resp_student.status_code, 302)
+
+        # Staff receives CSV attachment
+        client.login(username='staff_csv', password='Password123!')
+        resp_staff = client.get(reverse('analytics:export_beta_feedback_csv'))
+        self.assertEqual(resp_staff.status_code, 200)
+        self.assertIn('text/csv', resp_staff['Content-Type'])
+        self.assertIn('attachment; filename="skillsphere_beta_feedback_', resp_staff['Content-Disposition'])
+        content = resp_staff.content.decode('utf-8')
+        self.assertIn('Category,Priority,Status', content)
+        self.assertIn('Test bug report for CSV export verification', content)
+
+    def test_backup_database_command_execution(self):
+        """Verifies backup_database management command runs with rotate and verify flags."""
+        from django.core.management import call_command
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = io.StringIO()
+            call_command('backup_database', '--rotate', 3, '--verify', '--output-dir', temp_dir, stdout=out)
+            output = out.getvalue()
+            self.assertIn("SKILLSPHERE DATABASE BACKUP & ROTATION UTILITY", output)
+
+

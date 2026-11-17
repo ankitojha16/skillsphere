@@ -1,4 +1,5 @@
 import base64
+import csv
 import json
 import logging
 from datetime import timedelta
@@ -7,7 +8,7 @@ from PIL import Image
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
-from django.http import JsonResponse, HttpResponseBadRequest, HttpResponseForbidden
+from django.http import JsonResponse, HttpResponseBadRequest, HttpResponseForbidden, HttpResponse
 from django.contrib import messages
 from django.core.cache import cache
 from django.utils import timezone
@@ -385,3 +386,47 @@ def update_feedback_status_api(request, feedback_id):
 
     messages.success(request, f"Feedback #{feedback.id} updated.")
     return redirect('analytics:admin_beta_dashboard')
+
+
+@staff_member_required(login_url='accounts:login')
+def export_beta_feedback_csv(request):
+    """
+    Export all beta feedback submissions as a structured CSV for triage and weekly reporting.
+    Staff-only.
+    """
+    response = HttpResponse(content_type='text/csv; charset=utf-8')
+    timestamp_str = timezone.now().strftime('%Y%m%d_%H%M%S')
+    response['Content-Disposition'] = f'attachment; filename="skillsphere_beta_feedback_{timestamp_str}.csv"'
+
+    writer = csv.writer(response)
+    writer.writerow([
+        'ID',
+        'Category',
+        'Priority',
+        'Status',
+        'Rating',
+        'Page URL',
+        'Reporter',
+        'Description',
+        'Admin Notes',
+        'Created At'
+    ])
+
+    feedback_qs = BetaFeedback.objects.select_related('user').order_by('-created_at')
+    for fb in feedback_qs:
+        reporter = fb.user.username if fb.user else 'Anonymous'
+        writer.writerow([
+            fb.id,
+            fb.get_category_display() if hasattr(fb, 'get_category_display') else fb.category,
+            fb.get_priority_display() if hasattr(fb, 'get_priority_display') else fb.priority,
+            fb.status,
+            fb.rating if fb.rating is not None else '',
+            fb.page_url or '',
+            reporter,
+            fb.description.replace('\r\n', '\n') if fb.description else '',
+            fb.admin_notes.replace('\r\n', '\n') if fb.admin_notes else '',
+            fb.created_at.strftime('%Y-%m-%d %H:%M:%S') if fb.created_at else ''
+        ])
+
+    return response
+

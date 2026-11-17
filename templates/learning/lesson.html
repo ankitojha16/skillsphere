@@ -36,6 +36,9 @@
 {% endblock %}
 
 {% block content %}
+<!-- Reading Depth Scroll Progress Indicator -->
+<div id="lessonReadingProgress" style="position: fixed; top: 0; left: 0; height: 3px; width: 0%; background: linear-gradient(90deg, #6366f1, #8b5cf6, #10b981); z-index: 1050; transition: width 0.1s linear; pointer-events: none;"></div>
+
 <div class="container-fluid px-3 py-3">
     <div class="row g-3">
         <!-- LEFT SIDEBAR: Course Curriculum & Modules -->
@@ -1100,9 +1103,10 @@ ORDER BY c.rating DESC;</textarea>
             <!-- Bottom Navigation Bar -->
             <div class="d-flex justify-content-between align-items-center gap-3 pt-3 border-top" style="border-color: var(--border-color) !important;">
                 {% if prev_lesson %}
-                    <a href="{% url 'learning:lesson_detail' course_slug=course.slug lesson_id=prev_lesson.id %}" class="btn btn-secondary-custom">
+                    <a href="{% url 'learning:lesson_detail' course_slug=course.slug lesson_id=prev_lesson.id %}" class="btn btn-secondary-custom d-inline-flex align-items-center gap-1.5" id="prevLessonBtn" title="Shortcut: [ or Shift+Left">
                         <i data-lucide="chevron-left" style="width: 18px; height: 18px;"></i>
                         <span>Previous Lesson</span>
+                        <kbd class="small text-secondary bg-dark border border-secondary px-1 ms-1 d-none d-sm-inline" style="font-size:0.65rem;">[</kbd>
                     </a>
                 {% else %}
                     <div></div>
@@ -1112,8 +1116,9 @@ ORDER BY c.rating DESC;</textarea>
                     <form action="{% url 'learning:complete_toggle' course_slug=course.slug lesson_id=lesson.id %}" method="post" class="d-inline">
                         {% csrf_token %}
                         <input type="hidden" name="next_action" value="advance">
-                        <button type="submit" class="btn btn-primary-custom py-2 px-4">
-                            <span>Complete & Next Lesson</span>
+                        <button type="submit" class="btn btn-primary-custom py-2 px-4 d-inline-flex align-items-center gap-1.5" id="nextLessonBtn" title="Shortcut: ] or Shift+Right">
+                            <span>Complete &amp; Next Lesson</span>
+                            <kbd class="small text-white-50 bg-dark border border-secondary px-1 ms-1 d-none d-sm-inline" style="font-size:0.65rem;">]</kbd>
                             <i data-lucide="chevron-right" style="width: 18px; height: 18px;"></i>
                         </button>
                     </form>
@@ -1425,6 +1430,41 @@ document.addEventListener('DOMContentLoaded', () => {
             lessonPreviewName.textContent = lessonNameInput.value.trim() || 'Student Name';
         });
     }
+
+    // 0.1 Reading Depth Scroll Progress Indicator
+    const progressEl = document.getElementById('lessonReadingProgress');
+    if (progressEl) {
+        const updateScrollProgress = () => {
+            const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+            if (docHeight > 0) {
+                const scrolled = (window.scrollY / docHeight) * 100;
+                progressEl.style.width = Math.min(100, Math.max(0, scrolled)) + '%';
+            }
+        };
+        window.addEventListener('scroll', updateScrollProgress, { passive: true });
+        updateScrollProgress();
+    }
+
+    // 0.2 Keyboard Navigation ([ for Prev, ] for Next)
+    document.addEventListener('keydown', (e) => {
+        const activeTag = document.activeElement ? document.activeElement.tagName : '';
+        if (['INPUT', 'TEXTAREA', 'SELECT'].includes(activeTag) || (document.activeElement && document.activeElement.isContentEditable)) {
+            return;
+        }
+        if (e.key === '[' || (e.shiftKey && e.key === 'ArrowLeft')) {
+            const prevBtn = document.getElementById('prevLessonBtn');
+            if (prevBtn) {
+                e.preventDefault();
+                prevBtn.click();
+            }
+        } else if (e.key === ']' || (e.shiftKey && e.key === 'ArrowRight')) {
+            const nextBtn = document.getElementById('nextLessonBtn');
+            if (nextBtn) {
+                e.preventDefault();
+                nextBtn.click();
+            }
+        }
+    });
 
     // Auto-open Claim Certificate Modal if eligible and unclaimed
     {% if progress_info.is_certificate_eligible and not progress_info.certificate_issued %}

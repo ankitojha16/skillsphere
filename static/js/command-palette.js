@@ -6,7 +6,80 @@
 (function() {
     const COMMAND_ITEMS = [
         // ==========================================
-        // 1. Coding Challenges Index
+        // 0. Core Navigation (5 Pillars)
+        // ==========================================
+        {
+            category: "Core Navigation",
+            title: "Home",
+            desc: "Daily student dashboard, milestones, and learning activity overview",
+            icon: "layout-dashboard",
+            url: "/dashboard/",
+            keywords: "home dashboard overview start feed daily"
+        },
+        {
+            category: "Core Navigation",
+            title: "Learn",
+            desc: "69 accredited courses, 1,104 structured lessons, and interactive roadmaps",
+            icon: "book-open",
+            url: "/courses/",
+            keywords: "learn courses lessons catalog syllabus curriculum roadmaps study"
+        },
+        {
+            category: "Core Navigation",
+            title: "Practice",
+            desc: "Skill assessments, algorithmic coding judge, and AI mock interview prep",
+            icon: "code-2",
+            url: "/assessments/",
+            keywords: "practice assessments challenges code leetcode mock interview test"
+        },
+        {
+            category: "Core Navigation",
+            title: "Projects",
+            desc: "Project portfolio studio, capstone blueprints, and GitHub repo showcase",
+            icon: "folder-git-2",
+            url: "/portfolio/",
+            keywords: "projects portfolio build capstone showcase code github"
+        },
+        {
+            category: "Core Navigation",
+            title: "Career",
+            desc: "11 career tracks, skill gap analysis, Smart Resume Builder, and opportunity hub",
+            icon: "briefcase",
+            url: "/career-studio/",
+            keywords: "career studio tracks jobs opportunities resume ats analyzer gap"
+        },
+
+        // ==========================================
+        // 1. Beta Cohort 1 & Platform Quick Actions
+        // ==========================================
+        {
+            category: "Beta Actions",
+            title: "Submit Beta Feedback",
+            desc: "Open 5-question structured feedback dialog (bugs, usability, ideas)",
+            icon: "message-square-plus",
+            action: () => {
+                const modalEl = document.getElementById('betaFeedbackModal');
+                if (modalEl && window.bootstrap) {
+                    const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+                    modal.show();
+                } else {
+                    const btn = document.getElementById('globalFeedbackTrigger') || document.querySelector('[data-bs-target="#betaFeedbackModal"]');
+                    if (btn) btn.click();
+                }
+            },
+            keywords: "beta feedback bug issue report complaint suggest usability review"
+        },
+        {
+            category: "Beta Actions",
+            title: "Beta Operations Hub",
+            desc: "Staff-only telemetry, cohort invitations, active learners, and open bug triage",
+            icon: "shield-alert",
+            url: "/analytics/beta/",
+            keywords: "beta operations telemetry analytics cohort invites staff admin triage"
+        },
+
+        // ==========================================
+        // 2. Coding Challenges Index
         // ==========================================
         {
             category: "Coding Challenges",
@@ -84,7 +157,7 @@
         {
             category: "Quick Actions",
             title: "Browse Courses",
-            desc: "Explore 6 flagship production engineering curriculums & tracks",
+            desc: "Explore 69 accredited courses and 1,104 structured lessons across 11 career tracks",
             icon: "compass",
             url: "/courses/",
             keywords: "browse courses catalog learn syllabus tracks curriculum"
