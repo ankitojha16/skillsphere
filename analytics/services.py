@@ -1,3 +1,4 @@
+import re
 import logging
 from django.utils import timezone
 from .models import ProductEvent
@@ -8,14 +9,34 @@ logger = logging.getLogger(__name__)
 FORBIDDEN_METADATA_KEYS = {
     'password', 'password1', 'password2', 'token', 'secret',
     'auth', 'api_key', 'authorization', 'email', 'phone',
-    'credit_card', 'cookie', 'session', 'sessionid', 'csrftoken'
+    'credit_card', 'cookie', 'session', 'sessionid', 'csrftoken',
+    'invite', 'invite_code', 'code', 'token_hash', 'raw_token',
+    'full_name', 'first_name', 'last_name', 'student_name',
+    'guardian', 'guardian_email', 'address', 'ssn', 'credentials',
+    'private_key', 'file_path', 'absolute_path'
 }
+
+RE_EMAIL = re.compile(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+')
+RE_TOKEN = re.compile(r'\b(c1_[A-Za-z0-9_\-]{16,}|BETA-C1-[A-Za-z0-9_\-]+)\b')
+RE_PATH = re.compile(r'(/Users/[^\s]+|/home/[^\s]+|/var/[^\s]+|/tmp/[^\s]+)')
+
+
+def redact_sensitive_string(val):
+    """
+    Scans and redacts emails, invite tokens, credentials, and system paths from strings.
+    """
+    if not isinstance(val, str):
+        return val
+    val = RE_TOKEN.sub('[REDACTED_TOKEN]', val)
+    val = RE_EMAIL.sub('[REDACTED_EMAIL]', val)
+    val = RE_PATH.sub('[REDACTED_PATH]', val)
+    return val
 
 
 def sanitize_metadata(meta):
     """
-    Strips any sensitive or PII fields from metadata before storage.
-    Ensures metadata is a clean JSON-serializable dictionary.
+    Strips sensitive keys and deeply redacts PII/tokens from values before storage.
+    Ensures metadata is a clean, privacy-shielded JSON-serializable dictionary.
     """
     if not isinstance(meta, dict):
         return {}
@@ -24,13 +45,17 @@ def sanitize_metadata(meta):
         k_lower = str(k).lower().strip()
         if any(bad in k_lower for bad in FORBIDDEN_METADATA_KEYS):
             continue
-        # Convert non-serializable objects to safe string representations
-        if isinstance(v, (int, float, bool, str)) or v is None:
+        # Redact and clean values
+        if isinstance(v, str):
+            sanitized[k] = redact_sensitive_string(v)[:250]
+        elif isinstance(v, (int, float, bool)) or v is None:
             sanitized[k] = v
         elif isinstance(v, (list, tuple)):
-            sanitized[k] = [str(item) for item in v[:20]]
+            sanitized[k] = [redact_sensitive_string(str(item))[:150] for item in v[:20]]
+        elif isinstance(v, dict):
+            sanitized[k] = sanitize_metadata(v)
         else:
-            sanitized[k] = str(v)[:200]
+            sanitized[k] = redact_sensitive_string(str(v))[:200]
     return sanitized
 
 

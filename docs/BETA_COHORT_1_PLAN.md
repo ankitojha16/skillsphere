@@ -54,32 +54,39 @@ Execute a controlled, invite-only beta for an initial cohort of **10–20 studen
   • 1-click Career Track selection across 11 industry paths
   • Starter portfolio project brief with 1-click initialization
   • Global 5-question Beta Feedback modal link
-  • Dedicated support contact card: beta-support@skillsphere.test
+  • Dedicated support contact card: support@skillsphere.app
 ```
 
 ---
 
-## 3. Provisioned Invitation Tokens (Cohort 1)
+## 3. Provisioned Secure Invitation Architecture (Cohort 1)
 
-15 unique, cryptographically random invitation tokens were generated via `python manage.py setup_beta_cohort_1`:
+All previously exposed tokens have been **revoked**. Beta Cohort 1 invitations now employ a hardened cryptographic architecture:
 
-| Token Code | Designated Recipient | Invite URL | Status |
-| :--- | :--- | :--- | :---: |
-| `BETA-C1-7A918602` | `cohort1_student_01@skillsphere.beta` | `/accounts/invite/BETA-C1-7A918602/` | **Pending** |
-| `BETA-C1-12690040` | `cohort1_student_02@skillsphere.beta` | `/accounts/invite/BETA-C1-12690040/` | **Pending** |
-| `BETA-C1-5BE4C21A` | `cohort1_student_03@skillsphere.beta` | `/accounts/invite/BETA-C1-5BE4C21A/` | **Pending** |
-| `BETA-C1-5E06BB18` | `cohort1_student_04@skillsphere.beta` | `/accounts/invite/BETA-C1-5E06BB18/` | **Pending** |
-| `BETA-C1-A5E714BB` | `cohort1_student_05@skillsphere.beta` | `/accounts/invite/BETA-C1-A5E714BB/` | **Pending** |
-| `BETA-C1-B66400A1` | `cohort1_student_06@skillsphere.beta` | `/accounts/invite/BETA-C1-B66400A1/` | **Pending** |
-| `BETA-C1-33D0A13E` | `cohort1_student_07@skillsphere.beta` | `/accounts/invite/BETA-C1-33D0A13E/` | **Pending** |
-| `BETA-C1-1DC80D70` | `cohort1_student_08@skillsphere.beta` | `/accounts/invite/BETA-C1-1DC80D70/` | **Pending** |
-| `BETA-C1-BCF6A45F` | `cohort1_student_09@skillsphere.beta` | `/accounts/invite/BETA-C1-BCF6A45F/` | **Pending** |
-| `BETA-C1-77DBADF3` | `cohort1_student_10@skillsphere.beta` | `/accounts/invite/BETA-C1-77DBADF3/` | **Pending** |
-| `BETA-C1-BB37D8F5` | `cohort1_student_11@skillsphere.beta` | `/accounts/invite/BETA-C1-BB37D8F5/` | **Pending** |
-| `BETA-C1-C02C3A4B` | `cohort1_student_12@skillsphere.beta` | `/accounts/invite/BETA-C1-C02C3A4B/` | **Pending** |
-| `BETA-C1-C17E208E` | `cohort1_student_13@skillsphere.beta` | `/accounts/invite/BETA-C1-C17E208E/` | **Pending** |
-| `BETA-C1-E0D11F7F` | `cohort1_student_14@skillsphere.beta` | `/accounts/invite/BETA-C1-E0D11F7F/` | **Pending** |
-| `BETA-C1-7ADA8FD2` | `cohort1_student_15@skillsphere.beta` | `/accounts/invite/BETA-C1-7ADA8FD2/` | **Pending** |
+- **Entropy**: $\ge 160$ bits of randomness per token (`secrets.token_urlsafe(24)`).
+- **Storage**: Raw secret tokens are **never** stored in the database or persisted in server logs. Only cryptographic SHA-256 hashes (`token_hash`) are persisted.
+- **Single-Use**: Row-level atomic transactions enforce strict single-use upon account creation.
+- **Expiry**: 7-day TTL expiration (`expires_at`), after which unredeemed tokens automatically expire.
+- **Email Binding**: Each invitation is cryptographically bound to its authorized recipient email. Registration requests with non-matching emails are rejected with validation errors.
+- **Operator Distribution**: Private URLs (`https://skillsphere.app/accounts/invite/<raw_token>/`) are output once to the operator terminal via `python manage.py setup_beta_cohort_1` and never checked into documentation.
+
+| Invitation Reference | Designated Recipient | Status | Expiration Policy |
+| :--- | :--- | :---: | :--- |
+| `BETA-C1-01` | `student_01@skillsphere.app` | **Created / Active** | 7-day TTL • SHA-256 Hashed |
+| `BETA-C1-02` | `student_02@skillsphere.app` | **Created / Active** | 7-day TTL • SHA-256 Hashed |
+| `BETA-C1-03` | `student_03@skillsphere.app` | **Created / Active** | 7-day TTL • SHA-256 Hashed |
+| `BETA-C1-04` | `student_04@skillsphere.app` | **Created / Active** | 7-day TTL • SHA-256 Hashed |
+| `BETA-C1-05` | `student_05@skillsphere.app` | **Created / Active** | 7-day TTL • SHA-256 Hashed |
+| `BETA-C1-06` | `student_06@skillsphere.app` | **Created / Active** | 7-day TTL • SHA-256 Hashed |
+| `BETA-C1-07` | `student_07@skillsphere.app` | **Created / Active** | 7-day TTL • SHA-256 Hashed |
+| `BETA-C1-08` | `student_08@skillsphere.app` | **Created / Active** | 7-day TTL • SHA-256 Hashed |
+| `BETA-C1-09` | `student_09@skillsphere.app` | **Created / Active** | 7-day TTL • SHA-256 Hashed |
+| `BETA-C1-10` | `student_10@skillsphere.app` | **Created / Active** | 7-day TTL • SHA-256 Hashed |
+| `BETA-C1-11` | `student_11@skillsphere.app` | **Created / Active** | 7-day TTL • SHA-256 Hashed |
+| `BETA-C1-12` | `student_12@skillsphere.app` | **Created / Active** | 7-day TTL • SHA-256 Hashed |
+| `BETA-C1-13` | `student_13@skillsphere.app` | **Created / Active** | 7-day TTL • SHA-256 Hashed |
+| `BETA-C1-14` | `student_14@skillsphere.app` | **Created / Active** | 7-day TTL • SHA-256 Hashed |
+| `BETA-C1-15` | `student_15@skillsphere.app` | **Created / Active** | 7-day TTL • SHA-256 Hashed |
 
 ---
 
@@ -95,6 +102,8 @@ In compliance with student data rights and COPPA/GDPR guidelines:
 
 ## 5. Support & Communications Channel
 
-- **Beta Operations Lead Email**: `beta-support@skillsphere.test`
+- **Beta Operations Lead Email**: `support@skillsphere.app`
+- **In-App Direct Feedback**: Persistent "Give Feedback" button in navbar and dashboard footer triggering the 5-question structured modal.
+- **Staff Operations Hub**: `/analytics/beta/` providing live telemetry, open bug prioritization, and invitation status.
 - **In-App Direct Feedback**: Persistent "Give Feedback" button in navbar and dashboard footer triggering the 5-question structured modal.
 - **Staff Operations Hub**: `/analytics/beta/` providing live telemetry, open bug prioritization, and invitation status.

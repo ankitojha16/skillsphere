@@ -402,3 +402,10 @@ LOGGING = {
         },
     },
 }
+
+# Email Delivery Configuration
+EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend' if DEBUG else 'django.core.mail.backends.smtp.EmailBackend')
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'SkillSphere Support <support@skillsphere.app>')
+SUPPORT_EMAIL = os.getenv('SUPPORT_EMAIL', 'support@skillsphere.app')
+SERVER_EMAIL = os.getenv('SERVER_EMAIL', 'support@skillsphere.app')
+

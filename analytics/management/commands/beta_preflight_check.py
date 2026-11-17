@@ -137,17 +137,38 @@ class Command(BaseCommand):
 
         # 6. Beta Invitations & Cohort 1 Operations
         self.stdout.write(self.style.MIGRATE_HEADING("\n6. Verifying Beta Cohort 1 Invitations & Onboarding..."))
-        inv_count = BetaInvitation.objects.filter(cohort_name='Cohort 1').count()
-        log_check(f"Cohort 1 Controlled Invitations Initialized (Count: {inv_count})", inv_count >= 10)
+        hashed_inv_count = BetaInvitation.objects.filter(cohort_name='Cohort 1', status='created', token_hash__isnull=False).count()
+        log_check(f"Cryptographically Secure Hashed Invitations (Count: {hashed_inv_count})", hashed_inv_count >= 10)
+
+        # Monitored Support Email Verification
+        support_email_valid = (
+            getattr(settings, 'SUPPORT_EMAIL', None) == 'support@skillsphere.app' and
+            'support@skillsphere.app' in getattr(settings, 'DEFAULT_FROM_EMAIL', '')
+        )
+        log_check("Monitored Support Email Configured (support@skillsphere.app)", support_email_valid)
 
         # Check an invitation landing page
-        first_inv = BetaInvitation.objects.filter(cohort_name='Cohort 1').first()
+        first_inv = BetaInvitation.objects.filter(cohort_name='Cohort 1', status='created').first()
         if first_inv:
             resp_inv = client.get(reverse('accounts:beta_invite_landing', kwargs={'code': first_inv.code}))
             log_check(
                 f"Invite Landing Page Accessible (/accounts/invite/{first_inv.code}/)",
                 resp_inv.status_code == 200 and b"Welcome to SkillSphere" in resp_inv.content
             )
+
+            # Strict Email Binding Verification (Mismatched email rejected)
+            client.logout()
+            resp_mismatch = client.post(reverse('accounts:signup'), {
+                'invite_code': first_inv.code,
+                'email': 'unauthorized_imposter@skillsphere.test',
+                'full_name': 'Imposter User',
+                'password': 'SecurePassword123!',
+                'confirm_password': 'SecurePassword123!',
+                'terms_accepted': 'on',
+            })
+            mismatch_rejected = resp_mismatch.status_code == 200 and b"This invitation was issued specifically to" in resp_mismatch.content
+            log_check("Strict Email Binding Enforced (Mismatched Email Blocked)", mismatch_rejected)
+
 
         # 7. Privacy-Conscious Telemetry & Feedback
         self.stdout.write(self.style.MIGRATE_HEADING("\n7. Verifying Telemetry & 5-Category Feedback Pipeline..."))

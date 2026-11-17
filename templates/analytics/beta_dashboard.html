@@ -52,8 +52,11 @@
                     <i data-lucide="mail-check" style="width: 16px; height: 16px;" class="text-purple"></i>
                 </div>
                 <div class="display-6 fw-bold text-white mb-1">{{ total_invitations }}</div>
-                <div class="text-muted small" style="font-size: 0.78rem;">
-                    <span class="text-warning fw-semibold">{{ pending_invitations }} pending</span> • <span class="text-success fw-semibold">{{ accepted_invitations }} accepted</span>
+                <div class="text-muted small" style="font-size: 0.76rem; line-height: 1.4;">
+                    <span class="text-primary fw-semibold">{{ created_invitations }} created</span> • <span class="text-info fw-semibold">{{ sent_invitations }} sent</span> • <span class="text-success fw-semibold">{{ accepted_invitations }} accepted</span>
+                    {% if revoked_invitations or expired_invitations %}
+                    <br><span class="text-danger fw-semibold">{{ revoked_invitations }} revoked</span> • <span class="text-secondary">{{ expired_invitations }} expired</span>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -81,7 +84,8 @@
                 </div>
                 <div class="display-6 fw-bold text-white mb-1">{{ onboarding_rate }}%</div>
                 <div class="text-muted small" style="font-size: 0.78rem;">
-                    {{ onboarding_completed_count }} of {{ total_users }} registered learners completed
+                    <strong class="text-white">{{ onboarding_completed_count }}</strong> of {{ total_users }} registered learners completed
+                    <div class="text-secondary mt-0.5" style="font-size: 0.72rem;">(Separate from {{ total_invitations }} invitations issued)</div>
                 </div>
             </div>
         </div>
@@ -175,21 +179,25 @@
     <!-- Invited Students Section -->
     <div class="custom-card p-4 mb-4">
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-            <h5 class="fw-bold text-white mb-0 d-flex align-items-center gap-2">
-                <i data-lucide="ticket" class="text-purple" style="width: 20px; height: 20px;"></i>
-                <span>Cohort 1 Invited Students ({{ total_invitations }})</span>
-            </h5>
-            <span class="text-secondary small">Controlled Invitation Tokens</span>
+            <div>
+                <h5 class="fw-bold text-white mb-0 d-flex align-items-center gap-2">
+                    <i data-lucide="ticket" class="text-purple" style="width: 20px; height: 20px;"></i>
+                    <span>Cohort 1 Controlled Invitations ({{ total_invitations }})</span>
+                </h5>
+                <div class="text-secondary small mt-0.5">Single-use tokens with &ge;128 bits entropy, SHA-256 hash storage, 7-day TTL, and strict email binding.</div>
+            </div>
+            <span class="badge bg-purple-subtle text-purple border border-purple-subtle small">Tokens Redacted • SHA-256 Protected</span>
         </div>
 
         <div class="table-responsive">
             <table class="table table-dark table-hover align-middle mb-0" style="font-size: 0.85rem;">
                 <thead class="text-secondary small">
                     <tr>
-                        <th>Code</th>
-                        <th>Assigned Email</th>
+                        <th>Ref ID</th>
+                        <th>Token Prefix (Masked)</th>
+                        <th>Bound Student Email</th>
                         <th>Status</th>
-                        <th>Invite Link</th>
+                        <th>Expires (7d TTL)</th>
                         <th>Claimed By</th>
                         <th>Created</th>
                     </tr>
@@ -198,37 +206,47 @@
                     {% for inv in invitations_list %}
                     <tr>
                         <td>
+                            <span class="badge bg-dark border border-secondary text-secondary font-monospace">{{ inv.code }}</span>
+                        </td>
+                        <td>
                             <div class="d-flex align-items-center gap-1.5">
-                                <code class="fw-bold text-purple">{{ inv.code }}</code>
-                                <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1.5 copy-btn" data-copy="{{ inv.code }}" title="Copy Token">
-                                    <i data-lucide="copy" style="width: 12px; height: 12px;"></i>
-                                </button>
+                                <code class="fw-bold text-purple font-monospace">{% if inv.token_prefix %}{{ inv.token_prefix }}••••••••{% else %}{{ inv.code|slice:":8" }}••••{% endif %}</code>
+                                <span class="badge bg-dark text-muted border border-secondary small" style="font-size: 0.7rem;">Hashed</span>
                             </div>
                         </td>
-                        <td>{{ inv.email }}</td>
+                        <td>
+                            <span class="text-light fw-medium">{{ inv.email }}</span>
+                        </td>
                         <td>
                             {% if inv.status == 'accepted' %}
-                                <span class="badge bg-success-subtle text-success">Accepted</span>
+                                <span class="badge bg-success-subtle text-success">✓ Accepted</span>
+                            {% elif inv.status == 'sent' %}
+                                <span class="badge bg-info-subtle text-info">Sent</span>
+                            {% elif inv.status == 'created' %}
+                                <span class="badge bg-primary-subtle text-primary">Created</span>
                             {% elif inv.status == 'pending' %}
                                 <span class="badge bg-warning-subtle text-warning">Pending</span>
+                            {% elif inv.status == 'expired' %}
+                                <span class="badge bg-secondary text-white">Expired</span>
+                            {% elif inv.status == 'revoked' %}
+                                <span class="badge bg-danger-subtle text-danger">Revoked</span>
                             {% else %}
                                 <span class="badge bg-secondary-subtle text-secondary">{{ inv.status }}</span>
                             {% endif %}
                         </td>
                         <td>
-                            <div class="d-flex align-items-center gap-1.5">
-                                <a href="/accounts/invite/{{ inv.code }}/" target="_blank" class="small text-info text-decoration-none text-truncate" style="max-width: 190px;">
-                                    /accounts/invite/{{ inv.code }}/
-                                </a>
-                                <button type="button" class="btn btn-xs btn-outline-info py-0 px-1.5 copy-btn" data-copy="{{ request.scheme }}://{{ request.get_host }}/accounts/invite/{{ inv.code }}/" title="Copy Full Invite URL">
-                                    <i data-lucide="link" style="width: 12px; height: 12px;"></i>
-                                    <span class="small" style="font-size: 0.72rem;">Copy</span>
-                                </button>
-                            </div>
+                            {% if inv.expires_at %}
+                                <span class="small {% if inv.is_expired %}text-danger{% else %}text-secondary{% endif %}">
+                                    {{ inv.expires_at|date:"M j, H:i" }}
+                                    {% if inv.is_expired %}(Expired){% endif %}
+                                </span>
+                            {% else %}
+                                <span class="text-muted small">—</span>
+                            {% endif %}
                         </td>
                         <td>
                             {% if inv.registered_user %}
-                                <span class="text-white">{{ inv.registered_user.username }}</span>
+                                <span class="text-white fw-semibold">{{ inv.registered_user.username }}</span>
                             {% else %}
                                 <span class="text-muted">—</span>
                             {% endif %}
@@ -237,7 +255,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="6" class="text-center py-3 text-muted">No invitations generated yet. Run <code>python manage.py setup_beta_cohort_1</code> to generate tokens.</td>
+                        <td colspan="7" class="text-center py-3 text-muted">No invitations generated yet. Run <code>python manage.py setup_beta_cohort_1</code> to generate tokens.</td>
                     </tr>
                     {% endfor %}
                 </tbody>

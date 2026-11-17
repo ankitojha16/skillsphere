@@ -4,6 +4,8 @@ from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.cache import cache
+from django.db import transaction
+from django.db.models import Q
 from .forms import UserRegistrationForm, UserLoginForm, ProfileSetupForm
 from .models import StudentProfile
 from goals.models import LearningActivity
@@ -17,56 +19,83 @@ def signup_view(request):
     invitation = None
     if invite_code:
         from analytics.models import BetaInvitation
-        invitation = BetaInvitation.objects.filter(code__iexact=invite_code).first()
+        token_hash = BetaInvitation.hash_token(invite_code)
+        invitation = BetaInvitation.objects.filter(
+            Q(token_hash=token_hash) | Q(code__iexact=invite_code)
+        ).first()
 
     if request.method == 'POST':
         form = UserRegistrationForm(request.POST)
         if form.is_valid():
-            email = form.cleaned_data['email']
+            email = form.cleaned_data['email'].strip().lower()
             password = form.cleaned_data['password']
-            full_name = form.cleaned_data['full_name']
+            full_name = form.cleaned_data['full_name'].strip()
 
-            # Use email as username or sanitized base
-            username = email.split('@')[0]
-            base_username = username
-            counter = 1
-            while User.objects.filter(username=username).exists():
-                username = f"{base_username}{counter}"
-                counter += 1
+            # Enforce invitation constraints: validity, single-use, expiry, and email binding
+            if invitation:
+                if not invitation.is_valid():
+                    if invitation.is_expired():
+                        form.add_error(None, "This invitation token has expired (7-day validity limit). Please request a fresh invitation.")
+                    else:
+                        form.add_error(None, "This invitation token is no longer valid or has already been accepted.")
+                    return render(request, 'accounts/signup.html', {
+                        'form': form,
+                        'invite_code': invite_code,
+                        'invitation': None,
+                    })
 
-            names = full_name.split(' ', 1)
-            first_name = names[0]
-            last_name = names[1] if len(names) > 1 else ''
+                if invitation.email.strip().lower() != email:
+                    form.add_error('email', f"This invitation was issued specifically to {invitation.email}. Please register with that exact email address.")
+                    return render(request, 'accounts/signup.html', {
+                        'form': form,
+                        'invite_code': invite_code,
+                        'invitation': invitation,
+                    })
 
-            user = User.objects.create_user(
-                username=username,
-                email=email,
-                password=password,
-                first_name=first_name,
-                last_name=last_name
-            )
+            with transaction.atomic():
+                # Use email as username or sanitized base
+                username = email.split('@')[0]
+                base_username = username
+                counter = 1
+                while User.objects.filter(username=username).exists():
+                    username = f"{base_username}{counter}"
+                    counter += 1
 
-            # Signal auto-creates StudentProfile, but let's ensure full_name is populated
-            profile, _ = StudentProfile.objects.get_or_create(user=user)
-            profile.full_name = full_name
-            profile.save()
+                names = full_name.split(' ', 1)
+                first_name = names[0]
+                last_name = names[1] if len(names) > 1 else ''
 
-            # Link invitation if valid and pending
-            cohort_name = 'Open Beta'
-            if invitation and invitation.status == 'pending':
-                from django.utils import timezone
-                invitation.status = 'accepted'
-                invitation.accepted_at = timezone.now()
-                invitation.registered_user = user
-                invitation.save()
-                cohort_name = invitation.cohort_name
+                user = User.objects.create_user(
+                    username=username,
+                    email=email,
+                    password=password,
+                    first_name=first_name,
+                    last_name=last_name
+                )
 
-            # Log registration activity
-            LearningActivity.objects.create(
-                user=user,
-                activity_type='ENROLL',
-                description=f"Joined SkillSphere! Welcome, {full_name}."
-            )
+                profile, _ = StudentProfile.objects.get_or_create(user=user)
+                profile.full_name = full_name
+                profile.save()
+
+                # Atomically claim invitation with row lock to guarantee strict single-use
+                cohort_name = 'Open Beta'
+                if invitation:
+                    from analytics.models import BetaInvitation
+                    inv_locked = BetaInvitation.objects.select_for_update().filter(id=invitation.id).first()
+                    if inv_locked and inv_locked.is_valid():
+                        from django.utils import timezone
+                        inv_locked.status = 'accepted'
+                        inv_locked.accepted_at = timezone.now()
+                        inv_locked.registered_user = user
+                        inv_locked.save()
+                        cohort_name = inv_locked.cohort_name
+
+                # Log registration activity
+                LearningActivity.objects.create(
+                    user=user,
+                    activity_type='ENROLL',
+                    description=f"Joined SkillSphere! Welcome, {full_name}."
+                )
 
             # Privacy-conscious first-party telemetry
             track_event(
@@ -93,13 +122,25 @@ def signup_view(request):
 def beta_invite_landing_view(request, code):
     """
     Dedicated welcome and verification landing page for Beta Cohort 1 invited students.
+    Validates token via SHA-256 hash or legacy code, enforces expiration and single-use,
+    and never exposes raw tokens in logs.
     """
     from analytics.models import BetaInvitation
-    invitation = BetaInvitation.objects.filter(code__iexact=code.strip()).first()
+    clean_code = (code or '').strip()
+    token_hash = BetaInvitation.hash_token(clean_code)
+    invitation = BetaInvitation.objects.filter(
+        Q(token_hash=token_hash) | Q(code__iexact=clean_code)
+    ).first()
+
+    is_valid = invitation.is_valid() if invitation else False
+    is_expired = invitation.is_expired() if invitation else False
+
     return render(request, 'accounts/beta_invite_landing.html', {
-        'code': code,
+        'code': clean_code,
         'invitation': invitation,
-        'is_valid': bool(invitation and invitation.status == 'pending'),
+        'is_valid': is_valid,
+        'is_expired': is_expired,
+        'token_prefix': invitation.token_prefix if invitation else '',
     })
 
 

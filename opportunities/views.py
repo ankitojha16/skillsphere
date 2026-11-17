@@ -23,11 +23,12 @@ from notifications.models import Notification
 from accounts.models import StudentProfile
 from accounts.decorators import recruiter_required
 from resumes.models import Resume, ResumeVersion
+from certificates.models import Certificate
 from assessments.models import ChallengeSubmission
 from gamification.models import UserArenaRating
-from certificates.models import Certificate
 from services.opportunity_matcher import OpportunityMatcher
 from services.interview_prep_service import InterviewPrepService
+from analytics.services import track_event
 
 
 # =============================================================================
@@ -212,6 +213,12 @@ def toggle_save_opportunity_view(request, pk):
             opportunity=opportunity,
             application_status='interested'
         )
+        track_event(
+            user=request.user,
+            event_type='opportunity_saved',
+            metadata={'opportunity_id': opportunity.id, 'title': opportunity.title[:100]},
+            event_key=f"opp_saved_{request.user.id}_{opportunity.id}"
+        )
         messages.success(request, f"Saved '{opportunity.title}' to your application tracker!")
 
     next_url = request.POST.get('next') or request.META.get('HTTP_REFERER') or 'opportunities:list'
@@ -274,8 +281,16 @@ def record_application_view(request, pk):
             saved.applied_at = timezone.now()
         saved.save()
 
-        # Record stage history
-        if old_status != new_status:
+    if new_status == 'applied':
+        track_event(
+            user=request.user,
+            event_type='application_submitted',
+            metadata={'opportunity_id': opportunity.id, 'title': opportunity.title[:100]},
+            event_key=f"app_sub_{request.user.id}_{opportunity.id}"
+        )
+
+    # Record stage history
+    if not created and old_status != new_status:
             ApplicationStatusHistory.objects.create(
                 application=saved,
                 from_status=old_status,

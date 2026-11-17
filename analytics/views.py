@@ -237,35 +237,44 @@ def admin_beta_dashboard_view(request):
     total_certificates = Certificate.objects.count()
     total_assessments_taken = AssessmentAttempt.objects.count()
 
-    # Event Funnel Counts (Cohort 1 Milestones)
-    first_lesson_count = ProductEvent.objects.filter(event_type__in=['first_lesson_started', 'lesson_completed']).values('user_id').distinct().count()
+    # Event Funnel Counts (Cohort 1 Milestones - Correct semantics while preserving historical events)
+    first_lesson_started_count = ProductEvent.objects.filter(event_type='first_lesson_started').values('user_id').distinct().count()
+    first_lesson_completed_count = ProductEvent.objects.filter(event_type__in=['first_lesson_completed', 'lesson_completed']).values('user_id').distinct().count()
     returning_student_count = ProductEvent.objects.filter(event_type='returning_login').values('user_id').distinct().count()
     projects_created_count = ProductEvent.objects.filter(event_type='first_project_created').values('user_id').distinct().count()
     resumes_generated_count = ProductEvent.objects.filter(event_type='resume_generated').values('user_id').distinct().count()
-    opportunities_saved_count = ProductEvent.objects.filter(event_type__in=['opportunity_saved', 'opportunity_applied']).values('user_id').distinct().count()
+    opportunities_saved_count = ProductEvent.objects.filter(event_type='opportunity_saved').values('user_id').distinct().count()
+    applications_submitted_count = ProductEvent.objects.filter(event_type__in=['application_submitted', 'opportunity_applied']).values('user_id').distinct().count()
     errors_count = ProductEvent.objects.filter(event_type__icontains='error').count()
 
     funnel = {
         'registrations': total_users,
         'onboarding': onboarding_completed_count,
         'enrolled': Enrollment.objects.values('user_id').distinct().count(),
-        'first_lesson': first_lesson_count,
+        'first_lesson_started': first_lesson_started_count,
+        'first_lesson_completed': first_lesson_completed_count,
+        'first_lesson': first_lesson_completed_count,  # backward compatibility alias
         'returning_student': returning_student_count,
         'projects_created': projects_created_count,
         'resumes_generated': resumes_generated_count,
         'opportunities_saved': opportunities_saved_count,
+        'applications_submitted': applications_submitted_count,
         'errors_encountered': errors_count,
         'course_completed': CourseCompletion.objects.filter(is_completed=True).values('user_id').distinct().count(),
         'certificates': Certificate.objects.values('user_id').distinct().count(),
     }
 
-    # Beta Invitations Management (Cohort 1)
+    # Beta Invitations Management (Cohort 1) - Complete Lifecycle
     from .models import BetaInvitation
     invitations_qs = BetaInvitation.objects.select_related('invited_by', 'registered_user').order_by('-created_at')
     total_invitations = invitations_qs.count()
-    pending_invitations = invitations_qs.filter(status='pending').count()
+    created_invitations = invitations_qs.filter(status='created').count()
+    sent_invitations = invitations_qs.filter(status__in=['sent', 'pending']).count()
     accepted_invitations = invitations_qs.filter(status='accepted').count()
-    invitations_list = invitations_qs[:20]
+    expired_invitations = invitations_qs.filter(status='expired').count()
+    revoked_invitations = invitations_qs.filter(status='revoked').count()
+    pending_invitations = created_invitations + sent_invitations
+    invitations_list = invitations_qs[:25]
 
     # Active Students (Privacy-Shielded: Zero exposure of private notes, calendars, or resumes)
     active_user_ids = list(dau_users | dau_events | wau_users | wau_events)
@@ -339,8 +348,12 @@ def admin_beta_dashboard_view(request):
         'total_assessments_taken': total_assessments_taken,
         'funnel': funnel,
         'total_invitations': total_invitations,
+        'created_invitations': created_invitations,
+        'sent_invitations': sent_invitations,
         'pending_invitations': pending_invitations,
         'accepted_invitations': accepted_invitations,
+        'expired_invitations': expired_invitations,
+        'revoked_invitations': revoked_invitations,
         'invitations_list': invitations_list,
         'active_students': active_students,
         'total_feedback': total_feedback,

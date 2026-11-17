@@ -23,25 +23,34 @@
         </div>
 
         <!-- Invitation Status Card -->
-        <div class="p-3.5 rounded-3 mb-4 border {% if is_valid %}border-success border-opacity-30 bg-success bg-opacity-10{% else %}border-warning border-opacity-30 bg-warning bg-opacity-10{% endif %}">
+        <div class="p-3.5 rounded-3 mb-4 border {% if is_valid %}border-success border-opacity-30 bg-success bg-opacity-10{% elif is_expired %}border-danger border-opacity-30 bg-danger bg-opacity-10{% else %}border-warning border-opacity-30 bg-warning bg-opacity-10{% endif %}">
             <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
                 <div class="d-flex align-items-center gap-2.5">
-                    <i data-lucide="{% if is_valid %}check-circle-2{% else %}alert-circle{% endif %}" style="width: 22px; height: 22px;" class="{% if is_valid %}text-success{% else %}text-warning{% endif %}"></i>
+                    <i data-lucide="{% if is_valid %}check-circle-2{% elif is_expired %}clock{% else %}alert-circle{% endif %}" style="width: 22px; height: 22px;" class="{% if is_valid %}text-success{% elif is_expired %}text-danger{% else %}text-warning{% endif %}"></i>
                     <div>
-                        <div class="fw-bold text-white small">Invitation Token: <code>{{ code }}</code></div>
+                        <div class="fw-bold text-white small">
+                            Invitation: <code>{% if token_prefix %}{{ token_prefix }}••••••••{% else %}Verified Token{% endif %}</code>
+                            {% if invitation.email %}
+                                <span class="text-secondary fw-normal ms-1">({{ invitation.email }})</span>
+                            {% endif %}
+                        </div>
                         <div class="text-secondary" style="font-size: 0.75rem;">
                             {% if is_valid %}
-                                Verified Active • 1 Student Seat Reserved
+                                Verified Active • 1 Student Seat Reserved • Valid for {{ invitation.email }}
+                            {% elif is_expired %}
+                                Expired Token • This invitation exceeded its 7-day validity window.
                             {% elif invitation and invitation.status == 'accepted' %}
                                 Already Claimed • This invitation token was already activated.
+                            {% elif invitation and invitation.status == 'revoked' %}
+                                Revoked Token • This invitation was revoked for security reasons.
                             {% else %}
-                                Invalid or Expired Token • Please verify your link or contact beta support.
+                                Invalid Token • Please verify your link or contact beta support.
                             {% endif %}
                         </div>
                     </div>
                 </div>
-                <span class="badge {% if is_valid %}bg-success{% else %}bg-secondary{% endif %} text-dark fw-bold text-uppercase px-2.5 py-1" style="font-size: 0.7rem;">
-                    {{ invitation.status|default:"Unverified" }}
+                <span class="badge {% if is_valid %}bg-success{% elif is_expired %}bg-danger{% else %}bg-secondary{% endif %} text-dark fw-bold text-uppercase px-2.5 py-1" style="font-size: 0.7rem;">
+                    {{ invitation.get_status_display|default:"Unverified" }}
                 </span>
             </div>
         </div>
@@ -114,7 +123,7 @@
         <!-- Support Contact Information -->
         <div class="pt-3 border-top border-secondary border-opacity-15 text-center">
             <div class="text-secondary small" style="font-size: 0.75rem;">
-                Need assistance during the beta? Contact the Beta Operations Team at <a href="mailto:beta-support@skillsphere.test" class="text-info text-decoration-none">beta-support@skillsphere.test</a>
+                Need assistance during the beta? Contact our monitored support desk at <a href="mailto:support@skillsphere.app" class="text-info text-decoration-none fw-semibold">support@skillsphere.app</a>
             </div>
         </div>
     </div>

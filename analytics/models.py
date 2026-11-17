@@ -1,3 +1,4 @@
+import hashlib
 import uuid
 from django.db import models
 from django.contrib.auth.models import User
@@ -19,12 +20,14 @@ class ProductEvent(models.Model):
         ('course_viewed', 'Course Viewed'),
         ('course_enrolled', 'Course Enrolled'),
         ('first_lesson_started', 'First Lesson Started'),
+        ('first_lesson_completed', 'First Lesson Completed'),
         ('lesson_completed', 'Lesson Completed'),
         ('course_completed', 'Course Completed'),
         ('assessment_attempted', 'Assessment Attempted'),
         ('first_project_created', 'First Project Created'),
         ('resume_generated', 'Resume Generated'),
         ('opportunity_saved', 'Opportunity Saved'),
+        ('application_submitted', 'Application Submitted'),
         ('opportunity_applied', 'Opportunity Applied'),
         ('certificate_earned', 'Certificate Earned'),
         ('active_user_ping', 'Active User Ping'),
@@ -145,16 +148,23 @@ class BetaFeedback(models.Model):
 class BetaInvitation(models.Model):
     """
     Manages controlled, invite-only access for student beta cohorts (10-20 students).
+    Uses cryptographically secure tokens (160+ bits entropy) stored as SHA-256 hashes,
+    single-use, 7-day expiration, and bound to recipient email.
     """
     STATUS_CHOICES = [
-        ('pending', 'Pending'),
+        ('created', 'Created'),
+        ('sent', 'Sent'),
+        ('pending', 'Pending / Sent'),  # backwards-compatibility
         ('accepted', 'Accepted'),
         ('expired', 'Expired'),
         ('revoked', 'Revoked'),
     ]
 
     email = models.EmailField(db_index=True)
-    code = models.CharField(max_length=32, unique=True, db_index=True)
+    code = models.CharField(max_length=64, unique=True, db_index=True)
+    token_hash = models.CharField(max_length=64, unique=True, null=True, blank=True, db_index=True)
+    token_prefix = models.CharField(max_length=16, blank=True, default='')
+    expires_at = models.DateTimeField(null=True, blank=True, db_index=True)
     cohort_name = models.CharField(max_length=64, default='Cohort 1')
     invited_by = models.ForeignKey(
         User,
@@ -163,7 +173,7 @@ class BetaInvitation(models.Model):
         blank=True,
         related_name='issued_beta_invitations'
     )
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', db_index=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='created', db_index=True)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     accepted_at = models.DateTimeField(null=True, blank=True)
     registered_user = models.ForeignKey(
@@ -179,7 +189,30 @@ class BetaInvitation(models.Model):
         ordering = ['-created_at']
         indexes = [
             models.Index(fields=['status', 'cohort_name']),
+            models.Index(fields=['token_hash']),
+            models.Index(fields=['email']),
         ]
+
+    @classmethod
+    def hash_token(cls, raw_token):
+        if not raw_token:
+            return ''
+        return hashlib.sha256(raw_token.strip().encode('utf-8')).hexdigest()
+
+    def is_expired(self):
+        if self.expires_at and timezone.now() > self.expires_at:
+            return True
+        return False
+
+    def is_valid(self):
+        if self.status in ['revoked', 'accepted', 'expired']:
+            return False
+        if self.is_expired():
+            if self.status != 'expired':
+                self.status = 'expired'
+                self.save(update_fields=['status'])
+            return False
+        return self.status in ['created', 'sent', 'pending']
 
     def __str__(self):
         return f"Invite [{self.code}] for {self.email} ({self.status})"

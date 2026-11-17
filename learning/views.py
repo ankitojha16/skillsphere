@@ -347,6 +347,19 @@ def complete_lesson_toggle(request, course_slug, lesson_id):
                 metadata={'course_id': course.id, 'lesson_id': lesson.id},
                 event_key=f"lesson_comp_{request.user.id}_{lesson.id}"
             )
+
+            # Telemetry: First lesson completed milestone (idempotent per user)
+            is_first_completed = not LessonProgress.objects.filter(
+                user=request.user, is_completed=True
+            ).exclude(lesson=lesson).exists()
+            if is_first_completed:
+                track_event(
+                    user=request.user,
+                    event_type='first_lesson_completed',
+                    metadata={'course_id': course.id, 'lesson_id': lesson.id, 'course_title': course.title},
+                    event_key=f"first_lesson_comp_{request.user.id}"
+                )
+
             messages.success(request, f"Great job! Marked '{lesson.title}' as completed.")
         elif not target_completed and prev_completed:
             messages.info(request, f"Marked '{lesson.title}' as incomplete.")
